@@ -25,7 +25,6 @@ class TH2F;
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoDstMaker/StPicoTrack.h"
-//#include "StRoot/StPicoDstMaker/StPicoV0.h"
 
 #include "StJetTaskNEW.h"
 
@@ -123,6 +122,7 @@ void StRho::WriteHistograms() {
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
   StRhoBase::Clear();
+
 /*
   delete fHistMultvsRho;
 */
@@ -179,7 +179,7 @@ Int_t StRho::Make()
   }
   if(!fJets) return kStWarn; //kStFatal;
 
-  // get event multiplicity
+  // get event multiplicity -TODO should define this differently
   const int multiplicity = mPicoDst->numberOfTracks();
 
   // initialize Rho and scaled Rho
@@ -262,8 +262,8 @@ Int_t StRho::Make()
     Double_t rho = TMath::Median(NjetAcc, rhovec);
     fOutRho->SetVal(rho);
 
-    // test print statement
-//    cout<<"Rho = "<<rho<<endl;
+    // print statement
+    //cout<<"Rho = "<<rho<<endl;
     fHistMultvsRho->Fill(multiplicity, rho);
 
     // if we want scaled Rho

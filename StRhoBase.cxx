@@ -22,12 +22,17 @@
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StRhoBase.h"
-
 #include "StJetTaskNEW.h"
+#include "StMyAnalysisMaker.h"
+
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
+
+// STAR centrality includes
+#include "StRoot/StRefMultCorr/StRefMultCorr.h"
+#include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 ClassImp(StRhoBase)
 
@@ -68,6 +73,7 @@ StRhoBase::StRhoBase() :
   mPicoDstMaker(0),
   mPicoDst(0),
   mPicoEvent(0),
+  grefmultCorr(0),
   JetMaker(0), 
   mOutName(""),
   fJetMakerName(""),
@@ -121,6 +127,7 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   mPicoDstMaker(0),
   mPicoDst(0),
   mPicoEvent(0),
+  grefmultCorr(0),
   JetMaker(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
@@ -168,6 +175,9 @@ Int_t StRhoBase::Init()
 */
 
   //StJet::Init(); //FIXME
+
+  // initialize centrality correction
+  grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
 
   return kStOk;
 }
@@ -232,7 +242,7 @@ void StRhoBase::DeclareHistograms()
   // User create output objects, called at the beginning of the analysis.
   //if (!fCreateHisto) return; //FIXME
 
-  //ranges for PbPb
+  //ranges for PbPb, change for AuAug -FIXME
   Float_t Ntrackrange[2] = {0, 6000};
   Float_t V0Mult[2] = {0.,25000.};
   if(!fIsPbPb){
@@ -425,6 +435,13 @@ Int_t StRhoBase::Make()
     //return kStFatal;
   }
 
+  // get vertex 3 vector and declare variables
+  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  double zVtx = mVertex.z();
+
+  // zvertex cut - per the Aj analysis
+  if((1.0*TMath::Abs(zVtx)) > 40) return kStWarn; //kStFatal;
+
   // get JetMaker
   JetMaker = (StJetTaskNEW*)GetMaker(fJetMakerName);
   const char *fJetMakerNameCh = fJetMakerName;
@@ -440,11 +457,26 @@ Int_t StRhoBase::Make()
   }
   if(!fJets) return kStWarn; //kStFatal;
 
+  // get run # for centrality correction
+  Int_t RunId = mPicoEvent->runId();
+  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
+  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+
+  // Centrality correction calculation
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+  int grefMult = mPicoEvent->grefMult();
+  int refMult = mPicoEvent->refMult();
+  grefmultCorr->init(RunId);
+  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+  Int_t cent16 = grefmultCorr->getCentralityBin16();
+  Int_t cent9 = grefmultCorr->getCentralityBin9();
+  Int_t centbin = GetCentBin(cent16, 16);
+
   // set Rho value
   Double_t rho = GetRhoFactor(fCent);
   fOutRho->SetVal(rho);
 
-  // if we have a scale function
+  // if we have a scale function - TODO scale factor for neutral if needed?
   if(fScaleFunction) {
     Double_t rhoScaled = rho * GetScaleFactor(fCent);
     fOutRhoScaled->SetVal(rhoScaled);
@@ -603,4 +635,42 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
   delete file;
 
   return fScaleFunction;
+}
+
+//________________________________________________________________________
+Int_t StRhoBase::GetCentBin(Int_t cent, Int_t nBin) const
+{  // Get centrality bin.
+  Int_t centbin = -1;
+
+  if(nBin == 16) {
+    if(cent == 0)  centbin = 15;
+    if(cent == 1)  centbin = 14;
+    if(cent == 2)  centbin = 13;
+    if(cent == 3)  centbin = 12;
+    if(cent == 4)  centbin = 11;
+    if(cent == 5)  centbin = 10;
+    if(cent == 6)  centbin = 9;
+    if(cent == 7)  centbin = 8;
+    if(cent == 8)  centbin = 7;
+    if(cent == 9)  centbin = 6;
+    if(cent == 10) centbin = 5;
+    if(cent == 11) centbin = 4;
+    if(cent == 12) centbin = 3;
+    if(cent == 13) centbin = 2;
+    if(cent == 14) centbin = 1;
+    if(cent == 15) centbin = 0;
+  }
+  if(nBin == 9) {
+    if(cent == 0)  centbin = 8;
+    if(cent == 1)  centbin = 7;
+    if(cent == 2)  centbin = 6;
+    if(cent == 3)  centbin = 5;
+    if(cent == 4)  centbin = 4;
+    if(cent == 5)  centbin = 3;
+    if(cent == 6)  centbin = 2;
+    if(cent == 7)  centbin = 1;
+    if(cent == 8)  centbin = 0;
+  }
+
+  return centbin;
 }

@@ -25,6 +25,7 @@ class StRhoParameter;
 // classes for header
 class StPicoDst;
 class StPicoDstMaker;
+class StRefMultCorr;
 
 //FIXME - might not want to inherit from 2 classes
 //class StRhoBase : public StMaker, public StJet {
@@ -66,6 +67,8 @@ class StRhoBase : public StJetTaskNEW {
 
  protected:
   Bool_t                 FillHistograms();
+
+  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
 
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
@@ -115,6 +118,9 @@ class StRhoBase : public StJetTaskNEW {
   StPicoDst      *mPicoDst;
   StPicoEvent    *mPicoEvent;
   StJetTaskNEW   *JetMaker;
+
+  // centrality objects
+  StRefMultCorr* grefmultCorr;
 
   // maker names
   TString                mOutName;
