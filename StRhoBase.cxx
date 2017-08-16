@@ -22,7 +22,7 @@
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StRhoBase.h"
-#include "StJetTaskNEW.h"
+#include "StJetMakerTask.h"
 #include "StMyAnalysisMaker.h"
 
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
@@ -443,7 +443,7 @@ Int_t StRhoBase::Make()
   if((1.0*TMath::Abs(zVtx)) > 40) return kStWarn; //kStFatal;
 
   // get JetMaker
-  JetMaker = (StJetTaskNEW*)GetMaker(fJetMakerName);
+  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;

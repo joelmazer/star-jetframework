@@ -26,10 +26,10 @@ class TH2F;
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoDstMaker/StPicoTrack.h"
 
-#include "StJetTaskNEW.h"
+#include "StJetMakerTask.h"
 
 //class TH2;
-class StJetTaskNEW;
+class StJetMakerTask;
 
 ClassImp(StRho)
 
@@ -165,7 +165,7 @@ Int_t StRho::Make()
   if((1.0*TMath::Abs(zVtx)) > 40) return kStOk;   //kStWarn; //kStFatal;
 
   // get JetMaker
-  JetMaker = (StJetTaskNEW*)GetMaker(fJetMakerName);
+  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;

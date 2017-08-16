@@ -4,7 +4,7 @@
 // $Id$
 // adapted from the AliROOT class AliAnalysisTaskRhoBase.h for STAR
 
-#include "StJetTaskNEW.h"
+#include "StJetMakerTask.h"
 
 #include "StMaker.h"
 #include "StJet.h"
@@ -19,7 +19,7 @@ class TH3F;
 // STAR classes
 class StMaker;
 class StJet;
-class StJetTaskNEW;
+class StJetMakerTask;
 class StRhoParameter;
 
 // classes for header
@@ -29,7 +29,7 @@ class StRefMultCorr;
 
 //FIXME - might not want to inherit from 2 classes
 //class StRhoBase : public StMaker, public StJet {
-class StRhoBase : public StJetTaskNEW {
+class StRhoBase : public StJetMakerTask {
 
  public:
   StRhoBase();
@@ -117,7 +117,7 @@ class StRhoBase : public StJetTaskNEW {
   StPicoDstMaker *mPicoDstMaker;
   StPicoDst      *mPicoDst;
   StPicoEvent    *mPicoEvent;
-  StJetTaskNEW   *JetMaker;
+  StJetMakerTask   *JetMaker;
 
   // centrality objects
   StRefMultCorr* grefmultCorr;

@@ -50,7 +50,7 @@ class StRho : public StRhoBase {
   StPicoDstMaker *mPicoDstMaker;
   StPicoDst      *mPicoDst;
   StPicoEvent    *mPicoEvent;
-  StJetTaskNEW   *JetMaker;
+  StJetMakerTask   *JetMaker;
 
   TH2F             *fHistMultvsRho;//!
 
