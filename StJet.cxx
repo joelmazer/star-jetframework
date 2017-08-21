@@ -15,7 +15,8 @@
 #include "StJet.h"
 #include "StVParticle.h"
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
-#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
 //#include "StRoot/StPicoDstMaker/StPicoV0.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 

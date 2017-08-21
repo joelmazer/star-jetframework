@@ -12,17 +12,23 @@
 #include <TParticle.h>
 #include "TFile.h"
 
-// StROOT classes
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
-#include "StRoot/StPicoDstMaker/StPicoEvent.h"
-#include "StRoot/StPicoDstMaker/StPicoTrack.h"
-//#include "StRoot/StPicoDstMaker/StPicoV0.h"
-#include "StRoot/StPicoDstMaker/StPicoBTofPidTraits.h"
-#include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
+// general StRoot classes
 #include "StThreeVectorF.hh"
-#include "StPicoDstMaker/StPicoArrays.h"
-#include "StRoot/StPicoDstMaker/StPicoConstants.h"
 
+// StRoot classes
+#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
+#include "StRoot/StPicoDstMaker/StPicoArrays.h"
+
+///#include "StRoot/StPicoDstMaker/StPicoConstants.h"
+///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
+///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+//#include "StRoot/StPicoDstMaker/StPicoV0.h"
+///#include "StRoot/StPicoDstMaker/StPicoBTofPidTraits.h"
+
+#include "StRoot/StPicoEvent/StPicoConstants.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
 
 // jet class and fastjet wrapper
 #include "StJet.h"
@@ -234,9 +240,12 @@ int StJetMakerTask::Make()
 //  tracks = StPicoDst::picoArrays[StPicoArrays::Track];
    //tracks = mPicoDst->picoArray(2);
    //tracks = mPicoDst->tracks(); // doesn't work
-  tracks = mPicoDst->picoArray(picoTrack); // COMMENTED OUT AUG 6th
-  //tracks = mPicoDst->picoArray(StPicoArrays::Track);
-  if(!tracks) return kStWarn;
+  //tracks = mPicoDst->picoArray(picoTrack); // COMMENTED OUT AUG 6th
+  tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
+  if(!tracks) {
+    cout<<"have no tracks in JetMaker"<<endl;
+    return kStWarn;
+  }
 
 /*
   unsigned int ntracks = mPicoDst->numberOfTracks();
@@ -317,11 +326,12 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   double pi0mass = Pico::mMass[0]; // GeV
   for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
     // get tracks
-    StPicoTrack* trk = mPicoDst->track(iTracks);
+    StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
     if(!trk){ continue; }
+    //trk->Print();
 
     // set min track pt
-    if(trk->gPt() < fMinJetTrackPt) continue;
+    //if(trk->gPt() < fMinJetTrackPt) continue;
 
     // declare kinematic variables
     //gpt = trk->gPt();
@@ -352,6 +362,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
     energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
     charge = trk->charge();
+
+    // do pt cut here to accommadate either type
+    if(doUsePrimTracks) { // primary  track
+      if(pt < fMinJetTrackPt) continue;
+    } else { // global track
+      if(pt < fMinJetTrackPt) continue;
+    }
 
     // more acceptance cuts now - after getting 3vector - hardcoded for now
     //if(pt < 0.15) continue; // if primary
@@ -459,7 +476,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         if(!trk) continue;
 
         // set min track pt
-        if(trk->gPt() < fMinJetTrackPt) continue;
+        //if(trk->gPt() < fMinJetTrackPt) continue;
 
         // declare kinematic variables
         if(doUsePrimTracks) {
@@ -476,6 +493,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
           phi = mgMomentum.phi();
           eta = mgMomentum.pseudoRapidity();
           pt = mgMomentum.perp();
+        }
+
+        // do pt cut here to accommadate either type
+        if(doUsePrimTracks) { // primary  track
+          if(pt < fMinJetTrackPt) continue;
+        } else { // global track
+          if(pt < fMinJetTrackPt) continue;
         }
 
         // more acceptance cuts now - after getting 3vector - hardcoded for now

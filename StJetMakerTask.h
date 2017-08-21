@@ -4,7 +4,8 @@
 // $Id$
 
 #include "StMaker.h"
-#include "StRoot/StPicoDstMaker/StPicoEvent.h"
+///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
 
 // ROOT classes
 class TClonesArray;

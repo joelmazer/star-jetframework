@@ -24,7 +24,8 @@ class TH2F;
 #include "StRhoParameter.h"
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
 
 #include "StJetMakerTask.h"
 

@@ -24,11 +24,12 @@
 #include "StRhoBase.h"
 #include "StJetMakerTask.h"
 #include "StMyAnalysisMaker.h"
+#include "StMaker.h"
 
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
-#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-#include "StMaker.h"
+//#include "StRoot/StPicoDstMaker/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
 
 // STAR centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
