@@ -147,6 +147,7 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
     TH1*                   FillEventTriggerQA(TH1* h, UInt_t t); // filled event trigger QA plots
+    Double_t               GetReactionPlane(); // get reaction plane angle
 
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
@@ -215,20 +216,10 @@ class StMyAnalysisMaker : public StMaker {
     bool       doComments;
 
     // histograms
-    TH1F*      mKsM;//!
-    TH1F*      mLambdaM;//!
-    TH1F*      mLbarM;//!  
-    TH1F*      mKsRM;//!
-    TH1F*      mLambdaRM;//!
-    TH1F*      mLbarRM;//!
-    
-    TH2F*      mdedxvspt;//!
-    TH2F*      mKsDecayL;//!
-    TH2F*      mLambdaDecayL;//!
-    TH2F*      mLbarDecayL;//!
-
     TH1F* hTriggerPt;//!
-    
+  
+    TH1F* hEventPlane;//!   
+ 
     // jet histos
     TH1F* hJetPt;//!
     TH1F* hJetCorrPt;//!
