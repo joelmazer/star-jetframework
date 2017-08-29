@@ -24,6 +24,7 @@ class StRefMultCorr;
 
 // my STAR classes
 class StJetMakerTask;
+class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPoolManager;
@@ -118,7 +119,7 @@ class StMyAnalysisMaker : public StMaker {
     // jet setters
     void                    SetMinJetPt(Double_t j)            { fMinPtJet         = j; }
     void                    SetMinJetTrackPt(Double_t t)       { fTrackBias        = t; }
-
+    virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     void                    SetMinTrackPt(Double_t tp)         { fTrackPtCut       = tp;}
 
     // event mixing - setters
@@ -138,6 +139,10 @@ class StMyAnalysisMaker : public StMaker {
 
     // use local rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
+
+    // event plane
+    StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
+    void                    SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
 
     // don't use this: OLD from run11
     Int_t centrality(int);
@@ -159,6 +164,7 @@ class StMyAnalysisMaker : public StMaker {
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
     Double_t               fTrackBias;              // high pt track in jet bias
+    Double_t               fJetRad;                 // jet radius
 
     Double_t               fTrackPtCut;             // min track pt cut
 
@@ -175,6 +181,10 @@ class StMyAnalysisMaker : public StMaker {
     // event selection types
     UInt_t         fTriggerEventType;
     UInt_t         fMixingEventType;
+
+    // used for event plane calculation and resolution
+    StJet*         fLeadingJet;//! leading jet
+    Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
 
     // event pool
 //    TObjArray      *CloneAndReduceTrackList(TObjArray* tracks);
@@ -235,6 +245,7 @@ class StMyAnalysisMaker : public StMaker {
     // QA histos
     TH1  *fHistEventSelectionQA;//! 
     TH1  *fHistEventSelectionQAafterCuts;//!
+    TH1  *hTriggerIds;//!
 
     // THn Sparse's jet sparse
     THnSparse             *fhnJH;//!           // jet hadron events matrix

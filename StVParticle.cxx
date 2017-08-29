@@ -16,7 +16,7 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
-//     base class for ESD and AOD particles
+//     base class for particles
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 

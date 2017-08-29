@@ -2,6 +2,7 @@
 #define STJET_H
 /* Copyright(c) 1998-2016, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
+// this class has been adapted from the AliEmcalJet class
 
 #include <vector>
 #include <algorithm>
@@ -22,8 +23,8 @@
 
 /**
  * @class StJet
- * @brief Represent a jet reconstructed using the EMCal jet framework
- * @ingroup EMCALCOREFW
+ *
+ * adapted from the AliEmcalJet class 
  * @author Salvatore Aiola <salvatore.aiola@yale.edu>, Yale University
  * @author Constantin Loizides <cloizides@lbl.gov>, Lawrence Berkeley National Laboratory
  *
@@ -153,7 +154,6 @@ class StJet : public StVParticle // FIXME
   Double_t          GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz)  const;
   Double_t          GetZ(const StVParticle* trk ) const;
 
-
   // Other service methods // FIXME
   void              GetMomentum(TLorentzVector &vec)                                        const;
   Double_t          DeltaR(const StVParticle* part)                                        const;
@@ -184,6 +184,8 @@ class StJet : public StVParticle // FIXME
 
   void              SetMaxTrackPt(Double32_t t)          { fMaxTrackPt = t;                  }
   Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;           ; }
+  void              SetMaxClusterPt(Double32_t t)          { fMaxClusterPt = t;                  }
+  Double_t          GetMaxClusterPt()                      const { return fMaxClusterPt;           ; }
 
 
   // Sorting methods
@@ -201,11 +203,11 @@ class StJet : public StVParticle // FIXME
   void              SetSecondClosestJet(StJet *j, Double_t d) { fClosestJets[1] = j; fClosestJetsDist[1] = d    ; }
   void              SetMatchedToClosest(UShort_t m)                 { fMatched        = 0; fMatchingType       = m    ; }
   void              SetMatchedToSecondClosest(UShort_t m)           { fMatched        = 1; fMatchingType       = m    ; }
-  StJet*      ClosestJet()                              const { return fClosestJets[0]                          ; }
+  StJet*            ClosestJet()                              const { return fClosestJets[0]                          ; }
   Double_t          ClosestJetDistance()                      const { return fClosestJetsDist[0]                      ; }
-  StJet*      SecondClosestJet()                        const { return fClosestJets[1]                          ; }
+  StJet*            SecondClosestJet()                        const { return fClosestJets[1]                          ; }
   Double_t          SecondClosestJetDistance()                const { return fClosestJetsDist[1]                      ; }
-  StJet*      MatchedJet()                              const { return fMatched < 2 ? fClosestJets[fMatched] : 0; }
+  StJet*            MatchedJet()                              const { return fMatched < 2 ? fClosestJets[fMatched] : 0; }
   UShort_t          GetMatchingType()                         const { return fMatchingType                            ; }
 
   // Ghosts
@@ -248,6 +250,7 @@ class StJet : public StVParticle // FIXME
   /// Pt of maximum neutral constituent
   Double32_t        fMaxNPt;              //[0,0,12]
   Double32_t        fMaxTrackPt;          // Max track pt
+  Double32_t        fMaxClusterPt;        // Max cluster pt
   Double32_t        fMCPt;                ///<  Pt from MC particles contributing to the jet
   Int_t             fNn;                  ///<  Number of neutral constituents
   Int_t             fNch;                 ///<  Number of charged constituents
@@ -256,7 +259,7 @@ class StJet : public StVParticle // FIXME
   Int_t             fNEmc;                ///<  Number of constituents in EMCAL acceptance
   TArrayI           fClusterIDs;          ///<  Array containing ids of cluster constituents
   TArrayI           fTrackIDs;            ///<  Array containing ids of track constituents
-  StJet      *fClosestJets[2];      //!<! If this is MC it contains the two closest detector level jets in order of distance and viceversa
+  StJet             *fClosestJets[2];     //!<! If this is MC it contains the two closest detector level jets in order of distance and viceversa
   Double32_t        fClosestJetsDist[2];  //!<! Distance from the two closest jets
   UShort_t          fMatched;             //!<! 0 or 1 if it is matched with one of the closest jets; 2 if it is not matched
   UShort_t          fMatchingType;        //!<! Matching type

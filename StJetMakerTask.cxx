@@ -23,7 +23,6 @@
 ///#include "StRoot/StPicoDstMaker/StPicoConstants.h"
 ///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
 ///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
-//#include "StRoot/StPicoDstMaker/StPicoV0.h"
 ///#include "StRoot/StPicoDstMaker/StPicoBTofPidTraits.h"
 
 #include "StRoot/StPicoEvent/StPicoConstants.h"
@@ -50,10 +49,8 @@ StJetMakerTask::StJetMakerTask() :
   StMaker(),
   doUsePrimTracks(kFALSE), 
   fTracksName("Tracks"),
-  fCaloName("CaloClusters"),
+  fCaloName("Clusters"),
   fJetsName("Jets"),
-  fAlgo(1),
-  fType(0),
   fRadius(0.4),
   fJetAlgo(1), 
   fJetType(0), 
@@ -72,7 +69,6 @@ StJetMakerTask::StJetMakerTask() :
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0),
-//  fFastJetWrapper("StJetMakerTask", "StJetMakerTask")
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -86,10 +82,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) :
   StMaker(name),
   doUsePrimTracks(kFALSE),
   fTracksName("Tracks"),
-  fCaloName("CaloClusters"),
+  fCaloName("Clusters"),
   fJetsName("Jets"),
-  fAlgo(1),
-  fType(0),
   fRadius(0.4),
   fJetAlgo(1),
   fJetType(0),
@@ -108,7 +102,6 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) :
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0),
-//  fFastJetWrapper(name, name)
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -122,6 +115,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) :
 StJetMakerTask::~StJetMakerTask()
 {
   // Destructor
+  //fJets->Clear(); delete fJets;
 }
 
 //-----------------------------------------------------------------------------
@@ -196,7 +190,7 @@ Int_t StJetMakerTask::Finish() {
 
 //-----------------------------------------------------------------------------
 void StJetMakerTask::Clear(Option_t *opt) {
-
+  fJets->Clear();
 }
 
 //________________________________________________________________________
@@ -235,56 +229,31 @@ int StJetMakerTask::Make()
   TClonesArray *tracks = 0;
   TClonesArray *clus   = 0;
 //  tracks = dynamic_cast<TClonesArray*>
-// StPicoDst::picoArray( StPicoArrays::Track )
 //  tracks = mPicoDst->picoArray(StPicoArrays::picoArrayNames("Tracks"));
 //  tracks = StPicoDst::picoArrays[StPicoArrays::Track];
-   //tracks = mPicoDst->picoArray(2);
-   //tracks = mPicoDst->tracks(); // doesn't work
   //tracks = mPicoDst->picoArray(picoTrack); // COMMENTED OUT AUG 6th
+
+/* test out
   tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
   if(!tracks) {
     cout<<"have no tracks in JetMaker"<<endl;
     return kStWarn;
   }
-
-/*
-  unsigned int ntracks = mPicoDst->numberOfTracks();
-  // loop over ALL tracks in PicoDst
-  for(unsigned short itrack=0;itrack<ntracks;itrack++){
-    StPicoTrack* trk = mPicoDst->track(itrack);
-    if(!trk){ continue; }
-    if(trk->gPt() < 0.2){ continue; }
-
-  }
 */
 
 /*
   // TRACKS: for FULL or Charged jets
-  if ((fType==0)||(fType==1)) {
-    if (fTracksName == "Tracks")
-      am->LoadBranch("Tracks");
-    tracks = dynamic_cast<TClonesArray*>(l->FindObject(fTracksName));
-    if (!tracks) {
-      Form("Pointer to tracks %s == 0", fTracksName.Data() ); //FIXME
-      return;
-    }
+  if ((fJetType==0)||(fJetType==1)) { 
   }
 
   // NEUTRAL: for FULL or Neutral jets
-  if ((fType==0)||(fType==2)) {
-    if (fCaloName == "CaloClusters")
-      am->LoadBranch("CaloClusters");
-    clus = dynamic_cast<TClonesArray*>(l->FindObject(fCaloName));
-    if (!clus) {
-      Form("Pointer to clus %s == 0", fCaloName.Data() ); //FIXME
-      return;
-    }
+  if ((fJetType==0)||(fJetType==2)) {
   }
 */      
 
   // Find jets
   // not that parameter are globally set, may not need to have params
-  FindJets(tracks, clus, fAlgo, fRadius);
+  FindJets(tracks, clus, fJetAlgo, fRadius);
 
   // I think this is already working
   //FillJetBranch();
@@ -328,14 +297,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // get tracks
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
     if(!trk){ continue; }
-    //trk->Print();
-
-    // set min track pt
-    //if(trk->gPt() < fMinJetTrackPt) continue;
 
     // declare kinematic variables
-    //gpt = trk->gPt();
-    //gp = trk->gPtot();
     if(doUsePrimTracks) {
       if(!(trk->isPrimary())) continue; // check if primary
 
@@ -371,7 +334,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     }
 
     // more acceptance cuts now - after getting 3vector - hardcoded for now
-    //if(pt < 0.15) continue; // if primary
+    if(pt > 100.0) continue;
     if((1.0*TMath::Abs(eta)) > 1.0) continue;
     if(phi < 0) phi+= 2*pi;
     if(phi > 2*pi) phi-= 2*pi;
@@ -390,13 +353,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     const Int_t Nclus = clus->GetEntries();
     for (Int_t iClus = 0; iClus < Nclus; ++iClus) {
       AliVCluster *c = dynamic_cast<AliVCluster*>(clus->At(iClus)); //FIXME
-      if (!c->IsEMCAL())
-        continue;
+      if (!c->IsEMCAL()) continue;
       TLorentzVector nPart;
       c->GetMomentum(nPart, vertex);
       Double_t energy = nPart.P();
-      if (energy<fMinJetClusPt) 
-        continue;
+      if (energy<fMinJetClusPt) continue;
       fjw.AddInputVector(nPart.Px(), nPart.Py(), nPart.Pz(), energy, -iClus-1);
     }
   }
@@ -428,22 +389,28 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   // ======= The below can be a filljetbranch function =======
   // loop over FastJet jets  
   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
+  // sort jets according to jet pt
+  static Int_t indexes[9999] = {-1};
+  GetSortedArray(indexes, jets_incl);
+
   for(UInt_t ij=0, jetCount=0; ij<jets_incl.size(); ++ij) {
     // PERFORM CUTS ON JETS before saving
     // cut on min jet pt
     if(jets_incl[ij].perp() < fMinJetPt) continue;
     // cut on min jet area
-    if(fjw.GetJetArea(ij) < fMinJetArea) continue;
+    if(fjw.GetJetArea(ij) < fMinJetArea*TMath::Pi()*fRadius*fRadius) continue;
     // cut on eta acceptance
     if((jets_incl[ij].eta() < fJetEtaMin) || (jets_incl[ij].eta() > fJetEtaMax)) continue;
     // cut on phi acceptance 
     if((jets_incl[ij].phi() < fJetPhiMin) || (jets_incl[ij].phi() > fJetPhiMax)) continue;
 
-    // set up for AliEmcalJets: - need to figure out how to get m or E from STAR tracks
-    //AliEmcalJet *jet = new ((*fJets)[jetCount]) 
-    //  AliEmcalJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
+    // need to figure out how to get m or E from STAR tracks
+    //StJet *jet = new ((*fJets)[jetCount]) 
+    //  StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
     StJet *jet = new ((*fJets)[jetCount])
       StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
+
+    jet->SetLabel(ij);
 
     // area vector added July26
     fastjet::PseudoJet area(fjw.GetJetAreaVector(ij));
@@ -452,12 +419,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetAreaPhi(area.phi());
     jet->SetAreaE(area.E());
     //jet->SetJetAcceptanceType(FindJetAcceptanceType(jet->Eta(), jet->Phi_0_2pi(), fRadius));
-
-    ////Double_t vertex[3] = {0, 0, 0};
-    ////->GetPrimaryVertex()->GetXYZ(vertex); //FIXME
-
-    // print some info - for checks/debugging
-    //if(jets_incl[ij].perp() > 20.0) cout<<"ij = "<<ij<<"  pt = "<<jets_incl[ij].perp()<<endl;
 
     // get constituents of jets
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
@@ -474,9 +435,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 	jet->AddTrackAt(uid, nt);
         StPicoTrack* trk = mPicoDst->track(uid);
         if(!trk) continue;
-
-        // set min track pt
-        //if(trk->gPt() < fMinJetTrackPt) continue;
 
         // declare kinematic variables
         if(doUsePrimTracks) {
@@ -503,6 +461,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         }
 
         // more acceptance cuts now - after getting 3vector - hardcoded for now
+        if(pt > 100.0) continue;
         if((1.0*TMath::Abs(eta)) > 1.0) continue;
         if(phi < 0) phi+= 2*pi;
         if(phi > 2*pi) phi-= 2*pi;
@@ -529,7 +488,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetNumberOfTracks(nt);
     jet->SetNumberOfClusters(nc);
     jet->SetMaxTrackPt(maxTrack);
-    //jet->SetMaxClusterPt(maxCluster); // clusters not added yet
+    jet->SetMaxClusterPt(maxCluster); // clusters not added yet
     jet->SetNEF(neutralE/jet->E()); // FIXME : currently not set properly
     jetCount++;
   }
@@ -542,8 +501,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
  */
 void StJetMakerTask::FillJetBranch()
 {
-  //PrepareUtilities();
-
   // loop over fastjet jets
   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
   // sort jets according to jet pt
@@ -556,7 +513,7 @@ void StJetMakerTask::FillJetBranch()
     Form("Jet pt = %f, area = %f", jets_incl[ij].perp(), fjw.GetJetArea(ij)); //FIXME
 
     if (jets_incl[ij].perp() < fMinJetPt) continue;
-    if (fjw.GetJetArea(ij) < fMinJetArea) continue;
+    if (fjw.GetJetArea(ij) < fMinJetArea*TMath::Pi()*fRadius*fRadius) continue;
     if ((jets_incl[ij].eta() < fJetEtaMin) || (jets_incl[ij].eta() > fJetEtaMax) ||
         (jets_incl[ij].phi() < fJetPhiMin) || (jets_incl[ij].phi() > fJetPhiMax))
       continue;
@@ -576,13 +533,10 @@ void StJetMakerTask::FillJetBranch()
     std::vector<fastjet::PseudoJet> constituents(fjw.GetJetConstituents(ij));
     FillJetConstituents(jet, constituents, constituents);
 
-    //ExecuteUtilities(jet, ij);
-
     Form("Added jet n. %d, pt = %f, area = %f, constituents = %d", jetCount, jet->Pt(), jet->Area(), jet->GetNumberOfConstituents()); //FIXME
     jetCount++;
   }
 
-  //TerminateUtilities();
 }
 
 /**
@@ -636,57 +590,6 @@ void StJetMakerTask::SetEtaRange(Double_t emi, Double_t ema)
   AliParticleContainer* tracks = 0;
   while ((tracks = static_cast<AliParticleContainer*>(nextPartColl()))) {
     tracks->SetParticleEtaLimits(emi, ema);
-  }
-}
-*/
-
-/**
- * Set the minimum pT of the cluster constituents.
- * @param min Minimum pT
- */
-/*
-void StJetMakerTask::SetMinJetClusPt(Double_t min)
-{
-  if (IsLocked()) return;
-
-  TIter nextClusColl(&fClusterCollArray);
-  AliClusterContainer* clusters = 0;
-  while ((clusters = static_cast<AliClusterContainer*>(nextClusColl()))) {
-    clusters->SetClusPtCut(min);
-  }
-}
-*/
-
-/**
- * Set the minimum energy of the cluster constituents.
- * @param min Minimum energy
- */
-/*
-void StJetMakerTask::SetMinJetClusE(Double_t min)
-{
-  if (IsLocked()) return;
-
-  TIter nextClusColl(&fClusterCollArray);
-  AliClusterContainer* clusters = 0;
-  while ((clusters = static_cast<AliClusterContainer*>(nextClusColl()))) {
-    clusters->SetClusECut(min);
-  }
-}
-*/
-
-/**
- * Set the minimum pT of the track constituents.
- * @param min Minimum pT
- */
-/*
-void StJetMakerTask::SetMinJetTrackPt(Double_t min)
-{
-  if (IsLocked()) return;
-
-  TIter nextPartColl(&fParticleCollArray);
-  AliParticleContainer* tracks = 0;
-  while ((tracks = static_cast<AliParticleContainer*>(nextPartColl()))) {
-    tracks->SetParticlePtCut(min);
   }
 }
 */

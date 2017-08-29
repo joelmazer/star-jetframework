@@ -12,7 +12,6 @@
 
 #include <Rtypes.h>
 #include <TObject.h>
-//#include "AliVMisc.h"
 
 class TLorentzVector;
 class TParticle;
@@ -33,9 +32,6 @@ public:
   StVParticle(const StVParticle& vPart); 
   StVParticle& operator=(const StVParticle& vPart);
 
-  // constructor for reinitialisation of vtable
-  //StVParticle( AliVConstructorReinitialisationFlag ) :TObject(){}
-
   // kinematics
   virtual Double_t Px() const = 0;
   virtual Double_t Py() const = 0;
@@ -50,7 +46,6 @@ public:
   virtual Double_t Yv() const = 0;
   virtual Double_t Zv() const = 0;
   virtual Bool_t   XvYvZv(Double_t x[3]) const = 0;  
-//virtual Double_t T()          const { return -1; } // Conflicts with AliAODTrack.h
   virtual Double_t Tv()         const { return 0 ; } 
 
   virtual Double_t OneOverPt()  const = 0;
@@ -71,7 +66,6 @@ public:
   virtual Int_t   PdgCode()     const = 0;       
   virtual const Double_t *PID() const = 0; // return PID object (to be defined, still)
 
-  // Not possible GetStatus(), Long in AliVTrack, Int in AliMCParticle  
 //virtual UInt_t  GetStatus()    const { return 0  ; }
   virtual UInt_t  MCStatusCode() const { return 0  ; }
   
@@ -124,7 +118,7 @@ public:
   virtual void    SetSecondaryFromMaterial(Bool_t ) { ; }
   virtual Bool_t  IsSecondaryFromMaterial() const { return 0  ; }
   
-  ClassDef(StVParticle, 4)  // base class for particles
+  ClassDef(StVParticle, 1)  // base class for particles
 };
 
 #endif

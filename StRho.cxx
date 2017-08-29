@@ -71,6 +71,15 @@ StRho::StRho(const char *name, Bool_t histo, const char *outName, const char *je
 }
 
 //________________________________________________________________________
+StRho::~StRho()
+{ /*  */
+  // destructor
+  delete fHistMultvsRho;
+
+  //fJets->Clear(); delete fJets;
+}
+
+//________________________________________________________________________
 Int_t StRho::Init()
 {
   // nothing done - base class should take care of that
@@ -107,6 +116,7 @@ Int_t StRho::Finish() {
   return kStOK;
 }
 
+//________________________________________________________________________
 void StRho::DeclareHistograms() {
     // declare histograms
     fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 150, 0., 1500., 100, 0., 100.);
@@ -115,18 +125,17 @@ void StRho::DeclareHistograms() {
 
 }
 
+//________________________________________________________________________
 void StRho::WriteHistograms() {
   // write histograms
   fHistMultvsRho->Write();
-
 }
+
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
   StRhoBase::Clear();
 
-/*
-  delete fHistMultvsRho;
-*/
+  fJets->Clear();
 }
 
 //________________________________________________________________________
@@ -210,7 +219,8 @@ Int_t StRho::Make()
       double jetPhi = jet->Phi();
       // some threshold cuts for tests
       if(jetpt < 0) continue;
-   
+
+      // get ID and pt of the leading and sub-leading jet   
       if(jet->Pt() > maxJetPts[0]) {
 	maxJetPts[1] = maxJetPts[0];
 	maxJetIds[1] = maxJetIds[0];
@@ -221,6 +231,7 @@ Int_t StRho::Make()
 	maxJetIds[1] = ij;
       }
     }
+    // only set to remove leading jet 
     if(fNExclLeadJets < 2) {
       maxJetIds[1] = -1;
       maxJetPts[1] = 0;
@@ -233,18 +244,17 @@ Int_t StRho::Make()
   // push all jets within selected acceptance into stack
   for(Int_t iJets = 0; iJets < Njets; ++iJets) {
 
-    // exlcuding lead jets
+    // excluding lead jets
     if(iJets == maxJetIds[0] || iJets == maxJetIds[1])
       continue;
 
     // pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(iJets));
     if(!jet) {
-      //Form("%s: Could not receive jet %d", GetName(), iJets); //FIXME
       continue;
     } 
 
-    // NEED TO CHECK FOR DEFAULTS
+    // NEED TO CHECK FOR DEFAULTS - cuts are done at the jet finder level
     //if(!AcceptJet(jet)) continue; //FIXME
     // get some get parameters
     double jetpt = jet->Pt();

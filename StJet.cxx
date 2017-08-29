@@ -12,15 +12,16 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
+// this class is adapted from the class AliEmcalJet
+//
 #include "StJet.h"
 #include "StVParticle.h"
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 ///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
-//#include "StRoot/StPicoDstMaker/StPicoV0.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 
-//#include "AliLog.h"
 #include "Riostream.h"
 
 //#include "AliParticleContainer.h"

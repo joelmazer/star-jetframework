@@ -147,6 +147,39 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
 }
 
 //________________________________________________________________________
+StRhoBase::~StRhoBase()
+{ /*  */
+  // destructor
+  delete fHistJetAreavsCent;
+  delete fHistJetRhovsCent;
+  delete fHistJetPtvsCent;
+  delete fHistNjetvsCent;
+  delete fHistJetPtvsNtrack;
+  delete fHistJetAreavsNtrack;
+  delete fHistNjetvsNtrack;
+  delete fHistRhovsCent;
+  delete fHistRhoScaledvsCent;
+  delete fHistDeltaRhovsCent;
+  delete fHistDeltaRhoScalevsCent;
+  delete fHistRhovsNtrackvsV0Mult;
+  delete fHistRhoScaledvsNtrackvsV0Mult;
+  delete fHistDeltaRhovsNtrack;
+  delete fHistDeltaRhoScalevsNtrack;
+  delete fHistRhovsNcluster;
+  delete fHistRhoScaledvsNcluster;
+  delete fJets;
+  for (Int_t i = 0; i < 4; i++) {
+    delete fHistJetNconstVsPt[i];
+    delete fHistJetRhovsEta[i];
+  }
+  for (Int_t i = 0; i < 12; i++) {
+    delete fHistNjUEoverNjVsNj[i];
+  }
+
+  //fJets->Clear(); delete fJets;
+}
+
+//________________________________________________________________________
 Int_t StRhoBase::Init()
 {
   DeclareHistograms();
@@ -373,34 +406,6 @@ void StRhoBase::DeclareHistograms()
 //_______________________________________________________________________
 void StRhoBase::Clear(Option_t *opt) 
 {
-
-//  if(fHistJetPtvsCent) delete fHistJetPtvsCent;
-/*
-  delete fHistJetAreavsCent;
-  delete fHistJetRhovsCent;
-  delete fHistNjetvsCent;
-  delete fHistJetPtvsNtrack;
-  delete fHistJetAreavsNtrack;
-  delete fHistNjetvsNtrack;
-  delete fHistRhovsCent;
-  delete fHistRhoScaledvsCent;
-  delete fHistDeltaRhovsCent;
-  delete fHistDeltaRhoScalevsCent;
-  delete fHistRhovsNtrackvsV0Mult;
-  delete fHistRhoScaledvsNtrackvsV0Mult;
-  delete fHistDeltaRhovsNtrack;
-  delete fHistDeltaRhoScalevsNtrack;
-  delete fHistRhovsNcluster;
-  delete fHistRhoScaledvsNcluster;
-  delete fJets;
-  for (Int_t i = 0; i < 4; i++) {
-    delete fHistJetNconstVsPt[i];
-    delete fHistJetRhovsEta[i];
-  }
-  for (Int_t i = 0; i < 12; i++) {
-    delete fHistNjUEoverNjVsNj[i];
-  }
-*/
 
 }
 

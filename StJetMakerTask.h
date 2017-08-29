@@ -32,11 +32,11 @@ namespace fastjet {
 }
 
 /**
- * @class StJetTask
  * @brief General jet finder task implementing a wrapper for FastJet
  * 
  * after getting a bunch of the functionality working, have added some code 
  * directly from the ALICE version of AliEmcalJetTask written by:
+ * 
  * @author Constantin Lozides <cloizides@lbl.gov>, Lawrence Berkeley National Laboratory
  * @author Marta Verweij
  * @author Salvatore Aiola <salvatore.aiola@cern.ch>, Yale University
@@ -82,14 +82,12 @@ class StJetMakerTask : public StMaker {
   void                    SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; } 
 
   // common setters
-  void         SetAlgo(Int_t a)                 { fAlgo          = a;  }
   void         SetClusName(const char *n)       { fCaloName      = n;  }
   void         SetJetsName(const char *n)       { fJetsName      = n;  }
   void         SetMinJetTrackPt(Double_t min)   { fMinJetTrackPt = min;}
   void         SetMinJetClusPt(Double_t min)    { fMinJetClusPt  = min;}
   void         SetRadius(Double_t r)            { fRadius        = r;  }
   void         SetTracksName(const char *n)     { fTracksName    = n;  }
-  void         SetType(Int_t t)                 { fType          = t;  }
 
   void                   SetEtaRange(Double_t emi, Double_t ema);
   void                   SetMinJetClusE(Double_t min);
@@ -161,7 +159,6 @@ class StJetMakerTask : public StMaker {
   UInt_t FindJetAcceptanceType(Double_t eta, Double_t phi, Double_t r);
 
   Bool_t                 IsLocked() const;
-  //void SetType(Int_t t);
 
 /*
 #if !defined(__CINT__) && !defined(__MAKECINT__)
@@ -180,8 +177,6 @@ class StJetMakerTask : public StMaker {
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection
-  Int_t                  fAlgo;                   // algo (0==kt, 1==antikt)
-  Int_t                  fType;                   // jet type (0=all, 1=ch, 2=neutral)
   Double_t               fRadius;                 // jet radius
 
   // need to tweak type of next 3
@@ -194,7 +189,6 @@ class StJetMakerTask : public StMaker {
   Int_t             fJetType;                // jet type (full, charged, neutral)
   Int_t             fRecombScheme;           // recombination scheme used by fastjet
 
-//  StFJWrapper           fFastJetWrapper;         //!fastjet wrapper
   StFJWrapper            fjw; //!fastjet wrapper
 
   // may not need any of these except fill jet branch if I want 2 different functions

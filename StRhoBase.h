@@ -34,7 +34,8 @@ class StRhoBase : public StJetMakerTask {
  public:
   StRhoBase();
   StRhoBase(const char *name, Bool_t histo=kFALSE, const char *outName="", const char *jetMakerName="");
-  virtual ~StRhoBase() {}
+  //virtual ~StRhoBase() {}
+  virtual ~StRhoBase();
 
   // class required functions
   virtual Int_t Init();
