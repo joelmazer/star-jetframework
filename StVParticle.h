@@ -6,6 +6,9 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
+// Adaption of the class: AliVParticle
+//
+//
 //     base class for ESD and AOD particles
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------

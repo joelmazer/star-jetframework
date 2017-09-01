@@ -83,16 +83,13 @@ class StJetMakerTask : public StMaker {
 
   // common setters
   void         SetClusName(const char *n)       { fCaloName      = n;  }
+  void         SetTracksName(const char *n)     { fTracksName    = n;  }
   void         SetJetsName(const char *n)       { fJetsName      = n;  }
   void         SetMinJetTrackPt(Double_t min)   { fMinJetTrackPt = min;}
   void         SetMinJetClusPt(Double_t min)    { fMinJetClusPt  = min;}
   void         SetRadius(Double_t r)            { fRadius        = r;  }
-  void         SetTracksName(const char *n)     { fTracksName    = n;  }
 
-  void                   SetEtaRange(Double_t emi, Double_t ema);
   void                   SetMinJetClusE(Double_t min);
-  void                   SetPhiRange(Double_t pmi, Double_t pma);
-
   void                   SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
   void                   SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
   void                   SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
@@ -129,6 +126,7 @@ class StJetMakerTask : public StMaker {
 */
 // =======
 
+  // for jet substructure routines
   StJetUtility* AddUtility(StJetUtility* utility);
   TObjArray* GetUtilities() { return fUtilities ; }
 

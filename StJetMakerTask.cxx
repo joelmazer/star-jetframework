@@ -489,7 +489,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetNumberOfClusters(nc);
     jet->SetMaxTrackPt(maxTrack);
     jet->SetMaxClusterPt(maxCluster); // clusters not added yet
-    jet->SetNEF(neutralE/jet->E()); // FIXME : currently not set properly
+    jet->SetNEF(neutralE/jet->E()); // FIXME : currently not set properly - neutralE = 0
     jetCount++;
   }
 }
@@ -575,42 +575,6 @@ Bool_t StJetMakerTask::IsLocked() const
     return kStOK;
   }
 }
-
-/**
- * Set the eta range of the track constituents.
- * @param emi Minimum eta
- * @param ema Maximum eta
- */
-/*
-void StJetMakerTask::SetEtaRange(Double_t emi, Double_t ema)
-{
-  if (IsLocked()) return;
-
-  TIter nextPartColl(&fParticleCollArray);
-  AliParticleContainer* tracks = 0;
-  while ((tracks = static_cast<AliParticleContainer*>(nextPartColl()))) {
-    tracks->SetParticleEtaLimits(emi, ema);
-  }
-}
-*/
-
-/**
- * Set the phi range of the track constituents.
- * @param pmi Minimum phi
- * @param pma Maximum phi
- */
-/*
-void StJetMakerTask::SetPhiRange(Double_t pmi, Double_t pma)
-{
-  if (IsLocked()) return;
-
-  TIter nextPartColl(&fParticleCollArray);
-  AliParticleContainer* tracks = 0;
-  while ((tracks = static_cast<AliParticleContainer*>(nextPartColl()))) {
-    tracks->SetParticlePhiLimits(pmi, pma);
-  }
-}
-*/
 
 /**
  * Converts the internal enum values representing jet algorithms in

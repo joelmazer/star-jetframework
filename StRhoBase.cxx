@@ -208,8 +208,6 @@ Int_t StRhoBase::Init()
   }
 */
 
-  //StJet::Init(); //FIXME
-
   // initialize centrality correction
   grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
 
@@ -230,6 +228,18 @@ Int_t StRhoBase::Finish() {
     fout->Close();
   }
 */
+
+  //  Write histos to file and close it.
+  if(mOutName!="") {
+    TFile *fout = new TFile(mOutName.Data(), "UPDATE");
+    fout->cd();
+    fout->cd(fRhoMakerName);
+    WriteHistograms();
+    fout->cd();
+    fout->Write();
+    fout->Close();
+  }
+
 
   //cout<<"End of StRhoBase::Finish"<<endl;
 
@@ -408,7 +418,6 @@ void StRhoBase::Clear(Option_t *opt)
 {
 
 }
-
 
 //________________________________________________________________________
 Int_t StRhoBase::Make() 

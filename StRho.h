@@ -13,9 +13,6 @@ class TClonesArray;
 // some includes
 #include "StMaker.h"
 
-//class TH2;
-//class TH2F;
-
 // STAR classes
 class StPicoDst;
 class StPicoDstMaker;

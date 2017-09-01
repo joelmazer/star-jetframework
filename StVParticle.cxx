@@ -16,6 +16,8 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
+// Adapation of the class AliVParticle
+//
 //     base class for particles
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------

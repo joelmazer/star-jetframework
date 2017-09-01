@@ -83,7 +83,7 @@ StRho::~StRho()
 Int_t StRho::Init()
 {
   // nothing done - base class should take care of that
-  StRhoBase::Init();
+  ///StRhoBase::Init();
 
   DeclareHistograms();
 
@@ -105,7 +105,7 @@ Int_t StRho::Finish() {
     fout->cd();
     fout->mkdir(fRhoMakerName);
     fout->cd(fRhoMakerName);
-    StRhoBase::WriteHistograms();
+    //StRhoBase::WriteHistograms();
     WriteHistograms();
     fout->cd();
     fout->Write();
@@ -133,7 +133,7 @@ void StRho::WriteHistograms() {
 
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
-  StRhoBase::Clear();
+  ///StRhoBase::Clear();
 
   fJets->Clear();
 }
@@ -285,7 +285,9 @@ Int_t StRho::Make()
     }
   }
 
-  StRhoBase::FillHistograms();
+  //StRhoBase::FillHistograms();
+  //StRhoBase::Make();
+
   //fHistMultvsRho->Fill(multiplicity, rho);
 
   return kStOk;
