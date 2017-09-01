@@ -1,12 +1,8 @@
 // $Id$
-// Adapation from the AliROOT class AliAnalysisTalkRho.cxx
-//
 // Calculation of rho from a collection of jets.
 // If scale function is given the scaled rho will be exported
 // with the name as "fOutRhoName".Apppend("_Scaled").
 //
-// original
-// Authors: R.Reed, S.Aiola
 
 #include "StRho.h"
 
@@ -29,7 +25,10 @@ class TH2F;
 
 #include "StJetMakerTask.h"
 
-//class TH2;
+// STAR centrality includes
+#include "StRoot/StRefMultCorr/StRefMultCorr.h"
+#include "StRoot/StRefMultCorr/CentralityMaker.h"
+
 class StJetMakerTask;
 
 ClassImp(StRho)
@@ -83,7 +82,7 @@ StRho::~StRho()
 Int_t StRho::Init()
 {
   // nothing done - base class should take care of that
-  ///StRhoBase::Init();
+  StRhoBase::Init();
 
   DeclareHistograms();
 
@@ -105,7 +104,7 @@ Int_t StRho::Finish() {
     fout->cd();
     fout->mkdir(fRhoMakerName);
     fout->cd(fRhoMakerName);
-    //StRhoBase::WriteHistograms();
+    ///StRhoBase::WriteHistograms();
     WriteHistograms();
     fout->cd();
     fout->Write();
@@ -122,7 +121,6 @@ void StRho::DeclareHistograms() {
     fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 150, 0., 1500., 100, 0., 100.);
     fHistMultvsRho->GetXaxis()->SetTitle("Charged track multiplicity");
     fHistMultvsRho->GetYaxis()->SetTitle("#rho (GeV/c)/A");
-
 }
 
 //________________________________________________________________________
@@ -133,7 +131,7 @@ void StRho::WriteHistograms() {
 
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
-  ///StRhoBase::Clear();
+  StRhoBase::Clear();
 
   fJets->Clear();
 }
@@ -185,20 +183,36 @@ Int_t StRho::Make()
   // if we have JetMaker, get jet collection associated with it
   if(JetMaker) {
     fJets =  JetMaker->GetJets();
-    fJets->SetName("BGJetsRho");
+    //fJets->SetName("BGJetsRho");  // name is set by Maker who created it
   }
   if(!fJets) return kStWarn; //kStFatal;
 
+  // get run # for centrality correction
+  Int_t RunId = mPicoEvent->runId();
+  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
+  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+
+  // Centrality correction calculation
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+  int grefMult = mPicoEvent->grefMult();
+  int refMult = mPicoEvent->refMult();
+  grefmultCorr->init(RunId);
+  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2); 
+  //Int_t cent16 = grefmultCorr->getCentralityBin16();
+  //Int_t cent9 = grefmultCorr->getCentralityBin9();
+  //Int_t centbin = GetCentBin(cent16, 16);
+
   // get event multiplicity -TODO should define this differently
-  const int multiplicity = mPicoDst->numberOfTracks();
+  //const int multiplicity = mPicoDst->numberOfTracks();
+  const int multiplicity = refCorr2;
 
   // initialize Rho and scaled Rho
   fOutRho->SetVal(0);
   if(fOutRhoScaled) fOutRhoScaled->SetVal(0);
 
-  // get number of jets
+  // get number of jets, initialize arrays
   const Int_t Njets   = fJets->GetEntries();
-
   Int_t maxJetIds[]   = {-1, -1};
   Float_t maxJetPts[] = { 0,  0};
 
@@ -206,10 +220,7 @@ Int_t StRho::Make()
   if(fNExclLeadJets > 0) {
     for (Int_t ij = 0; ij < Njets; ++ij) {
       StJet *jet = static_cast<StJet*>(fJets->At(ij));
-      if(!jet) {
-	//Form("%s: Could not receive jet %d", GetName(), ij); //FIXME
-	continue;
-      } 
+      if(!jet) { continue; } 
 
       // NEED TO CHECK DEFAULTS // FIXME
       //if (!AcceptJet(jet)) continue;
@@ -250,9 +261,7 @@ Int_t StRho::Make()
 
     // pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(iJets));
-    if(!jet) {
-      continue;
-    } 
+    if(!jet) { continue; } 
 
     // NEED TO CHECK FOR DEFAULTS - cuts are done at the jet finder level
     //if(!AcceptJet(jet)) continue; //FIXME
@@ -273,8 +282,6 @@ Int_t StRho::Make()
     Double_t rho = TMath::Median(NjetAcc, rhovec);
     fOutRho->SetVal(rho);
 
-    // print statement
-    //cout<<"Rho = "<<rho<<endl;
     fHistMultvsRho->Fill(multiplicity, rho);
 
     // if we want scaled Rho
@@ -285,9 +292,7 @@ Int_t StRho::Make()
     }
   }
 
-  //StRhoBase::FillHistograms();
-  //StRhoBase::Make();
-
+  StRhoBase::FillHistograms();
   //fHistMultvsRho->Fill(multiplicity, rho);
 
   return kStOk;

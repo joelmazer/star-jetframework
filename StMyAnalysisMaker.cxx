@@ -121,10 +121,9 @@ ClassImp(StMyAnalysisMaker)
 StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName, bool mDoComments, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StMaker(name)
 {
-  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0;
+  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; fTrackWeight = 1;
   //mPicoDstMaker = picoMaker; // don't need this because will be using multiple tasks
   fPoolMgr = 0x0;
-  //tracksClone = 0x0;
   fTracksME = 0x0;
   fJets = 0x0;
   mPicoDstMaker = 0x0;
@@ -141,7 +140,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fCorrJetPt = kFALSE;
   fMinPtJet = minJetPt;
   fTrackBias = trkbias;
-  fTrackPtCut = 0.15;
+  fTrackPtMinCut = 0.2;
+  fTrackPtMaxCut = 20.0;
   fJetRad = 0.4; 
   mCentrality = 0;
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
@@ -197,19 +197,15 @@ Int_t StMyAnalysisMaker::Init() {
   //Create user objects.
   //  fRho = (StRhoParameter*)
 
+/*
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
   //TClonesArray* tracksClone = new TClonesArray("StPicoTrack");
-  //tracksClone = new TClonesArray("StPicoTrack");
-  //tracksClone->SetName("tracksClone");
-  //tracksClone->SetOwner(kTRUE);
-
-/*
   fTracksME = new TClonesArray("StPicoTrack");
   fTracksME->SetName("fTracksME");
   fTracksME->SetOwner(kTRUE);
 */
 
-  fJets = new TClonesArray("StJet");
+  fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
 
   // may not need, used for old RUNS
@@ -413,11 +409,8 @@ void StMyAnalysisMaker::Clear(Option_t *opt) {
   //fRho->Clear();
 
 /*
-  delete [] fJets; fJets=0;
-  delete [] fRho; fRho=0;
   delete [] fTracksME; fTracksME=0;
-
-  //delete fhnJH; fhnJH = 0;
+  delete fhnJH; fhnJH = 0;
 */
 
 }
@@ -426,19 +419,17 @@ void StMyAnalysisMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 Int_t StMyAnalysisMaker::Make() {
   const double pi = 1.0*TMath::Pi();
+  bool printInfo = kFALSE;
+  bool firstEvent = kFALSE;
 
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
   // clear mixed event tracks array: double check this!! TODO
-  //tracksClone->Clear();
   //fTracksME->Clear();
 
   // update counter
   mEventCounter++;
   //cout<<"StMyANMaker event# = "<<mEventCounter<<endl;
-
-  bool printInfo = kFALSE;
-  bool firstEvent = kFALSE;
 
   // get PicoDstMaker 
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -518,7 +509,6 @@ Int_t StMyAnalysisMaker::Make() {
   // if we have JetMaker, get jet collection associated with it
   fJets = JetMaker->GetJets();
   if(!fJets) {     
-    cout<<"no fJets array"<<endl;
     return kStWarn; 
   }
 
@@ -603,17 +593,16 @@ Int_t StMyAnalysisMaker::Make() {
 
   // get centrality test::
   //Int_t Pico::mCent_Year11_200GeV[nCen] = {10,21,41,72,118,182,266,375,441}; // Run11 200 GeV (Copy from Run10 200 GeV)
-  int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
   //int mCentrality = centrality(refMult); // Run11: OLD
   //int mgCentrality = centrality(grefMult); // Run11: OLD
   //refmultCorrUtil->init(RunId); // Run11: OLD
-  //refmultCorrUtil->initEvent(refmult, zVtx, zdcCoincidenceRate);  // Run11: OLD  
+  //refmultCorrUtil->initEvent(refmult, zVtx, zdcCoincidenceRate);  // Run11: OLD
 
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
-
+  int grefMult = mPicoEvent->grefMult();
+  int refMult = mPicoEvent->refMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
 //  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
@@ -778,13 +767,13 @@ Int_t StMyAnalysisMaker::Make() {
       // MAKE SURE TO figure out whether to select primary or global tracks
       // do pt cut here to accommadate either type
       if(doUsePrimTracks) { // primary  track
-        if(pt < fTrackPtCut) continue;
+        if(pt < fTrackPtMinCut) continue;
       } else { // global track
-        if(pt < fTrackPtCut) continue;
+        if(pt < fTrackPtMinCut) continue;
       }
 
       // more acceptance cuts now - after getting 3vector - hardcoded for now
-      if(pt > 100.0) continue;
+      if(pt > fTrackPtMaxCut) continue;  // 20.0 STAR, 100.0 ALICE
       if((1.0*TMath::Abs(eta)) > 1.0) continue;      
       if(phi < 0) phi+= 2*pi;
       if(phi > 2*pi) phi-= 2*pi;
@@ -945,13 +934,13 @@ Int_t StMyAnalysisMaker::Make() {
 
               // do pt cut here to accommadate either type
               if(doUsePrimTracks) { // primary  track
-                if(pt < fTrackPtCut) continue;
+                if(pt < fTrackPtMinCut) continue;
               } else { // global track
-                if(pt < fTrackPtCut) continue;
+                if(pt < fTrackPtMinCut) continue;
               }
 
               // more acceptance cuts now - after getting 3vector - hardcoded for now
-              if(pt > 100.0) continue;
+              if(pt > fTrackPtMaxCut) continue; // 20.0 STAR, 100.0 ALICE
               if((1.0*TMath::Abs(Mixeta)) > 1.0) continue;
               if(Mixphi < 0) Mixphi+= 2*pi;
               if(Mixphi > 2*pi) Mixphi-= 2*pi;
@@ -1590,13 +1579,13 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
 
     // do pt cut here to accommadate either type
     if(doUsePrimTracks) { // primary  track
-      if(pt < fTrackPtCut) continue;
+      if(pt < fTrackPtMinCut) continue;
     } else { // global track
-      if(pt < fTrackPtCut) continue;
+      if(pt < fTrackPtMinCut) continue;
     }
 
     // more acceptance cuts now - after getting 3vector - hardcoded for now
-    if(pt > 100.0) continue;
+    if(pt > fTrackPtMaxCut) continue; // 20.0 STAR, 100.0 ALICE
     if((1.0*TMath::Abs(eta)) > 1.0) continue;
     if(phi < 0) phi+= 2*pi;
     if(phi > 2*pi) phi-= 2*pi;
@@ -1613,13 +1602,10 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
 
 /*
 //________________________________________________________________________
-Int_t StMyAnalysisMaker::AcceptMyTrack(StPicoTrack *trk) { //FIXME for jets
+Int_t StMyAnalysisMaker::AcceptMyTrack(StPicoTrack *trk) {
   //applies all jet cuts except pt
   if ((jet->Phi()<fPhimin)||(jet->Phi()>fPhimax)) return 0;
   if ((jet->Eta()<fEtamin)||(jet->Eta()>fEtamax)) return 0;
-  if (jet->Area()<fAreacut) return 0;
-  // prevents 0 area jets from sneaking by when area cut == 0
-  if (jet->Area()==0) return 0;
   //exclude jets with extremely high pt tracks which are likely misreconstructed
   if(jet->MaxTrackPt()>100) return 0;
 
@@ -1627,6 +1613,7 @@ Int_t StMyAnalysisMaker::AcceptMyTrack(StPicoTrack *trk) { //FIXME for jets
   return 1;
 }
 */
+
 /*
 //________________________________________________________________________
 Int_t StMyAnalysisMaker::AcceptMyJet(StJet *jet) { // for jets
@@ -1761,16 +1748,15 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
    // do pt cut here to accommadate either type
    if(doUsePrimTracks) { // primary  track
-     if(pt < fTrackPtCut) continue;
+     if(pt < fTrackPtMinCut) continue;
    } else { // global track
-     if(pt < fTrackPtCut) continue;
+     if(pt < fTrackPtMinCut) continue;
    }
 
-   // should set a soft pt range to use for these tracks...
-   //
+   // should set a soft pt range (0.2 - 5.0?)
 
    // more acceptance cuts now - after getting 3vector - hardcoded for now
-   if(pt > 100.0) continue;
+   if(pt > 5.0) continue;   // 100.0
    if((1.0*TMath::Abs(eta)) > 1.0) continue;
    if(phi < 0) phi+= 2*pi;
    if(phi > 2*pi) phi-= 2*pi;
@@ -1779,9 +1765,23 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
    // check for leading jet removal
    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
+   // configure track weight when performing Q-vector summation
+   double trackweight;
+   if(fTrackWeight == kNoWeight) {
+     trackweight = 1.0;
+   } else if(fTrackWeight == kPtLinearWeight) {
+     trackweight = pt;
+   } else if(fTrackWeight == kPtLinear2Const5Weight) {
+     if(pt <= 2.0) trackweight = pt;
+     if(pt > 2.0) trackweight = 2.0;
+   } else {
+     // nothing choosen, so don't use weight
+     trackweight = 1.0;
+   }
+
    // sum up q-vectors
-   mQx += cos(phi * order);
-   mQy += sin(phi * order);
+   mQx += trackweight * cos(phi * order);
+   mQy += trackweight * sin(phi * order);
  }
  
  mQ.Set(mQx, mQy);

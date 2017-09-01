@@ -5,8 +5,8 @@
 // root classes
 #include <TChain.h>
 #include <TClonesArray.h>
-#include <TH1F.h>
-#include <TH2F.h>
+#include "TH1F.h"
+#include "TH2F.h"
 #include <TList.h>
 #include <TLorentzVector.h>
 #include <TParticle.h>
@@ -63,7 +63,8 @@ StJetMakerTask::StJetMakerTask() :
   fJetEtaMin(-1),
   fJetEtaMax(+1),
   fGhostArea(0.005), 
-  fMinJetTrackPt(0.15),
+  fMinJetTrackPt(0.2),
+  fMaxJetTrackPt(20.0),
   fMinJetClusPt(0.15),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
@@ -72,20 +73,21 @@ StJetMakerTask::StJetMakerTask() :
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
+//  fJetMakerName("")
 {
   // Default constructor.
 
 }
 
 //________________________________________________________________________
-StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) : 
+StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20) : 
   StMaker(name),
   doUsePrimTracks(kFALSE),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fJetsName("Jets"),
   fRadius(0.4),
-  fJetAlgo(1),
+  fJetAlgo(1), 
   fJetType(0),
   fRecombScheme(fastjet::BIpt_scheme),
   fjw(name, name),
@@ -96,7 +98,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) :
   fJetEtaMin(-1),
   fJetEtaMax(+1),
   fGhostArea(0.005),
-  fMinJetTrackPt(mintrackPt), //0.15
+  fMinJetTrackPt(mintrackPt), //0.20
+  fMaxJetTrackPt(20.0), 
   fMinJetClusPt(0.15),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
@@ -105,6 +108,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.15) :
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
+//  fJetMakerName("")
 {
   // Standard constructor.
   if (!name) return;
@@ -120,6 +124,8 @@ StJetMakerTask::~StJetMakerTask()
 
 //-----------------------------------------------------------------------------
 Int_t StJetMakerTask::Init() {
+  DeclareHistograms();
+
   // Create user objects.
   fJets = new TClonesArray("StJet");
   fJets->SetName(fJetsName);
@@ -181,11 +187,38 @@ Int_t StJetMakerTask::Finish() {
   cout<<"##### Jet parameters overview #####"<<endl;
   cout<<"type = "<<"   algorithm = "<<"  recombination scheme = "<<endl;
   cout<<"R = "<<fRadius<<"   ghostArea = "<<fGhostArea<<"  minJetArea = "<<fMinJetArea<<endl;
-  cout<<"minTrackPt = "<<fMinJetTrackPt<<"  minClusterPt = "<<fMinJetClusPt<<endl;
+  cout<<"minTrackPt = "<<fMinJetTrackPt<<"  minClusterPt = "<<fMinJetClusPt<<"  maxTrackPt = "<<fMaxJetTrackPt<<endl;
   cout<<"minJetPhi = "<<fJetPhiMin<<"  maxJetPhi = "<<fJetPhiMax<<"  minJetEta = "<<fJetEtaMin<<"  maxJetEta = "<<fJetEtaMax<<endl;
   cout<<"End of StJetMakerTask::Finish"<<endl;
 */
+
+//  if(mOutName!="") {
+//    TFile *fout = new TFile(mOutName.Data(), "UPDATE");
+    TFile *fout = new TFile("test2.root", "UPDATE");
+    fout->cd();
+    fout->mkdir(GetName());
+    fout->cd(GetName());
+    WriteHistograms();
+    fout->cd();
+    fout->Write();
+    fout->Close();
+//  }
+
   return kStOK;
+}
+
+//________________________________________________________________________
+void StJetMakerTask::DeclareHistograms() {
+    // declare histograms
+    double pi = 1.0*TMath::Pi();
+    fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
+    fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
+    fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
+}
+
+//________________________________________________________________________
+void StJetMakerTask::WriteHistograms() {
+  // write histograms
 }
 
 //-----------------------------------------------------------------------------
@@ -293,63 +326,71 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   double pi = 1.0*TMath::Pi();
   // assume neutral pion mass
   double pi0mass = Pico::mMass[0]; // GeV
-  for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
-    // get tracks
-    StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
-    if(!trk){ continue; }
+ 
+  if((fJetType == kFullJet) || (fJetType == kChargedJet)) {
+    for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
+      // get tracks
+      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
+      if(!trk){ continue; }
 
-    // declare kinematic variables
-    if(doUsePrimTracks) {
-      if(!(trk->isPrimary())) continue; // check if primary
+      // declare kinematic variables
+      if(doUsePrimTracks) {
+        if(!(trk->isPrimary())) continue; // check if primary
 
-      // get primary track variables
-      StThreeVectorF mPMomentum = trk->pMom();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      px = mPMomentum.x();
-      py = mPMomentum.y();
-      pt = mPMomentum.perp();
-      pz = mPMomentum.z();
-      p = mPMomentum.mag();
-    } else {
-      // get global track variables
-      StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-      phi = mgMomentum.phi();
-      eta = mgMomentum.pseudoRapidity();
-      px = mgMomentum.x();
-      py = mgMomentum.y();
-      pt = mgMomentum.perp();
-      pz = mgMomentum.z();
-      p = mgMomentum.mag();
-    }
+        // get primary track variables
+        StThreeVectorF mPMomentum = trk->pMom();
+        phi = mPMomentum.phi();
+        eta = mPMomentum.pseudoRapidity();
+        px = mPMomentum.x();
+        py = mPMomentum.y();
+        pt = mPMomentum.perp();
+        pz = mPMomentum.z();
+        p = mPMomentum.mag();
+      } else {
+        // get global track variables
+        StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
+        phi = mgMomentum.phi();
+        eta = mgMomentum.pseudoRapidity();
+        px = mgMomentum.x();
+        py = mgMomentum.y();
+        pt = mgMomentum.perp();
+        pz = mgMomentum.z();
+        p = mgMomentum.mag();
+      }
 
-    energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-    charge = trk->charge();
+      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+      charge = trk->charge();
 
-    // do pt cut here to accommadate either type
-    if(doUsePrimTracks) { // primary  track
-      if(pt < fMinJetTrackPt) continue;
-    } else { // global track
-      if(pt < fMinJetTrackPt) continue;
-    }
+      // do pt cut here to accommadate either type
+      if(doUsePrimTracks) { // primary  track
+        if(pt < fMinJetTrackPt) continue;
+      } else { // global track
+        if(pt < fMinJetTrackPt) continue;
+      }
 
-    // more acceptance cuts now - after getting 3vector - hardcoded for now
-    if(pt > 100.0) continue;
-    if((1.0*TMath::Abs(eta)) > 1.0) continue;
-    if(phi < 0) phi+= 2*pi;
-    if(phi > 2*pi) phi-= 2*pi;
-    if((phi < 0) || (phi > 2*pi)) continue;
+      // more acceptance cuts now - after getting 3vector - hardcoded for now
+      if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
+      if((1.0*TMath::Abs(eta)) > 1.0) continue;
+      if(phi < 0) phi+= 2*pi;
+      if(phi > 2*pi) phi-= 2*pi;
+      if((phi < 0) || (phi > 2*pi)) continue;
 
-    // send track info to FJ wrapper
-    //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
-    fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
-  }
+      // send track info to FJ wrapper
+      //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
+      fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
+
+      // fill some QA histograms
+      fHistJetNTrackvsPt->Fill(pt);
+      fHistJetNTrackvsPhi->Fill(phi);
+      fHistJetNTrackvsEta->Fill(eta);
+
+    } // track loop
+  } // if full/charged jets
 
 /*
   // looping over cluster to add to jet
   if (clus) {
     Double_t vertex[3] = {0, 0, 0};
-    InputEvent()->GetPrimaryVertex()->GetXYZ(vertex); //FIXME
     const Int_t Nclus = clus->GetEntries();
     for (Int_t iClus = 0; iClus < Nclus; ++iClus) {
       AliVCluster *c = dynamic_cast<AliVCluster*>(clus->At(iClus)); //FIXME
@@ -363,23 +404,19 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   }
 */
 
-  // looping over clusters to add to jet - STAR: matching already done
-  //static StPicoTrack* track(int i) { return (StPicoTrack*)picoArrays[StPicoArrays::Track]->UncheckedAt(i); }
-  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[StPicoArrays::EmcTrigger]->UncheckedAt(i); }  
-  //static StPicoBEmcPidTraits* bemcPidTraits(int i) { return (StPicoBEmcPidTraits*)picoArrays[StPicoArrays::BEmcPidTraits]->UncheckedAt(i); }
-
-  // get # of clusters
 /*
-  unsigned int nclus = mPicoDst->numberOfEmcPidTraits();
-  // loop over ALL clusters in PicoDst and add to jet //TODO
-  for(unsigned short iClus=0;iClus<nclus;iClus++){
-    StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);
-    //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
-    if(!cluster){ continue; }
-
-    double clusE = cluster->e();
-    if(clusE > 2.0) cout<<"iClus = "<<iClus<<"   E = "<<clusE<<endl;
-
+  if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
+    // looping over clusters to add to jet - STAR: matching already done
+    //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[StPicoArrays::EmcTrigger]->UncheckedAt(i); }  
+    //static StPicoBEmcPidTraits* bemcPidTraits(int i) { return (StPicoBEmcPidTraits*)picoArrays[StPicoArrays::BEmcPidTraits]->UncheckedAt(i); }
+    // get # of clusters
+    unsigned int nclus = mPicoDst->numberOfEmcPidTraits();
+    // loop over ALL clusters in PicoDst and add to jet //TODO
+    for(unsigned short iClus=0;iClus<nclus;iClus++){
+      StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);
+      //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
+      if(!cluster){ continue; }
+    }
   }
 */
 
@@ -461,7 +498,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         }
 
         // more acceptance cuts now - after getting 3vector - hardcoded for now
-        if(pt > 100.0) continue;
+        if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
         if((1.0*TMath::Abs(eta)) > 1.0) continue;
         if(phi < 0) phi+= 2*pi;
         if(phi > 2*pi) phi-= 2*pi;
@@ -531,7 +568,7 @@ void StJetMakerTask::FillJetBranch()
 
     // Fill constituent info
     std::vector<fastjet::PseudoJet> constituents(fjw.GetJetConstituents(ij));
-    FillJetConstituents(jet, constituents, constituents);
+    ////FillJetConstituents(jet, constituents, constituents); //FIXME
 
     Form("Added jet n. %d, pt = %f, area = %f, constituents = %d", jetCount, jet->Pt(), jet->Area(), jet->GetNumberOfConstituents()); //FIXME
     jetCount++;

@@ -86,6 +86,14 @@ class StMyAnalysisMaker : public StMaker {
   };
 */
 
+    // event plane track weight type enumerator
+    enum EPtrackWeigthType_t {
+      kNoWeight,
+      kPtLinearWeight,
+      kPtLinear2Const5Weight
+    };
+
+
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
    
@@ -117,10 +125,13 @@ class StMyAnalysisMaker : public StMaker {
     void                    SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
 
     // jet setters
-    void                    SetMinJetPt(Double_t j)            { fMinPtJet         = j; }
-    void                    SetMinJetTrackPt(Double_t t)       { fTrackBias        = t; }
+    void                    SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
+    void                    SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
-    void                    SetMinTrackPt(Double_t tp)         { fTrackPtCut       = tp;}
+    
+    // track setters
+    void                    SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
+    void                    SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
 
     // event mixing - setters
     virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
@@ -137,12 +148,13 @@ class StMyAnalysisMaker : public StMaker {
     // efficiency correction setter
     virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
 
-    // use local rho to correct jet pt in correlation sparses
+    // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
 
     // event plane
     StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
-    void                    SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
+    virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
+    virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
 
     // don't use this: OLD from run11
     Int_t centrality(int);
@@ -165,8 +177,8 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
     Double_t               fTrackBias;              // high pt track in jet bias
     Double_t               fJetRad;                 // jet radius
-
-    Double_t               fTrackPtCut;             // min track pt cut
+    Double_t               fTrackPtMinCut;          // min track pt cut
+    Double_t               fTrackPtMaxCut;          // max track pt cut
 
     Int_t      mCentrality;
 
@@ -185,14 +197,13 @@ class StMyAnalysisMaker : public StMaker {
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
     Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
+    Int_t          fTrackWeight; // track weight for Q-vector summation
 
     // event pool
-//    TObjArray      *CloneAndReduceTrackList(TObjArray* tracks);
     TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
     StEventPoolManager   *fPoolMgr;//!  // event pool Manager object
 
     // clonesarray collections of tracks and jets
-    //TClonesArray          *tracksClone;//! mixed event track collection
     TClonesArray          *fTracksME;//! track collection to slim down for mixed events
     TClonesArray          *fJets;//! jet collection
 
@@ -214,7 +225,8 @@ class StMyAnalysisMaker : public StMaker {
     TClonesArray   *mTracks;
     TClonesArray   *mTowers;
     TClonesArray   *mParticles;
-    
+   
+    // output file name string 
     TString      mOutName;
  
     // counters 
@@ -223,11 +235,10 @@ class StMyAnalysisMaker : public StMaker {
     Int_t        mInputEventCounter;//!
  
     // switches
-    bool       doComments;
+    bool         doComments;
 
     // histograms
     TH1F* hTriggerPt;//!
-  
     TH1F* hEventPlane;//!   
  
     // jet histos
@@ -240,6 +251,7 @@ class StMyAnalysisMaker : public StMaker {
     TH1F* hJetNEF;//!
     TH1F* hJetArea;//!
 
+    // correlation histo
     TH2  *fHistJetHEtaPhi;//!
 
     // QA histos

@@ -176,7 +176,6 @@ StRhoBase::~StRhoBase()
     delete fHistNjUEoverNjVsNj[i];
   }
 
-  //fJets->Clear(); delete fJets;
 }
 
 //________________________________________________________________________
@@ -229,6 +228,7 @@ Int_t StRhoBase::Finish() {
   }
 */
 
+/*
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
@@ -239,7 +239,7 @@ Int_t StRhoBase::Finish() {
     fout->Write();
     fout->Close();
   }
-
+*/
 
   //cout<<"End of StRhoBase::Finish"<<endl;
 
@@ -468,7 +468,7 @@ Int_t StRhoBase::Make()
   // if we have JetMaker, get jet collection associated with it
   if(JetMaker) {
     fJets =  JetMaker->GetJets();
-    fJets->SetName("BGJetsRho");
+    //fJets->SetName("BGJetsRho"); // name will be that set by specific Maker task
   }
   if(!fJets) return kStWarn; //kStFatal;
 
@@ -514,17 +514,6 @@ Bool_t StRhoBase::FillHistograms()
 
   Int_t Ntracks   = 0;
   Int_t Nclusters = 0;
-
-/*
-  AliVVZERO* vV0 = InputEvent()->GetVZEROData();
-  Float_t multV0A = -1.;
-  Float_t multV0C = -1.;
-  if(vV0) {  
-    multV0A = vV0->GetMTotV0A();
-    multV0C = vV0->GetMTotV0C();
-  }
-*/
-
   //if (GetParticleContainer(0)) Ntracks = GetParticleContainer(0)->GetNAcceptedParticles(); //FIXME
   //if (GetClusterContainer(0)) Nclusters = GetClusterCon<F12>tainer(0)->GetNAcceptedClusters(); //FIXME
 
@@ -540,11 +529,7 @@ Bool_t StRhoBase::FillHistograms()
 
     for (Int_t i = 0; i < Njets; ++i) { 
       StJet *jet = static_cast<StJet*>(fJets->At(i));
-      if(!jet) {
-	//Form("%s: Could not receive jet %d", GetName(), i);
-	continue;
-      } 
-
+      if(!jet) { continue; } 
       //if (!AcceptJet(jet)) continue; //FIXME
       
       fHistJetPtvsCent->Fill(fCent, jet->Pt());
@@ -552,10 +537,8 @@ Bool_t StRhoBase::FillHistograms()
       fHistJetRhovsCent->Fill(fCent, jet->Pt() / jet->Area());
       fHistJetRhovsEta[fCentBin]->Fill(jet->Pt() / jet->Area(), jet->Eta());
 
-      //if (fTracks) {
-	fHistJetPtvsNtrack->Fill(Ntracks, jet->Pt());
-	fHistJetAreavsNtrack->Fill(Ntracks, jet->Area());
-      //}
+      fHistJetPtvsNtrack->Fill(Ntracks, jet->Pt());
+      fHistJetAreavsNtrack->Fill(Ntracks, jet->Area());
 
       fHistJetNconstVsPt[fCentBin]->Fill(jet->GetNumberOfConstituents(), jet->Pt());
 
@@ -572,26 +555,26 @@ Bool_t StRhoBase::FillHistograms()
     }
 
     fHistNjetvsCent->Fill(fCent, NjetAcc);
-    //if(fTracks) fHistNjetvsNtrack->Fill(Ntracks, NjetAcc);
+    fHistNjetvsNtrack->Fill(Ntracks, NjetAcc);
   }
   
   fHistRhovsCent->Fill(fCent, fOutRho->GetVal());
 
-  //if(fTracks) fHistRhovsNtrackvsV0Mult->Fill(Ntracks, fOutRho->GetVal(),multV0A+multV0C);
-  //if (fCaloClusters) fHistRhovsNcluster->Fill(Nclusters, fOutRho->GetVal());
+  //fHistRhovsNtrackvsV0Mult->Fill(Ntracks, fOutRho->GetVal(),multV0A+multV0C);
+  fHistRhovsNcluster->Fill(Nclusters, fOutRho->GetVal());
   if(fCompareRho) {
     fHistDeltaRhovsCent->Fill(fCent, fOutRho->GetVal() - fCompareRho->GetVal());
-    //if (fTracks) fHistDeltaRhovsNtrack->Fill(Ntracks, fOutRho->GetVal() - fCompareRho->GetVal());
+    fHistDeltaRhovsNtrack->Fill(Ntracks, fOutRho->GetVal() - fCompareRho->GetVal());
   }
 
   // scaled Rho
   if(fOutRhoScaled) {
     fHistRhoScaledvsCent->Fill(fCent, fOutRhoScaled->GetVal());
-    //if(fTracks) fHistRhoScaledvsNtrackvsV0Mult->Fill(Ntracks, fOutRhoScaled->GetVal(),multV0A+multV0C);
-    //if (fCaloClusters) fHistRhoScaledvsNcluster->Fill(Nclusters,  fOutRhoScaled->GetVal());
+    //fHistRhoScaledvsNtrackvsV0Mult->Fill(Ntracks, fOutRhoScaled->GetVal(),multV0A+multV0C);
+    //fHistRhoScaledvsNcluster->Fill(Nclusters,  fOutRhoScaled->GetVal());
     if (fCompareRhoScaled) {
       fHistDeltaRhoScalevsCent->Fill(fCent, fOutRhoScaled->GetVal() - fCompareRhoScaled->GetVal());
-      //if(fTracks) fHistDeltaRhoScalevsNtrack->Fill(Ntracks, fOutRhoScaled->GetVal() - fCompareRhoScaled->GetVal());
+      fHistDeltaRhoScalevsNtrack->Fill(Ntracks, fOutRhoScaled->GetVal() - fCompareRhoScaled->GetVal());
     }
   }
 
@@ -635,7 +618,6 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
   }
 
   TF1* sfunc = dynamic_cast<TF1*>(file->Get(name));
-
   if(sfunc) {
     ::Info("StRhoBase::LoadRhoFunction", "Scale function %s loaded from file %s.", name, path);
   }

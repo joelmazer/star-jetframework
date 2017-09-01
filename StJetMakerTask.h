@@ -46,7 +46,7 @@ namespace fastjet {
  * list of jet constituents. The jet finding is delegated to
  * the class StFJWrapper which implements an interface to FastJet.
  *
- * The below is not funcitonal yet:
+ * The below is not functional yet:
  * The FastJet contrib utilities are available via the StJetUtility base class
  * and its derived classes. Utilities can be added via the AddUtility(StJetUtility*) method.
  * All the utilities added in the list will be executed. Users can implement new utilities
@@ -57,6 +57,15 @@ namespace fastjet {
 //class StJetMakerTask : public StMyAnalysisMaker {
 class StJetMakerTask : public StMaker {
  public:
+
+  // jet type enumerator
+  enum EJetType_t {
+    kFullJet,
+    kChargedJet,
+    kNeutralJet
+  };
+
+
 /*
   typedef StMyAnalysisMaker::EJetType_t EJetType_t;
   typedef StMyAnalysisMaker::EJetAlgo_t EJetAlgo_t;
@@ -78,6 +87,10 @@ class StJetMakerTask : public StMaker {
   virtual void  Clear(Option_t *opt="");
   virtual Int_t Finish();
 
+  // booking of histograms (optional)
+  void    DeclareHistograms();
+  void    WriteHistograms();
+
   // switches
   void                    SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; } 
 
@@ -86,6 +99,7 @@ class StJetMakerTask : public StMaker {
   void         SetTracksName(const char *n)     { fTracksName    = n;  }
   void         SetJetsName(const char *n)       { fJetsName      = n;  }
   void         SetMinJetTrackPt(Double_t min)   { fMinJetTrackPt = min;}
+  void         SetMaxJetTrackPt(Double_t max)   { fMaxJetTrackPt = max;}
   void         SetMinJetClusPt(Double_t min)    { fMinJetClusPt  = min;}
   void         SetRadius(Double_t r)            { fRadius        = r;  }
 
@@ -95,7 +109,7 @@ class StJetMakerTask : public StMaker {
   void                   SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
   void                   SetJetAlgo(Int_t a)                   { fJetAlgo          = a     ; }
   void                   SetJetType(Int_t t)                   { fJetType          = t     ; }
-  void                   SetRecombScheme(Int_t scheme)      { fRecombScheme     = scheme; }
+  void                   SetRecombScheme(Int_t scheme)         { fRecombScheme     = scheme; }
 //  void                   SetJetAlgo(EJetAlgo_t a)                   { fJetAlgo          = a     ; }
 //  void                   SetJetType(EJetType_t t)                   { fJetType          = t     ; }
 //  void                   SetRecombScheme(ERecoScheme_t scheme)      { fRecombScheme     = scheme; }
@@ -205,8 +219,9 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetEtaMin;              // minimum eta to keep jet in output
   Double_t               fJetEtaMax;              // maximum eta to keep jet in output
   Double_t               fGhostArea;              // ghost area
-  Double_t               fMinJetTrackPt;          // min jet track momentum
-  Double_t               fMinJetClusPt;           // min jet cluster momentum
+  Double_t               fMinJetTrackPt;          // min jet track transverse momentum
+  Double_t               fMaxJetTrackPt;          // max jet track transverse momentum
+  Double_t               fMinJetClusPt;           // min jet cluster transverse momentum
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
   // may not need some of next bools
@@ -225,6 +240,13 @@ class StJetMakerTask : public StMaker {
   StPicoDst      *mPicoDst; // PicoDst object
   StPicoEvent    *mPicoEvent; // PicoEvent object
 
+  // histograms
+  TH1F           *fHistJetNTrackvsPt;//!
+  TH1F           *fHistJetNTrackvsPhi;//!
+  TH1F           *fHistJetNTrackvsEta;//!
+
+  // maker names
+  TString          fJetMakerName;
 
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented
