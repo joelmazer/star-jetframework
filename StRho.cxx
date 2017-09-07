@@ -131,9 +131,9 @@ void StRho::WriteHistograms() {
 
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
-  StRhoBase::Clear();
+//  StRhoBase::Clear();
 
-  fJets->Clear();
+//  fJets->Clear();
 }
 
 //________________________________________________________________________

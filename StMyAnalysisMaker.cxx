@@ -40,17 +40,8 @@
 #include "StEventPoolManager.h"
 
 // new includes
-///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
-///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 //#include "StRoot/StPicoDstMaker/StPicoBTOWHit.h"
 ///#include "StRoot/StPicoDstMaker/StPicoBTofHit.h"
-///#include "StRoot/StPicoDstMaker/StPicoEmcTrigger.h"
-///#include "StRoot/StPicoDstMaker/StPicoMtdTrigger.h"
-///#include "StRoot/StPicoDstMaker/StPicoEmcPidTraits.h" // OLD
-///#include "StRoot/StPicoDstMaker/StPicoBEmcPidTraits.h" // NEW
-///#include "StRoot/StPicoDstMaker/StPicoBTofPidTraits.h"
-///#include "StRoot/StPicoDstMaker/StPicoMtdPidTraits.h"
-///#include "StRoot/StPicoDstMaker/StPicoConstants.h"
 
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
@@ -69,46 +60,7 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-// This is the minimal interface needed to access FastJet. 
-// A more sophisticated interface is demonstrated in main72.cc.
-//#include "FastJet/fastjet-install/include/fastjet/PseudoJet.hh"
-//#include "FastJet/fastjet-install/include/fastjet/ClusterSequence.hh"
-//#include "FastKet/fastjet-install/include/fastjet/Selector.hh"
-//gSystem->AddIncludePath("$FASTJET/include");
-/*
-gSystem->Load("$FASTJET/lib/libfastjet.so");
-gSystem->AddIncludePath("$FASTJET/include");
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/ClusterSequence.hh"
-#include "fastjet/Selector.hh"
-
-using namespace fastjet;
-*/
-
-#include <fastjet/config.h>
-#include <fastjet/PseudoJet.hh>
-#include <fastjet/JetDefinition.hh>
-#include <fastjet/ClusterSequence.hh>
-#include <fastjet/ClusterSequenceArea.hh>
-#include <fastjet/AreaDefinition.hh>
-#include <fastjet/SISConePlugin.hh>
-#include <fastjet/CDFMidPointPlugin.hh>
-#include <fastjet/Selector.hh>
-#include <fastjet/FunctionOfPseudoJet.hh>
-#include <fastjet/tools/JetMedianBackgroundEstimator.hh>
-#include <fastjet/tools/BackgroundEstimatorBase.hh>
-#include <fastjet/tools/Subtractor.hh>
-//from contrib package
-/*
-#include <fastjet/contrib/GenericSubtractor.hh>
-#include <fastjet/contrib/ShapeWithComponents.hh>
-#include <fastjet/contrib/ConstituentSubtractor.hh>
-#include <fastjet/contrib/Nsubjettiness.hh>
-#include <fastjet/contrib/Njettiness.hh>
-#include <fastjet/contrib/NjettinessPlugin.hh>
-#include <fastjet/contrib/SoftDrop.hh>
-*/
-
+// classes
 class StJetMakerTask;
 
 namespace fastjet {
@@ -185,8 +137,8 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete fhnMixedEvents;
   delete fhnCorr;
 
-  fJets->Clear(); delete fJets;
-  fRho->Clear(); delete fRho; 
+//  fJets->Clear(); delete fJets;
+//  fRho->Clear(); delete fRho; 
   fPoolMgr->Clear(); delete fPoolMgr;
 }
 
@@ -638,7 +590,7 @@ Int_t StMyAnalysisMaker::Make() {
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
 
-  // get rho from event and fill relative histo's: "StRho_JetsBG", "OutRho", "StMaker#0"
+  // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
   RhoMaker = (StRho*)GetMaker(fRhoMakerName);
   const char *fRhoMakerNameCh = fRhoMakerName;
   if(!RhoMaker) {
@@ -646,6 +598,7 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn; //kStFatal;
   }
 
+  // set rho object
   //fRho = GetRhoFromEvent(fRhoName);
   fRho = (StRhoParameter*)RhoMaker->GetRho();
   if(!fRho) {
@@ -653,7 +606,7 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;    
   } 
   
-  // get rho/area for standard area with R=0.2; fRho->ls("");
+  // get rho/area       fRho->ls("");
   fRhoVal = fRho->GetVal();
   //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
 
@@ -692,7 +645,6 @@ Int_t StMyAnalysisMaker::Make() {
     // //////////////////////////////////////
     //cout<<"jet mass = "<<jet->M()<<endl;
     //cout<<"Fragfunc Z = "<<jet->GetZ(px, py, pz)<<"  trk pt = "<<pt<<"  jet pt = "<<jetpt<<endl;
-
     ////////////////////////////////////////
 
     // fill some histos
@@ -729,6 +681,15 @@ Int_t StMyAnalysisMaker::Make() {
     } else fhnCorr->Fill(CorrEntries);    // fill Sparse Histo with trigger Jets entries
     // ====================================================================================
     //} // check on max track and cluster pt/Et
+
+    //std::vector<fastjet::PseudoJet>  GetJetConstituents(ijet)
+    const std::vector<TLorentzVector> aGhosts = jet->GetGhosts();
+    const std::vector<fastjet::PseudoJet> myConstituents = jet->GetMyJets();
+    cout<<"Jet = "<<ijet<<endl;
+    for (UInt_t i=0; i<myConstituents.size(); i++) {
+      if(myConstituents[i].perp() > 0.1) cout<<"  pt trk "<<i<<" = "<<myConstituents[i].perp()<<endl;
+    }
+    cout<<endl;
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(unsigned short itrack=0;itrack<ntracks;itrack++){
@@ -778,6 +739,10 @@ Int_t StMyAnalysisMaker::Make() {
       if(phi < 0) phi+= 2*pi;
       if(phi > 2*pi) phi-= 2*pi;
       if((phi < 0) || (phi > 2*pi)) continue;
+
+//      if(jet->ContainsTrack(itrack)) cout<<" track part of jet, pt = "<<pt<<endl;
+//      const std::vector<TLorentzVector> constit =  jet->GetConstits();
+//      cout<<" constit pt = "<<constit[0].perp()<<endl;
 
       // get jet - track relations
       //deta = eta - jetEta;               // eta betweeen hadron and jet
@@ -882,7 +847,7 @@ Int_t StMyAnalysisMaker::Make() {
         } else { if(Mixjetpt < fMinPtJet) continue; }
 
         //if(jet->GetMaxTrackPt() < fTrackBias) continue; 
-   	//TODO if (!AcceptMyJet(jet)) continue;
+   	//TODO if (!AcceptMyJet(jet)) continue;  // acceptance cuts done to jet in JetMaker
 
         // get number of current events in pool
         Int_t nMix = pool->GetCurrentNEvents();
@@ -897,7 +862,6 @@ Int_t StMyAnalysisMaker::Make() {
             // get jMix'th event
             bgTracks = pool->GetEvent(jMix);
             const Int_t Nbgtrks = bgTracks->GetEntries();
-            //cout<<"nbgtrks = "<<Nbgtrks<<endl;         
 
             for(Int_t ibg=0; ibg<Nbgtrks; ibg++) {
               // get tracks
@@ -1004,7 +968,6 @@ Int_t StMyAnalysisMaker::Make() {
 
 /*
   int ntracks2 = mPicoDst->numberOfTracks();
-  if(doComments) cout << "ntracks = " << ntracks2 << endl;
   // loop over ALL tracks in PicoDst
   for(unsigned short itrack=0;itrack<ntracks2;itrack++){
     // will need to check if primary later
@@ -1018,7 +981,6 @@ Int_t StMyAnalysisMaker::Make() {
 
     // some tests on tracks
     StThreeVectorF mPMomentum = trk->pMom();
-    //cout<<"mass hypothesis = "<<mPMomentum.massHypothesis(1.0)<<endl;
   }
 */
 
@@ -1059,7 +1021,6 @@ Int_t StMyAnalysisMaker::Make() {
     if((!trk->isPrimary())) continue;
 
     StThreeVectorF mPMomentum = trk->pMom(); 
-    //if(mPMomentum.x() > 3.0) cout<<"track# = "<<itrack<<"  Xmom = "<<mPMomentum.x()<<endl;
 
     // declare kinematic variables
     double pt = trk->gPt();
@@ -1070,16 +1031,13 @@ Int_t StMyAnalysisMaker::Make() {
     double py = mPMomentum.y();
     double pz = mPMomentum.z();
 
-    // constituent cut of particles
-    // Store as input to Fastjet
-    // (px, py, pz, E) => use p for E for now
+    // Store as input to Fastjet:    (px, py, pz, E) => use p for E for now
     fjInputs.push_back( fastjet::PseudoJet(px, py, pz, p ) );
   }
 
   // no jets (particle) in event
   if (fjInputs.size() == 0) {
     cout << "Error: event with no final state particles" << endl;
-    //continue;
     return kFALSE;
   }
 

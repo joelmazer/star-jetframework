@@ -10,6 +10,7 @@
 #include <vector>
 #include <TString.h>
 #include "FJ_includes.h"
+#include "StJetShape.h"
 
 class StFJWrapper
 {
@@ -46,8 +47,8 @@ class StFJWrapper
   virtual std::vector<double>             GetSubtractedJetsPts(Double_t median_pt = -1, Bool_t sorted = kFALSE);
   Bool_t                                  GetLegacyMode()            { return fLegacyMode; }
   Bool_t                                  GetDoFilterArea()          { return fDoFilterArea; }
-////  Double_t                                NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Int_t Option=0);
-////  Double32_t                              NSubjettinessDerivativeSub(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Double_t JetR, fastjet::PseudoJet jet, Int_t Option=0);
+  Double_t                                NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Int_t Option=0);
+  Double32_t                              NSubjettinessDerivativeSub(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Double_t JetR, fastjet::PseudoJet jet, Int_t Option=0);
 #ifdef FASTJET_VERSION
 /*
   const std::vector<fastjet::contrib::GenericSubtractorInfo> GetGenSubtractorInfoJetMass()        const {return fGenSubtractorInfoJetMass        ; }
@@ -64,9 +65,9 @@ class StFJWrapper
 */
   const std::vector<fastjet::PseudoJet>                      GetConstituentSubtrJets()            const {return fConstituentSubtrJets            ; }
   const std::vector<fastjet::PseudoJet>                      GetGroomedJets()            const {return fGroomedJets            ; }
-  Int_t CreateGenSub();          // fastjet::contrib::GenericSubtractor
+////  Int_t CreateGenSub();          // fastjet::contrib::GenericSubtractor
   Int_t CreateConstituentSub();  // fastjet::contrib::ConstituentSubtractor
-////  Int_t CreateSoftDrop();
+  Int_t CreateSoftDrop();
 #endif
   virtual std::vector<double>                                GetGRNumerator()                     const { return fGRNumerator                    ; }
   virtual std::vector<double>                                GetGRDenominator()                   const { return fGRDenominator                  ; }
@@ -92,7 +93,7 @@ class StFJWrapper
   virtual Int_t DoGenericSubtractionJetOpeningAngle_kt();
 */
   virtual Int_t DoConstituentSubtraction();
-////  virtual Int_t DoSoftDrop();
+  virtual Int_t DoSoftDrop();
   
   void SetName(const char* name)        { fName           = name;    }
   void SetTitle(const char* title)      { fTitle          = title;   }
@@ -164,12 +165,12 @@ class StFJWrapper
   Double_t                               fZcut;               // fZcut = 0.1                
   Double_t                               fBeta;               // fBeta = 0
 #ifdef FASTJET_VERSION
-////  fastjet::JetMedianBackgroundEstimator   *fBkrdEstimator;    //!
+  fastjet::JetMedianBackgroundEstimator   *fBkrdEstimator;    //!
   //from contrib package
-  fastjet::contrib::GenericSubtractor     *fGenSubtractor;    //!
+////  fastjet::contrib::GenericSubtractor     *fGenSubtractor;    //!
   fastjet::contrib::ConstituentSubtractor *fConstituentSubtractor;    //!
-/*
   fastjet::contrib::SoftDrop              *fSoftDrop;        //!
+/*
   std::vector<fastjet::contrib::GenericSubtractorInfo> fGenSubtractorInfoJetMass;        //!
   std::vector<fastjet::contrib::GenericSubtractorInfo> fGenSubtractorInfoGRNum;          //!
   std::vector<fastjet::contrib::GenericSubtractorInfo> fGenSubtractorInfoGRDen;          //!
@@ -227,7 +228,7 @@ StFJWrapper::StFJWrapper(const char *name, const char *title)
   , fFilteredJets      ( )
   , fSubtractedJetsPt  ( )
   , fConstituentSubtrJets ( )
-//  , fSoftDrop          ( )
+  , fSoftDrop          ( )
   , fAreaDef           (0)
   , fVorAreaSpec       (0)
   , fGhostedAreaSpec   (0)
@@ -254,8 +255,8 @@ StFJWrapper::StFJWrapper(const char *name, const char *title)
   , fZcut(0.1)
   , fBeta(0)
 #ifdef FASTJET_VERSION
-////  , fBkrdEstimator     (0)
-  , fGenSubtractor     (0)
+  , fBkrdEstimator     (0)
+////  , fGenSubtractor     (0)
   , fConstituentSubtractor (0)
 /*
   , fGenSubtractorInfoJetMass ( )
@@ -309,10 +310,10 @@ void StFJWrapper::ClearMemory()
   if (fClustSeqSA)        { delete fClustSeqSA;        fClustSeqSA        = NULL; }
   if (fClustSeqActGhosts) { delete fClustSeqActGhosts; fClustSeqActGhosts = NULL; }
   #ifdef FASTJET_VERSION
-////  if (fBkrdEstimator)          { delete fBkrdEstimator; fBkrdEstimator = NULL; }
-  if (fGenSubtractor)          { delete fGenSubtractor; fGenSubtractor = NULL; }
+  if (fBkrdEstimator)          { delete fBkrdEstimator; fBkrdEstimator = NULL; }
+////  if (fGenSubtractor)          { delete fGenSubtractor; fGenSubtractor = NULL; }
   if (fConstituentSubtractor)  { delete fConstituentSubtractor; fConstituentSubtractor = NULL; }
-////  if (fSoftDrop)          { delete fSoftDrop; fSoftDrop = NULL;}
+  if (fSoftDrop)          { delete fSoftDrop; fSoftDrop = NULL;}
   #endif
 }
 
@@ -640,7 +641,7 @@ Int_t StFJWrapper::Run()
 
   // FJ3 :: Define an JetMedianBackgroundEstimator just in case it will be used
 #ifdef FASTJET_VERSION
-  ////fBkrdEstimator     = new fj::JetMedianBackgroundEstimator(fj::SelectorAbsRapMax(fMaxRap));
+  fBkrdEstimator     = new fj::JetMedianBackgroundEstimator(fj::SelectorAbsRapMax(fMaxRap));
 #endif
 
   if (fLegacyMode) { SetLegacyFJ(); } // for FJ 2.x even if fLegacyMode is set, SetLegacyFJ is dummy
@@ -700,12 +701,10 @@ void StFJWrapper::SetLegacyFJ()
 #ifdef FASTJET_VERSION
     std::cout << "WARNING! Setting FastJet in legacy mode" << std::endl;
     if (fGhostedAreaSpec) { fGhostedAreaSpec->set_fj2_placement(kTRUE); }
-/*
      if (fBkrdEstimator) {
       fBkrdEstimator->set_provide_fj2_sigma(kTRUE);
       fBkrdEstimator->set_use_area_4vector(kFALSE);
     }
-*/
 #endif
 }
 
@@ -788,7 +787,7 @@ Int_t StFJWrapper::DoConstituentSubtraction() {
 #endif
   return 0;
 }
-/*
+
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::DoSoftDrop() {
   //Do grooming
@@ -827,7 +826,7 @@ Int_t StFJWrapper::CreateSoftDrop() {
   return 0;
 }
 
-
+/*
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::CreateGenSub() {
   //Do generic subtraction for jet mass
@@ -936,7 +935,6 @@ void StFJWrapper::SetupStrategyfromOpt(const char *option)
   if (!opt.compare("NlnNCam"))         fStrategy = fj::NlnNCam;
   if (!opt.compare("plugin"))          fStrategy = fj::plugin_strategy;
 }
-/*
  
 Double_t StFJWrapper::NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Int_t Option){
   //Option 0=Nsubjettiness result, 1=opening angle between axes in Eta-Phi plane, 2=Distance between axes in Eta-Phi plane
@@ -1037,8 +1035,6 @@ Double_t StFJWrapper::NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, D
   else return -2;
 }
 
-
-
 Double32_t StFJWrapper::NSubjettinessDerivativeSub(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Double_t JetR, fastjet::PseudoJet jet, Int_t Option){ //For derivative subtraction
 
   Double_t Result=-1;
@@ -1126,5 +1122,4 @@ Double32_t StFJWrapper::NSubjettinessDerivativeSub(Int_t N, Int_t Algorithm, Dou
   else return -2;
 
 }
-*/
 #endif

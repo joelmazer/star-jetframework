@@ -18,7 +18,6 @@
 #include "StJet.h"
 #include "StVParticle.h"
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
-///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 
@@ -45,16 +44,12 @@ StJet::StJet() :
   fAreaEta(0),
   fAreaPhi(0),
   fAreaE(0),
-  fAreaEmc(-1),
-  fAxisInEmcal(0),
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fPtEmc(0),
-  fNEmc(0),
   fClusterIDs(),
   fTrackIDs(),
   fMatched(2),
@@ -65,12 +60,13 @@ StJet::StJet() :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetAcceptanceType(0)
+  fJetConstit()
 {
   fClosestJets[0] = 0;
   fClosestJets[1] = 0;
   fClosestJetsDist[0] = 999;
   fClosestJetsDist[1] = 999;
+
 }
 
 /**
@@ -91,16 +87,12 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fAreaEta(0),
   fAreaPhi(0),
   fAreaE(0),
-  fAreaEmc(-1),
-  fAxisInEmcal(0),
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fPtEmc(0),
-  fNEmc(0),
   fClusterIDs(),
   fTrackIDs(),
   fMatched(2),
@@ -111,7 +103,7 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetAcceptanceType(0)
+  fJetConstit()
 {
   if (fPt != 0) {
     fPhi = TVector2::Phi_0_2pi(TMath::ATan2(py, px));
@@ -121,6 +113,7 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fClosestJets[1] = 0;
   fClosestJetsDist[0] = 999;
   fClosestJetsDist[1] = 999;
+
 }
 
 /**
@@ -142,16 +135,12 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fAreaEta(0),
   fAreaPhi(0),
   fAreaE(0),
-  fAreaEmc(-1),
-  fAxisInEmcal(0),
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fPtEmc(0),
-  fNEmc(0),
   fClusterIDs(),
   fTrackIDs(),
   fMatched(2),
@@ -162,7 +151,7 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetAcceptanceType(0)
+  fJetConstit()
 {
   fPhi = TVector2::Phi_0_2pi(fPhi);
 
@@ -170,6 +159,7 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fClosestJets[1] = 0;
   fClosestJetsDist[0] = 999;
   fClosestJetsDist[1] = 999;
+
 }
 
 /**
@@ -187,16 +177,12 @@ StJet::StJet(const StJet& jet) :
   fAreaEta(jet.fAreaEta),
   fAreaPhi(jet.fAreaPhi),
   fAreaE(jet.fAreaE),
-  fAreaEmc(jet.fAreaEmc),
-  fAxisInEmcal(jet.fAxisInEmcal),
   fMaxCPt(jet.fMaxCPt),
   fMaxNPt(jet.fMaxNPt),
   fMaxTrackPt(jet.fMaxTrackPt),
   fMCPt(jet.fMCPt),
   fNn(jet.fNn),
   fNch(jet.fNch),
-  fPtEmc(jet.fPtEmc),
-  fNEmc(jet.fNEmc),
   fClusterIDs(jet.fClusterIDs),
   fTrackIDs(jet.fTrackIDs),
   fMatched(jet.fMatched),
@@ -207,13 +193,14 @@ StJet::StJet(const StJet& jet) :
   fLabel(jet.fLabel),
   fHasGhost(jet.fHasGhost),
   fGhosts(jet.fGhosts),
-  fJetAcceptanceType(jet.fJetAcceptanceType)
+  fJetConstit(jet.fJetConstit)
 {
   // Copy constructor.
   fClosestJets[0]     = jet.fClosestJets[0];
   fClosestJets[1]     = jet.fClosestJets[1];
   fClosestJetsDist[0] = jet.fClosestJetsDist[0];
   fClosestJetsDist[1] = jet.fClosestJetsDist[1];
+
 }
 
 /**
@@ -241,16 +228,12 @@ StJet& StJet::operator=(const StJet& jet)
     fAreaEta            = jet.fAreaEta;
     fAreaPhi            = jet.fAreaPhi;
     fAreaE              = jet.fAreaE;
-    fAreaEmc            = jet.fAreaEmc;
-    fAxisInEmcal        = jet.fAxisInEmcal;
     fMaxCPt             = jet.fMaxCPt;
     fMaxNPt             = jet.fMaxNPt;
     fMaxTrackPt         = jet.fMaxTrackPt;
     fMCPt               = jet.fMCPt;
     fNn                 = jet.fNn;
     fNch                = jet.fNch;
-    fPtEmc              = jet.fPtEmc;
-    fNEmc               = jet.fNEmc;
     fClusterIDs         = jet.fClusterIDs;
     fTrackIDs           = jet.fTrackIDs;
     fClosestJets[0]     = jet.fClosestJets[0];
@@ -264,7 +247,7 @@ StJet& StJet::operator=(const StJet& jet)
     fLabel              = jet.fLabel;
     fHasGhost = jet.fHasGhost;
     fGhosts   = jet.fGhosts;
-    fJetAcceptanceType  = jet.fJetAcceptanceType;
+    fJetConstit = jet.fJetConstit;
   }
 
   return *this;
@@ -452,6 +435,28 @@ Double_t StJet::GetZ(const StVParticle* trk) const // FIXME
 }
 
 /**
+ * Get Xi = Log(1 / z) of constituent track
+ * @param trk Pointer to a constituent track
+ * @return Xi of the constituent
+ */
+Double_t StJet::GetXi(const StVParticle* trk) const
+{
+  return TMath::Log(1 / GetZ(trk));
+}
+
+/**
+ * Get Xi = Log(1 / z) of constituent track
+ * @param trkPx First transverse component of the momentum of the jet constituent
+ * @param trkPy Second transverse component of the momentum of the jet constituent
+ * @param trkPz Longitudinal component of the momentum of the jet constituent
+ * @return Xi of the constituent
+ */
+Double_t StJet::GetXi( const Double_t trkPx, const Double_t trkPy, const Double_t trkPz ) const
+{
+  return TMath::Log(1 / GetZ(trkPx, trkPy, trkPz));
+}
+
+/**
  * Find the leading track constituent of the jet.
  * @param tracks Array containing the pointers to the tracks from which jet constituents are drawn
  * @return Pointer to the leading track of the jet
@@ -604,6 +609,7 @@ void StJet::Clear(Option_t */*option*/)
   fPtSub = 0;
   fGhosts.clear();
   fHasGhost = kFALSE;
+  fJetConstit.clear();
 }
 
 /**
@@ -621,7 +627,7 @@ StVParticle* StJet::Track(Int_t idx) const // FIXME
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
 
-  return AliParticleContainer::GetEmcalContainerIndexMap().GetObjectFromGlobalIndex(TrackAt(idx)); // FIXME
+  return StParticleContainer::GetEmcalContainerIndexMap().GetObjectFromGlobalIndex(TrackAt(idx)); // FIXME
 }
 ================ */
 
@@ -636,7 +642,7 @@ StVParticle* StJet::Track(Int_t idx) const // FIXME
 StVParticle* StJet::TrackAt(Int_t idx, TClonesArray *ta) const // FIXME
 {
   if (!ta) return 0;
-  auto res =  AliParticleContainer::GetEmcalContainerIndexMap().LocalIndexFromGlobalIndex(TrackAt(idx)); // FIXME
+  auto res =  StParticleContainer::GetEmcalContainerIndexMap().LocalIndexFromGlobalIndex(TrackAt(idx)); // FIXME
   if (res.second != ta) {
     //AliWarning(Form("TClonesArray %s that was passed does not correspond to the passed index! The index belongs to a different TClonesArray named %s! Returning the object corresponding to the index (not the passed TClonesArray)! Consider fixing by updating to jet->Track(index).", ta->GetName(), res.second->GetName())); // FIXME
   }
@@ -654,4 +660,52 @@ Int_t StJet::ContainsTrack(StVParticle* track, TClonesArray* tracks) const // FI
 {
   if (!tracks || !track) return 0;
   return ContainsTrack(tracks->IndexOf(track));
+}
+
+
+// test functions for now = FIXME
+/**
+ * Checks whether a cluster is among the constituents of a jet.
+ * @param jet Pointer to an StJet object
+ * @param iclus Index of the cluster to look for
+ * @param sorted If the constituents are sorted by index it will speed up computation
+ * @return kTRUE if the cluster is among the constituents, kFALSE otherwise
+ */
+Bool_t StJet::IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted) const
+{
+  for (Int_t i = 0; i < jet->GetNumberOfClusters(); ++i) {
+    Int_t ijetclus = jet->ClusterAt(i);
+    if (sorted && ijetclus > iclus)
+      return kFALSE;
+    if (ijetclus == iclus)
+      return kTRUE;
+  }
+  return kFALSE;
+}
+
+/**
+ * Checks whether a track is among the constituents of a jet.
+ * @param jet Pointer to an StJet object
+ * @param itrack Index of the track to look for
+ * @param sorted If the constituents are sorted by index it will speed up computation
+ * @return kTRUE if the track is among the constituents, kFALSE otherwise
+ */
+Bool_t StJet::IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted) const
+{
+  for (Int_t i = 0; i < jet->GetNumberOfTracks(); ++i) {
+    Int_t ijettrack = jet->TrackAt(i);
+    if (sorted && ijettrack > itrack)
+      return kFALSE;
+    if (ijettrack == itrack)
+      return kTRUE;
+  }
+  return kFALSE;
+}
+
+// TODO TEST
+void StJet::AddJetConstit(const Double_t dPx, const Double_t dPy, const Double_t dPz, const Double_t dE)
+{
+  TLorentzVector constit(dPx, dPy, dPz, dE);
+  //fJetConstit.push_back(constit);
+  return;
 }

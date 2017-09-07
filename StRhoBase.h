@@ -113,6 +113,7 @@ class StRhoBase : public StJetMakerTask {
   TH2F                  *fHistRhoScaledvsNcluster;       //!rhoscaled vs. no. of clusters
 
   TClonesArray          *fJets;//! jets array
+  TClonesArray          *fBGJets;//! background jets array
 
   // PicoDstMaker and PicoDst object pointer
   StPicoDstMaker *mPicoDstMaker;

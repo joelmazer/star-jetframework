@@ -71,11 +71,12 @@ StRhoBase::StRhoBase() :
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0),
   fJets(0),
+  fBGJets(0),
   mPicoDstMaker(0),
   mPicoDst(0),
   mPicoEvent(0),
-  grefmultCorr(0),
-  JetMaker(0), 
+  JetMaker(0),
+  grefmultCorr(0), 
   mOutName(""),
   fJetMakerName(""),
   fRhoMakerName("")
@@ -125,11 +126,12 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0),
   fJets(0),
+  fBGJets(0),
   mPicoDstMaker(0),
   mPicoDst(0),
   mPicoEvent(0),
-  grefmultCorr(0),
   JetMaker(0),
+  grefmultCorr(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
   fRhoMakerName(name)
@@ -168,6 +170,7 @@ StRhoBase::~StRhoBase()
   delete fHistRhovsNcluster;
   delete fHistRhoScaledvsNcluster;
   delete fJets;
+  delete fBGJets;
   for (Int_t i = 0; i < 4; i++) {
     delete fHistJetNconstVsPt[i];
     delete fHistJetRhovsEta[i];
@@ -187,6 +190,8 @@ Int_t StRhoBase::Init()
   fJets = new TClonesArray("StJet");
   //fJets->SetName(fJetsName);
  
+  fBGJets = new TClonesArray("StJet");
+
   // Init the analysis.
   if(!fOutRho) { fOutRho = new StRhoParameter(fOutRhoName, 0);  }
   if(fScaleFunction && !fOutRhoScaled) { fOutRhoScaled = new StRhoParameter(fOutRhoScaledName, 0); }
@@ -459,10 +464,8 @@ Int_t StRhoBase::Make()
 
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
-  const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
-    return kStWarn; //kStFatal;
+    return kStWarn;
   }
 
   // if we have JetMaker, get jet collection associated with it

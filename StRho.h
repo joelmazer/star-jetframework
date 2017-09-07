@@ -36,7 +36,7 @@ class StRho : public StRhoBase {
   void    DeclareHistograms();
   void    WriteHistograms();
 
-  void             SetExcludeLeadJets(UInt_t n)    { fNExclLeadJets = n    ; }
+  void    SetExcludeLeadJets(UInt_t n)    { fNExclLeadJets = n    ; }
 
  protected:
   UInt_t           fNExclLeadJets;                 // number of leading jets to be excluded from the median calculation

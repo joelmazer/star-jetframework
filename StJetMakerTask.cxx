@@ -19,12 +19,6 @@
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoDstMaker/StPicoArrays.h"
-
-///#include "StRoot/StPicoDstMaker/StPicoConstants.h"
-///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
-///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
-///#include "StRoot/StPicoDstMaker/StPicoBTofPidTraits.h"
-
 #include "StRoot/StPicoEvent/StPicoConstants.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
@@ -33,14 +27,12 @@
 #include "StJet.h"
 #include "StFJWrapper.h"
 
-// analysis maker
-//#include "StMyAnalysisMaker.h"
-
-//class StMyAnalysisMaker;
 class StMaker;
 class StChain;
 class StPicoDstMaker;
 class StPicoEvent;
+
+const Int_t StJetMakerTask::fgkConstIndexShift = 100000;
 
 ClassImp(StJetMakerTask)
 
@@ -70,6 +62,9 @@ StJetMakerTask::StJetMakerTask() :
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0),
+  fConstituents(0),
+//  fClusterContainerIndexMap(),
+  fParticleContainerIndexMap(),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -105,6 +100,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20) :
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0),
+  fConstituents(0),
+//  fClusterContainerIndexMap(),
+  fParticleContainerIndexMap(),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -171,6 +169,11 @@ Int_t StJetMakerTask::Init() {
   //if(fLegacyMode) {
   //  fjw.SetLegacyMode(kTRUE);
   //}
+
+  // Setup container utils. Must be called after AliAnalysisTaskEmcal::ExecOnce() so that the
+  // containers' arrays are setup.
+  //fClusterContainerIndexMap.CopyMappingFrom(StClusterContainer::GetEmcalContainerIndexMap(), fClusterCollArray);
+  fParticleContainerIndexMap.CopyMappingFrom(StParticleContainer::GetEmcalContainerIndexMap(), fParticleCollArray);
 
   return kStOK;
 }
@@ -459,6 +462,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
     // get constituents of jets
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
+//TEST - works
+    fConstituents = fjw.GetJetConstituents(ij); 
+    jet->SetJetConstituents(fConstituents);
+
     Double_t neutralE = 0;Double_t maxTrack = 0;Double_t maxCluster=0;
     jet->SetNumberOfTracks(constituents.size());
     jet->SetNumberOfClusters(constituents.size());
@@ -468,6 +475,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // loop over constituents for ij'th jet
     for(UInt_t ic=0; ic<constituents.size(); ++ic) {
       Int_t uid = constituents[ic].user_index();
+
       if (uid>=0){
 	jet->AddTrackAt(uid, nt);
         StPicoTrack* trk = mPicoDst->track(uid);
@@ -507,6 +515,19 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         if (pt>maxTrack) maxTrack=pt;
 
 	nt++;
+//============================
+/*
+     else if (uid >= fgkConstIndexShift) { // track constituent
+      Int_t iColl = uid / fgkConstIndexShift;
+      Int_t tid = uid - iColl * fgkConstIndexShift;
+      iColl--;
+      StParticleContainer* partCont = GetParticleContainer(iColl); // FIXME
+      if (!partCont) { continue; }
+      StVParticle *t = partCont->GetParticle(tid); //FIXME
+      if (!t) { continue; }
+      jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, tid), nt);
+*/
+// ===========================
       } else { // uid < 0
 
 /*
@@ -564,7 +585,6 @@ void StJetMakerTask::FillJetBranch()
     jet->SetAreaEta(area.eta());
     jet->SetAreaPhi(area.phi());
     jet->SetAreaE(area.E());
-    //jet->SetJetAcceptanceType(FindJetAcceptanceType(jet->Eta(), jet->Phi_0_2pi(), fRadius));
 
     // Fill constituent info
     std::vector<fastjet::PseudoJet> constituents(fjw.GetJetConstituents(ij));
@@ -706,13 +726,9 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   Double_t neutralE   = 0.;
   Double_t maxCh      = 0.;
   Double_t maxNe      = 0.;
-  Int_t gall          = 0;
-  Int_t gemc          = 0;
-  Int_t cemc          = 0;
   Int_t ncharged      = 0;
   Int_t nneutral      = 0;
   Double_t mcpt       = 0.;
-  Double_t emcpt      = 0.;
   TClonesArray * particles_sub = 0;
 
   Int_t uid   = -1;
@@ -737,16 +753,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
     Form("Processing constituent %d", uid); //FIXME
     if (uid == -1) { //ghost particle
-      ++gall;
-      if (fGeom) {
-        Double_t gphi = constituents[ic].phi();
-        if (gphi < 0) gphi += TMath::TwoPi();
-        gphi *= TMath::RadToDeg();
-        Double_t geta = constituents[ic].eta();
-        if ((gphi > fGeom->GetArm1PhiMin()) && (gphi < fGeom->GetArm1PhiMax()) &&
-            (geta > fGeom->GetArm1EtaMin()) && (geta < fGeom->GetArm1EtaMax()))
-          ++gemc;
-      }
 
       if (fFillGhost) jet->AddGhost(constituents[ic].px(),
           constituents[ic].py(),
@@ -785,16 +791,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       // check if MC particle
       if (TMath::Abs(t->GetLabel()) > fMinMCLabel) mcpt += cPt;
 
-      if (fGeom) {
-        if (cPhi < 0) cPhi += TMath::TwoPi();
-        cPhi *= TMath::RadToDeg();
-        if ((cPhi > fGeom->GetArm1PhiMin()) && (cPhi < fGeom->GetArm1PhiMax()) &&
-            (cEta > fGeom->GetArm1EtaMin()) && (cEta < fGeom->GetArm1EtaMax())) {
-          emcpt += cPt;
-          ++cemc;
-        }
-      }
-
       if (flag == 0 || particlesSubName == "") {
         jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, tid), nt);
       }
@@ -818,7 +814,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       AliDebug(3,Form("Constituent %d is a cluster from collection %d and with ID %d", uid, iColl, cid));
       AliClusterContainer* clusCont = GetClusterContainer(iColl);
       AliVCluster *c = clusCont->GetCluster(cid);
-
       if (!c) continue;
 
       AliTLorentzVector nP;
@@ -834,16 +829,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
       // MC particle
       if (TMath::Abs(c->GetLabel()) > fMinMCLabel) mcpt += c->GetMCEnergyFraction() > 1e-6 ? cPt * c->GetMCEnergyFraction() : cPt;
-
-      if (fGeom) {
-        if (cPhi<0) cPhi += TMath::TwoPi();
-        cPhi *= TMath::RadToDeg();
-        if ((cPhi > fGeom->GetArm1PhiMin()) && (cPhi < fGeom->GetArm1PhiMax()) &&
-            (cEta > fGeom->GetArm1EtaMin()) && (cEta < fGeom->GetArm1EtaMax())) {
-          emcpt += cPt;
-          ++cemc;
-        }
-      }
 
       if (flag == 0 || particlesSubName == "") {
         jet->AddClusterAt(fClusterContainerIndexMap.GlobalIndexFromLocalIndex(clusCont, cid), nc);
@@ -873,13 +858,9 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   jet->SetNEF(neutralE / jet->E());
   jet->SetMaxChargedPt(maxCh);
   jet->SetMaxNeutralPt(maxNe);
-  if (gall > 0) jet->SetAreaEmc(jet->Area() * gemc / gall);
-  else jet->SetAreaEmc(-1);
-  jet->SetNEmc(cemc);
   jet->SetNumberOfCharged(ncharged);
   jet->SetNumberOfNeutrals(nneutral);
   jet->SetMCPt(mcpt);
-  jet->SetPtEmc(emcpt);
   jet->SortConstituents();
 }
 */

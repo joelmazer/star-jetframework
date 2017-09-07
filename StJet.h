@@ -16,10 +16,16 @@
 #include <TLorentzVector.h>
 #include <TString.h>
 
-
 #include "StVParticle.h"
 //#include <AliVCluster.h>
 //#include <AliVEvent.h>
+
+#include "FJ_includes.h"
+#include "StFJWrapper.h"
+using std::vector;
+namespace fastjet {
+  class PseudoJet;
+}
 
 /**
  * @class StJet
@@ -44,31 +50,6 @@
 class StJet : public StVParticle // FIXME
 {
  public:
-  
-  /**
-   * @enum JetAcceptanceType
-   * @brief Bit definition for jet geometry acceptance. Cut implemented in AliJetContainer
-   * by comparing jet's bits (set in jet finder) to container's bits (set by user).
-   * If user doesn't set jet acceptance cut value, no cut is performed (equivalent to kUser).
-   * The boundaries defined for each bit should be taken as approximate (within a couple
-   * cells) -- the user should verify the definitions if precision is crucial.
-   * If you create jets outside of the standard jet finder, you may have to manually set these
-   * acceptance bits if you want to use the acceptance selection cut in the jet container
-   * e.g. "jet->SetJetAcceptanceType(fJetTask->FindJetAcceptanceType(eta,phi,r));".
-   */
-  enum JetAcceptanceType {
-    kTPC              = 1<<0,     ///< TPC acceptance
-    kTPCfid           = 1<<1,     ///< TPC fiducial acceptance (each eta edge narrowed by jet R)
-    kEMCAL            = 1<<2,     ///< EMCal acceptance
-    kEMCALfid         = 1<<3,     ///< EMCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kDCAL             = 1<<4,     ///< DCal acceptance -- spans entire rectangular region in eta-phi (including most of PHOS)
-    kDCALfid          = 1<<5,     ///< DCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kDCALonly         = 1<<6,     ///< DCal acceptance -- spans ONLY DCal (no PHOS or gap)
-    kDCALonlyfid      = 1<<7,     ///< DCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kPHOS             = 1<<8,     ///< PHOS acceptance
-    kPHOSfid          = 1<<9,     ///< PHOS fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kUser             = 1<<10     ///< Full acceptance, i.e. no acceptance cut applied -- left to user
-  };
   
   StJet();
   StJet(Double_t px, Double_t py, Double_t pz);
@@ -111,15 +92,10 @@ class StJet : public StVParticle // FIXME
   Double_t          AreaEta()                    const { return fAreaEta                 ; }
   Double_t          AreaPhi()                    const { return fAreaPhi                 ; }
   Double_t          AreaE()                      const { return fAreaE                   ; }
-  Double_t          AreaEmc()                    const { return fAreaEmc                 ; }
-  Bool_t            AxisInEmcal()                const { return fAxisInEmcal             ; }
   Int_t             ClusterAt(Int_t idx)         const { return fClusterIDs.At(idx)      ; }
   UShort_t          GetNumberOfClusters()        const { return fClusterIDs.GetSize()    ; }
   UShort_t          GetNumberOfTracks()          const { return fTrackIDs.GetSize()      ; }
   UShort_t          GetNumberOfConstituents()    const { return GetNumberOfClusters()+GetNumberOfTracks(); }
-  Double_t          FracEmcalArea()              const { return fAreaEmc/fArea           ; }
-  Bool_t            IsInsideEmcal()              const { return (fAreaEmc/fArea>0.999)   ; }
-  Bool_t            IsInEmcal()                  const { return (Bool_t)(fAreaEmc > 0)   ; }
   Bool_t            IsMC()                       const { return (Bool_t)(MCPt() > 0)     ; }
   Bool_t            IsSortable()                 const { return kTRUE                    ; }
   Double_t          MaxNeutralPt()               const { return fMaxNPt                  ; }
@@ -128,15 +104,13 @@ class StJet : public StVParticle // FIXME
   UShort_t          Nn()                         const { return fNn                      ; }
   UShort_t          Nch()                        const { return fNch                     ; }
   UShort_t          N()                          const { return Nch()+Nn()               ; }
-  Int_t             NEmc()                       const { return fNEmc                    ; }
   Double_t          MCPt()                       const { return fMCPt                    ; }
   Double_t          MaxClusterPt()               const { return MaxNeutralPt()           ; }
   Double_t          MaxTrackPt()                 const { return MaxChargedPt()           ; }
   Double_t          MaxPartPt()                  const { return fMaxCPt < fMaxNPt ? fMaxNPt : fMaxCPt; }
-  Double_t          PtEmc()                      const { return fPtEmc                   ; }
   Double_t          PtSub()                      const { return fPtSub                   ; }
   Double_t          PtSubVect()                  const { return fPtSubVect               ; }
-////  Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; }
+  Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; } //// FIXME
 
   // Background subtraction
   Double_t          PtSub(Double_t rho, Bool_t save = kFALSE)          ;
@@ -144,19 +118,21 @@ class StJet : public StVParticle // FIXME
   TLorentzVector    SubtractRhoVect(Double_t rho, Bool_t save = kFALSE);
 
   // Jet constituents //FIXME
-////  AliVParticle     *Track(Int_t idx)                                               const;
-////  AliVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
-  Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)       const;
-  Int_t             ContainsTrack(Int_t it)                                        const;
-  StVParticle     *GetLeadingTrack(TClonesArray *tracks)                          const;
+////  StVParticle     *Track(Int_t idx)                                               const;
+////  StVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
+  Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)         const;
+  Int_t             ContainsTrack(Int_t it)                                         const;
+  StVParticle       *GetLeadingTrack(TClonesArray *tracks)                          const;
 
   // Fragmentation Function
   Double_t          GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz)  const;
   Double_t          GetZ(const StVParticle* trk ) const;
+  Double_t          GetXi(const StVParticle* trk )                                         const;
+  Double_t          GetXi(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz) const;
 
   // Other service methods // FIXME
   void              GetMomentum(TLorentzVector &vec)                                        const;
-  Double_t          DeltaR(const StVParticle* part)                                        const;
+  Double_t          DeltaR(const StVParticle* part)                                         const;
 
   // Setters
   void              SetLabel(Int_t l)                  { fLabel   = l;                     }
@@ -164,8 +140,6 @@ class StJet : public StVParticle // FIXME
   void              SetAreaEta(Double_t a)             { fAreaEta = a;                     }
   void              SetAreaPhi(Double_t a)             { fAreaPhi = TVector2::Phi_0_2pi(a); }
   void              SetAreaE(Double_t a)               { fAreaE = a;                       }
-  void              SetAreaEmc(Double_t a)             { fAreaEmc = a;                     }
-  void              SetAxisInEmcal(Bool_t b)           { fAxisInEmcal = b;                 }
   void              SetMaxNeutralPt(Double32_t t)      { fMaxNPt  = t;                     }
   void              SetMaxChargedPt(Double32_t t)      { fMaxCPt  = t;                     }
   void              SetNEF(Double_t nef)               { fNEF     = nef;                   }
@@ -174,8 +148,6 @@ class StJet : public StVParticle // FIXME
   void              SetNumberOfCharged(Int_t n)        { fNch = n;                         }
   void              SetNumberOfNeutrals(Int_t n)       { fNn = n;                          }
   void              SetMCPt(Double_t p)                { fMCPt = p;                        }
-  void              SetNEmc(Int_t n)                   { fNEmc           = n;              }
-  void              SetPtEmc(Double_t pt)              { fPtEmc          = pt;             }
   void              SetPtSub(Double_t ps)              { fPtSub          = ps;             }
   void              SetPtSubVect(Double_t ps)          { fPtSubVect      = ps;             }
   void              AddClusterAt(Int_t clus, Int_t idx){ fClusterIDs.AddAt(clus, idx);     }
@@ -183,10 +155,9 @@ class StJet : public StVParticle // FIXME
   void              Clear(Option_t */*option*/="");
 
   void              SetMaxTrackPt(Double32_t t)          { fMaxTrackPt = t;                  }
-  Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;           ; }
-  void              SetMaxClusterPt(Double32_t t)          { fMaxClusterPt = t;                  }
-  Double_t          GetMaxClusterPt()                      const { return fMaxClusterPt;           ; }
-
+  Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;         } // ;
+  void              SetMaxClusterPt(Double32_t t)        { fMaxClusterPt = t;                }
+  Double_t          GetMaxClusterPt()                    const { return fMaxClusterPt;       } // ;
 
   // Sorting methods
   void              SortConstituents();
@@ -215,15 +186,22 @@ class StJet : public StVParticle // FIXME
   Bool_t HasGhost() const                               { return fHasGhost; }
   const std::vector<TLorentzVector> GetGhosts()   const { return fGhosts  ; }
 
+//TEST =========================
+  void AddJetConstit(const Double_t dPx, const Double_t dPy, const Double_t dPz, const Double_t dE);
+//  const std::vector<TLorentzVector> GetConstits()   const { return fJetConstit  ; }
+//  void SetJetConstituents(std::vector<TLorentzVector> n)        { fJetConstit = n;                         }
+  void SetJetConstituents(std::vector<fastjet::PseudoJet> n)        { fJetConstit = n;                         }
+  //const std::vector<fastjet::PseudoJet>&  GetInputVectors()    const { return fInputVectors;               }
+  const std::vector<fastjet::PseudoJet>& GetMyJets()  const { return fJetConstit; }
+
   // Debug printouts
   void Print(Option_t* /*opt*/ = "") const;
   void PrintConstituents(TClonesArray* tracks, TClonesArray* clusters) const;
 
-  // Jet geometrical acceptance
-  void     SetJetAcceptanceType(UInt_t type)         { fJetAcceptanceType = type;}
-  UInt_t   GetJetAcceptanceType()              const { return fJetAcceptanceType; }
-
  protected:
+  Bool_t            IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted = kFALSE)       const;
+  Bool_t            IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted = kFALSE)      const;
+
   /// Jet transverse momentum
   Double32_t        fPt;                  //[0,0,12]
   /// Jet pseudo-rapidity
@@ -242,9 +220,6 @@ class StJet : public StVParticle // FIXME
   Double32_t        fAreaPhi;             //[0,0,12]
   /// Jet temporal area component
   Double32_t        fAreaE;               //[0,0,12]
-  /// Area on EMCAL surface (determined by ghosts in EMCal acceptance)
-  Double32_t        fAreaEmc;             //[0,0,12]
-  Bool_t            fAxisInEmcal;         ///<  Whether the jet axis is inside the EMCAL acceptance
   /// Pt of maximum charged constituent
   Double32_t        fMaxCPt;              //[0,0,12]
   /// Pt of maximum neutral constituent
@@ -255,8 +230,6 @@ class StJet : public StVParticle // FIXME
   Int_t             fNn;                  ///<  Number of neutral constituents
   Int_t             fNch;                 ///<  Number of charged constituents
   /// Pt in EMCAL acceptance
-  Double32_t        fPtEmc;               //[0,0,12]
-  Int_t             fNEmc;                ///<  Number of constituents in EMCAL acceptance
   TArrayI           fClusterIDs;          ///<  Array containing ids of cluster constituents
   TArrayI           fTrackIDs;            ///<  Array containing ids of track constituents
   StJet             *fClosestJets[2];     //!<! If this is MC it contains the two closest detector level jets in order of distance and viceversa
@@ -271,7 +244,9 @@ class StJet : public StVParticle // FIXME
   Bool_t            fHasGhost;            //!<! Whether ghost particle are included within the constituents
   std::vector<TLorentzVector> fGhosts;    //!<! Vector containing the ghost particles
 
-  UInt_t fJetAcceptanceType;    //!<!  Jet acceptance type (stored bitwise)
+// TEST
+//  std::vector<TLorentzVector> fJetConstit; //!<! Vector containing the jet constituents
+  std::vector<fastjet::PseudoJet> fJetConstit; //!<! Vector containing the jet constituents
 
  private:
   /**

@@ -4,7 +4,6 @@
 // $Id$
 
 #include "StMaker.h"
-///#include "StRoot/StPicoDstMaker/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
 // ROOT classes
@@ -26,6 +25,10 @@ class StJetUtility;
 #include "FJ_includes.h"
 #include "StJet.h"
 #include "StMyAnalysisMaker.h"
+
+#if !(defined(__CINT__) || defined(__MAKECINT__))
+#include "StIndexMap.h"
+#endif
 
 namespace fastjet {
   class PseudoJet;
@@ -231,9 +234,17 @@ class StJetMakerTask : public StMaker {
   Bool_t                 fLegacyMode;             //!=true to enable FJ 2.x behavior
   Bool_t                 fFillGhost;              //!=true ghost particles will be filled in StJet obj
 
-  static const Int_t fgkConstIndexShift; //!contituent index shift
-
   TClonesArray          *fJets;                   //!jet collection
+//TEST
+  vector<fastjet::PseudoJet> fConstituents;      //!jet constituents
+  
+  static const Int_t     fgkConstIndexShift;      //!contituent index shift
+
+#if !(defined(__CINT__) || defined(__MAKECINT__))
+// Handle mapping between index and containers
+//StIndexMap <TClonesArray, StVCluster> fClusterContainerIndexMap;    //!<! Mapping between index and cluster containers  // FIXME
+StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping between index and particle containers
+#endif
 
  private:
   StPicoDstMaker *mPicoDstMaker; // PicoDstMaker object
