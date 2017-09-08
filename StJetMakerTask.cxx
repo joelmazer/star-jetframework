@@ -58,6 +58,10 @@ StJetMakerTask::StJetMakerTask() :
   fMinJetTrackPt(0.2),
   fMaxJetTrackPt(20.0),
   fMinJetClusPt(0.15),
+  fJetTrackEtaMin(-1.0),
+  fJetTrackEtaMax(1.0),
+  fJetTrackPhiMin(0.0),
+  fJetTrackPhiMax(2.0*TMath::Pi()),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
@@ -88,14 +92,18 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20) :
   fjw(name, name),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
-  fJetPhiMin(-10),
+  fJetPhiMin(-10), 
   fJetPhiMax(+10),
-  fJetEtaMin(-1),
+  fJetEtaMin(-1), 
   fJetEtaMax(+1),
   fGhostArea(0.005),
   fMinJetTrackPt(mintrackPt), //0.20
   fMaxJetTrackPt(20.0), 
   fMinJetClusPt(0.15),
+  fJetTrackEtaMin(-1.0), 
+  fJetTrackEtaMax(1.0),
+  fJetTrackPhiMin(0.0),
+  fJetTrackPhiMax(2.0*TMath::Pi()),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
@@ -170,10 +178,10 @@ Int_t StJetMakerTask::Init() {
   //  fjw.SetLegacyMode(kTRUE);
   //}
 
-  // Setup container utils. Must be called after AliAnalysisTaskEmcal::ExecOnce() so that the
+  // Setup container utils. Must be called after Init() so that the
   // containers' arrays are setup.
   //fClusterContainerIndexMap.CopyMappingFrom(StClusterContainer::GetEmcalContainerIndexMap(), fClusterCollArray);
-  fParticleContainerIndexMap.CopyMappingFrom(StParticleContainer::GetEmcalContainerIndexMap(), fParticleCollArray);
+  //fParticleContainerIndexMap.CopyMappingFrom(StParticleContainer::GetEmcalContainerIndexMap(), fParticleCollArray);
 
   return kStOK;
 }
@@ -371,12 +379,12 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         if(pt < fMinJetTrackPt) continue;
       }
 
-      // more acceptance cuts now - after getting 3vector - hardcoded for now
+      // jet track acceptance cuts now - after getting 3vector - hardcoded
       if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
-      if((1.0*TMath::Abs(eta)) > 1.0) continue;
+      if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) continue;
       if(phi < 0) phi+= 2*pi;
       if(phi > 2*pi) phi-= 2*pi;
-      if((phi < 0) || (phi > 2*pi)) continue;
+      if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) continue;
 
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
@@ -505,12 +513,12 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
           if(pt < fMinJetTrackPt) continue;
         }
 
-        // more acceptance cuts now - after getting 3vector - hardcoded for now
+        // jet track acceptance cuts - after getting 3vector
         if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
-        if((1.0*TMath::Abs(eta)) > 1.0) continue;
+        if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) continue;
         if(phi < 0) phi+= 2*pi;
         if(phi > 2*pi) phi-= 2*pi;
-        if((phi < 0) || (phi > 2*pi)) continue;
+        if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) continue;
 
         if (pt>maxTrack) maxTrack=pt;
 
@@ -769,7 +777,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         Form("Could not find particle container %d",iColl); //FIXME
         continue;
       }
-      AliVParticle *t = partCont->GetParticle(tid); //FIXME
+      StVParticle *t = partCont->GetParticle(tid); //FIXME
       if (!t) {
         Form("Could not find track %d",tid); //FIXME
         continue;
@@ -811,8 +819,8 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       Int_t iColl = -uid / fgkConstIndexShift;
       Int_t cid = -uid - iColl * fgkConstIndexShift;
       iColl--;
-      AliDebug(3,Form("Constituent %d is a cluster from collection %d and with ID %d", uid, iColl, cid));
-      AliClusterContainer* clusCont = GetClusterContainer(iColl);
+      //sprintf(3,Form("Constituent %d is a cluster from collection %d and with ID %d", uid, iColl, cid));
+      StClusterContainer* clusCont = GetClusterContainer(iColl);
       AliVCluster *c = clusCont->GetCluster(cid);
       if (!c) continue;
 

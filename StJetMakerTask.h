@@ -106,22 +106,24 @@ class StJetMakerTask : public StMaker {
   void         SetMinJetClusPt(Double_t min)    { fMinJetClusPt  = min;}
   void         SetRadius(Double_t r)            { fRadius        = r;  }
 
-  void                   SetMinJetClusE(Double_t min);
-  void                   SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
-  void                   SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
-  void                   SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
-  void                   SetJetAlgo(Int_t a)                   { fJetAlgo          = a     ; }
-  void                   SetJetType(Int_t t)                   { fJetType          = t     ; }
-  void                   SetRecombScheme(Int_t scheme)         { fRecombScheme     = scheme; }
+  void         SetMinJetClusE(Double_t min);
+  void         SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
+  void         SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
+  void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
+  void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
+  void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
+  void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
+  void         SetJetType(Int_t t)                        { fJetType          = t     ; }
+  void         SetRecombScheme(Int_t scheme)              { fRecombScheme     = scheme; }
 //  void                   SetJetAlgo(EJetAlgo_t a)                   { fJetAlgo          = a     ; }
 //  void                   SetJetType(EJetType_t t)                   { fJetType          = t     ; }
 //  void                   SetRecombScheme(ERecoScheme_t scheme)      { fRecombScheme     = scheme; }
-  void                   SetMinJetArea(Double_t a)                  { fMinJetArea       = a     ; }
-  void                   SetMinJetPt(Double_t j)                    { fMinJetPt         = j     ; }
-  void                   SetLocked()                                { fLocked = kTRUE;}
-  void                   SetTrackEfficiency(Double_t t)             { fTrackEfficiency  = t     ; }
-  void                   SetLegacyMode(Bool_t mode)                 { fLegacyMode       = mode  ; }
-  void                   SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
+  void         SetMinJetArea(Double_t a)                  { fMinJetArea       = a     ; }
+  void         SetMinJetPt(Double_t j)                    { fMinJetPt         = j     ; }
+  void         SetLocked()                                { fLocked = kTRUE;}
+  void         SetTrackEfficiency(Double_t t)             { fTrackEfficiency  = t     ; }
+  void         SetLegacyMode(Bool_t mode)                 { fLegacyMode       = mode  ; }
+  void         SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
 
 // ========
 /*
@@ -130,6 +132,8 @@ class StJetMakerTask : public StMaker {
   void                   SetJetsTag(const char *n)                  { if (IsLocked()) return; fJetsTag          = n     ; }
   void                   SetJetEtaRange(Double_t emi, Double_t ema) { if (IsLocked()) return; fJetEtaMin        = emi   ; fJetEtaMax = ema; }
   void                   SetJetPhiRange(Double_t pmi, Double_t pma) { if (IsLocked()) return; fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
+  void                   SetJetTrackEtaRange(Double_t etmi, Double_t etma) { if (IsLocked()) return; fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
+  void                   SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { if (IsLocked()) return; fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
   void                   SetJetAlgo(EJetAlgo_t a)                   { if (IsLocked()) return; fJetAlgo          = a     ; }
   void                   SetJetType(EJetType_t t)                   { if (IsLocked()) return; fJetType          = t     ; }
   void                   SetLocked()                                { fLocked = kTRUE;}
@@ -165,6 +169,10 @@ class StJetMakerTask : public StMaker {
   Double_t               GetMinJetArea()                  { return fMinJetArea        ; }
   Double_t               GetMinJetPt()                    { return fMinJetPt          ; }
   Double_t               GetRadius()                      { return fRadius            ; }
+  Double_t               GetJetTrackEtaMin()              { return fJetTrackEtaMin    ; }
+  Double_t               GetJetTrackEtaMax()              { return fJetTrackEtaMax    ; }
+  Double_t               GetJetTrackPhiMin()              { return fJetTrackPhiMin    ; }
+  Double_t               GetJetTrackPhiMax()              { return fJetTrackPhiMax    ; }
   Double_t               GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
 
@@ -225,6 +233,10 @@ class StJetMakerTask : public StMaker {
   Double_t               fMinJetTrackPt;          // min jet track transverse momentum
   Double_t               fMaxJetTrackPt;          // max jet track transverse momentum
   Double_t               fMinJetClusPt;           // min jet cluster transverse momentum
+  Double_t               fJetTrackEtaMin;         // min jet track eta
+  Double_t               fJetTrackEtaMax;         // max jet track eta
+  Double_t               fJetTrackPhiMin;         // min jet track phi
+  Double_t               fJetTrackPhiMax;         // max jet track phi
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
   // may not need some of next bools
