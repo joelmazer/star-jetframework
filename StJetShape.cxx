@@ -12,7 +12,9 @@
 #include "TMatrixDSymEigen.h"
 #include "TVector3.h"
 #include "TVector2.h"
+
 #include "StFJWrapper.h"
+
 using namespace std;
 
 #ifdef FASTJET_VERSION

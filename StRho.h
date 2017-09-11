@@ -4,14 +4,15 @@
 // $Id$
 // adapted from the AliROOT class AliAnalysisTaskRho.h
 
+#include "StRhoBase.h"
+
+// additional includes
+#include "StMaker.h"
+
+// ROOT classes
 class TH2;
 class TH2F;
 class TClonesArray;
-
-#include "StRhoBase.h"
-
-// some includes
-#include "StMaker.h"
 
 // STAR classes
 class StPicoDst;
@@ -41,21 +42,21 @@ class StRho : public StRhoBase {
  protected:
   UInt_t           fNExclLeadJets;                 // number of leading jets to be excluded from the median calculation
 
-  TClonesArray          *fJets;//!jet collection
+  TClonesArray    *fJets;//!jet collection
 
  private:
   // PicoDstMaker and PicoDst object pointer
-  StPicoDstMaker *mPicoDstMaker;
-  StPicoDst      *mPicoDst;
-  StPicoEvent    *mPicoEvent;
+  StPicoDstMaker   *mPicoDstMaker;
+  StPicoDst        *mPicoDst;
+  StPicoEvent      *mPicoEvent;
   StJetMakerTask   *JetMaker;
 
   TH2F             *fHistMultvsRho;//!
 
   // maker names
-  TString          mOutName;
-  TString          fJetMakerName;
-  TString          fRhoMakerName;
+  TString           mOutName;
+  TString           fJetMakerName;
+  TString           fRhoMakerName;
 
   StRho(const StRho&);             // not implemented
   StRho& operator=(const StRho&);  // not implemented

@@ -40,9 +40,6 @@
 #include "StEventPoolManager.h"
 
 // new includes
-//#include "StRoot/StPicoDstMaker/StPicoBTOWHit.h"
-///#include "StRoot/StPicoDstMaker/StPicoBTofHit.h"
-
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 //#include "StRoot/StPicoEvent/StPicoBTOWHit.h"
@@ -50,7 +47,7 @@
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoMtdTrigger.h"
 //#include "StRoot/StPicoEvent/StPicoEmcPidTraits.h" // OLD
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
+//#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
@@ -70,7 +67,7 @@ namespace fastjet {
 ClassImp(StMyAnalysisMaker)
 
 //-----------------------------------------------------------------------------
-StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName, bool mDoComments, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
+StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StMaker(name)
 {
   fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; fTrackWeight = 1;
@@ -128,6 +125,9 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hJetPhi;
   delete hJetNEF;
   delete hJetArea;
+  delete hJetTracksPt;
+  delete hJetTracksPhi;
+  delete hJetTracksEta;
   delete fHistJetHEtaPhi;
   delete fHistEventSelectionQA;
   delete fHistEventSelectionQAafterCuts;
@@ -225,6 +225,9 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetPhi = new TH1F("hJetPhi", "Jet #phi distribution", 72, 0.0, 2*pi);
   hJetNEF = new TH1F("hJetNEF", "Jet NEF", 100, 0, 1);
   hJetArea = new TH1F("hJetArea", "Jet Area", 100, 0, 1);
+  hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 80, 0, 20.0);
+  hJetTracksPhi = new TH1F("hJetTracksPhi", "Jet track constituent #phi", 72, 0, 2*pi);
+  hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
 
   fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-Hadron #Delta#eta-#Delta#phi", 56, -1.4, 1.4, 72, -0.5*pi, 1.5*pi);
 
@@ -340,6 +343,9 @@ void StMyAnalysisMaker::WriteHistograms() {
   hJetPhi->Write();
   hJetNEF->Write();
   hJetArea->Write();
+  hJetTracksPt->Write();
+  hJetTracksPhi->Write();
+  hJetTracksEta->Write();
 
   fHistJetHEtaPhi->Write();
 
@@ -682,12 +688,22 @@ Int_t StMyAnalysisMaker::Make() {
     // ====================================================================================
     //} // check on max track and cluster pt/Et
 
+    // get jet constituents
     //std::vector<fastjet::PseudoJet>  GetJetConstituents(ijet)
     const std::vector<TLorentzVector> aGhosts = jet->GetGhosts();
     const std::vector<fastjet::PseudoJet> myConstituents = jet->GetMyJets();
-    cout<<"Jet = "<<ijet<<endl;
+    cout<<"Jet = "<<ijet<<"  pt = "<<jetpt<<endl;
     for (UInt_t i=0; i<myConstituents.size(); i++) {
-      if(myConstituents[i].perp() > 0.1) cout<<"  pt trk "<<i<<" = "<<myConstituents[i].perp()<<endl;
+      // cut on ghost particles
+      if(myConstituents[i].perp() < 0.1) continue; 
+      cout<<"  pt trk "<<i<<" = "<<myConstituents[i].perp()<<endl;
+
+      //StVParticle *jettrack = static_cast<StVParticle*>myConstituents[i];
+      //if(!jettrack) continue;
+
+      hJetTracksPt->Fill(myConstituents[i].perp());
+      hJetTracksPhi->Fill(myConstituents[i].phi());
+      hJetTracksEta->Fill(myConstituents[i].eta());
     }
     cout<<endl;
 

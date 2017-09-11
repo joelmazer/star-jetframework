@@ -60,7 +60,8 @@ StJet::StJet() :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetConstit()
+  fJetConstit(),
+  fJetShapeProperties(0)
 {
   fClosestJets[0] = 0;
   fClosestJets[1] = 0;
@@ -103,7 +104,8 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetConstit()
+  fJetConstit(),
+  fJetShapeProperties(0)
 {
   if (fPt != 0) {
     fPhi = TVector2::Phi_0_2pi(TMath::ATan2(py, px));
@@ -151,7 +153,8 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fLabel(-1),
   fHasGhost(kFALSE),
   fGhosts(),
-  fJetConstit()
+  fJetConstit(),
+  fJetShapeProperties(0)
 {
   fPhi = TVector2::Phi_0_2pi(fPhi);
 
@@ -193,13 +196,18 @@ StJet::StJet(const StJet& jet) :
   fLabel(jet.fLabel),
   fHasGhost(jet.fHasGhost),
   fGhosts(jet.fGhosts),
-  fJetConstit(jet.fJetConstit)
+  fJetConstit(jet.fJetConstit),
+  fJetShapeProperties(0)
 {
   // Copy constructor.
   fClosestJets[0]     = jet.fClosestJets[0];
   fClosestJets[1]     = jet.fClosestJets[1];
   fClosestJetsDist[0] = jet.fClosestJetsDist[0];
   fClosestJetsDist[1] = jet.fClosestJetsDist[1];
+
+  if (jet.fJetShapeProperties) {
+    fJetShapeProperties = new StJetShapeProperties(*(jet.fJetShapeProperties));
+  }
 
 }
 
@@ -208,6 +216,7 @@ StJet::StJet(const StJet& jet) :
  */
 StJet::~StJet()
 {
+  if (fJetShapeProperties) delete fJetShapeProperties;
 }
 
 /**
@@ -248,6 +257,9 @@ StJet& StJet::operator=(const StJet& jet)
     fHasGhost = jet.fHasGhost;
     fGhosts   = jet.fGhosts;
     fJetConstit = jet.fJetConstit;
+    if (jet.fJetShapeProperties) {
+      fJetShapeProperties = new StJetShapeProperties(*(jet.fJetShapeProperties));
+    }
   }
 
   return *this;

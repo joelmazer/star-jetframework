@@ -65,27 +65,6 @@ class StMyAnalysisMaker : public StMaker {
     external_scheme = 99
   };
 
-  /**
-   * @enum JetAcceptanceType
-   * @brief Bit definition for jet geometry acceptance. Defined here for backwards compatibility. This will be 
-   * removed. Please use StJet::JetAcceptanceType in your code.
-   */
-/*
-  enum JetAcceptanceType {
-    kTPC              = StJet::kTPC,          ///< TPC acceptance
-    kTPCfid           = StJet::kTPCfid,       ///< TPC fiducial acceptance (each eta edge narrowed by jet R)
-    kEMCAL            = StJet::kEMCAL,        ///< EMCal acceptance
-    kEMCALfid         = StJet::kEMCALfid,     ///< EMCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kDCAL             = StJet::kDCAL,         ///< DCal acceptance -- spans entire rectangular region in eta-phi (including most of PHOS)
-    kDCALfid          = StJet::kDCALfid,      ///< DCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kDCALonly         = StJet::kDCALonly,     ///< DCal acceptance -- spans ONLY DCal (no PHOS or gap)
-    kDCALonlyfid      = StJet::kDCALonlyfid,  ///< DCal fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kPHOS             = StJet::kPHOS,         ///< PHOS acceptance
-    kPHOSfid          = StJet::kPHOSfid,      ///< PHOS fiducial acceptance (each eta, phi edge narrowed by jet R)
-    kUser             = StJet::kUser          ///< Full acceptance, i.e. no acceptance cut applied -- left to user
-  };
-*/
-
     // event plane track weight type enumerator
     enum EPtrackWeigthType_t {
       kNoWeight,
@@ -250,6 +229,9 @@ class StMyAnalysisMaker : public StMaker {
     TH1F* hJetPhi;//!
     TH1F* hJetNEF;//!
     TH1F* hJetArea;//!
+    TH1F* hJetTracksPt;//!
+    TH1F* hJetTracksPhi;//!
+    TH1F* hJetTracksEta;//!
 
     // correlation histo
     TH2  *fHistJetHEtaPhi;//!

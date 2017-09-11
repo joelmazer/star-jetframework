@@ -16,12 +16,16 @@
 #include <TLorentzVector.h>
 #include <TString.h>
 
+#include "StPicoEvent/StPicoEmcTrigger.h"
 #include "StVParticle.h"
-//#include <AliVCluster.h>
 //#include <AliVEvent.h>
+#include "StPicoEvent/StPicoBEmcPidTraits.h"
 
 #include "FJ_includes.h"
 #include "StFJWrapper.h"
+
+#include "StJetShapeProperties.h"
+
 using std::vector;
 namespace fastjet {
   class PseudoJet;
@@ -118,6 +122,11 @@ class StJet : public StVParticle // FIXME
   TLorentzVector    SubtractRhoVect(Double_t rho, Bool_t save = kFALSE);
 
   // Jet constituents //FIXME
+////  AliVCluster      *Cluster(Int_t idx)                                             const;
+////  AliVCluster      *ClusterAt(Int_t idx, TClonesArray *ca)                         const;
+////  Int_t             ContainsCluster(AliVCluster* cluster, TClonesArray* clusters)  const;
+////  Int_t             ContainsCluster(Int_t ic)                                      const;
+////  AliVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
 ////  StVParticle     *Track(Int_t idx)                                               const;
 ////  StVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
   Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)         const;
@@ -126,8 +135,8 @@ class StJet : public StVParticle // FIXME
 
   // Fragmentation Function
   Double_t          GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz)  const;
-  Double_t          GetZ(const StVParticle* trk ) const;
-  Double_t          GetXi(const StVParticle* trk )                                         const;
+  Double_t          GetZ(const StVParticle* trk )                                           const;
+  Double_t          GetXi(const StVParticle* trk )                                          const;
   Double_t          GetXi(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz) const;
 
   // Other service methods // FIXME
@@ -198,6 +207,11 @@ class StJet : public StVParticle // FIXME
   void Print(Option_t* /*opt*/ = "") const;
   void PrintConstituents(TClonesArray* tracks, TClonesArray* clusters) const;
 
+  // Jet shape
+  StJetShapeProperties* GetShapeProperties() const{ return fJetShapeProperties; }
+  StJetShapeProperties* GetShapeProperties() { if (!fJetShapeProperties) CreateShapeProperties(); return fJetShapeProperties; }
+  void CreateShapeProperties() { if (fJetShapeProperties) delete fJetShapeProperties; fJetShapeProperties = new StJetShapeProperties(); }
+  
  protected:
   Bool_t            IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted = kFALSE)       const;
   Bool_t            IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted = kFALSE)      const;
@@ -229,7 +243,6 @@ class StJet : public StVParticle // FIXME
   Double32_t        fMCPt;                ///<  Pt from MC particles contributing to the jet
   Int_t             fNn;                  ///<  Number of neutral constituents
   Int_t             fNch;                 ///<  Number of charged constituents
-  /// Pt in EMCAL acceptance
   TArrayI           fClusterIDs;          ///<  Array containing ids of cluster constituents
   TArrayI           fTrackIDs;            ///<  Array containing ids of track constituents
   StJet             *fClosestJets[2];     //!<! If this is MC it contains the two closest detector level jets in order of distance and viceversa
@@ -247,6 +260,8 @@ class StJet : public StVParticle // FIXME
 // TEST
 //  std::vector<TLorentzVector> fJetConstit; //!<! Vector containing the jet constituents
   std::vector<fastjet::PseudoJet> fJetConstit; //!<! Vector containing the jet constituents
+
+  StJetShapeProperties *fJetShapeProperties; //!<! Pointer to the jet shape properties
 
  private:
   /**

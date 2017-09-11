@@ -81,7 +81,7 @@ class StJetMakerTask : public StMaker {
 */
 
   StJetMakerTask();
-  StJetMakerTask(const char *name, double mintrackPt);
+  StJetMakerTask(const char *name, double mintrackPt, bool dohistos, const char* outName);
   virtual ~StJetMakerTask();
 
   // needed class functions
@@ -95,7 +95,7 @@ class StJetMakerTask : public StMaker {
   void    WriteHistograms();
 
   // switches
-  void                    SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; } 
+  void         SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; } 
 
   // common setters
   void         SetClusName(const char *n)       { fCaloName      = n;  }
@@ -195,6 +195,7 @@ class StJetMakerTask : public StMaker {
   //Int_t FindJets();
 
   // switches
+  Bool_t                 doWriteHistos;           // write QA histos
   Bool_t                 doUsePrimTracks;         // primary track switch
 
   TString                fTracksName;             // name of track collection
@@ -268,8 +269,11 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
 
+  // output file name string
+  TString         mOutName;
+     
   // maker names
-  TString          fJetMakerName;
+  TString         fJetMakerName;
 
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented

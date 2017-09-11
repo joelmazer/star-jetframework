@@ -27,9 +27,10 @@ class StPicoDst;
 class StPicoDstMaker;
 class StRefMultCorr;
 
-//FIXME - might not want to inherit from 2 classes
+// might not want to inherit from 2 classes
 //class StRhoBase : public StMaker, public StJet {
-class StRhoBase : public StJetMakerTask {
+//class StRhoBase : public StJetMakerTask {
+class StRhoBase : public StMaker {  // TODO need to check if this is fine
 
  public:
   StRhoBase();

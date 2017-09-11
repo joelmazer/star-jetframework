@@ -39,7 +39,9 @@ ClassImp(StJetMakerTask)
 //________________________________________________________________________
 StJetMakerTask::StJetMakerTask() : 
   StMaker(),
+  doWriteHistos(kFALSE),
   doUsePrimTracks(kFALSE), 
+  mOutName(""),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fJetsName("Jets"),
@@ -50,10 +52,10 @@ StJetMakerTask::StJetMakerTask() :
   fjw("StJetMakerTask", "StJetMakerTask"),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
-  fJetPhiMin(-10),
-  fJetPhiMax(+10),
-  fJetEtaMin(-1),
-  fJetEtaMax(+1),
+  fJetPhiMin(-10.0),
+  fJetPhiMax(+10.0),
+  fJetEtaMin(-0.6),
+  fJetEtaMax(0.6),
   fGhostArea(0.005), 
   fMinJetTrackPt(0.2),
   fMaxJetTrackPt(20.0),
@@ -79,9 +81,11 @@ StJetMakerTask::StJetMakerTask() :
 }
 
 //________________________________________________________________________
-StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20) : 
+StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool doHistos = kFALSE, const char* outName = "") : 
   StMaker(name),
+  doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
+  mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fJetsName("Jets"),
@@ -94,8 +98,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20) :
   fMinJetPt(1.0),
   fJetPhiMin(-10), 
   fJetPhiMax(+10),
-  fJetEtaMin(-1), 
-  fJetEtaMax(+1),
+  fJetEtaMin(-0.6), 
+  fJetEtaMax(0.6),
   fGhostArea(0.005),
   fMinJetTrackPt(mintrackPt), //0.20
   fMaxJetTrackPt(20.0), 
@@ -126,6 +130,9 @@ StJetMakerTask::~StJetMakerTask()
 {
   // Destructor
   //fJets->Clear(); delete fJets;
+  if(fHistJetNTrackvsPt)   delete fHistJetNTrackvsPt;
+  if(fHistJetNTrackvsPhi)  delete fHistJetNTrackvsPhi;
+  if(fHistJetNTrackvsEta)  delete fHistJetNTrackvsEta;
 }
 
 //-----------------------------------------------------------------------------
@@ -203,9 +210,8 @@ Int_t StJetMakerTask::Finish() {
   cout<<"End of StJetMakerTask::Finish"<<endl;
 */
 
-//  if(mOutName!="") {
-//    TFile *fout = new TFile(mOutName.Data(), "UPDATE");
-    TFile *fout = new TFile("test2.root", "UPDATE");
+  if(doWriteHistos && mOutName!="") {
+    TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
     fout->mkdir(GetName());
     fout->cd(GetName());
@@ -213,7 +219,7 @@ Int_t StJetMakerTask::Finish() {
     fout->cd();
     fout->Write();
     fout->Close();
-//  }
+  }
 
   return kStOK;
 }
@@ -230,6 +236,10 @@ void StJetMakerTask::DeclareHistograms() {
 //________________________________________________________________________
 void StJetMakerTask::WriteHistograms() {
   // write histograms
+  fHistJetNTrackvsPt->Write();
+  fHistJetNTrackvsPhi->Write();
+  fHistJetNTrackvsEta->Write();
+
 }
 
 //-----------------------------------------------------------------------------
@@ -246,12 +256,16 @@ int StJetMakerTask::Make()
 
   // Get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  if(!mPicoDstMaker) {
+    LOG_WARN << " No PicoDstMaker! Skip! " << endm;
+    return kStFatal;
+  }
 
   // construct PicoDst object from maker
   mPicoDst = mPicoDstMaker->picoDst();
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
-    return kStWarn; //FIXME
+    return kStWarn;
   }
 
   // create pointer to PicoEvent
@@ -266,7 +280,7 @@ int StJetMakerTask::Make()
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
-  // zvertex cut - per the Aj analysis
+  // zvertex cut - per the Aj analysis - User can make finer cut in Analysis Code
   if((1.0*TMath::Abs(zVtx)) > 40) return kStOk; // kStWarn; //kStFatal;
 
   // TClonesArrays
