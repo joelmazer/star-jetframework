@@ -89,8 +89,9 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fCorrJetPt = kFALSE;
   fMinPtJet = minJetPt;
   fTrackBias = trkbias;
-  fTrackPtMinCut = 0.2;
-  fTrackPtMaxCut = 20.0;
+  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
+  fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
+  fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fJetRad = 0.4; 
   mCentrality = 0;
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
@@ -543,11 +544,10 @@ Int_t StMyAnalysisMaker::Make() {
   }
 */
 
-/* 
+
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   for ( unsigned int i=0; i<mytriggers.size(); i++) cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
   cout<<endl;
-*/
 
   // get centrality test::
   //Int_t Pico::mCent_Year11_200GeV[nCen] = {10,21,41,72,118,182,266,375,441}; // Run11 200 GeV (Copy from Run10 200 GeV)
@@ -690,22 +690,19 @@ Int_t StMyAnalysisMaker::Make() {
 
     // get jet constituents
     //std::vector<fastjet::PseudoJet>  GetJetConstituents(ijet)
-    const std::vector<TLorentzVector> aGhosts = jet->GetGhosts();
+    //const std::vector<TLorentzVector> aGhosts = jet->GetGhosts();
     const std::vector<fastjet::PseudoJet> myConstituents = jet->GetMyJets();
-    cout<<"Jet = "<<ijet<<"  pt = "<<jetpt<<endl;
+    //cout<<"Jet = "<<ijet<<"  pt = "<<jetpt<<endl;
     for (UInt_t i=0; i<myConstituents.size(); i++) {
       // cut on ghost particles
       if(myConstituents[i].perp() < 0.1) continue; 
-      cout<<"  pt trk "<<i<<" = "<<myConstituents[i].perp()<<endl;
-
-      //StVParticle *jettrack = static_cast<StVParticle*>myConstituents[i];
-      //if(!jettrack) continue;
+      //cout<<"  pt trk "<<i<<" = "<<myConstituents[i].perp()<<endl;
 
       hJetTracksPt->Fill(myConstituents[i].perp());
       hJetTracksPhi->Fill(myConstituents[i].phi());
       hJetTracksEta->Fill(myConstituents[i].eta());
     }
-    cout<<endl;
+    //cout<<endl;
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(unsigned short itrack=0;itrack<ntracks;itrack++){
@@ -749,12 +746,12 @@ Int_t StMyAnalysisMaker::Make() {
         if(pt < fTrackPtMinCut) continue;
       }
 
-      // more acceptance cuts now - after getting 3vector - hardcoded for now
+      // more acceptance cuts now - after getting 3vector
       if(pt > fTrackPtMaxCut) continue;  // 20.0 STAR, 100.0 ALICE
-      if((1.0*TMath::Abs(eta)) > 1.0) continue;      
+      if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) continue;      
       if(phi < 0) phi+= 2*pi;
       if(phi > 2*pi) phi-= 2*pi;
-      if((phi < 0) || (phi > 2*pi)) continue;
+      if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) continue;
 
 //      if(jet->ContainsTrack(itrack)) cout<<" track part of jet, pt = "<<pt<<endl;
 //      const std::vector<TLorentzVector> constit =  jet->GetConstits();
@@ -914,17 +911,18 @@ Int_t StMyAnalysisMaker::Make() {
 
               // do pt cut here to accommadate either type
               if(doUsePrimTracks) { // primary  track
-                if(pt < fTrackPtMinCut) continue;
+                if(Mixpt < fTrackPtMinCut) continue;
               } else { // global track
-                if(pt < fTrackPtMinCut) continue;
+                if(Mixpt < fTrackPtMinCut) continue;
               }
 
               // more acceptance cuts now - after getting 3vector - hardcoded for now
-              if(pt > fTrackPtMaxCut) continue; // 20.0 STAR, 100.0 ALICE
-              if((1.0*TMath::Abs(Mixeta)) > 1.0) continue;
+              if(Mixpt > fTrackPtMaxCut) continue; // 20.0 STAR, 100.0 ALICE
+              if((Mixeta < fTrackEtaMinCut) || (Mixeta > fTrackEtaMaxCut)) continue;
               if(Mixphi < 0) Mixphi+= 2*pi;
               if(Mixphi > 2*pi) Mixphi-= 2*pi;
-              if((Mixphi < 0) || (Mixphi > 2*pi)) continue;
+              if((Mixphi < fTrackPhiMinCut) || (Mixphi > fTrackPhiMaxCut)) continue;
+
 
               // get jet - track relations
               //deta = eta - jetEta;               // eta betweeen hadron and jet
@@ -1558,12 +1556,12 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
       if(pt < fTrackPtMinCut) continue;
     }
 
-    // more acceptance cuts now - after getting 3vector - hardcoded for now
-    if(pt > fTrackPtMaxCut) continue; // 20.0 STAR, 100.0 ALICE
-    if((1.0*TMath::Abs(eta)) > 1.0) continue;
+    // more acceptance cuts now - after getting 3vector
+    if(pt > fTrackPtMaxCut) continue;  // 20.0 STAR, 100.0 ALICE
+    if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) continue;
     if(phi < 0) phi+= 2*pi;
     if(phi > 2*pi) phi-= 2*pi;
-    if((phi < 0) || (phi > 2*pi)) continue;
+    if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) continue;
 
     // add tracks passing cuts to tracksClone array
     ((*tracksClone)[iterTrk]) = trk;
@@ -1623,6 +1621,7 @@ Int_t StMyAnalysisMaker::centrality(int refMult) {
 // Trigger QA histogram, label bins 
 TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h, UInt_t trig) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
+
 /*
   if(trig == 0) h->Fill(1);
   if(trig & AliVEvent::kAny) h->Fill(2);

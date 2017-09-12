@@ -101,16 +101,18 @@ class StMyAnalysisMaker : public StMaker {
     TClonesArray* particles() const { return mParticles; }
 
     // switches
-    void                    SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
+    virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
 
     // jet setters
-    void                    SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
-    void                    SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
+    virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
+    virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     
     // track setters
-    void                    SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
-    void                    SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
+    virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
+    virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
+    virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMaxCut = ptmi; fTrackPhiMaxCut = ptma; }
+    virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
 
     // event mixing - setters
     virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
@@ -158,6 +160,10 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               fJetRad;                 // jet radius
     Double_t               fTrackPtMinCut;          // min track pt cut
     Double_t               fTrackPtMaxCut;          // max track pt cut
+    Double_t               fTrackPhiMinCut;         // min track phi cut
+    Double_t               fTrackPhiMaxCut;         // max track phi cut
+    Double_t               fTrackEtaMinCut;         // min track eta cut
+    Double_t               fTrackEtaMaxCut;         // max track eta cut
 
     Int_t      mCentrality;
 

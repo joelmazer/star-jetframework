@@ -429,21 +429,27 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   }
 */
 
-/*
+
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
     // looping over clusters to add to jet - STAR: matching already done
     //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[StPicoArrays::EmcTrigger]->UncheckedAt(i); }  
     //static StPicoBEmcPidTraits* bemcPidTraits(int i) { return (StPicoBEmcPidTraits*)picoArrays[StPicoArrays::BEmcPidTraits]->UncheckedAt(i); }
+
     // get # of clusters
-    unsigned int nclus = mPicoDst->numberOfEmcPidTraits();
+    unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
-      StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);
+      //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);
+      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
       //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
       if(!cluster){ continue; }
+
+      //double clusE = cluster->bemcE();
+      //cout<<"clusE = "<<clusE<<endl;
+
     }
   }
-*/
+
 
   // run jet finder
   fjw.Run();
