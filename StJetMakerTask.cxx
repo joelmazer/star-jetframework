@@ -444,7 +444,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
       //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);  // OLD usage
-      //StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
+      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
       if(!cluster){ continue; }
 
@@ -461,7 +461,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
       if(!trk) continue;
       //if(!(trk->isPrimary())) continue; // check if primary
-
+/*
       // TEST comparing track position with cluster and tower
       double pmatchPhi = trk->pMom().phi();
       double gmatchPhi = trk->gMom().phi();
@@ -470,7 +470,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<
            " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
            " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
-
+*/
       // " PPhi="<<pmatchPhi<<"  PEta="<<pmatchEta<<endl;
       //mGeom->getEtaPhi(towerID,towerEta,towerPhi);
     }
