@@ -6,6 +6,13 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
+// TEST for clusters TODO
+#include "StEmcUtil/geometry/StEmcGeom.h"
+#include "StEmcUtil/projection/StEmcPosition.h"
+class StEmcGeom;
+class StEmcCluster;
+class StBemcTables; //v3.14
+
 // ROOT classes
 class TClonesArray;
 class TObjArray;
@@ -67,7 +74,6 @@ class StJetMakerTask : public StMaker {
     kChargedJet,
     kNeutralJet
   };
-
 
 /*
   typedef StMyAnalysisMaker::EJetType_t EJetType_t;
@@ -175,7 +181,6 @@ class StJetMakerTask : public StMaker {
   Double_t               GetJetTrackPhiMax()              { return fJetTrackPhiMax    ; }
   Double_t               GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
-
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                                              std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
 
@@ -250,6 +255,10 @@ class StJetMakerTask : public StMaker {
   TClonesArray          *fJets;                   //!jet collection
 //TEST
   vector<fastjet::PseudoJet> fConstituents;      //!jet constituents
+
+  // TEST
+  // method (a simple track filter) // TEST TODO
+  StEmcGeom       *mGeom;
   
   static const Int_t     fgkConstIndexShift;      //!contituent index shift
 

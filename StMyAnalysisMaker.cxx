@@ -9,9 +9,13 @@
 // 	- mixed events: use of an event pool to mix triggers with
 //      - Rho (underlying event) subtraction to jets
 //      - leading jet tag
+//      - access to jet constituents
 //      - general QA
 //      
-// it gets a pointer to a collection of jets  	
+// can get a pointer to:
+// 1) collection of jets  	
+// 2) event wise rho parameter
+// 3) jet constituents (4 vectors)
 //
 // ################################################################
 
@@ -47,11 +51,11 @@
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoMtdTrigger.h"
 //#include "StRoot/StPicoEvent/StPicoEmcPidTraits.h" // OLD
-//#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
-#include "StRoot/StPicoEvent/StPicoConstants.h"
+#include "StPicoConstants.h"
 
 // centrality
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -512,9 +516,9 @@ Int_t StMyAnalysisMaker::Make() {
   if(mtdpid) mtdpid->Print();
 */
 
-/*
+  // looking at the EMCal triggers
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  cout<<"nEmcTrigger = "<<nEmcTrigger<<endl;
+  //cout<<"nEmcTrigger = "<<nEmcTrigger<<endl;
   //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   for(int i = 0; i < nEmcTrigger; i++) {
     StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
@@ -533,22 +537,14 @@ Int_t StMyAnalysisMaker::Make() {
       return kStWarn;
     }
   }
-*/
 
-  // trigger info
-/*  
-  //cout<<"trigger = "<<mPicoEvent->triggerIds()<<endl;
-  for (int i = 0; i < 4; i++) {
-    //std::cout << static_cast<unsigned int>(chars[i]) << std::flush;
-    std::cout << static_cast<unsigned int>(mPicoEvent->triggerIds[i]) << std::flush;
-  }
-*/
-
-
+  // trigger info 
+  // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
-  for ( unsigned int i=0; i<mytriggers.size(); i++) cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
+  for(unsigned int i=0; i<mytriggers.size(); i++) cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
   cout<<endl;
 
+  // ============================ CENTRALITY ============================== //
   // get centrality test::
   //Int_t Pico::mCent_Year11_200GeV[nCen] = {10,21,41,72,118,182,266,375,441}; // Run11 200 GeV (Copy from Run10 200 GeV)
   //int mCentrality = centrality(refMult); // Run11: OLD
@@ -589,6 +585,8 @@ Int_t StMyAnalysisMaker::Make() {
   else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
   else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
   else cbin = -99;
+
+  // ============================ end of CENTRALITY ============================== //
 
   // reaction plane angle
   // cache the leading jet within acceptance
