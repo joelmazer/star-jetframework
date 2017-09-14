@@ -460,8 +460,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       int trackIndex = cluster->trackIndex();
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
       if(!trk) continue;
+      //if(!(trk->isPrimary())) continue; // check if primary
 
-/*
       // TEST comparing track position with cluster and tower
       double pmatchPhi = trk->pMom().phi();
       double gmatchPhi = trk->gMom().phi();
@@ -470,7 +470,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<
            " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
            " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
-*/
+
       // " PPhi="<<pmatchPhi<<"  PEta="<<pmatchEta<<endl;
       //mGeom->getEtaPhi(towerID,towerEta,towerPhi);
     }
