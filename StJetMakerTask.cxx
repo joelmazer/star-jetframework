@@ -19,9 +19,18 @@
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoDstMaker/StPicoArrays.h"
-#include "StRoot/StPicoEvent/StPicoConstants.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
+
+#include "StPicoConstants.h"
+
+// test for clusters: TODO
+//StEmc
+#include "StEmcClusterCollection.h"
+#include "StEmcPoint.h"
+#include "StEmcUtil/geometry/StEmcGeom.h"
+#include "StEmcUtil/others/emcDetectorName.h"
+class StEmcPosition;
 
 // jet class and fastjet wrapper
 #include "StJet.h"
@@ -69,6 +78,7 @@ StJetMakerTask::StJetMakerTask() :
   fFillGhost(kFALSE),
   fJets(0),
   fConstituents(0),
+  mGeom(StEmcGeom::instance("bemc")),
 //  fClusterContainerIndexMap(),
   fParticleContainerIndexMap(),
   mPicoDstMaker(0x0),
@@ -113,6 +123,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fFillGhost(kFALSE),
   fJets(0),
   fConstituents(0),
+  mGeom(StEmcGeom::instance("bemc")),
 //  fClusterContainerIndexMap(),
   fParticleContainerIndexMap(),
   mPicoDstMaker(0x0),
@@ -326,18 +337,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   // clear out existing wrapper object
   fjw.Clear();
 
-/*
-  if (tracks) {
-    const Int_t Ntracks = tracks->GetEntries();
-    for (Int_t iTracks = 0; iTracks < Ntracks; ++iTracks) {
-      AliVTrack *t = static_cast<AliVTrack*>(tracks->At(iTracks));
-      if (!t) continue;
-      if (t->Pt()<fMinJetTrackPt) continue;
-      fjw.AddInputVector(t->Px(), t->Py(), t->Pz(), t->P(), iTracks);
-    }
-  }
-*/
-
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField();
 
@@ -413,7 +412,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   } // if full/charged jets
 
 /*
-  // looping over cluster to add to jet
+  // looping over cluster to add to jet - Example
   if (clus) {
     Double_t vertex[3] = {0, 0, 0};
     const Int_t Nclus = clus->GetEntries();
@@ -429,27 +428,53 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   }
 */
 
-
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
     // looping over clusters to add to jet - STAR: matching already done
-    //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[StPicoArrays::EmcTrigger]->UncheckedAt(i); }  
     //static StPicoBEmcPidTraits* bemcPidTraits(int i) { return (StPicoBEmcPidTraits*)picoArrays[StPicoArrays::BEmcPidTraits]->UncheckedAt(i); }
 
-    // get # of clusters
+    // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
+    double towerEta, towerPhi;
+    int towID, clusID;
+    StThreeVectorF  towPosition;
+    StThreeVectorF  clusPosition;
+    StEmcPosition *mPosition = new StEmcPosition();
+    StEmcPosition *mPosition2 = new StEmcPosition();
+
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
-      //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);
-      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
+      //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);  // OLD usage
+      //StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
       if(!cluster){ continue; }
 
-      //double clusE = cluster->bemcE();
-      //cout<<"clusE = "<<clusE<<endl;
+      // cluster and tower ID
+      clusID = cluster->bemcId();
+      towID = cluster->btowId();
 
+      // cluster and tower position
+      towPosition = mPosition->getPosFromVertex(mVertex, towID);
+      clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
+
+      // matched track index
+      int trackIndex = cluster->trackIndex();
+      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
+      if(!trk) continue;
+
+/*
+      // TEST comparing track position with cluster and tower
+      double pmatchPhi = trk->pMom().phi();
+      double gmatchPhi = trk->gMom().phi();
+      double pmatchEta = trk->pMom().pseudoRapidity();
+      double gmatchEta = trk->gMom().pseudoRapidity();
+      cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<
+           " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
+           " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
+*/
+      // " PPhi="<<pmatchPhi<<"  PEta="<<pmatchEta<<endl;
+      //mGeom->getEtaPhi(towerID,towerEta,towerPhi);
     }
   }
-
 
   // run jet finder
   fjw.Run();
@@ -486,11 +511,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetAreaEta(area.eta());
     jet->SetAreaPhi(area.phi());
     jet->SetAreaE(area.E());
-    //jet->SetJetAcceptanceType(FindJetAcceptanceType(jet->Eta(), jet->Phi_0_2pi(), fRadius));
 
     // get constituents of jets
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
-//TEST - works
     fConstituents = fjw.GetJetConstituents(ij); 
     jet->SetJetConstituents(fConstituents);
 
@@ -545,7 +568,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 	nt++;
 //============================
 /*
-     else if (uid >= fgkConstIndexShift) { // track constituent
+      // example usage for container index mapping
+      else if (uid >= fgkConstIndexShift) { // track constituent
       Int_t iColl = uid / fgkConstIndexShift;
       Int_t tid = uid - iColl * fgkConstIndexShift;
       iColl--;
@@ -559,7 +583,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       } else { // uid < 0
 
 /*
-	jet->AddClusterAt(-(uid+1),nc);
+	// example usage
+        jet->AddClusterAt(-(uid+1),nc);
         AliVCluster *c = dynamic_cast<AliVCluster*>(clus->At(-(uid+1)));
         TLorentzVector nP;
         c->GetMomentum(nP, vertex);
@@ -735,6 +760,9 @@ fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t
 }
 */
 
+// The below is only useful if I eventually figure out the container mapping indexes to work between the initial
+// TClonesArray / Container(Class) to the index created by FastJet and then back later on after jet-finding
+
 /**
  * This method is called for each jet. It loops over the jet constituents and
  * adds them to the jet object.
@@ -774,7 +802,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         uid = constituents[ic].user_index();
       }
       if (uid==0) {
-        Form("correspondence between un/subtracted constituent not found"); // FIXME
+        //Form("correspondence between un/subtracted constituent not found");
         continue;
       }
     }
@@ -791,15 +819,15 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       Int_t iColl = uid / fgkConstIndexShift;
       Int_t tid = uid - iColl * fgkConstIndexShift;
       iColl--;
-      Form("Constituent %d is a track from collection %d and with ID %d", uid, iColl, tid); // FIXME
+      //Form("Constituent %d is a track from collection %d and with ID %d", uid, iColl, tid);
       AliParticleContainer* partCont = GetParticleContainer(iColl); // FIXME
       if (!partCont) {
-        Form("Could not find particle container %d",iColl); //FIXME
+        //Form("Could not find particle container %d",iColl);
         continue;
       }
       StVParticle *t = partCont->GetParticle(tid); //FIXME
       if (!t) {
-        Form("Could not find track %d",tid); //FIXME
+        //Form("Could not find track %d",tid);
         continue;
       }
 
@@ -876,7 +904,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       ++nneutral;
     } 
     else {
-      Form("%s: No logical way to end up here (uid = %d).", GetName(), uid);
+      //Form("%s: No logical way to end up here (uid = %d).", GetName(), uid);
       continue;
     }
   }
