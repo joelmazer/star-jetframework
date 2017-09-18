@@ -20,7 +20,6 @@ class TH2F;
 #include "StRhoParameter.h"
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-///#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
 #include "StJetMakerTask.h"
@@ -145,16 +144,14 @@ Int_t StRho::Make()
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
-    //return kStWarn;
-    return kStFatal;
+    return kStWarn;
   }
 
   // construct PicoDst object from maker
   mPicoDst = mPicoDstMaker->picoDst();
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
-    //return kStWarn;
-    return kStFatal;
+    return kStWarn;
   }
 
   // create pointer to PicoEvent
@@ -162,7 +159,6 @@ Int_t StRho::Make()
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
-    //return kStFatal;
   }
 
   // get vertex 3 vector and declare variables

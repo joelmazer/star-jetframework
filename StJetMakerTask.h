@@ -101,7 +101,8 @@ class StJetMakerTask : public StMaker {
   void    WriteHistograms();
 
   // switches
-  void         SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; } 
+  void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks   = P; } 
+  void         SetDebugLevel(Int_t l)           { fDebugLevel    = l;  }
 
   // common setters
   void         SetClusName(const char *n)       { fCaloName      = n;  }
@@ -118,6 +119,8 @@ class StJetMakerTask : public StMaker {
   void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
   void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
   void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
+  void         SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
+  void         SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
   void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
   void         SetJetType(Int_t t)                        { fJetType          = t     ; }
   void         SetRecombScheme(Int_t scheme)              { fRecombScheme     = scheme; }
@@ -184,8 +187,6 @@ class StJetMakerTask : public StMaker {
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                                              std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
 
-  UInt_t FindJetAcceptanceType(Double_t eta, Double_t phi, Double_t r);
-
   Bool_t                 IsLocked() const;
 
 /*
@@ -198,10 +199,12 @@ class StJetMakerTask : public StMaker {
  protected:
   void FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   //Int_t FindJets();
+  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
 
   // switches
   Bool_t                 doWriteHistos;           // write QA histos
   Bool_t                 doUsePrimTracks;         // primary track switch
+  Int_t                  fDebugLevel;             // debug printout level
 
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
@@ -243,6 +246,8 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetTrackEtaMax;         // max jet track eta
   Double_t               fJetTrackPhiMin;         // min jet track phi
   Double_t               fJetTrackPhiMax;         // max jet track phi
+  Int_t                  fJetTracknHitsFit;       // requirement for track hits
+  Double_t               fJetTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
   // may not need some of next bools

@@ -3,6 +3,7 @@
 
 // some includes
 #include "StMaker.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
 
 // ROOT classes
 class TClonesArray;
@@ -72,7 +73,6 @@ class StMyAnalysisMaker : public StMaker {
       kPtLinear2Const5Weight
     };
 
-
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
    
@@ -111,8 +111,11 @@ class StMyAnalysisMaker : public StMaker {
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
     virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
-    virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMaxCut = ptmi; fTrackPhiMaxCut = ptma; }
+    virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
     virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
+    virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
+    virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
+
 
     // event mixing - setters
     virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
@@ -137,15 +140,13 @@ class StMyAnalysisMaker : public StMaker {
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
 
-    // don't use this: OLD from run11
-    Int_t centrality(int);
-
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
     TH1*                   FillEventTriggerQA(TH1* h, UInt_t t); // filled event trigger QA plots
     Double_t               GetReactionPlane(); // get reaction plane angle
+    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
 
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
@@ -164,8 +165,9 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               fTrackPhiMaxCut;         // max track phi cut
     Double_t               fTrackEtaMinCut;         // min track eta cut
     Double_t               fTrackEtaMaxCut;         // max track eta cut
+    Int_t                  fTracknHitsFit;       // requirement for track hits
+    Double_t               fTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
 
-    Int_t      mCentrality;
 
     // event mixing
     Int_t          fDoEventMixing;

@@ -145,14 +145,14 @@ Int_t StRhoSparse::Make()
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
-    return kStFatal;
+    return kStWarn;
   }
 
   // construct PicoDst object from maker
   mPicoDst = mPicoDstMaker->picoDst();
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
-    return kStFatal;
+    return kStWarn;
   }
 
   // create pointer to PicoEvent

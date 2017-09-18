@@ -31,6 +31,7 @@
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/others/emcDetectorName.h"
 class StEmcPosition;
+class StEEmcCluster;
 
 // jet class and fastjet wrapper
 #include "StJet.h"
@@ -50,6 +51,7 @@ StJetMakerTask::StJetMakerTask() :
   StMaker(),
   doWriteHistos(kFALSE),
   doUsePrimTracks(kFALSE), 
+  fDebugLevel(0),
   mOutName(""),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -73,6 +75,8 @@ StJetMakerTask::StJetMakerTask() :
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
   fJetTrackPhiMax(2.0*TMath::Pi()),
+  fJetTracknHitsFit(15),
+  fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
@@ -95,6 +99,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   StMaker(name),
   doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
+  fDebugLevel(0),
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -118,6 +123,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
   fJetTrackPhiMax(2.0*TMath::Pi()),
+  fJetTracknHitsFit(15),
+  fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
@@ -269,7 +276,7 @@ int StJetMakerTask::Make()
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
-    return kStFatal;
+    return kStWarn;
   }
 
   // construct PicoDst object from maker
@@ -284,7 +291,6 @@ int StJetMakerTask::Make()
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
-    //return kStFatal;
   }
 
   // get vertex 3 vector and declare variables
@@ -292,7 +298,7 @@ int StJetMakerTask::Make()
   double zVtx = mVertex.z();
 
   // zvertex cut - per the Aj analysis - User can make finer cut in Analysis Code
-  if((1.0*TMath::Abs(zVtx)) > 40) return kStOk; // kStWarn; //kStFatal;
+  if((1.0*TMath::Abs(zVtx)) > 40) return kStOk; // kStWarn;
 
   // TClonesArrays
   TClonesArray *tracks = 0;
@@ -344,60 +350,45 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
-  // loop over ALL tracks in PicoDst and add to jet
-  unsigned int ntracks = mPicoDst->numberOfTracks();
-  double gpt, gp, phi, eta, px, py, pz, pt, p, energy, charge;
-  double pi = 1.0*TMath::Pi();
   // assume neutral pion mass
+  double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
- 
+
+  unsigned int ntracks = mPicoDst->numberOfTracks();
+  double phi, eta, px, py, pz, p, pt, energy;
+
+  // loop over ALL tracks in PicoDst and add to jet 
   if((fJetType == kFullJet) || (fJetType == kChargedJet)) {
     for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
       // get tracks
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
       if(!trk){ continue; }
 
-      // declare kinematic variables
-      if(doUsePrimTracks) {
-        if(!(trk->isPrimary())) continue; // check if primary
+      // acceptance and kinematic quality cuts
+      if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
-        // get primary track variables
+      // get momentum
+      if(doUsePrimTracks) {
         StThreeVectorF mPMomentum = trk->pMom();
+        pt = mPMomentum.perp();
         phi = mPMomentum.phi();
         eta = mPMomentum.pseudoRapidity();
         px = mPMomentum.x();
         py = mPMomentum.y();
-        pt = mPMomentum.perp();
         pz = mPMomentum.z();
         p = mPMomentum.mag();
+        energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
       } else {
-        // get global track variables
-        StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-        phi = mgMomentum.phi();
-        eta = mgMomentum.pseudoRapidity();
-        px = mgMomentum.x();
-        py = mgMomentum.y();
-        pt = mgMomentum.perp();
-        pz = mgMomentum.z();
-        p = mgMomentum.mag();
+        StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
+        pt = mGMomentum.perp();
+        phi = mGMomentum.phi();
+        eta = mGMomentum.pseudoRapidity();
+        px = mGMomentum.x();
+        py = mGMomentum.y();
+        pz = mGMomentum.z();
+        p = mGMomentum.mag();
+        energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
       }
-
-      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-      charge = trk->charge();
-
-      // do pt cut here to accommadate either type
-      if(doUsePrimTracks) { // primary  track
-        if(pt < fMinJetTrackPt) continue;
-      } else { // global track
-        if(pt < fMinJetTrackPt) continue;
-      }
-
-      // jet track acceptance cuts now - after getting 3vector - hardcoded
-      if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
-      if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) continue;
-      if(phi < 0) phi+= 2*pi;
-      if(phi > 2*pi) phi-= 2*pi;
-      if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) continue;
 
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
@@ -445,8 +436,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     for(unsigned short iClus=0;iClus<nclus;iClus++){
       //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);  // OLD usage
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
-      //StEEmcCluster* cluster = mPicoDst->emcPidTraits(iClus);
       if(!cluster){ continue; }
+ 
+      //StEmcDetector* detector;
+      //detector=mEmcCol->detector(kBarrelEmcTowerId);
+      //if(detector) cout<<"have detector"<<endl;
+      //if(!detector) cout<<"don't detector object"<<endl;
+      //mGeom->getEtaPhi(towerId,etaTower,phiTower);
 
       // cluster and tower ID
       clusID = cluster->bemcId();
@@ -461,16 +457,18 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
       if(!trk) continue;
       //if(!(trk->isPrimary())) continue; // check if primary
-/*
+
       // TEST comparing track position with cluster and tower
       double pmatchPhi = trk->pMom().phi();
       double gmatchPhi = trk->gMom().phi();
       double pmatchEta = trk->pMom().pseudoRapidity();
       double gmatchEta = trk->gMom().pseudoRapidity();
-      cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<
-           " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
-           " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
-*/
+      if(fDebugLevel > 8) {
+        cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<" TrkID = "<<trk->id()<<
+              " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
+              " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
+      }
+
       // " PPhi="<<pmatchPhi<<"  PEta="<<pmatchEta<<endl;
       //mGeom->getEtaPhi(towerID,towerEta,towerPhi);
     }
@@ -532,37 +530,19 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         StPicoTrack* trk = mPicoDst->track(uid);
         if(!trk) continue;
 
-        // declare kinematic variables
-        if(doUsePrimTracks) {
-          if(!(trk->isPrimary())) continue; // check if primary
+        // acceptance and kinematic quality cuts
+        if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
-          // get primary track variables
+        // get momentum
+        if(doUsePrimTracks) {
           StThreeVectorF mPMomentum = trk->pMom();
-          phi = mPMomentum.phi();
-          eta = mPMomentum.pseudoRapidity();
           pt = mPMomentum.perp();
         } else {
-          // get global track variables
-          StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-          phi = mgMomentum.phi();
-          eta = mgMomentum.pseudoRapidity();
-          pt = mgMomentum.perp();
+          StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
+          pt = mGMomentum.perp();
         }
 
-        // do pt cut here to accommadate either type
-        if(doUsePrimTracks) { // primary  track
-          if(pt < fMinJetTrackPt) continue;
-        } else { // global track
-          if(pt < fMinJetTrackPt) continue;
-        }
-
-        // jet track acceptance cuts - after getting 3vector
-        if(pt > fMaxJetTrackPt) continue; // 20.0 STAR, 100.0 ALICE
-        if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) continue;
-        if(phi < 0) phi+= 2*pi;
-        if(phi > 2*pi) phi-= 2*pi;
-        if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) continue;
-
+        // find max track pt
         if (pt>maxTrack) maxTrack=pt;
 
 	nt++;
@@ -920,3 +900,68 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   jet->SortConstituents();
 }
 */
+
+//________________________________________________________________________
+Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
+  // declare kinematic variables
+  double phi, eta, px, py, pz, pt, p, energy, charge;
+  int nHitsFit, nHitsMax;
+  double nHitsRatio;
+
+  // constants: assume neutral pion mass
+  double pi0mass = Pico::mMass[0]; // GeV
+  double pi = 1.0*TMath::Pi();
+
+  // primary track switch
+  if(doUsePrimTracks) {
+    if(!(trk->isPrimary())) return kFALSE; // check if primary
+
+    // get primary track variables
+    StThreeVectorF mPMomentum = trk->pMom();
+    phi = mPMomentum.phi();
+    eta = mPMomentum.pseudoRapidity();
+    px = mPMomentum.x();
+    py = mPMomentum.y();
+    pt = mPMomentum.perp();
+    pz = mPMomentum.z();
+    p = mPMomentum.mag();
+  } else {
+    // get global track variables
+    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
+    phi = mgMomentum.phi();
+    eta = mgMomentum.pseudoRapidity();
+    px = mgMomentum.x();
+    py = mgMomentum.y();
+    pt = mgMomentum.perp();
+    pz = mgMomentum.z();
+    p = mgMomentum.mag();
+  }
+
+  // additional calculations
+  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  charge = trk->charge();
+  nHitsFit = trk->nHitsFit();
+  nHitsMax = trk->nHitsMax();
+  nHitsRatio = 1.0*nHitsFit/nHitsMax;
+
+  // do pt cut here to accommadate either type
+  if(doUsePrimTracks) { // primary  track
+    if(pt < fMinJetTrackPt) return kFALSE;
+  } else { // global track
+    if(pt < fMinJetTrackPt) return kFALSE;
+  }
+
+  // jet track acceptance cuts now - after getting 3vector - hardcoded
+  if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
+  if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) kFALSE;
+  if(phi < 0) phi+= 2*pi;
+  if(phi > 2*pi) phi-= 2*pi;
+  if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) kFALSE;
+      
+  // additional quality cuts for tracks
+  if(nHitsFit < fJetTracknHitsFit) kFALSE;
+  if(nHitsRatio < fJetTracknHitsRatio) kFALSE;
+
+  // passed all above cuts - keep track and fill input vector to fastjet
+  return kTRUE;
+}

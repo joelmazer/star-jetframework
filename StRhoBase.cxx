@@ -28,7 +28,6 @@
 
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-//#include "StRoot/StPicoDstMaker/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
 // STAR centrality includes
@@ -436,7 +435,6 @@ Int_t StRhoBase::Make()
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
-    //return kStFatal;
   }
 
   // construct PicoDst object from maker
@@ -444,7 +442,6 @@ Int_t StRhoBase::Make()
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
-    //return kStFatal;
   }
 
   // create pointer to PicoEvent
@@ -452,7 +449,6 @@ Int_t StRhoBase::Make()
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
-    //return kStFatal;
   }
 
   // get vertex 3 vector and declare variables
