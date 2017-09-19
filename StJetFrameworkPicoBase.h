@@ -1,5 +1,5 @@
-#ifndef StMyAnalysisMaker_h
-#define StMyAnalysisMaker_h
+#ifndef StJetFrameworkPicoBase_h
+#define StJetFrameworkPicoBase_h
 
 // some includes
 #include "StMaker.h"
@@ -30,7 +30,7 @@ class StRho;
 class StRhoParameter;
 class StEventPoolManager;
 
-class StMyAnalysisMaker : public StMaker {
+class StJetFrameworkPicoBase : public StMaker {
   public:
 
   // jet type enumerator
@@ -73,32 +73,16 @@ class StMyAnalysisMaker : public StMaker {
       kPtLinear2Const5Weight
     };
 
-    StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
-    virtual ~StMyAnalysisMaker();
+    StJetFrameworkPicoBase(const char *name);
+    virtual ~StJetFrameworkPicoBase();
    
     // class required functions
     virtual Int_t Init();
     virtual Int_t Make();
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
-    
-    // booking of histograms (optional)
-    void    DeclareHistograms();
-    void    WriteHistograms();
-   
-    // THnSparse Setup
-    virtual THnSparse*      NewTHnSparseF(const char* name, UInt_t entries);
-    virtual void            GetDimParams(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
-    virtual THnSparse*      NewTHnSparseFCorr(const char* name, UInt_t entries);
-    virtual void            GetDimParamsCorr(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
     static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
-
-    // TClonesArrays function returners of analysis objects
-    TClonesArray* jets() const { return mJets; }
-    TClonesArray* tracks() const { return mTracks; }
-    TClonesArray* towers() const { return mTowers; }
-    TClonesArray* particles() const { return mParticles; }
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
@@ -119,25 +103,10 @@ class StMyAnalysisMaker : public StMaker {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
-    // event mixing - setters
-    virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
-    virtual void            SetMixingTracks(Int_t tracks)      { fMixingTracks = tracks; }
-    virtual void            SetNMixedTr(Int_t nmt)             { fNMIXtracks = nmt; }
-    virtual void            SetNMixedEvt(Int_t nme)            { fNMIXevents = nme; }
-
-    // mixed selection - setters
-    virtual void            SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
-    virtual void            SetMixedEventType(UInt_t me)         { fMixingEventType = me; }
-    virtual void            SetCentBinSize(Int_t centbins)       { fCentBinSize = centbins; }
-    virtual void            SetReduceStatsCent(Int_t red)        { fReduceStatsCent = red; }
-
-    // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
-
     // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
 
-    // event plane
+    // leading jet
     StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
@@ -146,15 +115,11 @@ class StMyAnalysisMaker : public StMaker {
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
-    TH1*                   FillEventTriggerQA(TH1* h, UInt_t t); // filled event trigger QA plots
-    Double_t               GetReactionPlane(); // get reaction plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
-
-    //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
+    Double_t               GetReactionPlane(); // get reaction plane angle
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
-    Int_t                  fDoEffCorr; // efficiency correction to tracks
     Bool_t                 fCorrJetPt; // correct jet pt by rho
 
     // cuts
@@ -172,27 +137,12 @@ class StMyAnalysisMaker : public StMaker {
     Int_t                  fTracknHitsFit;       // requirement for track hits
     Double_t               fTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
 
-
-    // event mixing
-    Int_t          fDoEventMixing;
-    Int_t          fMixingTracks;
-    Int_t          fNMIXtracks;
-    Int_t          fNMIXevents;
-    Int_t          fCentBinSize; // centrality bin size of mixed event pools
-    Int_t          fReduceStatsCent; // bins to use for reduced statistics of sparse
-
-    // event selection types
-    UInt_t         fTriggerEventType;
-    UInt_t         fMixingEventType;
-
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
     Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t          fTrackWeight; // track weight for Q-vector summation
 
-    // event pool
     TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
-    StEventPoolManager   *fPoolMgr;//!  // event pool Manager object
 
     // clonesarray collections of tracks and jets
     TClonesArray          *fTracksME;//! track collection to slim down for mixed events
@@ -211,12 +161,6 @@ class StMyAnalysisMaker : public StMaker {
     StRefMultCorr* refmultCorr;
     StRefMultCorr* refmult2Corr;
 
-    // TCloneArray of analysis objects
-    TClonesArray   *mJets;
-    TClonesArray   *mTracks;
-    TClonesArray   *mTowers;
-    TClonesArray   *mParticles;
-   
     // output file name string 
     TString      mOutName;
  
@@ -225,39 +169,6 @@ class StMyAnalysisMaker : public StMaker {
     Int_t        mAllPVEventCounter;//!
     Int_t        mInputEventCounter;//!
  
-    // switches
-    bool         doComments;
-
-    // histograms
-    TH1F* hTriggerPt;//!
-    TH1F* hEventPlane;//!   
- 
-    // jet histos
-    TH1F* hJetPt;//!
-    TH1F* hJetCorrPt;//!
-    TH1F* hJetPt2;//!
-    TH1F* hJetE;//!
-    TH1F* hJetEta;//!
-    TH1F* hJetPhi;//!
-    TH1F* hJetNEF;//!
-    TH1F* hJetArea;//!
-    TH1F* hJetTracksPt;//!
-    TH1F* hJetTracksPhi;//!
-    TH1F* hJetTracksEta;//!
-
-    // correlation histo
-    TH2  *fHistJetHEtaPhi;//!
-
-    // QA histos
-    TH1  *fHistEventSelectionQA;//! 
-    TH1  *fHistEventSelectionQAafterCuts;//!
-    TH1  *hTriggerIds;//!
-
-    // THn Sparse's jet sparse
-    THnSparse             *fhnJH;//!           // jet hadron events matrix
-    THnSparse             *fhnMixedEvents;//!  // mixed events matrix
-    THnSparse             *fhnCorr;//!         // sparse to get # jet triggers
-
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
     StRhoParameter        *fRho;//!<!          // event rho
@@ -265,17 +176,15 @@ class StMyAnalysisMaker : public StMaker {
     TString                fRhoName;///<       // rho name
 
     // maker names
-    TString                fAnalysisMakerName;
     TString                fJetMakerName;
     TString                fRhoMakerName;
-    TString                fEventMixerMakerName;
 
     // counters
     Int_t GetEventCounter() {return mEventCounter;}
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}
                 
-    ClassDef(StMyAnalysisMaker, 1)
+    ClassDef(StJetFrameworkPicoBase, 1)
 };
 
 #endif
