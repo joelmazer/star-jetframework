@@ -953,14 +953,14 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
-  if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) kFALSE;
+  if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) return kFALSE;
   if(phi < 0) phi+= 2*pi;
   if(phi > 2*pi) phi-= 2*pi;
-  if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) kFALSE;
+  if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) return kFALSE;
       
   // additional quality cuts for tracks
-  if(nHitsFit < fJetTracknHitsFit) kFALSE;
-  if(nHitsRatio < fJetTracknHitsRatio) kFALSE;
+  if(nHitsFit < fJetTracknHitsFit) return kFALSE;
+  if(nHitsRatio < fJetTracknHitsRatio) return kFALSE;
 
   // passed all above cuts - keep track and fill input vector to fastjet
   return kTRUE;

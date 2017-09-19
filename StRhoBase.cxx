@@ -4,8 +4,8 @@
 // Calculates parameterized rho for given centrality independent of input.
 //
 // adapated form the AliROOT class AliAnalysisTaskRhoBase.cxx for STAR
-// original
-// Author: S.Aiola
+// 
+// original Author: S.Aiola
 
 // ROOT includes
 #include <TFile.h>
@@ -52,6 +52,8 @@ StRhoBase::StRhoBase() :
   fOutRhoScaled(0),
   fCompareRho(0),
   fCompareRhoScaled(0),
+  fEventZVtxMinCut(-40.),
+  fEventZVtxMaxCut(40.),
   fHistJetPtvsCent(0),
   fHistJetAreavsCent(0),
   fHistJetRhovsCent(0),
@@ -107,6 +109,8 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fOutRhoScaled(0),
   fCompareRho(0),
   fCompareRhoScaled(0),
+  fEventZVtxMinCut(-40.),
+  fEventZVtxMaxCut(40.),
   fHistJetPtvsCent(0),
   fHistJetAreavsCent(0),
   fHistJetRhovsCent(0),
@@ -170,6 +174,7 @@ StRhoBase::~StRhoBase()
   delete fHistRhoScaledvsNcluster;
   delete fJets;
   delete fBGJets;
+
   for (Int_t i = 0; i < 4; i++) {
     delete fHistJetNconstVsPt[i];
     delete fHistJetRhovsEta[i];
@@ -177,7 +182,6 @@ StRhoBase::~StRhoBase()
   for (Int_t i = 0; i < 12; i++) {
     delete fHistNjUEoverNjVsNj[i];
   }
-
 }
 
 //________________________________________________________________________
@@ -190,6 +194,7 @@ Int_t StRhoBase::Init()
   //fJets->SetName(fJetsName);
  
   fBGJets = new TClonesArray("StJet");
+  //fBGJets->SetName("fBGJetsName); // need too add name
 
   // Init the analysis.
   if(!fOutRho) { fOutRho = new StRhoParameter(fOutRhoName, 0);  }
@@ -456,11 +461,12 @@ Int_t StRhoBase::Make()
   double zVtx = mVertex.z();
 
   // zvertex cut - per the Aj analysis
-  if((1.0*TMath::Abs(zVtx)) > 40) return kStWarn; //kStFatal;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
 
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
   if(!JetMaker) {
+    LOG_WARN << " No JetMakerTask! Skip! " << endm;
     return kStWarn;
   }
 
@@ -484,7 +490,7 @@ Int_t StRhoBase::Make()
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   Int_t cent16 = grefmultCorr->getCentralityBin16();
   Int_t cent9 = grefmultCorr->getCentralityBin9();
-  Int_t centbin = GetCentBin(cent16, 16);
+  Int_t fCentBin = GetCentBin(cent16, 16); // centbin
 
   // set Rho value
   Double_t rho = GetRhoFactor(fCent);

@@ -74,7 +74,6 @@ StRho::~StRho()
   // destructor
   delete fHistMultvsRho;
 
-  //fJets->Clear(); delete fJets;
 }
 
 //________________________________________________________________________
@@ -138,7 +137,7 @@ void StRho::Clear(Option_t *opt) {
 //________________________________________________________________________
 Int_t StRho::Make() 
 {
-  // Run the analysis.
+  // Run the analysis - ran for each event
 
   // get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -166,14 +165,14 @@ Int_t StRho::Make()
   double zVtx = mVertex.z();
 
   // zvertex cut - per the Aj analysis
-  if((1.0*TMath::Abs(zVtx)) > 40) return kStOk;   //kStWarn; //kStFatal;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;  // kStWarn;
 
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
-    return kStWarn; //kStFatal;
+    return kStWarn;
   }
 
   // if we have JetMaker, get jet collection associated with it
@@ -181,7 +180,7 @@ Int_t StRho::Make()
     fJets =  JetMaker->GetJets();
     //fJets->SetName("BGJetsRho");  // name is set by Maker who created it
   }
-  if(!fJets) return kStWarn; //kStFatal;
+  if(!fJets) return kStWarn;
 
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
@@ -199,8 +198,8 @@ Int_t StRho::Make()
   //Int_t cent9 = grefmultCorr->getCentralityBin9();
   //Int_t centbin = GetCentBin(cent16, 16);
 
-  // get event multiplicity -TODO should define this differently
-  //const int multiplicity = mPicoDst->numberOfTracks();
+  // get event multiplicity - TODO is this correct? same as that used for centrality
+  //const int multiplicity = mPicoDst->numberOfTracks(); // this is total tracks not multiplicity
   const int multiplicity = refCorr2;
 
   // initialize Rho and scaled Rho
@@ -272,7 +271,7 @@ Int_t StRho::Make()
     ++NjetAcc;
   }
 
-  // when we have accepted Jets
+  // when we have accepted Jets - calculate and set rho
   if(NjetAcc > 0) {
     //find median value
     Double_t rho = TMath::Median(NjetAcc, rhovec);
@@ -282,7 +281,7 @@ Int_t StRho::Make()
 
     // if we want scaled Rho
     if(fOutRhoScaled) {
-      //Double_t rhoScaled = rho * GetScaleFactor(fCent); //FIXME
+      //Double_t rhoScaled = rho * GetScaleFactor(fCent); //Don't need yet
       Double_t rhoScaled = rho * 1.0;
       fOutRhoScaled->SetVal(rhoScaled);
     }

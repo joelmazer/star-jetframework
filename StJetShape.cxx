@@ -3,7 +3,6 @@
 
 */
 
-
 #include "StJetShape.h"
 
 #include "TMath.h"

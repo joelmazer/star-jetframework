@@ -48,6 +48,8 @@ class StRhoBase : public StMaker {  // TODO need to check if this is fine
   void    DeclareHistograms();
   void    WriteHistograms();
 
+  void                   SetEventZVtxRange(Double_t zmi, Double_t zma)         { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma;     }
+
   void                   SetOutRhoName(const char *name)                       { fOutRhoName           = name    ;
                                                                                  fOutRhoScaledName     = Form("%s_Scaled",name);     }
   void                   SetCompareRhoName(const char *name)                   { fCompareRhoName       = name    ;                   }
@@ -85,10 +87,13 @@ class StRhoBase : public StMaker {  // TODO need to check if this is fine
   Bool_t                 fAttachToEvent;                 // whether or not attach rho to the event objects list
   Bool_t                 fIsPbPb;                        // different histogram ranges for pp/pPb and PbPb
   
-  StRhoParameter       *fOutRho;                        //!output rho object
-  StRhoParameter       *fOutRhoScaled;                  //!output scaled rho object
-  StRhoParameter       *fCompareRho;                    //!rho object to compare
-  StRhoParameter       *fCompareRhoScaled;              //!scaled rho object to compare
+  StRhoParameter        *fOutRho;                        //!output rho object
+  StRhoParameter        *fOutRhoScaled;                  //!output scaled rho object
+  StRhoParameter        *fCompareRho;                    //!rho object to compare
+  StRhoParameter        *fCompareRhoScaled;              //!scaled rho object to compare
+
+  Double_t               fEventZVtxMinCut;               // min event z-vertex cut
+  Double_t               fEventZVtxMaxCut;               // max event z-vertex cut
 
   TH2F                  *fHistJetPtvsCent;               //!jet pt vs. centrality
   TH2F                  *fHistJetAreavsCent;             //!jet area vs. centrality

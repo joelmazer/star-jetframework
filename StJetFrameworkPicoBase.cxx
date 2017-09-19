@@ -1515,14 +1515,14 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
-  if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
+  if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) kFALSE;
   if(phi < 0) phi+= 2*pi;
   if(phi > 2*pi) phi-= 2*pi;
-  if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
+  if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) kFALSE;
     
   // additional quality cuts for tracks
-  if(nHitsFit < fTracknHitsFit) return kFALSE;
-  if(nHitsRatio < fTracknHitsRatio) return kFALSE;
+  if(nHitsFit < fTracknHitsFit) kFALSE;
+  if(nHitsRatio < fTracknHitsRatio) kFALSE;
 
   // passed all above cuts - keep track and fill input vector to fastjet
   return kTRUE;
