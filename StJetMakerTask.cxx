@@ -1,3 +1,14 @@
+// ################################################################
+// Author:  Joel Mazer for the STAR Collaboration
+// Affiliation: Rutgers University
+//
+// This JetMakerTask gives access to the FastJetWrapper to give 
+// track and tower input to cluster over and create jets
+//      - leading jet tag
+//      - access to jet constituents
+//      - general QA
+//
+// ################################################################
 // $Id$
 
 #include "StJetMakerTask.h"
@@ -25,11 +36,15 @@
 #include "StPicoConstants.h"
 
 // test for clusters: TODO
+#include "StMuDSTMaker/COMMON/StMuTrack.h"
 //StEmc
 #include "StEmcClusterCollection.h"
+#include "StEmcCollection.h"
+#include "StEmcCluster.h"
 #include "StEmcPoint.h"
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/others/emcDetectorName.h"
+#include "StEmcUtil/projection/StEmcPosition.h"
 class StEmcPosition;
 class StEEmcCluster;
 
@@ -53,9 +68,9 @@ StJetMakerTask::StJetMakerTask() :
   doUsePrimTracks(kFALSE), 
   fDebugLevel(0),
   mOutName(""),
-  fTracksName("Tracks"),
-  fCaloName("Clusters"),
-  fJetsName("Jets"),
+  fTracksName(""),
+  fCaloName(""),
+  fJetsName(""),
   fRadius(0.4),
   fJetAlgo(1), 
   fJetType(0), 
@@ -83,8 +98,10 @@ StJetMakerTask::StJetMakerTask() :
   fJets(0),
   fConstituents(0),
   mGeom(StEmcGeom::instance("bemc")),
+  mEmcCol(0),
 //  fClusterContainerIndexMap(),
   fParticleContainerIndexMap(),
+  mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -131,8 +148,10 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJets(0),
   fConstituents(0),
   mGeom(StEmcGeom::instance("bemc")),
+  mEmcCol(0),
 //  fClusterContainerIndexMap(),
   fParticleContainerIndexMap(),
+  mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0)
@@ -151,6 +170,10 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTrackvsPt)   delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)  delete fHistJetNTrackvsPhi;
   if(fHistJetNTrackvsEta)  delete fHistJetNTrackvsEta;
+  if(fHistJetNTowervsE)    delete fHistJetNTowervsE;
+  if(fHistJetNTowervsPhi)  delete fHistJetNTowervsPhi;
+  if(fHistJetNTowervsEta)  delete fHistJetNTowervsEta;
+  if(fHistJetNTowervsPhivsEta) delete fHistJetNTowervsPhivsEta;
 }
 
 //-----------------------------------------------------------------------------
@@ -249,15 +272,23 @@ void StJetMakerTask::DeclareHistograms() {
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
+    fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
+    fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2*pi);
+    fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
+    fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
 }
 
 //________________________________________________________________________
+
 void StJetMakerTask::WriteHistograms() {
   // write histograms
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
   fHistJetNTrackvsEta->Write();
-
+  fHistJetNTowervsE->Write();
+  fHistJetNTowervsPhi->Write();
+  fHistJetNTowervsEta->Write();
+  fHistJetNTowervsPhivsEta->Write();
 }
 
 //-----------------------------------------------------------------------------
@@ -271,6 +302,19 @@ int StJetMakerTask::Make()
   // Main loop, called for each event.
   // ZERO's out the jet array
   fJets->Delete();
+
+/*
+  // get muDst 
+  mu = (StMuDst*) GetInputDS("MuDst");         
+  if(!mu) {
+    LOG_WARN << " No muDst! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get EmcCollection
+  mEmcCol = (StEmcCollection*)mu->emcCollection();
+  if(!mEmcCol) return kStWarn;
+*/
 
   // Get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -311,7 +355,6 @@ int StJetMakerTask::Make()
 /* test out
   tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
   if(!tracks) {
-    cout<<"have no tracks in JetMaker"<<endl;
     return kStWarn;
   }
 */
@@ -346,7 +389,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField();
 
-  // get vertex 3 vector and declare variables
+  // get vertex 3-vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
@@ -395,9 +438,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
 
       // fill some QA histograms
-      fHistJetNTrackvsPt->Fill(pt);
-      fHistJetNTrackvsPhi->Fill(phi);
-      fHistJetNTrackvsEta->Fill(eta);
+      //fHistJetNTrackvsPt->Fill(pt);
+      //fHistJetNTrackvsPhi->Fill(phi);
+      //fHistJetNTrackvsEta->Fill(eta);
 
     } // track loop
   } // if full/charged jets
@@ -421,56 +464,100 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
     // looping over clusters to add to jet - STAR: matching already done
-    //static StPicoBEmcPidTraits* bemcPidTraits(int i) { return (StPicoBEmcPidTraits*)picoArrays[StPicoArrays::BEmcPidTraits]->UncheckedAt(i); }
-
     // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-    double towerEta, towerPhi;
     int towID, clusID;
-    StThreeVectorF  towPosition;
-    StThreeVectorF  clusPosition;
+    StThreeVectorF  towPosition, clusPosition;
     StEmcPosition *mPosition = new StEmcPosition();
     StEmcPosition *mPosition2 = new StEmcPosition();
 
+    // print EMCal cluster info
+    if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
+    
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
-      //StPicoEmcPidTraits* cluster = mPicoDst->emcPidTraits(iClus);  // OLD usage
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
- 
+
+      // use StEmcDetector to get position information
       //StEmcDetector* detector;
       //detector=mEmcCol->detector(kBarrelEmcTowerId);
-      //if(detector) cout<<"have detector"<<endl;
       //if(!detector) cout<<"don't detector object"<<endl;
-      //mGeom->getEtaPhi(towerId,etaTower,phiTower);
 
       // cluster and tower ID
-      clusID = cluster->bemcId();
-      towID = cluster->btowId();
+      clusID = cluster->bemcId();  // index in bemc point array
+      towID = cluster->btowId();   // projected tower Id: 1 - 4800
+      if(towID < 0) continue;
+      float towerEta, towerPhi;    // need to be floats
 
-      // cluster and tower position
+      // get tower location - from ID
+      mGeom->getEtaPhi(towID,towerEta,towerPhi);
+      if(towerPhi < 0) towerPhi += 2*pi;
+      if(towerPhi > 2*pi) towerPhi -= 2*pi;
+      if(fDebugLevel > 8) { 
+        cout<<"towerID = "<<towID<<"  towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
+      }
+
+      // cluster and tower position - from vertex and ID
       towPosition = mPosition->getPosFromVertex(mVertex, towID);
       clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
 
       // matched track index
       int trackIndex = cluster->trackIndex();
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
+      StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
       if(!trk) continue;
-      //if(!(trk->isPrimary())) continue; // check if primary
+      //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
+
+      StThreeVectorD position, momentum;
+      double kilogauss = 1000;
+      double tesla = 0.00001;
+      double magneticField = Bfield * kilogauss  / tesla; // in Tesla
+      bool ok = kFALSE;
+      if(mPosition) { 
+        ok = mPosition->projTrack(&position,&momentum,trkMu,(Double_t) Bfield); 
+      }
+
+      double z,eta,phi;
+      eta = position.pseudoRapidity(); 
+      phi = position.phi();
+      z   = position.z();
+      double theta = 2*TMath::ATan(exp(-1.0*eta));
+      //cout<<"theta = "<<theta<<endl;      
 
       // TEST comparing track position with cluster and tower
+      double towPhi = towPosition.phi();
+      double towEta = towPosition.pseudoRapidity();
       double pmatchPhi = trk->pMom().phi();
       double gmatchPhi = trk->gMom().phi();
       double pmatchEta = trk->pMom().pseudoRapidity();
       double gmatchEta = trk->gMom().pseudoRapidity();
+      double clusPhi = clusPosition.phi();
+      double clusEta = clusPosition.pseudoRapidity();
+      if(towPhi < 0) towPhi += 2*pi;
+      if(towPhi > 2*pi) towPhi -= 2*pi;
+      if(gmatchPhi < 0) gmatchPhi += 2*pi;
+      if(gmatchPhi > 2*pi) gmatchPhi -= 2*pi;
+      if(clusPhi < 0) clusPhi += 2*pi;
+      if(clusPhi > 2*pi) clusPhi -= 2*pi;
+
+      // fill QA histos for towers
+      fHistJetNTowervsE->Fill(cluster->bemcE0());
+      fHistJetNTowervsPhi->Fill(towPhi);
+      fHistJetNTowervsEta->Fill(towEta);
+      fHistJetNTowervsPhivsEta->Fill(towPhi, towEta);
+
+      // print some tower / cluster / track debug info
       if(fDebugLevel > 8) {
-        cout<<"tID="<<towID<<" cID="<<clusID<<" iTrk="<<trackIndex<<" TrkID = "<<trk->id()<<
-              " tPhi="<<towPosition.phi()<<" cPhi="<<clusPosition.phi()<<" GPhi="<<gmatchPhi<<
-              " tEta="<<towPosition.pseudoRapidity()<<" cEta="<<clusPosition.pseudoRapidity()<<" GEta="<<gmatchEta<<endl;
+        cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
+        cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
+        cout<<" MatTowE = "<<cluster->btowE()<<"  MatTowE2 = "<<cluster->btowE2()<<"  MatTowE3 = "<<cluster->btowE3()<<endl;
+        cout<<"Track: -> trkPhi = "<<gmatchPhi<<" trkEta = "<<gmatchEta<<"  trkP = "<<trk->gMom().mag()<<endl;
+        cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
+        cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
+        cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
       }
 
-      // " PPhi="<<pmatchPhi<<"  PEta="<<pmatchEta<<endl;
-      //mGeom->getEtaPhi(towerID,towerEta,towerPhi);
     }
   }
 
@@ -520,7 +607,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetNumberOfClusters(constituents.size());
     Int_t nt = 0; // track counter
     Int_t nc = 0; // cluster counter
-
+    Double_t pt, phi, eta;
+  
     // loop over constituents for ij'th jet
     for(UInt_t ic=0; ic<constituents.size(); ++ic) {
       Int_t uid = constituents[ic].user_index();
@@ -537,13 +625,26 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         if(doUsePrimTracks) {
           StThreeVectorF mPMomentum = trk->pMom();
           pt = mPMomentum.perp();
+          phi = mPMomentum.phi();
+          eta = mPMomentum.pseudoRapidity();
         } else {
           StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
           pt = mGMomentum.perp();
+          phi = mGMomentum.phi();
+          eta = mGMomentum.pseudoRapidity();
         }
+
+        // adjust phi value:  0 < phi < 2pi
+        if(phi < 0) phi+= 2*pi;
+        if(phi > 2*pi) phi-= 2*pi;
 
         // find max track pt
         if (pt>maxTrack) maxTrack=pt;
+
+        // fill some QA histograms
+        fHistJetNTrackvsPt->Fill(pt);
+        fHistJetNTrackvsPhi->Fill(phi);
+        fHistJetNTrackvsEta->Fill(eta);
 
 	nt++;
 //============================
@@ -676,21 +777,21 @@ Bool_t StJetMakerTask::IsLocked() const
 fastjet::JetAlgorithm StJetMakerTask::ConvertToFJAlgo(EJetAlgo_t algo)
 {
   switch(algo) {
-  case StMyAnalysisMaker::kt_algorithm:
+  case StJetFrameworkPicoBase::kt_algorithm:
     return fastjet::kt_algorithm;
-  case StMyAnalysisMaker::antikt_algorithm:
+  case StJetFrameworkPicoBase::antikt_algorithm:
     return fastjet::antikt_algorithm;
-  case StMyAnalysisMaker::cambridge_algorithm:
+  case StJetFrameworkPicoBase::cambridge_algorithm:
     return fastjet::cambridge_algorithm;
-  case StMyAnalysisMaker::genkt_algorithm:
+  case StJetFrameworkPicoBase::genkt_algorithm:
     return fastjet::genkt_algorithm;
-  case StMyAnalysisMaker::cambridge_for_passive_algorithm:
+  case StJetFrameworkPicoBase::cambridge_for_passive_algorithm:
     return fastjet::cambridge_for_passive_algorithm;
-  case StMyAnalysisMaker::genkt_for_passive_algorithm:
+  case StJetFrameworkPicoBase::genkt_for_passive_algorithm:
     return fastjet::genkt_for_passive_algorithm;
-  case StMyAnalysisMaker::plugin_algorithm:
+  case StJetFrameworkPicoBase::plugin_algorithm:
     return fastjet::plugin_algorithm;
-  case StMyAnalysisMaker::undefined_jet_algorithm:
+  case StJetFrameworkPicoBase::undefined_jet_algorithm:
     return fastjet::undefined_jet_algorithm;
 
   default:
@@ -709,28 +810,21 @@ fastjet::JetAlgorithm StJetMakerTask::ConvertToFJAlgo(EJetAlgo_t algo)
 fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t reco)
 {
   switch(reco) {
-  case StMyAnalysisMaker::E_scheme:
+  case StJetFrameworkPicoBase::E_scheme:
     return fastjet::E_scheme;
-
-  case StMyAnalysisMaker::pt_scheme:
+  case StJetFrameworkPicoBase::pt_scheme:
     return fastjet::pt_scheme;
-
-  case StMyAnalysisMaker::pt2_scheme:
+  case StJetFrameworkPicoBase::pt2_scheme:
     return fastjet::pt2_scheme;
-
-  case StMyAnalysisMaker::Et_scheme:
+  case StJetFrameworkPicoBase::Et_scheme:
     return fastjet::Et_scheme;
-
-  case StMyAnalysisMaker::Et2_scheme:
+  case StJetFrameworkPicoBase::Et2_scheme:
     return fastjet::Et2_scheme;
-
-  case StMyAnalysisMaker::BIpt_scheme:
+  case StJetFrameworkPicoBase::BIpt_scheme:
     return fastjet::BIpt_scheme;
-
-  case StMyAnalysisMaker::BIpt2_scheme:
+  case StJetFrameworkPicoBase::BIpt2_scheme:
     return fastjet::BIpt2_scheme;
-
-  case StMyAnalysisMaker::external_scheme:
+  case StJetFrameworkPicoBase::external_scheme:
     return fastjet::external_scheme;
 
   default:

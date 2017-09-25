@@ -9,8 +9,10 @@
 // TEST for clusters TODO
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
+#include "StMuDSTMaker/COMMON/StMuDst.h"
 class StEmcGeom;
 class StEmcCluster;
+class StEmcCollection;
 class StBemcTables; //v3.14
 
 // ROOT classes
@@ -258,12 +260,11 @@ class StJetMakerTask : public StMaker {
   Bool_t                 fFillGhost;              //!=true ghost particles will be filled in StJet obj
 
   TClonesArray          *fJets;                   //!jet collection
-//TEST
-  vector<fastjet::PseudoJet> fConstituents;      //!jet constituents
+  vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
 
-  // TEST
-  // method (a simple track filter) // TEST TODO
+  // TEST ---
   StEmcGeom       *mGeom;
+  StEmcCollection *mEmcCol;
   
   static const Int_t     fgkConstIndexShift;      //!contituent index shift
 
@@ -274,6 +275,7 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
 #endif
 
  private:
+  StMuDst        *mu; // muDst object
   StPicoDstMaker *mPicoDstMaker; // PicoDstMaker object
   StPicoDst      *mPicoDst; // PicoDst object
   StPicoEvent    *mPicoEvent; // PicoEvent object
@@ -282,12 +284,16 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
+  TH1F           *fHistJetNTowervsE;//!
+  TH1F           *fHistJetNTowervsPhi;//!
+  TH1F           *fHistJetNTowervsEta;//!
+  TH2F           *fHistJetNTowervsPhivsEta;//!
 
   // output file name string
   TString         mOutName;
      
   // maker names
-  TString         fJetMakerName;
+  //TString         fJetMakerName;
 
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented

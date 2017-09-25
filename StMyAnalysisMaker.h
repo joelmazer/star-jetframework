@@ -73,6 +73,18 @@ class StMyAnalysisMaker : public StMaker {
       kPtLinear2Const5Weight
     };
 
+    // run flags for specifics
+    enum fRunFlagEnum {
+      Run14_AuAu,
+      Run16_AuAu
+    };
+
+    // run flags for specifics
+    enum fTriggerFlagEnum {
+      kIsHT0, kIsHT1, kIsHT2, kIsHT3,
+      kIsJP0, kIsJP1, kIsJP2
+    };
+
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
    
@@ -102,8 +114,9 @@ class StMyAnalysisMaker : public StMaker {
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
+    virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
+    virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
 
-    // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
@@ -140,13 +153,15 @@ class StMyAnalysisMaker : public StMaker {
     // event plane
     StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
-    virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
+    virtual void            SetEventPlaneTrackWeight(Int_t weight)          {fTrackWeight = weight; }
+    virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEvenPlaneMaxTrackPtCut = m; }  
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
-    TH1*                   FillEventTriggerQA(TH1* h, UInt_t t); // filled event trigger QA plots
+    TH1*                   FillEmcTriggersHist(TH1* h); // EmcTrigger counter histo
+    TH1*                   FillEventTriggerQA(TH1* h); // filled event trigger QA plots
     Double_t               GetReactionPlane(); // get reaction plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
 
@@ -154,8 +169,10 @@ class StMyAnalysisMaker : public StMaker {
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
-    Int_t                  fDoEffCorr; // efficiency correction to tracks
-    Bool_t                 fCorrJetPt; // correct jet pt by rho
+    Int_t                  fDebugLevel;             // debug printout level
+    Int_t                  fRunFlag;            // Run Flag numerator value
+    Int_t                  fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                 fCorrJetPt;              // correct jet pt by rho
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
@@ -169,8 +186,8 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               fTrackPhiMaxCut;         // max track phi cut
     Double_t               fTrackEtaMinCut;         // min track eta cut
     Double_t               fTrackEtaMaxCut;         // max track eta cut
-    Int_t                  fTracknHitsFit;       // requirement for track hits
-    Double_t               fTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
+    Int_t                  fTracknHitsFit;          // requirement for track hits
+    Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 
 
     // event mixing
@@ -184,11 +201,13 @@ class StMyAnalysisMaker : public StMaker {
     // event selection types
     UInt_t         fTriggerEventType;
     UInt_t         fMixingEventType;
+    Int_t          fEmcTriggerArr[7];
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
     Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t          fTrackWeight; // track weight for Q-vector summation
+    Double_t       fEvenPlaneMaxTrackPtCut; // max track pt cut for event plane calculation
 
     // event pool
     TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
@@ -231,6 +250,7 @@ class StMyAnalysisMaker : public StMaker {
     // histograms
     TH1F* hTriggerPt;//!
     TH1F* hEventPlane;//!   
+    TH1F* hEventZVertex;//!
  
     // jet histos
     TH1F* hJetPt;//!
@@ -244,6 +264,7 @@ class StMyAnalysisMaker : public StMaker {
     TH1F* hJetTracksPt;//!
     TH1F* hJetTracksPhi;//!
     TH1F* hJetTracksEta;//!
+    TH2F* hJetPtvsArea;//!
 
     // correlation histo
     TH2  *fHistJetHEtaPhi;//!
@@ -252,6 +273,7 @@ class StMyAnalysisMaker : public StMaker {
     TH1  *fHistEventSelectionQA;//! 
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hTriggerIds;//!
+    TH1  *hEmcTriggers;//!
 
     // THn Sparse's jet sparse
     THnSparse             *fhnJH;//!           // jet hadron events matrix

@@ -74,7 +74,8 @@ ClassImp(StMyAnalysisMaker)
 StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StMaker(name)
 {
-  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; fTrackWeight = 1;
+  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
+  fTrackWeight = 1; fEvenPlaneMaxTrackPtCut = 5.0;
   //mPicoDstMaker = picoMaker; // don't need this because will be using multiple tasks
   fPoolMgr = 0x0;
   fTracksME = 0x0;
@@ -89,6 +90,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   refmult2Corr = 0;
   mOutName = outName;
   doUsePrimTracks = kFALSE;
+  fDebugLevel = 0;
+  fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   fMinPtJet = minJetPt;
@@ -101,7 +104,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fTracknHitsFit = 15; fTracknHitsRatio = 0.52; 
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
   fCentBinSize = 5; fReduceStatsCent = -1;
-  //fTriggerEventType = StVEvent::kAny; fMixingEventType = StVEvent::kAny;
+  fTriggerEventType = 0; fMixingEventType = 0;
+  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
   fhnJH = 0x0;
   fhnMixedEvents = 0x0;
@@ -122,6 +126,7 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 { /*  */
   // destructor
   delete hEventPlane;
+  delete hEventZVertex;
   delete hTriggerPt;
   delete hJetPt;
   delete hJetCorrPt;
@@ -134,10 +139,12 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hJetTracksPt;
   delete hJetTracksPhi;
   delete hJetTracksEta;
+  delete hJetPtvsArea;
   delete fHistJetHEtaPhi;
   delete fHistEventSelectionQA;
   delete fHistEventSelectionQAafterCuts;
   delete hTriggerIds;
+  delete hEmcTriggers;
 
   delete fhnJH;
   delete fhnMixedEvents;
@@ -221,6 +228,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   // QA histos
   hEventPlane = new TH1F("hEventPlane", "Event Plane distribution", 144, 0.0, 1.0*pi);
+  hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
 
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
@@ -234,14 +242,15 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 80, 0, 20.0);
   hJetTracksPhi = new TH1F("hJetTracksPhi", "Jet track constituent #phi", 72, 0, 2*pi);
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
+  hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
 
   fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-Hadron #Delta#eta-#Delta#phi", 56, -1.4, 1.4, 72, -0.5*pi, 1.5*pi);
 
   // Event Selection QA histo
   fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
-  hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0, 100);
-
+  hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
+  hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
 
   // set up jet-hadron sparse
   UInt_t bitcodeMESE = 0; // bit coded, see GetDimParams() below
@@ -339,6 +348,7 @@ void StMyAnalysisMaker::WriteHistograms() {
   // default histos
   hTriggerPt->Write();
   hEventPlane->Write();
+  hEventZVertex->Write();
 
   // jet histos
   hJetPt->Write();
@@ -352,6 +362,7 @@ void StMyAnalysisMaker::WriteHistograms() {
   hJetTracksPt->Write();
   hJetTracksPhi->Write();
   hJetTracksEta->Write();
+  hJetPtvsArea->Write();
 
   fHistJetHEtaPhi->Write();
 
@@ -359,6 +370,7 @@ void StMyAnalysisMaker::WriteHistograms() {
   fHistEventSelectionQA->Write(); 
   fHistEventSelectionQAafterCuts->Write();
   hTriggerIds->Write();
+  hEmcTriggers->Write();
 
   // jet sparse
   fhnJH->Write();
@@ -385,6 +397,8 @@ Int_t StMyAnalysisMaker::Make() {
   const double pi = 1.0*TMath::Pi();
   bool printInfo = kFALSE;
   bool firstEvent = kFALSE;
+  bool fHaveEmcTrigger = kFALSE;
+  bool fHaveMBevent = kFALSE;
 
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
@@ -416,9 +430,6 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
-  // fill Event Trigger QA
-  //FillEventTriggerQA(fHistEventSelectionQA, trig);
-
   // trigger information: the below is all seemingly incomplete, coming from StPicoEvent class
   // trigger information from the PicoEvent object: they seem to not be set... same results
   //cout<<"istrigger = "<<mPicoEvent->isTrigger(450011)<<endl; //NEW
@@ -442,12 +453,13 @@ Int_t StMyAnalysisMaker::Make() {
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField(); 
 
-  // get vertex 3 vector and declare variables
+  // get vertex 3-vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
   
   // zvertex cut - per the Aj analysis
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
+  hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
   Int_t RunId = mPicoEvent->runId();
@@ -455,9 +467,10 @@ Int_t StMyAnalysisMaker::Make() {
   Int_t eventId = mPicoEvent->eventId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
   Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  //cout<<"RunID = "<<RunId<<endl;
-  //cout<<"fillID = "<<fillId<<endl; 
-  //cout<<"eventID = "<<eventId<<endl; // what is eventID?
+  //cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
+
+  // fill Event Trigger QA
+  FillEventTriggerQA(fHistEventSelectionQA);
 
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
@@ -510,39 +523,28 @@ Int_t StMyAnalysisMaker::Make() {
   if(mtdpid) mtdpid->Print();
 */
 
-/*
-  // looking at the EMCal triggers
-  Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  //cout<<"nEmcTrigger = "<<nEmcTrigger<<endl;
-  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
-  for(int i = 0; i < nEmcTrigger; i++) {
-    StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
-    if(emcTrig) {
-      //emcTrig->Print();
-      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
-      cout<<"  isHT0: "<<emcTrig->isHT0();
-      cout<<"  isHT1: "<<emcTrig->isHT1();
-      cout<<"  isHT2: "<<emcTrig->isHT2();
-      cout<<"  isHT3: "<<emcTrig->isHT3();
-      cout<<"  isJP0: "<<emcTrig->isJP0()<<"  isJP1: "<<emcTrig->isJP1()<<"  isJP2: "<<emcTrig->isJP2()<<endl;
-    } else {
-      cout<<"don't have emc triggers!!!"<<endl;
-      return kStWarn;
-    }
-  }
-*/
-
   // ========================= Trigger Info =============================== //
+  // looking at the EMCal triggers - used for QA and deciding on HT triggers
+  FillEmcTriggersHist(hEmcTriggers);
+
   // get trigger IDs from PicoEvent class and loop over them
   Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
+  if(fDebugLevel == 7) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
-    cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
-    
+    if(fDebugLevel == 7) cout<<", i = "<<i<<": "<<mytriggers[i] << " "; 
+    if((mytriggers[i] == 450014)) {
+      //if(fDebugLevel == 8) cout<<"Mytriggers, i = "<<i<<": "<<mytriggers[i] << " ";
+      //fHaveEmcTrigger = kTRUE;
+      fHaveMBevent = kTRUE;
+    }   
+
     // fill trigger array with trigger IDs
     trId[i] = mytriggers[i];
   }
-  cout<<endl;
+  if(fDebugLevel == 7) cout<<endl;
+
+  // ======================== end of Triggers ============================= //
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
@@ -613,7 +615,13 @@ Int_t StMyAnalysisMaker::Make() {
   double deta, dphijh, dEP;
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
+
+  if((fDebugLevel == 7) && (fEmcTriggerArr[kIsHT2])) cout<<"Have HT2!! "<<fEmcTriggerArr[kIsHT2]<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
+    //if(fTriggerEventType < 1) continue; 
+    // FIXME - don't hard-code in future
+    if(!fEmcTriggerArr[kIsHT2]) continue;
+
     // get pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
     if(!jet) continue;
@@ -647,6 +655,7 @@ Int_t StMyAnalysisMaker::Make() {
     hJetPhi->Fill(jetPhi);
     hJetNEF->Fill(jetNEF);
     hJetArea->Fill(jetarea);
+    hJetPtvsArea->Fill(jetpt, jetarea);
 
     // get nTracks and maxTrackPt
     maxtrackpt = jet->GetMaxTrackPt();
@@ -800,7 +809,9 @@ Int_t StMyAnalysisMaker::Make() {
 
   ///FIXME if(trigger && fTriggerEventType) { //kEMCEJE)) {     
   bool runthisnow = kTRUE;
-  if(runthisnow) {
+  //if(runthisnow) {
+  // do event mixing when Signal Jet is part of event with a HT2 trigger firing
+  if(fEmcTriggerArr[kIsHT2]) {
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
       // loop over Jets in the event
@@ -902,6 +913,8 @@ Int_t StMyAnalysisMaker::Make() {
 
     // use only tracks from MB and Central and Semi-Central events
     ///FIXME if(trigger && fMixingEventType) { //kMB) {
+    if(fHaveMBevent) { // kMB
+      if(fDebugLevel == 7) cout<<"...MB event... update event pool"<<endl;
 
       TClonesArray* tracksClone2 = 0x0;
       //cout<<"tracks in clone before reduce: "<<tracksClone2->GetEntriesFast();
@@ -911,7 +924,7 @@ Int_t StMyAnalysisMaker::Make() {
 
       // update pool if jet in event or not
       pool->UpdatePool(tracksClone2);
-    ///FIXME } // MB and Central and Semi-Central events
+    } ///FIXME } // MB and Central and Semi-Central events
     //pool->Clear();    delete pool;
 
   } // end of event mixing
@@ -1545,53 +1558,100 @@ Int_t StMyAnalysisMaker::AcceptMyJet(StJet *jet) { // for jets
 }
 */
 
+//_________________________________________________________________________
+TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
+  // number of Emcal Triggers
+  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+  if(fDebugLevel == 7) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+
+  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
+  // loop over valid EmcalTriggers
+  for(int i = 0; i < nEmcTrigger; i++) {
+    StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
+    if(!emcTrig) continue;
+
+    // print some EMCal Trigger info
+    if(fDebugLevel == 7) {
+      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
+      cout<<"  isHT0: "<<emcTrig->isHT0()<<"  isHT1: "<<emcTrig->isHT1();
+      cout<<"  isHT2: "<<emcTrig->isHT2()<<"  isHT3: "<<emcTrig->isHT3();
+      cout<<"  isJP0: "<<emcTrig->isJP0()<<"  isJP1: "<<emcTrig->isJP1()<<"  isJP2: "<<emcTrig->isJP2()<<endl;
+    }
+
+    // fill for valid triggers
+    if(emcTrig->isHT0()) { h->Fill(1); fEmcTriggerArr[kIsHT0] = 1; }
+    if(emcTrig->isHT1()) { h->Fill(2); fEmcTriggerArr[kIsHT1] = 1; }
+    if(emcTrig->isHT2()) { h->Fill(3); fEmcTriggerArr[kIsHT2] = 1; }
+    if(emcTrig->isHT3()) { h->Fill(4); fEmcTriggerArr[kIsHT3] = 1; }
+    if(emcTrig->isJP0()) { h->Fill(5); fEmcTriggerArr[kIsJP0] = 1; }
+    if(emcTrig->isJP1()) { h->Fill(6); fEmcTriggerArr[kIsJP1] = 1; }
+    if(emcTrig->isJP2()) { h->Fill(7); fEmcTriggerArr[kIsJP2] = 1; }
+  }
+ 
+  h->GetXaxis()->SetBinLabel(1, "HT0");
+  h->GetXaxis()->SetBinLabel(2, "HT1");
+  h->GetXaxis()->SetBinLabel(3, "HT2");
+  h->GetXaxis()->SetBinLabel(4, "HT3");
+  h->GetXaxis()->SetBinLabel(5, "JP0");
+  h->GetXaxis()->SetBinLabel(6, "JP1");
+  h->GetXaxis()->SetBinLabel(7, "JP2");
+
+  // set x-axis labels vertically
+  h->LabelsOption("v");
+  //h->LabelsDeflate("X");
+
+  return h;
+}
+
+//_____________________________________________________________________________
 // Trigger QA histogram, label bins 
-TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h, UInt_t trig) {
+TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
 
-/*
-  if(trig == 0) h->Fill(1);
-  if(trig & AliVEvent::kAny) h->Fill(2);
-  if(trig & AliVEvent::kAnyINT) h->Fill(3);
-  if(trig & AliVEvent::kMB) h->Fill(4);
-  if(trig & AliVEvent::kINT7) h->Fill(5);
-  if(trig & AliVEvent::kEMC1) h->Fill(6);
-  if(trig & AliVEvent::kEMC7) h->Fill(7);
-  if(trig & AliVEvent::kEMC8) h->Fill(8);
-  if(trig & AliVEvent::kEMCEJE) h->Fill(9);
-  if(trig & AliVEvent::kEMCEGA) h->Fill(10);
-  if(trig & AliVEvent::kCentral) h->Fill(11);
-  if(trig & AliVEvent::kSemiCentral) h->Fill(12);
-  if(trig & AliVEvent::kINT8) h->Fill(13);
+  // Run14 AuAu
+  if(fRunFlag == Run14_AuAu) {
 
-  if(trig & (AliVEvent::kEMCEJE | AliVEvent::kMB)) h->Fill(14);
-  if(trig & (AliVEvent::kEMCEGA | AliVEvent::kMB)) h->Fill(15);
-  if(trig & (AliVEvent::kAnyINT | AliVEvent::kMB)) h->Fill(16);
+    //Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
+    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
+    int bin = 0;
+    for(unsigned int i=0; i<mytriggers.size(); i++) {
+      //cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
+      bin = 1; 
 
-  if(trig & (AliVEvent::kEMCEJE & (AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral))) h->Fill(17);
-  if(trig & (AliVEvent::kEMCEGA & (AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral))) h->Fill(18);
-  if(trig & (AliVEvent::kAnyINT & (AliVEvent::kMB | AliVEvent::kCentral | AliVEvent::kSemiCentral))) h->Fill(19);
-*/
-  // label bins of the analysis trigger selection summary
-  h->GetXaxis()->SetBinLabel(1, "no trigger");
-  h->GetXaxis()->SetBinLabel(2, "kAny");
-  h->GetXaxis()->SetBinLabel(3, "kAnyINT");
-  h->GetXaxis()->SetBinLabel(4, "kMB");
-  h->GetXaxis()->SetBinLabel(5, "kINT7");
-  h->GetXaxis()->SetBinLabel(6, "kEMC1");
-  h->GetXaxis()->SetBinLabel(7, "kEMC7");
-  h->GetXaxis()->SetBinLabel(8, "kEMC8");
-  h->GetXaxis()->SetBinLabel(9, "kEMCEJE");
-  h->GetXaxis()->SetBinLabel(10, "kEMCEGA");
-  h->GetXaxis()->SetBinLabel(11, "kCentral");
-  h->GetXaxis()->SetBinLabel(12, "kSemiCentral");
-  h->GetXaxis()->SetBinLabel(13, "kINT8");
-  h->GetXaxis()->SetBinLabel(14, "kEMCEJE or kMB");
-  h->GetXaxis()->SetBinLabel(15, "kEMCEGA or kMB");
-  h->GetXaxis()->SetBinLabel(16, "kAnyINT or kMB");
-  h->GetXaxis()->SetBinLabel(17, "kEMCEJE & (kMB or kCentral or kSemiCentral)");
-  h->GetXaxis()->SetBinLabel(18, "kEMCEGA & (kMB or kCentral or kSemiCentral)");
-  h->GetXaxis()->SetBinLabel(19, "kAnyINT & (kMB or kCentral or kSemiCentral)");
+      if((mytriggers[i] == 450201) || (mytriggers[i] == 450211) || (mytriggers[i] == 460201)) { bin = 2; h->Fill(bin); } // HT1
+      if((mytriggers[i] == 450202) || (mytriggers[i] == 450212)) { bin = 3; h->Fill(bin); }// HT2
+      if((mytriggers[i] == 460203) || (mytriggers[i] == 6) || (mytriggers[i] == 10) || (mytriggers[i] == 14) || (mytriggers[i] == 31) || (mytriggers[i] == 450213)) { bin = 4; h->Fill(bin); } // HT3
+      if(mytriggers[i] == 450014) { bin = 5; h->Fill(bin); }// MB
+      if((mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 6; h->Fill(bin); } // VPDMB-30
+      if((mytriggers[i] == 26) || (mytriggers[i] == 450103)) { bin = 7; h->Fill(bin); }// Central-5
+      if((mytriggers[i] == 15) || (mytriggers[i] == 460101) || (mytriggers[i] == 460111)) { bin = 8; h->Fill(bin); } // Central & Central-mon
+      if((mytriggers[i] == 1) || (mytriggers[i] == 4) || (mytriggers[i] == 16) || (mytriggers[i] == 32) || (mytriggers[i] == 450005) || (mytriggers[i] == 450008) || (mytriggers[i] == 450009) || (mytriggers[i] == 450014) || (mytriggers[i] == 450015) || (mytriggers[i] == 450018) || (mytriggers[i] == 450024) || (mytriggers[i] == 450025) || (mytriggers[i] == 450050) || (mytriggers[i] == 450060)) { bin = 10; h->Fill(bin); }// VPDMB-5 
+      if((mytriggers[i] == 20) || (mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 11; h->Fill(bin); } // VPDMB-30
+ 
+      // fill trigger selection histo
+      //h->Fill(bin); // - do per trigger in case an above classification matches 2 simultaneously
+    }
+
+    // TODO need to do this once and not for every event!!!!!
+    // label bins of the analysis trigger selection summary
+    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
+    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
+    h->GetXaxis()->SetBinLabel(4, "BHT3");
+    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
+    h->GetXaxis()->SetBinLabel(6, "VPDMB-30");
+    h->GetXaxis()->SetBinLabel(7, "Central-5");
+    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
+    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
+  }
+
+  if(fRunFlag == Run16_AuAu) {
+  
+    // label bins of the analysis trigger selection summary
+    h->GetXaxis()->SetBinLabel(1, "no trigger");
+  }
 
   // set x-axis labels vertically
   h->LabelsOption("v");
@@ -1602,92 +1662,85 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h, UInt_t trig) {
 
 //________________________________________________________________________
 Double_t StMyAnalysisMaker::GetReactionPlane() { 
- // get event B (magnetic) field
- Float_t Bfield = mPicoEvent->bField();
+  // get event B (magnetic) field
+  Float_t Bfield = mPicoEvent->bField();
 
- // get vertex 3 vector and declare variables
- StThreeVectorF mVertex = mPicoEvent->primaryVertex();
- double zVtx = mVertex.z();
+  // get vertex 3-vector and declare variables
+  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  double zVtx = mVertex.z();
 
- //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
- TVector2 mQ;
- double mQx = 0., mQy = 0.;
- int order = 2;
- int n,i;
- double phi, eta, pt;
- double pi = 1.0*TMath::Pi();
+  //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
+  TVector2 mQ;
+  double mQx = 0., mQy = 0.;
+  int order = 2;
+  int n,i;
+  double phi, eta, pt;
+  double pi = 1.0*TMath::Pi();
 
- // leading jet check and removal
- Float_t excludeInEta = -999;
- fLeadingJet = GetLeadingJet();
- if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
-   if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
- }
+  // leading jet check and removal
+  Float_t excludeInEta = -999;
+  fLeadingJet = GetLeadingJet();
+  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
+    if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
+  }
 
- n = mPicoDst->numberOfTracks();
- for (i=0; i<n; i++) {
-   StPicoTrack* track = mPicoDst->track(i);
-   if(!track) { continue; }
+  // loop over tracks
+  n = mPicoDst->numberOfTracks();
+  for (i=0; i<n; i++) {
+    StPicoTrack* track = mPicoDst->track(i);
+    if(!track) { continue; }
 
-   // declare kinematic variables
-   if(doUsePrimTracks) {
-     if(!(track->isPrimary())) continue; // check if primary
+    // apply standard track cuts - (can apply more restrictive cuts below
+    // may change this back in future
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-     // get primary track variables
-     StThreeVectorF mPMomentum = track->pMom();
-     phi = mPMomentum.phi();
-     eta = mPMomentum.pseudoRapidity();
-     pt = mPMomentum.perp();
-   } else {
-     // get global track variables
-     StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-     phi = mgMomentum.phi();
-     eta = mgMomentum.pseudoRapidity();
-     pt = mgMomentum.perp();
-   }
+    // declare kinematic variables
+    if(doUsePrimTracks) {
+      // get primary track variables
+      StThreeVectorF mPMomentum = track->pMom();
+      phi = mPMomentum.phi();
+      eta = mPMomentum.pseudoRapidity();
+      pt = mPMomentum.perp();
+    } else {
+      // get global track variables
+      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
+      phi = mgMomentum.phi();
+      eta = mgMomentum.pseudoRapidity();
+      pt = mgMomentum.perp();
+    }
 
-   // do pt cut here to accommadate either type
-   if(doUsePrimTracks) { // primary  track
-     if(pt < fTrackPtMinCut) continue;
-   } else { // global track
-     if(pt < fTrackPtMinCut) continue;
-   }
+    // should set a soft pt range (0.2 - 5.0?)
+    // more acceptance cuts now - after getting 3vector - hardcoded for now
+    if(pt > fEvenPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+    if(phi < 0) phi += 2*pi;
+    if(phi > 2*pi) phi -= 2*pi;
 
-   // should set a soft pt range (0.2 - 5.0?)
+    // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
+    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
-   // more acceptance cuts now - after getting 3vector - hardcoded for now
-   if(pt > 5.0) continue;   // 100.0
-   if((1.0*TMath::Abs(eta)) > 1.0) continue;
-   if(phi < 0) phi+= 2*pi;
-   if(phi > 2*pi) phi-= 2*pi;
-   if((phi < 0) || (phi > 2*pi)) continue;
+    // configure track weight when performing Q-vector summation
+    double trackweight;
+    if(fTrackWeight == kNoWeight) {
+      trackweight = 1.0;
+    } else if(fTrackWeight == kPtLinearWeight) {
+      trackweight = pt;
+    } else if(fTrackWeight == kPtLinear2Const5Weight) {
+      if(pt <= 2.0) trackweight = pt;
+      if(pt > 2.0) trackweight = 2.0;
+    } else {
+      // nothing choosen, so don't use weight
+      trackweight = 1.0;
+    }
 
-   // check for leading jet removal
-   if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
-
-   // configure track weight when performing Q-vector summation
-   double trackweight;
-   if(fTrackWeight == kNoWeight) {
-     trackweight = 1.0;
-   } else if(fTrackWeight == kPtLinearWeight) {
-     trackweight = pt;
-   } else if(fTrackWeight == kPtLinear2Const5Weight) {
-     if(pt <= 2.0) trackweight = pt;
-     if(pt > 2.0) trackweight = 2.0;
-   } else {
-     // nothing choosen, so don't use weight
-     trackweight = 1.0;
-   }
-
-   // sum up q-vectors
-   mQx += trackweight * cos(phi * order);
-   mQy += trackweight * sin(phi * order);
- }
+    // sum up q-vectors
+    mQx += trackweight * cos(phi * order);
+    mQy += trackweight * sin(phi * order);
+  }
  
- mQ.Set(mQx, mQy);
- double psi= mQ.Phi() / order;
- //return psi*180/pi;  // converted to degrees
- return psi;
+  mQ.Set(mQx, mQy);
+  double psi = mQ.Phi() / order;
+  //return psi*180/pi;  // converted to degrees
+  return psi;
 }
 
 // _____________________________________________________________________________________________
@@ -1726,3 +1779,176 @@ StJet* StMyAnalysisMaker::GetLeadingJet(StRhoParameter* eventRho) {
 
   return 0x0;
 }
+
+/*
+Trigger information for Physics stream:
+
+Run14: AuAu
+physics	
+1	BBC_mb_fast_prepost	15062057	15064011
+1	MB_sel1	15046070	15046094
+1	MB_sel9	15045068	15045069
+1	VPDMB-5	15075055	15076099
+1	VPDMB-5-p-nobsmd-hlt	15081020	15090048
+1	VPD_mb-emcped	15052044	15052047
+4	BBC_mb_fast_prepost	15083023	15083023
+4	BHT2*VPDMB-30	15076087	15076099
+4	VPDMB-5-p-nobsmd-hlt	15090049	15167007
+4	VPD_mb-emcped	15052058	15056025
+5	BHT1*VPDMB-30	15076087	15076099
+6	BHT3	15076073	15076099
+6	ZDC-mb	15046070	15059070
+7	ZDC-mb	15056026	15057020
+8	BBC_mb	15046070	15046094
+9	EHT	15077045	15167014
+9	VPD_mb	15046070	15047100
+9	VPD_mb-emcped	15056026	15070021
+10	BBC_mb_fast_prepost	15064061	15070021
+10	BHT3-L2Gamma	15076089	15077035
+13	BHT2*BBC	15171058	15174040
+14	BHT3*BBC	15171058	15174040
+15	BHT1*BBC	15171058	15174040
+15	Central-mon	15079048	15167014
+16	VPDMB-5-p-nobsmd	15077042	15081025
+19	ZDC-mb	15061031	15061032
+20	VPDMB-30	15074070	15076099
+21	MB-mon	15076072	15076099
+26	Central-5	15075071	15079046
+27	VPDMB-5-p-nobsmd-hltheavyfrag	15083024	15083024
+28	Central-5-hltheavyfrag	15083024	15083024
+30	Central-5-hltDiElectron	15083024	15083024
+31	BHT3-hltDiElectron	15076089	15076092
+32	VPDMB-5-ssd	15080029	15083062
+88	VPDMB-5-p-nobsmd-hltDiElectron	15083024	15083024
+440001	VPD_mb	15047102	15070021
+440004	ZDC-mb	15057021	15070021
+440005	BBC_mb	15046095	15049033
+440015	BBC_mb	15049037	15070021
+440050	MB_sel1	15046095	15047093
+450005	VPDMB-5-p-nobsmd	15081026	15086018
+450008	VPDMB-5	15076101	15167014
+450009	VPDMB-5-p-nobsmd-ssd-hlt	15143032	15167014
+450010	VPDMB-30	15076101	15167014
+450011	MB-mon	15076101	15167014
+450014	VPDMB-5-nobsmd	15077056	15167014
+450015	VPDMB-5-p-nobsmd	15086042	15097029
+450018	VPDMB-5	15153036	15167007
+450020	VPDMB-30	15153036	15167007
+450021	MB-mon	15153036	15167007
+450024	VPDMB-5-nobsmd	15153036	15167007
+450025	VPDMB-5-p-nobsmd	15097030	15167014
+450050	VPDMB-5-p-nobsmd-hlt	15097030	15112023
+450060	VPDMB-5-p-nobsmd-hlt	15112024	15167014
+450103	Central-5	15079047	15167014
+450201	BHT1*VPDMB-30	15076101	15167014
+450202	BHT2*VPDMB-30	15076101	15167014
+450203	BHT3	15076101	15167014
+450211	BHT1*VPDMB-30	15153036	15167007
+450212	BHT2*VPDMB-30	15153036	15167007
+450213	BHT3	15153036	15167007
+460101	Central	15170104	15174040
+460111	Central	15174041	15187006
+460201	BHT1*VPD	15174041	15174041
+460202	BHT2*BBC	15174041	15175041
+460203	BHT3	15174041	15187006
+460212	BHT2*ZDCE	15175042	15187006
+
+
+Run16: AuAu
+physics	
+1	VPDMB-5-p-sst	17038047	17039043
+4	BHT2	17160011	17161018
+6	central-5	17038047	17040051
+7	BHT1*VPDMB-10	17038047	17038047
+8	dimuon*VPDMB-10	17038047	17041016
+11	BHT2_rhic_feedback	17160011	17161018
+15	BHT1-VPD-10	17132061	17142053
+15	BHT1-VPD-30	17142054	17142058
+16	BHT2-VPD-30	17134025	17142053
+17	BHT2	17142054	17142058
+17	BHT3	17132061	17169117
+20	mb_rhic_feedback_bare	17149053	17152033
+21	mb_rhic_feedback	17149053	17152033
+25	mb_tracker	17160011	17161018
+43	VPDMB-5-hlt	17169022	17170041
+45	VPDMB-5-p-hlt	17038047	17041016
+56	vpdmb-10	17038047	17038047
+520001	VPDMB-5-p-sst	17039044	17056036
+520002	VPDMB-5-p-nosst	17043050	17056017
+520003	VPDMB-5	17038047	17039043
+520007	vpdmb-10	17038050	17057056
+520011	VPDMB-5-p-sst	17056051	17057056
+520012	VPDMB-5-p-nosst	17056050	17056050
+520013	VPDMB-5	17039044	17057056
+520015	vpd-zdc-novtx	17058002	17169021
+520017	vpdmb-10	17058002	17076012
+520021	VPDMB-5-p-sst	17058002	17076012
+520022	VPDMB-5-p-nosst	17058022	17076010
+520023	VPDMB-5	17058002	17076012
+520027	vpdmb-10	17076040	17100024
+520031	VPDMB-5-p-sst	17076043	17100024
+520032	VPDMB-5-p-nosst	17076042	17099014
+520033	VPDMB-5	17076040	17100024
+520037	vpdmb-10	17100030	17130013
+520041	VPDMB-5-p-sst	17100030	17130013
+520042	VPDMB-5-p-nosst	17102032	17128029
+520043	VPDMB-5	17100030	17130013
+520051	VPDMB-5-p-sst	17109050	17111019
+520051	VPDMB-5-sst	17169020	17169021
+520052	VPDMB-5-nosst	17169020	17169021
+520101	central-5	17040052	17056036
+520103	central-novtx	17041033	17056036
+520111	central-5	17056050	17057056
+520113	central-novtx	17056050	17057056
+520121	central-5	17058002	17076012
+520123	central-novtx	17058002	17130013
+520131	central-5	17076040	17100024
+520141	central-5	17100030	17130013
+520201	BHT1*VPDMB-10	17038050	17039043
+520203	BHT3	17038047	17169021
+520211	BHT1*VPDMB-10	17039044	17042044
+520221	BHT1*VPDMB-10	17042074	17057056
+520231	BHT1*VPDMB-10	17058002	17060034
+520241	BHT1*VPDMB-10	17060035	17076012
+520251	BHT1*VPDMB-10	17076042	17100024
+520261	BHT1*VPDMB-10	17100030	17130013
+520601	dimuon*VPDMB-10	17041033	17045018
+520605	e-muon-BHT1	17041033	17042044
+520606	e-muon-BHT0	17041033	17045011
+520611	dimuon*VPDMB-10	17045039	17057056
+520615	e-muon-BHT1	17042074	17057056
+520616	e-muon-BHT0	17045039	17056036
+520621	dimuon*VPDMB-10	17058002	17076012
+520625	e-muon-BHT1	17058002	17060034
+520626	e-muon-BHT0	17056050	17057056
+520631	dimuon*VPDMB-10	17076040	17100024
+520635	e-muon-BHT1	17060035	17076012
+520636	e-muon-BHT0	17058002	17076012
+520641	dimuon*VPDMB-10	17100030	17110037
+520645	e-muon-BHT1	17076042	17100024
+520646	e-muon-BHT0	17076042	17100024
+520655	e-muon-BHT1	17100030	17130013
+520656	e-muon-BHT0	17100030	17130013
+520802	VPDMB-5-p-hlt	17041033	17057056
+520812	VPDMB-5-p-hlt	17058002	17076012
+520822	VPDMB-5-p-hlt	17076042	17100024
+520832	VPDMB-5-hlt	17169020	17169021
+520832	VPDMB-5-p-hlt	17100030	17130013
+520842	VPDMB-5-p-hlt	17109050	17111019
+530201	BHT1-VPD-10	17133038	17141005
+530202	BHT2-VPD-30	17136037	17141005
+530213	BHT3	17133038	17141005
+540201	BHT1-VPD-30	17142059	17148003
+540203	BHT2	17142059	17148003
+550003	mb_tracker	17154184	17160009
+550201	BHT1	17149053	17160009
+550858	mb_rhic_feedback_bare	17152034	17160009
+550859	mb_rhic_feedback	17152034	17160009
+560201	BHT1	17161024	17169018
+560202	BHT1_rhic_feedback	17161024	17169018
+560853	mb_tracker	17161024	17169018
+570203	BHT3	17169118	17170012
+570802	VPDMB-5-hlt	17169118	17172018
+
+}
+*/
