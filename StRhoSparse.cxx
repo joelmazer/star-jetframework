@@ -240,7 +240,7 @@ Int_t StRhoSparse::Make()
 
     //if (!AcceptJet(jet)) continue;
 
-   // Search for overlap with signal jets
+    // Search for overlap with signal jets
     Bool_t isOverlapping = kFALSE;
     if (fJets) {
       for(Int_t j=0;j<NjetsSig;j++) {
@@ -277,7 +277,6 @@ Int_t StRhoSparse::Make()
   if (NjetAcc > 0) {
     //find median value
     Double_t rho = TMath::Median(NjetAcc, rhovec);
-
     if(fRhoCMS){
       rho = rho * OccCorr;
     }

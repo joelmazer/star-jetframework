@@ -218,7 +218,7 @@ Int_t StRhoBase::Init()
 
   // initialize centrality correction
   grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-
+  //grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
   return kStOk;
 }
 
@@ -295,7 +295,7 @@ void StRhoBase::DeclareHistograms()
   // User create output objects, called at the beginning of the analysis.
   //if (!fCreateHisto) return; //FIXME
 
-  //ranges for PbPb, change for AuAug -FIXME
+  // ranges for PbPb, change for AuAug -FIXME
   Float_t Ntrackrange[2] = {0, 6000};
   Float_t V0Mult[2] = {0.,25000.};
   if(!fIsPbPb){

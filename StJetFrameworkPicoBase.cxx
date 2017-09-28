@@ -70,6 +70,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name)
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
+  fTrackDCAcut = 3.0;
   fTracknHitsFit = 15; fTracknHitsRatio = 0.52; 
   fRho = 0x0;
   fRhoVal = 0;
@@ -441,7 +442,7 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
 //________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge;
+  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
   int nHitsFit, nHitsMax;
   double nHitsRatio;
 
@@ -477,6 +478,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   // additional calculations
   energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
   charge = trk->charge();
+  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   nHitsFit = trk->nHitsFit();
   nHitsMax = trk->nHitsMax();
   nHitsRatio = 1.0*nHitsFit/nHitsMax;
@@ -496,6 +498,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
     
   // additional quality cuts for tracks
+  if(dca > fTrackDCAcut) return kFALSE;
   if(nHitsFit < fTracknHitsFit) return kFALSE;
   if(nHitsRatio < fTracknHitsRatio) return kFALSE;
 

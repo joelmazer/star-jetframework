@@ -73,10 +73,10 @@ class StMyAnalysisMaker : public StMaker {
       kPtLinear2Const5Weight
     };
 
-    // run flags for specifics
+    // run flags for specifics - update this
     enum fRunFlagEnum {
-      Run14_AuAu,
-      Run16_AuAu
+      Run14_AuAu200,
+      Run16_AuAu200
     };
 
     // run flags for specifics
@@ -129,6 +129,7 @@ class StMyAnalysisMaker : public StMaker {
     virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
     virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
     virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
+    virtual void            SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
@@ -186,6 +187,7 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               fTrackPhiMaxCut;         // max track phi cut
     Double_t               fTrackEtaMinCut;         // min track eta cut
     Double_t               fTrackEtaMaxCut;         // max track eta cut
+    Double_t               fTrackDCAcut;            // max track dca cut
     Int_t                  fTracknHitsFit;          // requirement for track hits
     Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 

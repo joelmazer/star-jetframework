@@ -90,6 +90,7 @@ StJetMakerTask::StJetMakerTask() :
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
   fJetTrackPhiMax(2.0*TMath::Pi()),
+  fJetTrackDCAcut(3.0),
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
@@ -140,6 +141,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
   fJetTrackPhiMax(2.0*TMath::Pi()),
+  fJetTrackDCAcut(3.0),
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
@@ -998,7 +1000,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 //________________________________________________________________________
 Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge;
+  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
   int nHitsFit, nHitsMax;
   double nHitsRatio;
 
@@ -1034,6 +1036,7 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   // additional calculations
   energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
   charge = trk->charge();
+  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   nHitsFit = trk->nHitsFit();
   nHitsMax = trk->nHitsMax();
   nHitsRatio = 1.0*nHitsFit/nHitsMax;
@@ -1053,6 +1056,7 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) return kFALSE;
       
   // additional quality cuts for tracks
+  if(dca > fJetTrackDCAcut) return kFALSE;
   if(nHitsFit < fJetTracknHitsFit) return kFALSE;
   if(nHitsRatio < fJetTracknHitsRatio) return kFALSE;
 

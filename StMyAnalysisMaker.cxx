@@ -101,6 +101,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
+  fTrackDCAcut = 3.0;
   fTracknHitsFit = 15; fTracknHitsRatio = 0.52; 
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
   fCentBinSize = 5; fReduceStatsCent = -1;
@@ -175,9 +176,10 @@ Int_t StMyAnalysisMaker::Init() {
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
-  grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   //refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
   //refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
+  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+  if(fRunFlag == Run16_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
 
   return kStOK;
 }
@@ -532,12 +534,9 @@ Int_t StMyAnalysisMaker::Make() {
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   if(fDebugLevel == 7) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
-    if(fDebugLevel == 7) cout<<", i = "<<i<<": "<<mytriggers[i] << " "; 
-    if((mytriggers[i] == 450014)) {
-      //if(fDebugLevel == 8) cout<<"Mytriggers, i = "<<i<<": "<<mytriggers[i] << " ";
-      //fHaveEmcTrigger = kTRUE;
-      fHaveMBevent = kTRUE;
-    }   
+    if(fDebugLevel == 7) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
+    if(mytriggers[i] == 450014) { fHaveMBevent = kTRUE; }   
+    //if(mytriggers[i] == -9999) { fHaveEmcTrigger = kTRUE; } // TODO - may not use this
 
     // fill trigger array with trigger IDs
     trId[i] = mytriggers[i];
@@ -616,11 +615,10 @@ Int_t StMyAnalysisMaker::Make() {
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
 
-  if((fDebugLevel == 7) && (fEmcTriggerArr[kIsHT2])) cout<<"Have HT2!! "<<fEmcTriggerArr[kIsHT2]<<endl;
+  //if((fDebugLevel == 7) && (fEmcTriggerArr[kIsHT2])) cout<<"Have HT2!! "<<fEmcTriggerArr[kIsHT2]<<endl;
+  if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
-    //if(fTriggerEventType < 1) continue; 
-    // FIXME - don't hard-code in future
-    if(!fEmcTriggerArr[kIsHT2]) continue;
+    if(!fEmcTriggerArr[fTriggerEventType]) continue;
 
     // get pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
@@ -810,8 +808,8 @@ Int_t StMyAnalysisMaker::Make() {
   ///FIXME if(trigger && fTriggerEventType) { //kEMCEJE)) {     
   bool runthisnow = kTRUE;
   //if(runthisnow) {
-  // do event mixing when Signal Jet is part of event with a HT2 trigger firing
-  if(fEmcTriggerArr[kIsHT2]) {
+  // do event mixing when Signal Jet is part of event with a HT1 or HT2 trigger firing
+  if(fEmcTriggerArr[fTriggerEventType]) {
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
       // loop over Jets in the event
@@ -911,10 +909,10 @@ Int_t StMyAnalysisMaker::Make() {
     } // end of check for pool being ready
   } // end EMC triggered loop
 
-    // use only tracks from MB and Central and Semi-Central events
+    // use only tracks from MB and Semi-Central events
     ///FIXME if(trigger && fMixingEventType) { //kMB) {
     if(fHaveMBevent) { // kMB
-      if(fDebugLevel == 7) cout<<"...MB event... update event pool"<<endl;
+      if(fDebugLevel == 6) cout<<"...MB event... update event pool"<<endl;
 
       TClonesArray* tracksClone2 = 0x0;
       //cout<<"tracks in clone before reduce: "<<tracksClone2->GetEntriesFast();
@@ -1209,7 +1207,7 @@ Double_t StMyAnalysisMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
   // test
   if( dphi < 0 || dphi > TMath::Pi()/2 ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
-    cout<<"dPHI not in range [0, 0.5*Pi]!"<<endl;
+    cout<<"dPhi not in range [0, 0.5*Pi]!"<<endl;
   }
 
   return dphi;   // dphi in [0, Pi/2]
@@ -1479,7 +1477,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
 //________________________________________________________________________
 Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge;
+  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
   int nHitsFit, nHitsMax;
   double nHitsRatio;
 
@@ -1515,6 +1513,7 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
   // additional calculations
   energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
   charge = trk->charge();
+  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   nHitsFit = trk->nHitsFit();
   nHitsMax = trk->nHitsMax();
   nHitsRatio = 1.0*nHitsFit/nHitsMax;
@@ -1534,6 +1533,7 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
   if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
     
   // additional quality cuts for tracks
+  if(dca > fTrackDCAcut) return kFALSE;
   if(nHitsFit < fTracknHitsFit) return kFALSE;
   if(nHitsRatio < fTracknHitsRatio) return kFALSE;
 
@@ -1610,7 +1610,7 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
 
   // Run14 AuAu
-  if(fRunFlag == Run14_AuAu) {
+  if(fRunFlag == Run14_AuAu200) {
 
     //Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
     vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
@@ -1647,10 +1647,42 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
     h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
   }
 
-  if(fRunFlag == Run16_AuAu) {
-  
+  // Run16 AuAu
+  if(fRunFlag == Run16_AuAu200) {
+    //Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
+    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
+    int bin = 0;
+    for(unsigned int i=0; i<mytriggers.size(); i++) {
+      //cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
+      bin = 1;
+
+      if((mytriggers[i] == 450201) || (mytriggers[i] == 450211) || (mytriggers[i] == 460201)) { bin = 2; h->Fill(bin); } // HT1
+      if((mytriggers[i] == 450202) || (mytriggers[i] == 450212)) { bin = 3; h->Fill(bin); }// HT2
+      if((mytriggers[i] == 460203) || (mytriggers[i] == 6) || (mytriggers[i] == 10) || (mytriggers[i] == 14) || (mytriggers[i] == 31) || (mytriggers[i] == 450213)) { bin = 4; h->Fill(bin); } // HT3
+      if(mytriggers[i] == 450014) { bin = 5; h->Fill(bin); }// MB
+      if((mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 6; h->Fill(bin); } // VPDMB-30
+      if((mytriggers[i] == 26) || (mytriggers[i] == 450103)) { bin = 7; h->Fill(bin); }// Central-5
+      if((mytriggers[i] == 15) || (mytriggers[i] == 460101) || (mytriggers[i] == 460111)) { bin = 8; h->Fill(bin); } // Central & Central-mon
+      if((mytriggers[i] == 1) || (mytriggers[i] == 4) || (mytriggers[i] == 16) || (mytriggers[i] == 32) || (mytriggers[i] == 450005) || (mytriggers[i] == 450008) || (mytriggers[i] == 450009) || (mytriggers[i] == 450014) || (mytriggers[i] == 450015) || (mytriggers[i] == 450018) || (mytriggers[i] == 450024) || (mytriggers[i] == 450025) || (mytriggers[i] == 450050) || (mytriggers[i] == 450060)) { bin = 10; h->Fill(bin); }// VPDMB-5 
+      if((mytriggers[i] == 20) || (mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 11; h->Fill(bin); } // VPDMB-30
+
+      // fill trigger selection histo
+      //h->Fill(bin); // - do per trigger in case an above classification matches 2 simultaneously
+    }
+
+    // TODO need to do this once and not for every event!!!!!
     // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "no trigger");
+    // TODO may need to re-label for run16
+    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
+    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
+    h->GetXaxis()->SetBinLabel(4, "BHT3");
+    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
+    h->GetXaxis()->SetBinLabel(6, "VPDMB-30");
+    h->GetXaxis()->SetBinLabel(7, "Central-5");
+    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
+    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
   }
 
   // set x-axis labels vertically
@@ -1856,20 +1888,11 @@ physics
 
 Run16: AuAu
 physics	
-1	VPDMB-5-p-sst	17038047	17039043
-4	BHT2	17160011	17161018
-6	central-5	17038047	17040051
-7	BHT1*VPDMB-10	17038047	17038047
-8	dimuon*VPDMB-10	17038047	17041016
-11	BHT2_rhic_feedback	17160011	17161018
 15	BHT1-VPD-10	17132061	17142053
 15	BHT1-VPD-30	17142054	17142058
 16	BHT2-VPD-30	17134025	17142053
 17	BHT2	17142054	17142058
 17	BHT3	17132061	17169117
-20	mb_rhic_feedback_bare	17149053	17152033
-21	mb_rhic_feedback	17149053	17152033
-25	mb_tracker	17160011	17161018
 43	VPDMB-5-hlt	17169022	17170041
 45	VPDMB-5-p-hlt	17038047	17041016
 56	vpdmb-10	17038047	17038047
@@ -1880,7 +1903,6 @@ physics
 520011	VPDMB-5-p-sst	17056051	17057056
 520012	VPDMB-5-p-nosst	17056050	17056050
 520013	VPDMB-5	17039044	17057056
-520015	vpd-zdc-novtx	17058002	17169021
 520017	vpdmb-10	17058002	17076012
 520021	VPDMB-5-p-sst	17058002	17076012
 520022	VPDMB-5-p-nosst	17058022	17076010
@@ -1940,15 +1962,10 @@ physics
 530213	BHT3	17133038	17141005
 540201	BHT1-VPD-30	17142059	17148003
 540203	BHT2	17142059	17148003
-550003	mb_tracker	17154184	17160009
 550201	BHT1	17149053	17160009
-550858	mb_rhic_feedback_bare	17152034	17160009
-550859	mb_rhic_feedback	17152034	17160009
 560201	BHT1	17161024	17169018
 560202	BHT1_rhic_feedback	17161024	17169018
-560853	mb_tracker	17161024	17169018
 570203	BHT3	17169118	17170012
 570802	VPDMB-5-hlt	17169118	17172018
-
 }
 */

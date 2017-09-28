@@ -121,6 +121,7 @@ class StJetMakerTask : public StMaker {
   void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
   void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
   void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
+  void         SetJetTrackDCAcut(Double_t d)              { fJetTrackDCAcut   = d     ; }
   void         SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
   void         SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
   void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
@@ -248,6 +249,7 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetTrackEtaMax;         // max jet track eta
   Double_t               fJetTrackPhiMin;         // min jet track phi
   Double_t               fJetTrackPhiMax;         // max jet track phi
+  Double_t               fJetTrackDCAcut;         // max jet track dca cut
   Int_t                  fJetTracknHitsFit;       // requirement for track hits
   Double_t               fJetTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)

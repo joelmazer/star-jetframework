@@ -100,6 +100,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
     virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
     virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
+    virtual void            SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
@@ -120,7 +121,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
-    Bool_t                 fCorrJetPt; // correct jet pt by rho
+    Bool_t                 fCorrJetPt;              // correct jet pt by rho
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
@@ -134,8 +135,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fTrackPhiMaxCut;         // max track phi cut
     Double_t               fTrackEtaMinCut;         // min track eta cut
     Double_t               fTrackEtaMaxCut;         // max track eta cut
-    Int_t                  fTracknHitsFit;       // requirement for track hits
-    Double_t               fTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
+    Double_t               fTrackDCAcut;            // max track dca cut
+    Int_t                  fTracknHitsFit;          // requirement for track hits
+    Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
