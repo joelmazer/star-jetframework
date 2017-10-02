@@ -3,9 +3,9 @@
 
 // $Id$
 // adapted from the AliROOT class AliAnalysisTaskRhoBase.h for STAR
+#include "StJetFrameworkPicoBase.h"
 
 #include "StJetMakerTask.h"
-
 #include "StMaker.h"
 #include "StJet.h"
 
@@ -30,7 +30,8 @@ class StRefMultCorr;
 // might not want to inherit from 2 classes
 //class StRhoBase : public StMaker, public StJet {
 //class StRhoBase : public StJetMakerTask {
-class StRhoBase : public StMaker {  // TODO need to check if this is fine
+//class StRhoBase : public StMaker {  // TODO need to check if this is fine
+class StRhoBase : public StJetFrameworkPicoBase {
 
  public:
   StRhoBase();
@@ -120,15 +121,6 @@ class StRhoBase : public StMaker {  // TODO need to check if this is fine
 
   TClonesArray          *fJets;//! jets array
   TClonesArray          *fBGJets;//! background jets array
-
-  // PicoDstMaker and PicoDst object pointer
-  StPicoDstMaker *mPicoDstMaker;
-  StPicoDst      *mPicoDst;
-  StPicoEvent    *mPicoEvent;
-  StJetMakerTask   *JetMaker;
-
-  // centrality objects
-  StRefMultCorr* grefmultCorr;
 
   // maker names
   TString                mOutName;

@@ -46,40 +46,81 @@ class StJetMakerTask;
 ClassImp(StJetFrameworkPicoBase)
 
 //-----------------------------------------------------------------------------
-StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name)
-  : StMaker(name)
+StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
+  StMaker(),
+  fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
+  fTracksME(0x0),
+  fJets(0x0),
+  mPicoDstMaker(0x0),
+  mPicoDst(0x0),
+  mPicoEvent(0x0),
+  JetMaker(0),
+  RhoMaker(0),
+  fRunFlag(0),
+  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  grefmultCorr(0),
+  refmultCorr(0),
+  refmult2Corr(0),
+  mOutName(""),
+  doUsePrimTracks(kFALSE),
+  fCorrJetPt(kFALSE),
+  fMinPtJet(0.0),
+  fTrackBias(0.0),
+  fJetRad(0.4),
+  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
+  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
+  fTrackDCAcut(3.0),
+  fTracknHitsFit(15), fTracknHitsRatio(0.52),
+  fRho(0x0),
+  fRhoVal(0),
+  fJetMakerName(""),
+  fRhoMakerName(""),
+  mEventCounter(0),
+  mAllPVEventCounter(0),
+  mInputEventCounter(0)
 {
-  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; fTrackWeight = 1;
-  fTracksME = 0x0;
-  fJets = 0x0;
-  mPicoDstMaker = 0x0;
-  mPicoDst = 0x0;
-  mPicoEvent = 0x0;
-  JetMaker = 0;
-  RhoMaker = 0;
-  grefmultCorr = 0;
-  refmultCorr = 0;
-  refmult2Corr = 0;
-  mOutName = "";
-  doUsePrimTracks = kFALSE;
-  fCorrJetPt = kFALSE;
-  fMinPtJet = 0.0;
-  fTrackBias = 0.0;
-  fJetRad = 0.4;
-  fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
-  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
-  fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
-  fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
-  fTrackDCAcut = 3.0;
-  fTracknHitsFit = 15; fTracknHitsRatio = 0.52; 
-  fRho = 0x0;
-  fRhoVal = 0;
-  fJetMakerName = "";
-  fRhoMakerName = "";
 
-  mEventCounter = 0;
-  mAllPVEventCounter = 0;
-  mInputEventCounter = 0;
+}
+
+//-----------------------------------------------------------------------------
+StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
+  StMaker(name),
+  fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
+  fTracksME(0x0),
+  fJets(0x0),
+  mPicoDstMaker(0x0),
+  mPicoDst(0x0),
+  mPicoEvent(0x0),
+  JetMaker(0),
+  RhoMaker(0),
+  fRunFlag(0),
+  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  grefmultCorr(0),
+  refmultCorr(0),
+  refmult2Corr(0),
+  mOutName(""),
+  doUsePrimTracks(kFALSE),
+  fCorrJetPt(kFALSE),
+  fMinPtJet(0.0),
+  fTrackBias(0.0),
+  fJetRad(0.4),
+  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
+  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
+  fTrackDCAcut(3.0),
+  fTracknHitsFit(15), fTracknHitsRatio(0.52), 
+  fRho(0x0),
+  fRhoVal(0),
+  fJetMakerName(""),
+  fRhoMakerName(""),
+  mEventCounter(0),
+  mAllPVEventCounter(0),
+  mInputEventCounter(0)
+{
+
 }
 
 //----------------------------------------------------------------------------- 
@@ -93,7 +134,14 @@ Int_t StJetFrameworkPicoBase::Init() {
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
 
-  grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  // initialize centrality correction
+  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+  if(fRunFlag == Run16_AuAu200) {
+    if(fCentralityDef == kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+    if(fCentralityDef == kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
+    if(fCentralityDef == kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
+    if(fCentralityDef == kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  } 
   //refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
   //refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
 

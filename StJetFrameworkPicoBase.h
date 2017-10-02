@@ -67,12 +67,39 @@ class StJetFrameworkPicoBase : public StMaker {
   };
 
     // event plane track weight type enumerator
-    enum EPtrackWeigthType_t {
+    enum EPtrackWeightType {
       kNoWeight,
       kPtLinearWeight,
       kPtLinear2Const5Weight
     };
 
+    // run flags for specifics - update this
+    enum fRunFlagEnum {
+      Run14_AuAu200,
+      Run16_AuAu200
+    };
+
+    // run flags for specifics
+    enum fTriggerFlagEnum {
+      kAny,
+      kIsHT0, kIsHT1, kIsHT2, kIsHT3,
+      kIsJP0, kIsJP1, kIsJP2
+    };
+
+    // Centrality Interfaces:
+    //getRefMult3Corr() ; // For refmult3
+    //getTofTrayMultCorr() ; // For TOF tray multiplicity
+    //getgRefMultCorr()  ; // For grefmult //Run14 AuAu200GeV
+    //getgRefMultCorr_P16id()  ; // For grefmult //Run14 AuAu200GeV, P16id
+    //getgRefMultCorr_VpdMB30()  ; // for VPDMB-30; |vz| < 30
+    //getgRefMultCorr_VpdMBnoVtx()  ; //  for VPDMB-noVtx; |vz| < 100
+    // centrality enum
+    enum fCentralityDefEnum {
+      krefmult, krefmult2, krefmult3,
+      kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30
+    };    
+
+    StJetFrameworkPicoBase();
     StJetFrameworkPicoBase(const char *name);
     virtual ~StJetFrameworkPicoBase();
    
@@ -86,6 +113,9 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
+    virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
+    virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
 
     // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -121,6 +151,9 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
+    Int_t                  fDebugLevel;             // debug printout level
+    Int_t                  fRunFlag;                // Run Flag enumerator value
+    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
 
     // cuts
@@ -150,12 +183,11 @@ class StJetFrameworkPicoBase : public StMaker {
     TClonesArray          *fTracksME;//! track collection to slim down for mixed events
     TClonesArray          *fJets;//! jet collection
 
-  private:
     // PicoDstMaker and PicoDst object pointer
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
     StPicoEvent    *mPicoEvent;
-    StJetMakerTask   *JetMaker;
+    StJetMakerTask *JetMaker;
     StRho          *RhoMaker;
 
     // centrality objects
@@ -165,12 +197,12 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // output file name string 
     TString      mOutName;
- 
+
     // counters 
     Int_t        mEventCounter;//!
     Int_t        mAllPVEventCounter;//!
     Int_t        mInputEventCounter;//!
- 
+
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
     StRhoParameter        *fRho;//!<!          // event rho
@@ -186,6 +218,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}
                 
+  private:
     ClassDef(StJetFrameworkPicoBase, 1)
 };
 

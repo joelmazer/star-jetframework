@@ -7,6 +7,8 @@
 // 
 // original Author: S.Aiola
 
+#include "StRhoBase.h"
+
 // ROOT includes
 #include <TFile.h>
 #include <TF1.h>
@@ -21,7 +23,7 @@
 // STAR includes
 #include "StRhoParameter.h"
 #include "StJet.h"
-#include "StRhoBase.h"
+//#include "StRhoBase.h"
 #include "StJetMakerTask.h"
 #include "StMyAnalysisMaker.h"
 #include "StMaker.h"
@@ -38,7 +40,7 @@ ClassImp(StRhoBase)
 
 //________________________________________________________________________
 StRhoBase::StRhoBase() : 
-  //StJet("StRhoBase", kFALSE),
+  StJetFrameworkPicoBase(),
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -77,13 +79,12 @@ StRhoBase::StRhoBase() :
   mPicoDst(0),
   mPicoEvent(0),
   JetMaker(0),
-  grefmultCorr(0), 
+//  grefmultCorr(0), 
   mOutName(""),
   fJetMakerName(""),
   fRhoMakerName("")
 {
   // Constructor.
-
   for (Int_t i = 0; i < 4; i++) {
     fHistJetNconstVsPt[i] = 0;
     fHistJetRhovsEta[i] = 0;
@@ -95,7 +96,7 @@ StRhoBase::StRhoBase() :
 
 //________________________________________________________________________
 StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const char *jetMakerName) :
-  //StJet(name, histo),
+  StJetFrameworkPicoBase(name),
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -134,7 +135,7 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   mPicoDst(0),
   mPicoEvent(0),
   JetMaker(0),
-  grefmultCorr(0),
+//  grefmultCorr(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
   fRhoMakerName(name)
@@ -187,6 +188,8 @@ StRhoBase::~StRhoBase()
 //________________________________________________________________________
 Int_t StRhoBase::Init()
 {
+  StJetFrameworkPicoBase::Init();
+
   DeclareHistograms();
 
   // Create user objects.
@@ -217,8 +220,16 @@ Int_t StRhoBase::Init()
 */
 
   // initialize centrality correction
-  grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  //grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+  //grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  //// grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+  if(fRunFlag == Run16_AuAu200) {
+    if(fCentralityDef == kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+    if(fCentralityDef == kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
+    if(fCentralityDef == kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
+    if(fCentralityDef == kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  } 
+
   return kStOk;
 }
 

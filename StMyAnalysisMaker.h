@@ -2,6 +2,8 @@
 #define StMyAnalysisMaker_h
 
 // some includes
+//#include <initializer_list>
+
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
@@ -67,12 +69,13 @@ class StMyAnalysisMaker : public StMaker {
   };
 
     // event plane track weight type enumerator
-    enum EPtrackWeigthType_t {
+    enum EPtrackWeightType {
       kNoWeight,
       kPtLinearWeight,
       kPtLinear2Const5Weight
     };
 
+/*
     // run flags for specifics - update this
     enum fRunFlagEnum {
       Run14_AuAu200,
@@ -81,9 +84,11 @@ class StMyAnalysisMaker : public StMaker {
 
     // run flags for specifics
     enum fTriggerFlagEnum {
+      kAny,
       kIsHT0, kIsHT1, kIsHT2, kIsHT3,
       kIsJP0, kIsJP1, kIsJP2
     };
+*/
 
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
@@ -116,6 +121,7 @@ class StMyAnalysisMaker : public StMaker {
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
 
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
@@ -166,13 +172,16 @@ class StMyAnalysisMaker : public StMaker {
     Double_t               GetReactionPlane(); // get reaction plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
 
+    Bool_t                 DoComparison(int myarr[], int elems);
+
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
-    Int_t                  fRunFlag;            // Run Flag numerator value
+    Int_t                  fRunFlag;                // Run Flag numerator value
     Int_t                  fDoEffCorr;              // efficiency correction to tracks
+    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
 
     // cuts
@@ -301,5 +310,15 @@ class StMyAnalysisMaker : public StMaker {
                 
     ClassDef(StMyAnalysisMaker, 1)
 };
-
+/*
+template <typename T> bool is_in(const T& val, const std::initializer_list<T>& list)
+{
+    for (const auto& i : list) {
+        if (val == i) {
+            return true;
+        }
+    }
+    return false;
+}
+*/
 #endif

@@ -34,13 +34,9 @@ ClassImp(StRho)
 
 //________________________________________________________________________
 StRho::StRho() : 
-  StRhoBase("StRho"),
+  StRhoBase(""),
   fNExclLeadJets(0),
   fJets(0),
-  mPicoDstMaker(0),
-  mPicoDst(0),
-  mPicoEvent(0),
-  JetMaker(0),
   fHistMultvsRho(0),
   mOutName(""), 
   fJetMakerName(""),
@@ -54,10 +50,6 @@ StRho::StRho(const char *name, Bool_t histo, const char *outName, const char *je
   StRhoBase(name, histo, jetMakerName),
   fNExclLeadJets(0),
   fJets(0),
-  mPicoDstMaker(0),
-  mPicoDst(0),
-  mPicoEvent(0),
-  JetMaker(0),
   fHistMultvsRho(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
@@ -191,7 +183,6 @@ Int_t StRho::Make()
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
   int refMult = mPicoEvent->refMult();
-  cout<<"about to init grefmultCorr based on RunId"<<endl;
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2); 
@@ -289,7 +280,6 @@ Int_t StRho::Make()
   }
 
   StRhoBase::FillHistograms();
-  //fHistMultvsRho->Fill(multiplicity, rho);
 
   return kStOk;
 } 

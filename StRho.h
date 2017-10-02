@@ -45,12 +45,6 @@ class StRho : public StRhoBase {
   TClonesArray    *fJets;//!jet collection
 
  private:
-  // PicoDstMaker and PicoDst object pointer
-  StPicoDstMaker   *mPicoDstMaker;
-  StPicoDst        *mPicoDst;
-  StPicoEvent      *mPicoEvent;
-  StJetMakerTask   *JetMaker;
-
   TH2F             *fHistMultvsRho;//!
 
   // maker names

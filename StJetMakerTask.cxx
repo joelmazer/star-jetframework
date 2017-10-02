@@ -439,11 +439,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
       fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
 
-      // fill some QA histograms
-      //fHistJetNTrackvsPt->Fill(pt);
-      //fHistJetNTrackvsPhi->Fill(phi);
-      //fHistJetNTrackvsEta->Fill(eta);
-
     } // track loop
   } // if full/charged jets
 
@@ -475,11 +470,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
     // print EMCal cluster info
     if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
-    
+    if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl; 
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
+
+      cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
 
       // use StEmcDetector to get position information
       //StEmcDetector* detector;

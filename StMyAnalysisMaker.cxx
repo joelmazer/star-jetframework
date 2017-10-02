@@ -38,6 +38,7 @@
 //#include "StRoot/StPicoDstMaker/StPicoV0.h"
 
 // my STAR includes
+#include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
@@ -92,6 +93,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
+  fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   fMinPtJet = minJetPt;
@@ -178,8 +180,13 @@ Int_t StMyAnalysisMaker::Init() {
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   //refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
   //refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
-  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == Run16_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  } 
 
   return kStOK;
 }
@@ -432,26 +439,6 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
-  // trigger information: the below is all seemingly incomplete, coming from StPicoEvent class
-  // trigger information from the PicoEvent object: they seem to not be set... same results
-  //cout<<"istrigger = "<<mPicoEvent->isTrigger(450011)<<endl; //NEW
-  //cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
-  //cout<<"trigger ids = "<<mPicoEvent->triggerIds()<<endl;
-/*
-  cout<<"MB: "<<mPicoEvent->isMinBias()
-  <<"  MBlow: "<<mPicoEvent->isMBSlow()
-  <<"  Central: "<<mPicoEvent->isCentral()
-  <<"  HT: "<<mPicoEvent->isHT()
-  <<"  HT11: "<<mPicoEvent->isHT11()
-  <<"  HT15: "<<mPicoEvent->isHT15()
-  <<"  HT18: "<<mPicoEvent->isHT18()
-  <<"  MtdTrig: "<<mPicoEvent->isMtdTrig()
-  <<"  DiMuon: "<<mPicoEvent->isDiMuon()
-  <<"  DiMuonHFT: "<<mPicoEvent->isDiMuonHFT()
-  <<"  SingleMuon: "<<mPicoEvent->isSingleMuon()
-  <<"  EMuon: "<<mPicoEvent->isEMuon()<<endl;
-*/
-
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField(); 
 
@@ -474,36 +461,15 @@ Int_t StMyAnalysisMaker::Make() {
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
 
-  // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
-  const char *fJetMakerNameCh = fJetMakerName;
-  if(!JetMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
-    return kStWarn;
-  }
-
-  // if we have JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
-  if(!fJets) {     
-    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
-    return kStWarn; 
-  }
-
-  // get number of jets, tracks, and global tracks in events
-  Int_t njets = fJets->GetEntries();
-  const Int_t ntracks = mPicoDst->numberOfTracks();
-  Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
-
-  // create TClonesArray for use with mixed events
-  //TClonesArray* fTracksME = mPicoDst->picoArray(picoTrack);  // CORRECT, but OLD
-  //TClonesArray* fTracksME = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track ->Tracks Aug17: should be the NEW way
 /*
+  //TClonesArray* fTracksME = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track ->Tracks Aug17: should be the NEW way
   fTracksME = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track ->Tracks Aug17: should be the NEW way
   if(!fTracksME) { return kStWarn; }
 */
 
   //static StPicoTrack* track(int i) { return (StPicoTrack*)picoArrays[picoTrack]->UncheckedAt(i); }
 /*
+  // Event QA print-out
   // printing available information from the PicoDst objects
   StPicoTrack* t = mPicoDst->track(1);
   if(t) t->Print();
@@ -527,23 +493,31 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
+  // trigger information:
+  //cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
+  // Run16
+  int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrBHT2[] = {4, 16, 17, 530202, 540203};
+  int arrBHT3[] = {17, 520203, 530213};
+  int arrMB[] = {520021};
+  int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+  int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+
   // get trigger IDs from PicoEvent class and loop over them
-  Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   if(fDebugLevel == 7) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == 7) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
-    if(mytriggers[i] == 450014) { fHaveMBevent = kTRUE; }   
-    //if(mytriggers[i] == -9999) { fHaveEmcTrigger = kTRUE; } // TODO - may not use this
-
-    // fill trigger array with trigger IDs
-    trId[i] = mytriggers[i];
+    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
+    // FIXME Hard-coded for now
+    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
+    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
   }
   if(fDebugLevel == 7) cout<<endl;
-
   // ======================== end of Triggers ============================= //
+  //cout<<"EMCtrigger: "<<fHaveEmcTrigger<<"  HaveMBevent: "<<fHaveMBevent<<endl;
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
@@ -564,10 +538,6 @@ Int_t StMyAnalysisMaker::Make() {
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
   Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
-//  cout<<"grefMult = "<<grefMult<<"  refMult = "<<refMult<<"  "; //endl;
-//  cout<<"refCorr2 = "<<refCorr2<<"  refCorr1 = "<<refCorr1<<"  refCorr0 = "<<refCorr0;
-//  cout<<"  cent16 = "<<cent16<<"   cent9 = "<<cent9<<"  centbin = "<<centbin<<endl;
-//  cout<<"njets = "<<njets<<"  ntracks = "<<ntracks<<"  nglobaltracks = "<<nglobaltracks<<"  refCorr2 = "<<refCorr2<<"  grefMult = "<<grefMult<<"  centbin = "<<centbin<<endl;
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
@@ -579,10 +549,24 @@ Int_t StMyAnalysisMaker::Make() {
   else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
   else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
   else cbin = -99;
-
   // ============================ end of CENTRALITY ============================== //
 
-  // reaction plane angle
+  // get JetMaker
+  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  const char *fJetMakerNameCh = fJetMakerName;
+  if(!JetMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
+    return kStWarn;
+  }
+
+  // if we have JetMaker, get jet collection associated with it
+  fJets = JetMaker->GetJets();
+  if(!fJets) {
+    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
+    return kStWarn;
+  }
+
+  // =========== Event Plane Angle ============= //
   // cache the leading jet within acceptance
   fLeadingJet = GetLeadingJet();
   double rpAngle = GetReactionPlane();
@@ -607,6 +591,17 @@ Int_t StMyAnalysisMaker::Make() {
   fRhoVal = fRho->GetVal();
   //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
 
+  // get number of jets, tracks, and global tracks in events
+  Int_t njets = fJets->GetEntries();
+  const Int_t ntracks = mPicoDst->numberOfTracks();
+  Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
+  if(fDebugLevel == 7) {
+    //cout<<"grefMult = "<<grefMult<<"  refMult = "<<refMult<<"  "; //endl;
+    //cout<<"refCorr2 = "<<refCorr2<<"  refCorr1 = "<<refCorr1<<"  refCorr0 = "<<refCorr0;
+    //cout<<"  cent16 = "<<cent16<<"   cent9 = "<<cent9<<"  centbin = "<<centbin<<endl;
+    cout<<"njets = "<<njets<<"  ntracks = "<<ntracks<<"  nglobaltracks = "<<nglobaltracks<<"  refCorr2 = "<<refCorr2<<"  grefMult = "<<grefMult<<"  centbin = "<<centbin<<endl;
+  }
+
   // loop over Jets in the event: initialize some parameter variables
   double jetarea, jetpt, corrjetpt, jetptselected, jetE, jetEta, jetPhi, jetNEF, maxtrackpt, NtrackConstit;
   double gpt, gp, phi, eta, px, py, pt, pz, charge;
@@ -616,9 +611,10 @@ Int_t StMyAnalysisMaker::Make() {
   Double_t highestjetpt = 0.0;
 
   //if((fDebugLevel == 7) && (fEmcTriggerArr[kIsHT2])) cout<<"Have HT2!! "<<fEmcTriggerArr[kIsHT2]<<endl;
-  if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
+  //if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
-    if(!fEmcTriggerArr[fTriggerEventType]) continue;
+    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
+    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
 
     // get pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
@@ -698,7 +694,7 @@ Int_t StMyAnalysisMaker::Make() {
     //cout<<endl;
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
-    for(unsigned short itrack=0;itrack<ntracks;itrack++){
+    for(int itrack=0;itrack<ntracks;itrack++){
       // get tracks
       StPicoTrack* trk = mPicoDst->track(itrack);
       if(!trk){ continue; }
@@ -809,7 +805,9 @@ Int_t StMyAnalysisMaker::Make() {
   bool runthisnow = kTRUE;
   //if(runthisnow) {
   // do event mixing when Signal Jet is part of event with a HT1 or HT2 trigger firing
-  if(fEmcTriggerArr[fTriggerEventType]) {
+//FIXME FIXME FIXME
+  //if(fEmcTriggerArr[fTriggerEventType]) {  // RUN14
+  if(fHaveEmcTrigger) { // RUN16
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
       // loop over Jets in the event
@@ -934,7 +932,7 @@ Int_t StMyAnalysisMaker::Make() {
   //cout<<"end of event counter = "<<mInputEventCounter<<endl;
 
   // fill Event Trigger QA
-  //FillEventTriggerQA(fHistEventSelectionQAafterCuts, trig);
+  //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
 
   //StMemStat::PrintMem("MyAnalysisMaker at end of make");
 
@@ -968,7 +966,7 @@ Int_t StMyAnalysisMaker::Make() {
   fjInputs.resize(0);
 
   // loop over tracks
-  for(unsigned short itrack=0;itrack<ntracks;itrack++){
+  for(int itrack=0;itrack<ntracks;itrack++){
     StPicoTrack* trk = mPicoDst->track(itrack);
     if(!trk){ continue; }
     if(trk->gPt() < 0.2){ continue; }
@@ -1026,7 +1024,7 @@ Int_t StMyAnalysisMaker::Make() {
   // loop over reconstructed jets
   ///if(printInfo) cout<<"       pt       eta       phi"<<endl;
   //cout<<"       pt       eta       phi"<<endl;
-  for(unsigned i = 0; i< sortedJets.size(); i++) {
+  for(int i = 0; i< sortedJets.size(); i++) {
     ///if(printInfo) cout<<"jet " <<i<<": "<<sortedJets[i].pt()<<" "<<sortedJets[i].eta()<<" "<<sortedJets[i].phi()<<endl;
     if(i==0) { 
       cout<<"       pt       eta       phi"<<endl;
@@ -1039,7 +1037,7 @@ Int_t StMyAnalysisMaker::Make() {
     // Loop over jet constituents
     vector <fastjet::PseudoJet> constituents = sortedJets[i].constituents();
     vector <fastjet::PseudoJet> sortedconstituents = sorted_by_pt(constituents);
-    for(unsigned j = 0; j < sortedconstituents.size(); j++) {
+    for(int j = 0; j < sortedconstituents.size(); j++) {
       if(printInfo) cout<<"    constituent "<<j<<"'s pt: "<<sortedconstituents[j].pt()<<endl;
 
       Double_t z = sortedconstituents[j].pt() / sortedJets[i].Et();
@@ -1563,7 +1561,10 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  if(fDebugLevel == 7) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+  //if(fDebugLevel == 7) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+
+  // set kAny true to use of 'all' triggers
+  fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
 
   //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   // loop over valid EmcalTriggers
@@ -1580,15 +1581,17 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
     }
 
     // fill for valid triggers
-    if(emcTrig->isHT0()) { h->Fill(1); fEmcTriggerArr[kIsHT0] = 1; }
-    if(emcTrig->isHT1()) { h->Fill(2); fEmcTriggerArr[kIsHT1] = 1; }
-    if(emcTrig->isHT2()) { h->Fill(3); fEmcTriggerArr[kIsHT2] = 1; }
-    if(emcTrig->isHT3()) { h->Fill(4); fEmcTriggerArr[kIsHT3] = 1; }
-    if(emcTrig->isJP0()) { h->Fill(5); fEmcTriggerArr[kIsJP0] = 1; }
-    if(emcTrig->isJP1()) { h->Fill(6); fEmcTriggerArr[kIsJP1] = 1; }
-    if(emcTrig->isJP2()) { h->Fill(7); fEmcTriggerArr[kIsJP2] = 1; }
+    if(emcTrig->isHT0()) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
+    if(emcTrig->isHT1()) { h->Fill(2); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = 1; }
+    if(emcTrig->isHT2()) { h->Fill(3); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = 1; }
+    if(emcTrig->isHT3()) { h->Fill(4); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = 1; }
+    if(emcTrig->isJP0()) { h->Fill(5); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP0] = 1; }
+    if(emcTrig->isJP1()) { h->Fill(6); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP1] = 1; }
+    if(emcTrig->isJP2()) { h->Fill(7); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP2] = 1; }
   }
- 
+  // kAny trigger - filled once per event
+  h->Fill(10); 
+
   h->GetXaxis()->SetBinLabel(1, "HT0");
   h->GetXaxis()->SetBinLabel(2, "HT1");
   h->GetXaxis()->SetBinLabel(3, "HT2");
@@ -1596,6 +1599,7 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   h->GetXaxis()->SetBinLabel(5, "JP0");
   h->GetXaxis()->SetBinLabel(6, "JP1");
   h->GetXaxis()->SetBinLabel(7, "JP2");
+  h->GetXaxis()->SetBinLabel(10, "Any");
 
   // set x-axis labels vertically
   h->LabelsOption("v");
@@ -1609,38 +1613,36 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
 TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
 
-  // Run14 AuAu
-  if(fRunFlag == Run14_AuAu200) {
+  // Run14 AuAu 200 GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+    int arrBHT1[] = {450201, 450211, 460201};
+    int arrBHT2[] = {450202, 450212};
+    int arrBHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrMB[] = {450014};
+    int arrMB30[] = {20, 450010, 450020};
+    int arrCentral5[] = {20, 450010, 450020};
+    int arrCentral[] = {15, 460101, 460111};
+    int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
-    //Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
     vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
-    for(unsigned int i=0; i<mytriggers.size(); i++) {
-      //cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
-      bin = 1; 
-
-      if((mytriggers[i] == 450201) || (mytriggers[i] == 450211) || (mytriggers[i] == 460201)) { bin = 2; h->Fill(bin); } // HT1
-      if((mytriggers[i] == 450202) || (mytriggers[i] == 450212)) { bin = 3; h->Fill(bin); }// HT2
-      if((mytriggers[i] == 460203) || (mytriggers[i] == 6) || (mytriggers[i] == 10) || (mytriggers[i] == 14) || (mytriggers[i] == 31) || (mytriggers[i] == 450213)) { bin = 4; h->Fill(bin); } // HT3
-      if(mytriggers[i] == 450014) { bin = 5; h->Fill(bin); }// MB
-      if((mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 6; h->Fill(bin); } // VPDMB-30
-      if((mytriggers[i] == 26) || (mytriggers[i] == 450103)) { bin = 7; h->Fill(bin); }// Central-5
-      if((mytriggers[i] == 15) || (mytriggers[i] == 460101) || (mytriggers[i] == 460111)) { bin = 8; h->Fill(bin); } // Central & Central-mon
-      if((mytriggers[i] == 1) || (mytriggers[i] == 4) || (mytriggers[i] == 16) || (mytriggers[i] == 32) || (mytriggers[i] == 450005) || (mytriggers[i] == 450008) || (mytriggers[i] == 450009) || (mytriggers[i] == 450014) || (mytriggers[i] == 450015) || (mytriggers[i] == 450018) || (mytriggers[i] == 450024) || (mytriggers[i] == 450025) || (mytriggers[i] == 450050) || (mytriggers[i] == 450060)) { bin = 10; h->Fill(bin); }// VPDMB-5 
-      if((mytriggers[i] == 20) || (mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 11; h->Fill(bin); } // VPDMB-30
+    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
+    //if() { bin = 6; h->Fill(bin); } 
+    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
+    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
+    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
+    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
  
-      // fill trigger selection histo
-      //h->Fill(bin); // - do per trigger in case an above classification matches 2 simultaneously
-    }
-
-    // TODO need to do this once and not for every event!!!!!
     // label bins of the analysis trigger selection summary
     h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
     h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
     h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
     h->GetXaxis()->SetBinLabel(4, "BHT3");
     h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "VPDMB-30");
+    h->GetXaxis()->SetBinLabel(6, "");
     h->GetXaxis()->SetBinLabel(7, "Central-5");
     h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
     h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
@@ -1648,48 +1650,70 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
   }
 
   // Run16 AuAu
-  if(fRunFlag == Run16_AuAu200) {
-    //Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
+  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
+    // get vector of triggers
     vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
-    for(unsigned int i=0; i<mytriggers.size(); i++) {
-      //cout<<"MyTriggers, i = "<<i<<": "<<mytriggers[i] << " "; 
-      bin = 1;
 
-      if((mytriggers[i] == 450201) || (mytriggers[i] == 450211) || (mytriggers[i] == 460201)) { bin = 2; h->Fill(bin); } // HT1
-      if((mytriggers[i] == 450202) || (mytriggers[i] == 450212)) { bin = 3; h->Fill(bin); }// HT2
-      if((mytriggers[i] == 460203) || (mytriggers[i] == 6) || (mytriggers[i] == 10) || (mytriggers[i] == 14) || (mytriggers[i] == 31) || (mytriggers[i] == 450213)) { bin = 4; h->Fill(bin); } // HT3
-      if(mytriggers[i] == 450014) { bin = 5; h->Fill(bin); }// MB
-      if((mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 6; h->Fill(bin); } // VPDMB-30
-      if((mytriggers[i] == 26) || (mytriggers[i] == 450103)) { bin = 7; h->Fill(bin); }// Central-5
-      if((mytriggers[i] == 15) || (mytriggers[i] == 460101) || (mytriggers[i] == 460111)) { bin = 8; h->Fill(bin); } // Central & Central-mon
-      if((mytriggers[i] == 1) || (mytriggers[i] == 4) || (mytriggers[i] == 16) || (mytriggers[i] == 32) || (mytriggers[i] == 450005) || (mytriggers[i] == 450008) || (mytriggers[i] == 450009) || (mytriggers[i] == 450014) || (mytriggers[i] == 450015) || (mytriggers[i] == 450018) || (mytriggers[i] == 450024) || (mytriggers[i] == 450025) || (mytriggers[i] == 450050) || (mytriggers[i] == 450060)) { bin = 10; h->Fill(bin); }// VPDMB-5 
-      if((mytriggers[i] == 20) || (mytriggers[i] == 20) || (mytriggers[i] == 450010) || (mytriggers[i] == 450020)) { bin = 11; h->Fill(bin); } // VPDMB-30
+    // hard-coded trigger Ids for run16
+    int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrBHT2[] = {4, 16, 17, 530202, 540203};
+    int arrBHT3[] = {17, 520203, 530213};
+    int arrMB[] = {520021};
+    int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+    int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+    int arrCentral[] = {6, 520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
-      // fill trigger selection histo
-      //h->Fill(bin); // - do per trigger in case an above classification matches 2 simultaneously
-    }
+    // fill for kAny
+    bin = 1; h->Fill(bin);
 
-    // TODO need to do this once and not for every event!!!!!
+    // check if event triggers meet certain criteria and fill histos
+    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
+    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
+    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
+    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
+    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
+    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
+
     // label bins of the analysis trigger selection summary
-    // TODO may need to re-label for run16
     h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
+    h->GetXaxis()->SetBinLabel(2, "BHT1");
+    h->GetXaxis()->SetBinLabel(3, "BHT2");
     h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "VPDMB-30");
-    h->GetXaxis()->SetBinLabel(7, "Central-5");
-    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-p-sst");
+    h->GetXaxis()->SetBinLabel(6, "");
+    h->GetXaxis()->SetBinLabel(7, "Central");
+    h->GetXaxis()->SetBinLabel(8, "");
     h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
+    h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
   }
 
   // set x-axis labels vertically
   h->LabelsOption("v");
   //h->LabelsDeflate("X");
-
+  
   return h;
+}
+
+// elems: sizeof(myarr)/sizeof(*myarr) prior to passing to function
+// upon passing the array collapses to a pointer and can not get size anymore
+//________________________________________________________________________
+Bool_t StMyAnalysisMaker::DoComparison(int myarr[], int elems) {
+  //std::cout << "Length of array = " << (sizeof(myarr)/sizeof(*myarr)) << std::endl;
+  bool match = kFALSE;
+
+  // loop over specific physics selection array and compare to specific event trigger
+  for(int i=0; i<elems; i++) {
+    if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
+    if(match) break;
+  }
+  //cout<<"elems: "<<elems<<"  match: "<<match<<endl;
+
+  return match;
 }
 
 //________________________________________________________________________

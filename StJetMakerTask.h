@@ -65,8 +65,6 @@ namespace fastjet {
  * deriving a new class from StJetUtility to interface functionalities of the FastJet contribs.
  */
 
-
-//class StJetMakerTask : public StMyAnalysisMaker {
 class StJetMakerTask : public StMaker {
  public:
 
