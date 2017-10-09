@@ -142,8 +142,9 @@ Int_t StJetFrameworkPicoBase::Init() {
     if(fCentralityDef == kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
     if(fCentralityDef == kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
   } 
-  //refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
-  //refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
+
+  refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
+  refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
 
   return kStOK;
 }
@@ -299,33 +300,10 @@ Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
   Int_t centbin = -1;
 
   if(nBin == 16) {
-    if(cent == 0)  centbin = 15;
-    if(cent == 1)  centbin = 14;
-    if(cent == 2)  centbin = 13;
-    if(cent == 3)  centbin = 12;
-    if(cent == 4)  centbin = 11;
-    if(cent == 5)  centbin = 10;
-    if(cent == 6)  centbin = 9;
-    if(cent == 7)  centbin = 8;
-    if(cent == 8)  centbin = 7;
-    if(cent == 9)  centbin = 6;
-    if(cent == 10) centbin = 5;
-    if(cent == 11) centbin = 4;
-    if(cent == 12) centbin = 3;
-    if(cent == 13) centbin = 2;
-    if(cent == 14) centbin = 1;
-    if(cent == 15) centbin = 0;
+    centbin = nBin - 1 - cent;
   }
   if(nBin == 9) {
-    if(cent == 0)  centbin = 8;
-    if(cent == 1)  centbin = 7;
-    if(cent == 2)  centbin = 6;
-    if(cent == 3)  centbin = 5;
-    if(cent == 4)  centbin = 4;
-    if(cent == 5)  centbin = 3;
-    if(cent == 6)  centbin = 2;
-    if(cent == 7)  centbin = 1;
-    if(cent == 8)  centbin = 0;
+    centbin = nBin - 1 - cent;
   }
 
   return centbin;
@@ -677,3 +655,15 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(StRhoParameter* eventRho) {
 
   return 0x0;
 }
+
+//__________________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::EventCounter() {
+  mEventCounter++;
+
+  return mEventCounter;
+}
+
+//__________________________________________________________________________________________
+//void StJetFrameworkPicoBase::EventCounter() {
+//  mEventCounter++;
+//}

@@ -6,6 +6,8 @@
 
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StJetFrameworkPicoBase.h"
+class StJetFrameworkPicoBase;
 
 // ROOT classes
 class TClonesArray;
@@ -31,64 +33,9 @@ class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPoolManager;
-
-class StMyAnalysisMaker : public StMaker {
+//class StMyAnalysisMaker : public StMaker {
+class StMyAnalysisMaker : public StJetFrameworkPicoBase {
   public:
-
-  // jet type enumerator
-  enum EJetType_t {
-    kFullJet,
-    kChargedJet,
-    kNeutralJet
-  };
-
-  // jet algorithm enumerator
-  enum EJetAlgo_t {
-    kt_algorithm                    = 0,
-    antikt_algorithm                = 1,
-    cambridge_algorithm             = 2,
-    genkt_algorithm                 = 3,
-    cambridge_for_passive_algorithm = 11,
-    genkt_for_passive_algorithm     = 13,
-    plugin_algorithm                = 99,
-    undefined_jet_algorithm         = 999
-  };
-
-  // jet recombination schme enumerator
-  enum ERecoScheme_t {
-    E_scheme        = 0,
-    pt_scheme       = 1,
-    pt2_scheme      = 2,
-    Et_scheme       = 3,
-    Et2_scheme      = 4,
-    BIpt_scheme     = 5,
-    BIpt2_scheme    = 6,
-    WTA_pt_scheme   = 7,
-    WTA_modp_scheme = 8,
-    external_scheme = 99
-  };
-
-    // event plane track weight type enumerator
-    enum EPtrackWeightType {
-      kNoWeight,
-      kPtLinearWeight,
-      kPtLinear2Const5Weight
-    };
-
-/*
-    // run flags for specifics - update this
-    enum fRunFlagEnum {
-      Run14_AuAu200,
-      Run16_AuAu200
-    };
-
-    // run flags for specifics
-    enum fTriggerFlagEnum {
-      kAny,
-      kIsHT0, kIsHT1, kIsHT2, kIsHT3,
-      kIsJP0, kIsJP1, kIsJP2
-    };
-*/
 
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
@@ -171,8 +118,8 @@ class StMyAnalysisMaker : public StMaker {
     TH1*                   FillEventTriggerQA(TH1* h); // filled event trigger QA plots
     Double_t               GetReactionPlane(); // get reaction plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
-
     Bool_t                 DoComparison(int myarr[], int elems);
+    void                   SetSumw2(); // set errors 
 
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
@@ -222,6 +169,7 @@ class StMyAnalysisMaker : public StMaker {
 
     // event pool
     TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
+    //TObjArray      *CloneAndReduceTrackList(TClonesArray* tracks);
     StEventPoolManager   *fPoolMgr;//!  // event pool Manager object
 
     // clonesarray collections of tracks and jets
@@ -238,8 +186,6 @@ class StMyAnalysisMaker : public StMaker {
 
     // centrality objects
     StRefMultCorr* grefmultCorr;
-    StRefMultCorr* refmultCorr;
-    StRefMultCorr* refmult2Corr;
 
     // TCloneArray of analysis objects
     TClonesArray   *mJets;
@@ -249,12 +195,13 @@ class StMyAnalysisMaker : public StMaker {
    
     // output file name string 
     TString      mOutName;
- 
-    // counters 
+
+/* 
     Int_t        mEventCounter;//!
     Int_t        mAllPVEventCounter;//!
     Int_t        mInputEventCounter;//!
- 
+*/
+
     // switches
     bool         doComments;
 
@@ -303,10 +250,12 @@ class StMyAnalysisMaker : public StMaker {
     TString                fRhoMakerName;
     TString                fEventMixerMakerName;
 
+/*
     // counters
     Int_t GetEventCounter() {return mEventCounter;}
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}
+*/
                 
     ClassDef(StMyAnalysisMaker, 1)
 };

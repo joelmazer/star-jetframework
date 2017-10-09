@@ -207,6 +207,9 @@ class StJetMakerTask : public StMaker {
   Bool_t                 doUsePrimTracks;         // primary track switch
   Int_t                  fDebugLevel;             // debug printout level
 
+  // output file name string
+  TString         mOutName;
+
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection
@@ -290,7 +293,7 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   TH2F           *fHistJetNTowervsPhivsEta;//!
 
   // output file name string
-  TString         mOutName;
+  //TString         mOutName;
      
   // maker names
   //TString         fJetMakerName;

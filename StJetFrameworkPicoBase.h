@@ -148,7 +148,8 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Double_t               GetReactionPlane(); // get reaction plane angle
-
+    Int_t                  EventCounter();
+    
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
@@ -198,6 +199,10 @@ class StJetFrameworkPicoBase : public StMaker {
     // output file name string 
     TString      mOutName;
 
+    // maker names
+    TString                fJetMakerName;
+    TString                fRhoMakerName;
+
     // counters 
     Int_t        mEventCounter;//!
     Int_t        mAllPVEventCounter;//!
@@ -208,10 +213,6 @@ class StJetFrameworkPicoBase : public StMaker {
     StRhoParameter        *fRho;//!<!          // event rho
     Double_t               fRhoVal;//!<!       // event rho value, same for local rho
     TString                fRhoName;///<       // rho name
-
-    // maker names
-    TString                fJetMakerName;
-    TString                fRhoMakerName;
 
     // counters
     Int_t GetEventCounter() {return mEventCounter;}

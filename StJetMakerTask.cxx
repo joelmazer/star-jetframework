@@ -476,7 +476,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
 
-      cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
+     if(fDebugLevel==2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
 
       // use StEmcDetector to get position information
       //StEmcDetector* detector;

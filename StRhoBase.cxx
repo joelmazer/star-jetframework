@@ -75,11 +75,6 @@ StRhoBase::StRhoBase() :
   fHistRhoScaledvsNcluster(0),
   fJets(0),
   fBGJets(0),
-  mPicoDstMaker(0),
-  mPicoDst(0),
-  mPicoEvent(0),
-  JetMaker(0),
-//  grefmultCorr(0), 
   mOutName(""),
   fJetMakerName(""),
   fRhoMakerName("")
@@ -131,11 +126,6 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistRhoScaledvsNcluster(0),
   fJets(0),
   fBGJets(0),
-  mPicoDstMaker(0),
-  mPicoDst(0),
-  mPicoEvent(0),
-  JetMaker(0),
-//  grefmultCorr(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
   fRhoMakerName(name)
@@ -220,8 +210,6 @@ Int_t StRhoBase::Init()
 */
 
   // initialize centrality correction
-  //grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  //// grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
   if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
   if(fRunFlag == Run16_AuAu200) {
     if(fCentralityDef == kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
