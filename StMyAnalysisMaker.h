@@ -33,9 +33,19 @@ class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPoolManager;
+
 //class StMyAnalysisMaker : public StMaker {
 class StMyAnalysisMaker : public StJetFrameworkPicoBase {
   public:
+
+    // debug flags for specifics
+    enum fDebugFlagEnum {
+      kDebugNothing, // don't want lowest elements to be used
+      kDebugMixedEvents,
+      kDebugEmcTrigger,
+      kDebugGeneralEvt,
+      kDebugCentrality
+    };
 
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker();
@@ -111,13 +121,14 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEvenPlaneMaxTrackPtCut = m; }  
 
   protected:
-    Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
-    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
-    Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
-    TH1*                   FillEmcTriggersHist(TH1* h); // EmcTrigger counter histo
-    TH1*                   FillEventTriggerQA(TH1* h); // filled event trigger QA plots
-    Double_t               GetReactionPlane(); // get reaction plane angle
+    Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
+    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;       // relative jet track angle
+    Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
+    TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    Double_t               GetReactionPlane();                                   // get reaction plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
+    Bool_t                 AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                 DoComparison(int myarr[], int elems);
     void                   SetSumw2(); // set errors 
 
@@ -127,8 +138,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
     Int_t                  fRunFlag;                // Run Flag numerator value
-    Int_t                  fDoEffCorr;              // efficiency correction to tracks
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
+    Int_t                  fDoEffCorr;              // efficiency correction to tracks
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
 
     // cuts
@@ -147,19 +158,18 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t                  fTracknHitsFit;          // requirement for track hits
     Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 
-
     // event mixing
-    Int_t          fDoEventMixing;
-    Int_t          fMixingTracks;
-    Int_t          fNMIXtracks;
-    Int_t          fNMIXevents;
-    Int_t          fCentBinSize; // centrality bin size of mixed event pools
-    Int_t          fReduceStatsCent; // bins to use for reduced statistics of sparse
+    Int_t          fDoEventMixing;              // switch ON/off event mixing
+    Int_t          fMixingTracks;               // MAX # of mixing tracks to keep in pool, before removing old to add new
+    Int_t          fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
+    Int_t          fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
+    Int_t          fCentBinSize;                // centrality bin size of mixed event pools
+    Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
 
     // event selection types
-    UInt_t         fTriggerEventType;
-    UInt_t         fMixingEventType;
-    Int_t          fEmcTriggerArr[7];
+    UInt_t         fTriggerEventType;           // Physics selection of event used for signal
+    UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
+    Int_t          fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
@@ -168,8 +178,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t       fEvenPlaneMaxTrackPtCut; // max track pt cut for event plane calculation
 
     // event pool
-    TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
-    //TObjArray      *CloneAndReduceTrackList(TClonesArray* tracks);
+    TClonesArray         *CloneAndReduceTrackList();
     StEventPoolManager   *fPoolMgr;//!  // event pool Manager object
 
     // clonesarray collections of tracks and jets
@@ -206,10 +215,12 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     bool         doComments;
 
     // histograms
-    TH1F* hTriggerPt;//!
     TH1F* hEventPlane;//!   
     TH1F* hEventZVertex;//!
- 
+    TH1F* hCentrality;//!
+    TH1F* hMultiplicity;//!
+    TH2F* hRhovsCent;//!
+    
     // jet histos
     TH1F* hJetPt;//!
     TH1F* hJetCorrPt;//!
@@ -232,6 +243,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
+    TH1  *hMixEvtStatZVtx;//!
+    TH1  *hMixEvtStatCent;//!
+    TH2  *hMixEvtStatZvsCent;//!
 
     // THn Sparse's jet sparse
     THnSparse             *fhnJH;//!           // jet hadron events matrix

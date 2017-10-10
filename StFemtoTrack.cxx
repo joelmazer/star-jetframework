@@ -1,11 +1,26 @@
-// this class is adapted from the class AliEmcalJet
-//
+/*
+ // class: StFemtoTrack
+ // It is to reduce StPicoTrack down to a smaller object
+ // for the purpose of reducing memory consumption, especially
+ // when having many tracks in a buffer, such as Mixed Events
+ //
+ // Available members:
+ // 1) px, py, pz, p
+ // 2) pt,
+ // 3) eta, theta,
+ // 4) charge
+ //
+ // Author: Joel Mazer
+ // Affiliation: Rutgers University
+ // for: the STAR collaboration
+ //
+*/
+
 #include "StFemtoTrack.h"
+
 #include "StVParticle.h"
 #include "StThreeVectorF.hh"
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 
 #include "Riostream.h"
 /// \cond CLASSIMP

@@ -40,9 +40,9 @@ class StRho : public StRhoBase {
   void    SetExcludeLeadJets(UInt_t n)    { fNExclLeadJets = n    ; }
 
  protected:
-  UInt_t           fNExclLeadJets;                 // number of leading jets to be excluded from the median calculation
+  UInt_t            fNExclLeadJets;                 // number of leading jets to be excluded from the median calculation
 
-  TClonesArray    *fJets;//!jet collection
+  TClonesArray     *fJets;//!jet collection
 
  private:
   TH2F             *fHistMultvsRho;//!

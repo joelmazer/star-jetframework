@@ -51,6 +51,11 @@ class StEEmcCluster;
 // jet class and fastjet wrapper
 #include "StJet.h"
 #include "StFJWrapper.h"
+#include "StJetFrameworkPicoBase.h"
+
+// centrality
+#include "StRoot/StRefMultCorr/StRefMultCorr.h"
+#include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 class StMaker;
 class StChain;
@@ -67,6 +72,10 @@ StJetMakerTask::StJetMakerTask() :
   doWriteHistos(kFALSE),
   doUsePrimTracks(kFALSE), 
   fDebugLevel(0),
+  fRunFlag(0),  // see StJetFrameworkPicoBase::fRunFlagEnum
+  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fEventZVtxMinCut(-40.0), 
+  fEventZVtxMaxCut(40.0),
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
@@ -105,7 +114,8 @@ StJetMakerTask::StJetMakerTask() :
   mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
-  mPicoEvent(0x0)
+  mPicoEvent(0x0),
+  grefmultCorr(0x0)
 //  fJetMakerName("")
 {
   // Default constructor.
@@ -118,6 +128,10 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
   fDebugLevel(0),
+  fRunFlag(0),  // see StJetFrameworkPicoBase::fRunFlagEnum
+  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fEventZVtxMinCut(-40.0), 
+  fEventZVtxMaxCut(40.0),
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -156,7 +170,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
-  mPicoEvent(0x0)
+  mPicoEvent(0x0),
+  grefmultCorr(0x0)
 //  fJetMakerName("")
 {
   // Standard constructor.
@@ -232,6 +247,16 @@ Int_t StJetMakerTask::Init() {
   // containers' arrays are setup.
   //fClusterContainerIndexMap.CopyMappingFrom(StClusterContainer::GetEmcalContainerIndexMap(), fClusterCollArray);
   //fParticleContainerIndexMap.CopyMappingFrom(StParticleContainer::GetEmcalContainerIndexMap(), fParticleCollArray);
+
+  // may not need, used for old RUNS
+  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
+    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  }
 
   return kStOK;
 }
@@ -339,40 +364,48 @@ int StJetMakerTask::Make()
     return kStWarn;
   }
 
-  // get vertex 3 vector and declare variables
+  // get vertex 3-vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
-  // zvertex cut - per the Aj analysis - User can make finer cut in Analysis Code
-  if((1.0*TMath::Abs(zVtx)) > 40) return kStOk; // kStWarn;
+  // Z-vertex cut
+  // per the Aj analysis (-40, 40)
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
 
-  // TClonesArrays
+  // ============================ CENTRALITY ============================== //
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+  Int_t RunId = mPicoEvent->runId();
+  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
+  int grefMult = mPicoEvent->grefMult();
+  grefmultCorr->init(RunId);
+  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+  grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+  Int_t cent16 = grefmultCorr->getCentralityBin16();
+  if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+
+  // TClonesArrays - not needed anymore
   TClonesArray *tracks = 0;
   TClonesArray *clus   = 0;
+
+/*
 //  tracks = dynamic_cast<TClonesArray*>
 //  tracks = mPicoDst->picoArray(StPicoArrays::picoArrayNames("Tracks"));
 //  tracks = StPicoDst::picoArrays[StPicoArrays::Track];
   //tracks = mPicoDst->picoArray(picoTrack); // COMMENTED OUT AUG 6th
-
-/* test out
-  tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
-  if(!tracks) {
-    return kStWarn;
-  }
+  //tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
+  if(!tracks) { return kStWarn; }
 */
 
 /*
   // TRACKS: for FULL or Charged jets
-  if ((fJetType==0)||(fJetType==1)) { 
-  }
+  if ((fJetType==0)||(fJetType==1)) { }
 
   // NEUTRAL: for FULL or Neutral jets
-  if ((fJetType==0)||(fJetType==2)) {
-  }
+  if ((fJetType==0)||(fJetType==2)) { }
 */      
 
   // Find jets
-  // not that parameter are globally set, may not need to have params
+  // note that parameter are globally set, may not need to have params
   FindJets(tracks, clus, fJetAlgo, fRadius);
 
   // I think this is already working
@@ -476,7 +509,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
 
-     if(fDebugLevel==2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
+      if(fDebugLevel==2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
 
       // use StEmcDetector to get position information
       //StEmcDetector* detector;
@@ -601,7 +634,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     fConstituents = fjw.GetJetConstituents(ij); 
     jet->SetJetConstituents(fConstituents);
 
-    Double_t neutralE = 0;Double_t maxTrack = 0;Double_t maxCluster=0;
+    Double_t neutralE = 0, maxTrack = 0, maxCluster=0;
     jet->SetNumberOfTracks(constituents.size());
     jet->SetNumberOfClusters(constituents.size());
     Int_t nt = 0; // track counter
@@ -799,6 +832,7 @@ fastjet::JetAlgorithm StJetMakerTask::ConvertToFJAlgo(EJetAlgo_t algo)
   }
 }
 */
+
 /**
  * Converts the internal enum values representing jet recombination schemes in
  * the corresponding values accepted by the FastJet wrapper.

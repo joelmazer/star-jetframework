@@ -109,8 +109,8 @@ class StJet : public StVParticle // FIXME
   UShort_t          Nch()                        const { return fNch                     ; }
   UShort_t          N()                          const { return Nch()+Nn()               ; }
   Double_t          MCPt()                       const { return fMCPt                    ; }
-  Double_t          MaxClusterPt()               const { return MaxNeutralPt()           ; }
-  Double_t          MaxTrackPt()                 const { return MaxChargedPt()           ; }
+  Double_t          MaxClusterPt()               const { return MaxNeutralPt()           ; }  // Use GetMaxClusterPt()
+  Double_t          MaxTrackPt()                 const { return MaxChargedPt()           ; }  // Use GetMaxTrackPt()
   Double_t          MaxPartPt()                  const { return fMaxCPt < fMaxNPt ? fMaxNPt : fMaxCPt; }
   Double_t          PtSub()                      const { return fPtSub                   ; }
   Double_t          PtSubVect()                  const { return fPtSubVect               ; }
@@ -161,7 +161,7 @@ class StJet : public StVParticle // FIXME
   void              SetPtSubVect(Double_t ps)          { fPtSubVect      = ps;             }
   void              AddClusterAt(Int_t clus, Int_t idx){ fClusterIDs.AddAt(clus, idx);     }
   void              AddTrackAt(Int_t track, Int_t idx) { fTrackIDs.AddAt(track, idx);      }
-  void              Clear(Option_t */*option*/="");
+  void              Clear(Option_t* /*option*/="");
 
   void              SetMaxTrackPt(Double32_t t)          { fMaxTrackPt = t;                  }
   Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;         } // ;

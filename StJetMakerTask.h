@@ -26,8 +26,12 @@ class TH2;
 class StPicoDst;
 class StPicoDstMaker;
 
+// Jet classes
 class StFJWrapper;
 class StJetUtility;
+
+// Centrality class
+class StRefMultCorr;
 
 // STAR includes
 #include "StFJWrapper.h"
@@ -103,6 +107,12 @@ class StJetMakerTask : public StMaker {
   // switches
   void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks   = P; } 
   void         SetDebugLevel(Int_t l)           { fDebugLevel    = l;  }
+  virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+  virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+
+
+  // event setters
+  virtual void  SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
 
   // common setters
   void         SetClusName(const char *n)       { fCaloName      = n;  }
@@ -206,6 +216,12 @@ class StJetMakerTask : public StMaker {
   Bool_t                 doWriteHistos;           // write QA histos
   Bool_t                 doUsePrimTracks;         // primary track switch
   Int_t                  fDebugLevel;             // debug printout level
+  Int_t                  fRunFlag;                // Run Flag numerator value
+  Int_t                  fCentralityDef;          // Centrality Definition enumerator value
+
+  // event cuts
+  Double_t               fEventZVtxMinCut;        // min event z-vertex cut
+  Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
 
   // output file name string
   TString         mOutName;
@@ -221,9 +237,9 @@ class StJetMakerTask : public StMaker {
   EJetAlgo_t             fJetAlgo;                // jet algorithm (kt, akt, etc)
   ERecoScheme_t          fRecombScheme;           // recombination scheme used by fastjet
 */
-  Int_t             fJetAlgo;                // jet algorithm (kt, akt, etc)
-  Int_t             fJetType;                // jet type (full, charged, neutral)
-  Int_t             fRecombScheme;           // recombination scheme used by fastjet
+  Int_t                  fJetAlgo;                // jet algorithm (kt, akt, etc)
+  Int_t                  fJetType;                // jet type (full, charged, neutral)
+  Int_t                  fRecombScheme;           // recombination scheme used by fastjet
 
   StFJWrapper            fjw; //!fastjet wrapper
 
@@ -282,6 +298,10 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   StPicoDstMaker *mPicoDstMaker; // PicoDstMaker object
   StPicoDst      *mPicoDst; // PicoDst object
   StPicoEvent    *mPicoEvent; // PicoEvent object
+
+  // centrality objects
+  StRefMultCorr* grefmultCorr;
+
 
   // histograms
   TH1F           *fHistJetNTrackvsPt;//!

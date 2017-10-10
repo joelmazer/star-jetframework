@@ -58,7 +58,7 @@ class StFemtoTrack : public TObject //public StMaker //public StVParticle // FIX
   Double32_t        fEta;           
   /// track axis azimuthal angle
   Double32_t        fPhi;               
-  /// track mass
+  /// track charge
   Short_t           fCharge;           
 
  private:

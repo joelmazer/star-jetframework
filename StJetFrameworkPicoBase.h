@@ -148,7 +148,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Double_t               GetReactionPlane(); // get reaction plane angle
-    Int_t                  EventCounter();
+    Int_t                  EventCounter();     // when called, provides Event #
     
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch

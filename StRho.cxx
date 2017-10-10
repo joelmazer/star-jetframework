@@ -15,14 +15,15 @@
 class TH2;
 class TH2F;
 
-// STAR includes
+// JetFramework includes
 #include "StJet.h"
 #include "StRhoParameter.h"
+#include "StJetMakerTask.h"
+
+// STAR includes
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
-
-#include "StJetMakerTask.h"
 
 // STAR centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -72,11 +73,12 @@ StRho::~StRho()
 Int_t StRho::Init()
 {
   // nothing done - base class should take care of that
+  // this in effect inherits from StJetFrameworkPicoBase - check it out!
   StRhoBase::Init();
 
   DeclareHistograms();
 
-  //Create user objects.
+  // Create user objects.
   fJets = new TClonesArray("StJet");
   //fJets->SetName(fJetsName);      
 
@@ -182,13 +184,24 @@ Int_t StRho::Make()
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2); 
-  //Int_t cent16 = grefmultCorr->getCentralityBin16();
-  //Int_t cent9 = grefmultCorr->getCentralityBin9();
-  //Int_t centbin = GetCentBin(cent16, 16);
+  Int_t cent16 = grefmultCorr->getCentralityBin16();
+  Int_t centbin = GetCentBin(cent16, 16);
+  if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+
+  // to limit filling unused entries in sparse, only fill for certain centrality ranges
+  // ranges can be different than functional cent bin setter
+  Int_t cbin = -1;
+  // need to figure out centrality first in STAR: TODO
+  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
+  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
+  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
+  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
+  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
+  else cbin = -99;
+  // ============================ end of CENTRALITY ============================== //
 
   // get event multiplicity - TODO is this correct? same as that used for centrality
   //const int multiplicity = mPicoDst->numberOfTracks(); // this is total tracks not multiplicity

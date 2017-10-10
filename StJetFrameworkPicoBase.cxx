@@ -200,8 +200,9 @@ Int_t StJetFrameworkPicoBase::Make() {
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
   
-  // zvertex cut - per the Aj analysis
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
+  // Z-vertex cut 
+  // per the Aj analysis (-40, 40)
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
 
   // let me know the Run #, fill, and event ID
   Int_t RunId = mPicoEvent->runId();

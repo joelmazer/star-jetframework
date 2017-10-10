@@ -80,7 +80,6 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
   fTrackWeight = 1; fEvenPlaneMaxTrackPtCut = 5.0;
   fPoolMgr = 0x0;
-  fTracksME = 0x0;
   fJets = 0x0;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
@@ -131,7 +130,9 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   // destructor
   delete hEventPlane;
   delete hEventZVertex;
-  delete hTriggerPt;
+  delete hCentrality;
+  delete hMultiplicity;
+  delete hRhovsCent;
   delete hJetPt;
   delete hJetCorrPt;
   delete hJetPt2;
@@ -149,6 +150,9 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete fHistEventSelectionQAafterCuts;
   delete hTriggerIds;
   delete hEmcTriggers;
+  delete hMixEvtStatZVtx;
+  delete hMixEvtStatCent;
+  delete hMixEvtStatZvsCent;
 
   delete fhnJH;
   delete fhnMixedEvents;
@@ -163,22 +167,16 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 Int_t StMyAnalysisMaker::Init() {
   StJetFrameworkPicoBase::Init();
 
+  // initialize the histograms
   DeclareHistograms();
 
-  //Create user objects.
-  //  fRho = (StRhoParameter*)
-
-/*
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-  //TClonesArray* tracksClone = new TClonesArray("StPicoTrack");
-  fTracksME = new TClonesArray("StPicoTrack");
-  fTracksME->SetName("fTracksME");
-  fTracksME->SetOwner(kTRUE);
-*/
 
+  // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
-
+  //fjEts->SetOwner(kTRUE);
+ 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
@@ -233,12 +231,12 @@ Int_t StMyAnalysisMaker::Finish() {
 void StMyAnalysisMaker::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
-  // some default pid histograms left
-  hTriggerPt = new TH1F("hTriggerPt","Trigger Pt",100,1,10);
-
   // QA histos
-  hEventPlane = new TH1F("hEventPlane", "Event Plane distribution", 144, 0.0, 1.0*pi);
+  hEventPlane = new TH1F("hEventPlane", "Event Plane distribution", 72, 0.0, 1.0*pi);
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
+  hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100); 
+  hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
+  hRhovsCent = new TH2F("hRhovsCent", "#rho vs centrality", 20, 0, 100, 200, 0, 200);
 
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
@@ -254,13 +252,16 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
   hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
 
-  fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-Hadron #Delta#eta-#Delta#phi", 56, -1.4, 1.4, 72, -0.5*pi, 1.5*pi);
+  fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-Hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
   // Event Selection QA histo
-  fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
-  fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
+  fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 19.5);
+  fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 19.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
+  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
+  hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", 20, 0, 100);
+  hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", 20, 0, 100, 20, -40.0, 40.0);
 
   // set up jet-hadron sparse
   UInt_t bitcodeMESE = 0; // bit coded, see GetDimParams() below
@@ -324,30 +325,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
   bitcodeCorr = 1<<0 | 1<<1 | 1<<2 | 1<<3; // | 1<<4;
   fhnCorr = NewTHnSparseFCorr("fhnCorr", bitcodeCorr);
 
-/*
-  // REWRITE THIS FOR STAR // TODO
-  // =========== Switch on Sumw2 for all histos ===========
-  for (Int_t i=0; i<fOutput->GetEntries(); ++i) {
-    TH1 *h1 = dynamic_cast<TH1*>(fOutput->At(i));
-    if (h1){
-      h1->Sumw2();
-      continue;
-    }
-    TH2 *h2 = dynamic_cast<TH2*>(fOutput->At(i));
-    if (h2){
-      h2->Sumw2();
-      continue;
-    }
-    TH3 *h3 = dynamic_cast<TH3*>(fOutput->At(i));
-    if (h3){
-      h3->Sumw2();
-      continue;
-    }
-    THnSparse *hn = dynamic_cast<THnSparse*>(fOutput->At(i));
-    if(hn)hn->Sumw2();
-  }
-*/
-
   // Switch on Sumw2 for all histos
   SetSumw2();
 }
@@ -355,9 +332,11 @@ void StMyAnalysisMaker::DeclareHistograms() {
 //-----------------------------------------------------------------------------
 void StMyAnalysisMaker::WriteHistograms() {
   // default histos
-  hTriggerPt->Write();
   hEventPlane->Write();
   hEventZVertex->Write();
+  hCentrality->Write();
+  hMultiplicity->Write();
+  hRhovsCent->Write();
 
   // jet histos
   hJetPt->Write();
@@ -380,6 +359,9 @@ void StMyAnalysisMaker::WriteHistograms() {
   fHistEventSelectionQAafterCuts->Write();
   hTriggerIds->Write();
   hEmcTriggers->Write();
+  hMixEvtStatZVtx->Write();
+  hMixEvtStatCent->Write();
+  hMixEvtStatZvsCent->Write();
 
   // jet sparse
   fhnJH->Write();
@@ -391,14 +373,11 @@ void StMyAnalysisMaker::WriteHistograms() {
 // OLD user code says: //  Called every event after Make(). 
 void StMyAnalysisMaker::Clear(Option_t *opt) {
   fJets->Clear();
-  //fRho->Clear();
-  //pool->Clear(); // TEST
 
 /*
   delete [] fTracksME; fTracksME=0;
   delete fhnJH; fhnJH = 0;
 */
-
 }
 
 //----------------------------------------------------------------------------- 
@@ -411,9 +390,6 @@ Int_t StMyAnalysisMaker::Make() {
   bool fHaveMBevent = kFALSE;
 
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
-
-  // clear mixed event tracks array: double check this!! TODO
-  //fTracksME->Clear();
 
   // update counter
 //  mEventCounter++;
@@ -448,7 +424,8 @@ Int_t StMyAnalysisMaker::Make() {
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
   
-  // zvertex cut - per the Aj analysis
+  // Z-vertex cut 
+  // the Aj analysis (-40, 40)
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
   hEventZVertex->Fill(zVtx);
 
@@ -462,12 +439,6 @@ Int_t StMyAnalysisMaker::Make() {
 
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
-
-/*
-  //TClonesArray* fTracksME = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track ->Tracks Aug17: should be the NEW way
-  fTracksME = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track ->Tracks Aug17: should be the NEW way
-  if(!fTracksME) { return kStWarn; }
-*/
 
   //static StPicoTrack* track(int i) { return (StPicoTrack*)picoArrays[picoTrack]->UncheckedAt(i); }
 /*
@@ -509,15 +480,15 @@ Int_t StMyAnalysisMaker::Make() {
 
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
-  if(fDebugLevel == 7) cout<<"EventTriggers: ";
+  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
-    if(fDebugLevel == 7) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
+    if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
     if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
     // FIXME Hard-coded for now
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
   }
-  if(fDebugLevel == 7) cout<<endl;
+  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
   //cout<<"EMCtrigger: "<<fHaveEmcTrigger<<"  HaveMBevent: "<<fHaveMBevent<<endl;
 
@@ -540,6 +511,13 @@ Int_t StMyAnalysisMaker::Make() {
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
   Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+
+  // centrality / multiplicity histograms
+  hMultiplicity->Fill(refCorr2);
+  //grefmultCorr->isCentralityOk(cent16)
+  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; } 
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  hCentrality->Fill(centbin*5.0);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
@@ -591,13 +569,14 @@ Int_t StMyAnalysisMaker::Make() {
   
   // get rho/area       fRho->ls("");
   fRhoVal = fRho->GetVal();
+  hRhovsCent->Fill(centbin*5.0, fRhoVal);
   //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
 
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
   const Int_t ntracks = mPicoDst->numberOfTracks();
   Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
-  if(fDebugLevel == 7) {
+  if(fDebugLevel == kDebugGeneralEvt) {
     //cout<<"grefMult = "<<grefMult<<"  refMult = "<<refMult<<"  "; //endl;
     //cout<<"refCorr2 = "<<refCorr2<<"  refCorr1 = "<<refCorr1<<"  refCorr0 = "<<refCorr0;
     //cout<<"  cent16 = "<<cent16<<"   cent9 = "<<cent9<<"  centbin = "<<centbin<<endl;
@@ -607,7 +586,6 @@ Int_t StMyAnalysisMaker::Make() {
   // loop over Jets in the event: initialize some parameter variables
   double jetarea, jetpt, corrjetpt, jetptselected, jetE, jetEta, jetPhi, jetNEF, maxtrackpt, NtrackConstit;
   double gpt, gp, phi, eta, px, py, pt, pz, charge;
-  double gphi, geta, gpt2, gpx, gpy, gpz;
   double deta, dphijh, dEP;
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
@@ -615,6 +593,7 @@ Int_t StMyAnalysisMaker::Make() {
   //if((fDebugLevel == 7) && (fEmcTriggerArr[kIsHT2])) cout<<"Have HT2!! "<<fEmcTriggerArr[kIsHT2]<<endl;
   //if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
+    // Run - Trigger Selection to process jets from
     if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
 
@@ -672,7 +651,7 @@ Int_t StMyAnalysisMaker::Make() {
     if(fCorrJetPt) { jetptselected = corrjetpt; 
     } else { jetptselected = jetpt; }
 
-    Double_t CorrEntries[4] = {centbin, jetptselected, dEP, zVtx};
+    Double_t CorrEntries[4] = {centbin*5.0, jetptselected, dEP, zVtx};
     if(fReduceStatsCent > 0) {
       if(cbin == fReduceStatsCent) fhnCorr->Fill(CorrEntries);    // fill Sparse Histo with trigger Jets entries
     } else fhnCorr->Fill(CorrEntries);    // fill Sparse Histo with trigger Jets entries
@@ -729,7 +708,6 @@ Int_t StMyAnalysisMaker::Make() {
 
       charge = trk->charge();
 
-      //cout<<"gphi = "<<gphi<<"  phi = "<<phi<<"  geta = "<<geta<<"  eta = "<<eta<<"  gpt = "<<gpt<<"  pt = "<<pt<<"  gpt2 = "<<gpt2<<endl;
 //      if(jet->ContainsTrack(itrack)) cout<<" track part of jet, pt = "<<pt<<endl;
 //      const std::vector<TLorentzVector> constit =  jet->GetConstits();
 //      cout<<" constit pt = "<<constit[0].perp()<<endl;
@@ -740,7 +718,7 @@ Int_t StMyAnalysisMaker::Make() {
       dphijh = RelativePhi(jetPhi, phi); // angle between jet and hadron
 
       // fill jet sparse 
-      Double_t triggerEntries[8] = {centbin, jetptselected, pt, deta, dphijh, dEP, zVtx, charge};
+      Double_t triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, charge};
       Double_t trefficiency = 1.0;
       //if(fDoEventMixing) {
         if(fReduceStatsCent > 0) {
@@ -760,14 +738,7 @@ Int_t StMyAnalysisMaker::Make() {
 
 // =======================================================================================================================
 
-  // initialize object array of cloned picotracks
-  //TObjArray* tracksClone = 0x0;
-//  TClonesArray* tracksClone = 0x0;
-  //TClonesArray* tracksClone2 = 0x0;
-  //TObjArray* tracksClone2 = 0x0;  // Oct6
-
-  // TEST
-  if(fDebugLevel == 6) cout<<"StMyAnMaker event# = "<<EventCounter()<<"  Centbin = "<<centbin<<"  zVtx = "<<zVtx<<endl;
+  if(fDebugLevel == kDebugMixedEvents) cout<<"StMyAnMaker event# = "<<EventCounter()<<"  Centbin = "<<centbin<<"  zVtx = "<<zVtx<<endl;
 
   //Prepare to do event mixing
   if(fDoEventMixing>0){
@@ -792,11 +763,6 @@ Int_t StMyAnalysisMaker::Make() {
     // mix jets from triggered events with tracks from MB events
     // get the trigger bit, need to change trigger bits between different runs
 
-    // need to see if this event was selected by MIXED event trigger
-    //FIXME UInt_t trigger = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();
-    // if event was not selected (triggered) for any reseason (should never happen) then return
-    //if (trigger==0)  return kTRUE; //FIXME
-
     //Double_t mycentbin = (Double_t)centbin + 0.001;
 
     // initialize event pools
@@ -807,17 +773,13 @@ Int_t StMyAnalysisMaker::Make() {
       return kTRUE; //FIXME
     }
 
-    // TEST
-    if(fDebugLevel == 6) cout<<"NtracksInPool = "<<pool->NTracksInPool()<<"  CurrentNEvents = "<<pool->GetCurrentNEvents()<<endl;
+    if(fDebugLevel == kDebugMixedEvents) cout<<"NtracksInPool = "<<pool->NTracksInPool()<<"  CurrentNEvents = "<<pool->GetCurrentNEvents()<<endl;
 
     // initialize background tracks array
     TObjArray* bgTracks;
 
-  ///FIXME if(trigger && fTriggerEventType) { //kEMCEJE)) {     
-  bool runthisnow = kTRUE;
-  //if(runthisnow) {
   // do event mixing when Signal Jet is part of event with a HT1 or HT2 trigger firing
-//FIXME FIXME FIXME
+  //FIXME FIXME FIXME
   //if(fEmcTriggerArr[fTriggerEventType]) {  // RUN14
   if(fHaveEmcTrigger) { // RUN16
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
@@ -826,8 +788,9 @@ Int_t StMyAnalysisMaker::Make() {
       double Mixjetarea, Mixjetpt, Mixcorrjetpt, Mixjetptselected, MixjetE, MixjetEta, MixjetPhi, MixjetNEF, Mixmaxtrackpt, MixNtrackConstit;
       double gMixpt, gMixp, Mixphi, Mixeta, Mixpx, Mixpy, Mixpt, Mixpz, Mixcharge;
       double dMixeta, dMixphijh, dMixEP;
-      // loop over jets (passing cuts?)
+      // loop over jets (passing cuts - set by jet maker)
       for (Int_t ijet = 0; ijet < njets; ijet++) {
+        // leading jet
         Double_t leadjet=0;
         if (ijet==ijethi) leadjet=1; //FIXME for leading jet
 
@@ -851,7 +814,7 @@ Int_t StMyAnalysisMaker::Make() {
         } else { if(Mixjetpt < fMinPtJet) continue; }
 
         //if(jet->GetMaxTrackPt() < fTrackBias) continue; 
-   	//TODO if (!AcceptMyJet(jet)) continue;  // acceptance cuts done to jet in JetMaker
+   	//TODO if (!AcceptJet(jet)) continue;  // acceptance cuts done to jet in JetMaker
 
         // get number of current events in pool
         Int_t nMix = pool->GetCurrentNEvents();
@@ -898,8 +861,6 @@ Int_t StMyAnalysisMaker::Make() {
 */
 
               // trying new slimmed PicoTrack class
-              // the below dynamic cast doesn't seem to work
-              //StPicoTrk* trk = dynamic_cast<StPicoTrk*>(bgTracks->At(ibg));
               //StPicoTrk* trk = (StPicoTrk*)bgTracks->At(ibg);
               StFemtoTrack* trk = (StFemtoTrack*)bgTracks->At(ibg);
               if(!trk){ continue; }
@@ -908,7 +869,7 @@ Int_t StMyAnalysisMaker::Make() {
               double Mixpt = trk->Pt();
               short Mixcharge = trk->Charge();
 
-              // shift angle 
+              // shift angle (0, 2*pi) 
               if(Mixphi < 0) Mixphi+= 2*pi;
               if(Mixphi > 2*pi) Mixphi-= 2*pi;
 
@@ -920,7 +881,7 @@ Int_t StMyAnalysisMaker::Make() {
               dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
 
               // print tracks outside of acceptance somehow
-              if(fDebugLevel == 11 ) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
+              if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
 
               // calculate single particle tracking efficiency of mixed events for correlations
               Double_t mixefficiency = -999;
@@ -931,7 +892,7 @@ Int_t StMyAnalysisMaker::Make() {
               } else { Mixjetptselected = Mixjetpt; }
 
               // create / fill mixed event sparse
-              Double_t triggerEntries[8] = {centbin, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, Mixcharge}; //array for ME sparse
+              Double_t triggerEntries[8] = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, Mixcharge}; //array for ME sparse
               if(fReduceStatsCent > 0) {
                 if(cbin == fReduceStatsCent) fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
               } else fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
@@ -946,133 +907,27 @@ Int_t StMyAnalysisMaker::Make() {
     // use only tracks from MB and Semi-Central events
     ///FIXME if(trigger && fMixingEventType) { //kMB) {
     if(fHaveMBevent) { // kMB
-      if(fDebugLevel == 6) cout<<"...MB event... update event pool"<<endl;
+      if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 
       TClonesArray* tracksClone2 = 0x0;
       //cout<<"tracks in clone before reduce: "<<tracksClone2->GetEntriesFast();
       // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       // NOTE: not actually doing anything with fTracksME - get info from tracks tree
       // NOTE: might just eliminate TClonesArray and do:
-      // pool->UpdatePool(CloneAndReduceTrackList(fTracksME));
-      tracksClone2 = CloneAndReduceTrackList(fTracksME);
-      //cout<<"   entries after reduced = "<<tracksClone2->GetEntriesFast()<<endl; //<<"  ME = "<<fTracksME->GetEntriesFast()<<endl;
+      // pool->UpdatePool(CloneAndReduceTrackList());
+      tracksClone2 = CloneAndReduceTrackList();
+      //cout<<"   entries after reduced = "<<tracksClone2->GetEntriesFast()<<endl;
 
       // update pool if jet in event or not
       pool->UpdatePool(tracksClone2);
-      //delete tracksClone2;
+
+      // fill QA histo's
+      hMixEvtStatZVtx->Fill(zVtx);
+      hMixEvtStatCent->Fill(centbin*5.0);
+      hMixEvtStatZvsCent->Fill(centbin*5.0, zVtx);
     } ///FIXME } // MB and Central and Semi-Central events
-    //pool->Clear();    delete pool;
 
   } // end of event mixing
-
-/*
-
-// ====================================================================
-    // 2. Collect the whole pool's content of tracks into one TObjArray
-    //    (bgTracks), which is effectively a single background super-event.
-    // 3. The reduced and bgTracks arrays must both be passed into
-    //    FillCorrelations(). Also nMix should be passed in, so a weight
-    //    of 1./nMix can be applied.
-    // initialize background tracks array
-    //TObjArray* bgTracks;
-
-  if(fHaveMBevent) { // RUN16
-    //if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
-    if (pool->IsReady() || pool->GetCurrentNEvents() >= 1) {
-      //double Mixphi2, Mixeta2, Mixpt2;
-      // get number of current events in pool
-      Int_t nMix = pool->GetCurrentNEvents();
-      cout<<"nMix = "<<nMix<<"  Centbin = "<<centbin<<"  zVtx = "<<zVtx<<endl;
-
-      // Fill mixed-event histos here: loop over nMix events
-      for (Int_t jMix=0; jMix<nMix; jMix++) {
-        // get jMix'th event
-        //TClonesArray* bgTracks2 = pool->GetEvent(jMix);
-        TObjArray* bgTracks2 = pool->GetEvent(jMix);
-
-        ///const Int_t Nbgtrks = bgTracks2->GetEntries();
-        Int_t Nbgtrks2 = bgTracks2->GetEntries();
-        cout<<"jMix = "<<jMix<<"  Nbgtrks = "<<Nbgtrks2<<endl;
-        for(Int_t ibg=0; ibg<Nbgtrks2; ibg++) {
-          //StPicoTrack* trk = mPicoDst->track(ibg);
-          //StPicoTrack* trk = static_cast<StPicoTrack*>(bgTracks2->At(ibg));
-          //StPicoTrk* trk = (StPicoTrk*)bgTracks2->At(ibg);
-          StFemtoTrack* trk = (StFemtoTrack*)bgTracks2->At(ibg);
-          if(!trk){ continue; }
-
-          // acceptance and kinematic quality cuts
-          //if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
-
-          // declare kinematic variables
-//          StThreeVectorF mgMomentum2 = trk->gMom(mVertex, Bfield);
-//          double Mixphi2 = mgMomentum2.phi();
-//          double Mixeta2 = mgMomentum2.pseudoRapidity();
-//          double Mixpt2 = mgMomentum2.perp();
-//          double Mixcharge2 = trk->charge();
-
-          double Mixphi2 = trk->Phi();
-          double Mixeta2 = trk->Eta();
-          double Mixpt2 = trk->Pt();
-          double Mixcharge2 = trk->Charge();
-
-          // shift angle 
-          if(Mixphi2 < 0) Mixphi2+= 2*pi;
-          if(Mixphi2 > 2*pi) Mixphi2-= 2*pi;
-          //if((Mixeta2 < -1.0) || (Mixeta2 > 1.0)) cout<<"jMix = "<<jMix<<"  ibg = "<<ibg<<"  Mixpt = "<<Mixpt2<<"  Mixeta = "<<Mixeta2<<"  Mixphi = "<<Mixphi2<<endl;
-          if((Mixeta2 > -1.0) && (Mixeta2 < 1.0)) {
-            if(Mixpt2 > 0.0) cout<<"jMix = "<<jMix<<"  ibg = "<<ibg<<"  Mixpt = "<<Mixpt2<<"  Mixeta = "<<Mixeta2<<"  Mixphi = "<<Mixphi2<<"  Mixcharge = "<<Mixcharge2<<endl;
-          } else {
-            if(Mixpt2 > 0.0) cout<<"======  jMix = "<<jMix<<"  ibg = "<<ibg<<"  Mixpt = "<<Mixpt2<<"  Mixeta = "<<Mixeta2<<"  Mixphi = "<<Mixphi2<<"  Mixcharge = "<<Mixcharge2<<"  ======"<<endl;
-          }
-
-        } // end of background track loop
-      } // end of filling mixed-event histo's:  jth mix event loop
-    } // end of check for pool being ready
-
-        double CAphi, CAeta, CApt, CAcharge;
-        ///const Int_t nCAtrks = tracksClone2->GetEntries();
-        Int_t nCAtrks = tracksClone2->GetEntries();
-        cout<<"Passed Array tracks = "<<nCAtrks<<endl;
-        for(Int_t iCA=0; iCA<nCAtrks; iCA++) {
-          //StPicoTrack* trk = mPicoDst->track(ibg);
-          //StPicoTrack* trk = static_cast<StPicoTrack*>(tracksClone2->At(iCA));
-          //StPicoTrk* trk = (StPicoTrk*)tracksClone2->At(iCA);
-          StFemtoTrack* trk = (StFemtoTrack*)tracksClone2->At(iCA);
-          if(!trk){ continue; }
-
-          // acceptance and kinematic quality cuts
-          //if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
-
-          // declare kinematic variables
-//          StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-//          CAphi = mgMomentum.phi();
-//          CAeta = mgMomentum.pseudoRapidity();
-//          CApt = mgMomentum.perp();
-//          CAcharge = trk->charge();
-
-          CAphi = trk->Phi();
-          CAeta = trk->Eta();
-          CApt = trk->Pt();
-          CAcharge = trk->Charge();
-
-          // shift angle 
-          if(CAphi < 0) CAphi+= 2*pi;
-          if(CAphi > 2*pi) CAphi-= 2*pi;
-
-          //if((CAeta < -1.0) || CAeta > 1.0) cout<<"  iCA = "<<iCA<<"  CApt = "<<CApt<<"  CAeta = "<<CAeta<<"  CAphi = "<<CAphi<<endl;
-          if((CAeta > -1.0) && (CAeta < 1.0)) { 
-            if(CApt > 0.0) cout<<"  iCA = "<<iCA<<"  CApt = "<<CApt<<"  CAeta = "<<CAeta<<"  CAphi = "<<CAphi<<"  CAcharge = "<<CAcharge<<endl;
-          } else {
-            if(CApt > 0.0) cout<<"======  iCA = "<<iCA<<"  CApt = "<<CApt<<"  CAeta = "<<CAeta<<"  CAphi = "<<CAphi<<"  CAcharge = "<<CAcharge<<"  ======"<<endl;
-          }
-
-        } // end of background track loop
-  } // end EMC triggered loop
-// =====================================================================
-
-  } // end of event mixing
-
-*/
 
 // =======================================================================================================================
 
@@ -1386,9 +1241,9 @@ void StMyAnalysisMaker::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins,
       xmax = 100.;
     */ 
       // think about how I want to do this here TODO
-      nbins = 16;
+      nbins = 20; //16;
       xmin = 0.;
-      xmax = 16.;     
+      xmax = 100.; //16.;     
       break;
 
    case 1:
@@ -1513,9 +1368,9 @@ void StMyAnalysisMaker::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nb
       xmax = 100.;
     */
       // think about how I want to do this here TODO
-      nbins = 16;
+      nbins = 20; //16;
       xmin = 0.;
-      xmax = 16.;
+      xmax = 100.; //16.;
       break;
 
     case 1:
@@ -1559,16 +1414,12 @@ void StMyAnalysisMaker::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nb
 
 //_________________________________________________
 // From CF event mixing code PhiCorrelations
-TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
-//TObjArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
+TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-  //TClonesArray* tracksClone = new TClonesArray;
-//  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");
-//  TClonesArray* tracksClone = new TClonesArray("StPicoTrk"); //TEST
-  TClonesArray* tracksClone = new TClonesArray("StFemtoTrack"); //TEST
-//  TObjArray* tracksClone = new TObjArray;
-//  TObjArray* tracksClone = new TObjArray(1200);
+//  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");// original way
+//  TClonesArray* tracksClone = new TClonesArray("StPicoTrk"); //TEST - still has issues with needing Bfield and mVertex
+  TClonesArray* tracksClone = new TClonesArray("StFemtoTrack");
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
 
@@ -1579,34 +1430,18 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
+  // loop over tracks
   Int_t nMixTracks = mPicoDst->numberOfTracks();
-  //Int_t nMixTracks = tracksME->GetEntriesFast();
   Int_t iterTrk = 0;
   Double_t phi, eta, px, py, pt, pz, p, charge;
   const double pi = 1.0*TMath::Pi();
   for (Int_t i=0; i<nMixTracks; i++) { 
     // get tracks
     StPicoTrack* trk = mPicoDst->track(i);
-    //StPicoTrack* trk = (StPicoTrack*)tracksME->At(i);
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
-
-    //TEST: aimed at reducing memory consumption more
-    // #1 does not work, the pointer does not exist
-    // #2 and #3 both work, 2 casts the original track while 3 casts the StPicoTrack
-//    StPicoTrk *picotrk = dynamic_cast<StPicoTrk*>(trk); //#1
-//    StPicoTrk *picotrk = (StPicoTrk*)mPicoDst->track(i); //#2
-///    StPicoTrk *picotrk = (StPicoTrk*)trk; //#3
-///    if(!picotrk) { continue; }
-
-    // add tracks passing cuts to tracksClone array
-//    ((*tracksClone)[iterTrk]) = trk;
-    //((*tracksClone)[iterTrk]) = picotrk;
-    //tracksClone->AddAt(picotrk, iterTrk);  // TObjArray
-//    tracksClone->Add(picotrk); // TObjArray
-    //tracksClone->Add(trk) // TObjArray;
 
     // primary track switch
     if(doUsePrimTracks) {
@@ -1627,42 +1462,18 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList(TClonesArray* tracksME)
 
     charge = trk->charge();
 
-    //StFemtoTrack* ftrk = (StFemtoTrack*)tracksClone.ConstructedAt(iterTrk);
-    //new(tracksClone[iterTrk]) StFemtoTrack(pt, eta, phi, charge);
-    //tracksClone[iterTrk] = new StFemtoTrack(pt, eta, phi, charge);
-///    StFemtoTrack *t = new ((*tracksClone)[iterTrk]) StFemtoTrack(pt, eta, phi, charge);
-    //StFemtoTrack *t = (StFemtoTrack*)trk;
-    //((*tracksClone)[iterTrk]) = t;    
-//    tracksClone->Add(new StFemtoTrack(pt, eta, phi, charge));
-
-  //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
-  //  t->SetVals(pt, eta, phi, charge);
-    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, 0);
+    // create StFemtoTracks out of accepted tracks - light-weight object for mixing
+    //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
+    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
     if(!t) continue;
-    //cout<<"Phi = "<<t.Phi()<<endl;
-    //StFemtoTrack* tp = (StFemtoTrack*)t
+
+    // add light-weight tracks passing cuts to TClonesArray
     ((*tracksClone)[iterTrk]) =  t;
-    
-
-/*
-    StFemtoTrack *t; // = StFemtoTrack(pt, eta, phi, charge);
-    t->SetVals(pt, eta, phi, charge);
-    ((*tracksClone)[iterTrk]) = t;
-*/
-
-    //StFemtoTrack *t = (StFemtoTrack*)tracksClone->ConstructedAt(iterTrk);
-    //t->SetVals(pt, eta, phi, charge);
 
     //delete t;
     ++iterTrk;
   } // end of looping through tracks
 
-  // TEST that the StFemtoTracks got added to the TClonesArray and can be casted back to the pointer
-  //StFemtoTrack* tcast = static_cast<StFemtoTrack*>(tracksClone->At(1));
-  //cout<<"phi = "<<tcast->Phi()<<"  eta = "<<tcast->Eta()<<"  pt = "<<tcast->Pt()<<endl;
-
-  //return (TObjArray*)tracksClone;
-  //return (TClonesArray*)tracksClone;
   return tracksClone;
 }
 
@@ -1710,14 +1521,14 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
   nHitsMax = trk->nHitsMax();
   nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
-  // do pt cut here to accommadate either type
+  // do pt cut here to accommadate either type of track
   if(doUsePrimTracks) { // primary  track
     if(pt < fTrackPtMinCut) return kFALSE;
   } else { // global track
     if(pt < fTrackPtMinCut) return kFALSE;
   }
 
-  // jet track acceptance cuts now - after getting 3vector - hardcoded
+  // track pt, eta, phi cuts
   if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
   if(phi < 0) phi+= 2*pi;
@@ -1735,18 +1546,18 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
 
 /*
 //________________________________________________________________________
-Int_t StMyAnalysisMaker::AcceptMyJet(StJet *jet) { // for jets
-  //applies all jet cuts except pt
-  if ((jet->Phi()<fPhimin)||(jet->Phi()>fPhimax)) return 0;
-  if ((jet->Eta()<fEtamin)||(jet->Eta()>fEtamax)) return 0;
-  if (jet->Area()<fAreacut) return 0;
+Bool_t StMyAnalysisMaker::AcceptJet(StJet *jet) { // for jets
+  // applies all jet cuts except pt
+  if ((jet->Phi() < fPhimin) || (jet->Phi() > fPhimax)) return kFALSE;
+  if ((jet->Eta() < fEtamin) || (jet->Eta() > fEtamax)) return kFALSE;
+  if (jet->Area() < fAreacut) return 0;
   // prevents 0 area jets from sneaking by when area cut == 0
-  if (jet->Area()==0) return 0;
-  //exclude jets with extremely high pt tracks which are likely misreconstructed
-  if(jet->MaxTrackPt()>100) return 0;
+  if (jet->Area() == 0) return kFALSE;
+  // exclude jets with extremely high pt tracks which are likely misreconstructed
+  if(jet->MaxTrackPt() > 20) return kFALSE;
 
-  //passed all above cuts
-  return 1;
+  // jet passed all above cuts
+  return kTRUE;
 }
 */
 
@@ -1755,7 +1566,7 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  //if(fDebugLevel == 7) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+  //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
@@ -1767,7 +1578,7 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
     if(!emcTrig) continue;
 
     // print some EMCal Trigger info
-    if(fDebugLevel == 7) {
+    if(fDebugLevel == kDebugEmcTrigger) {
       cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
       cout<<"  isHT0: "<<emcTrig->isHT0()<<"  isHT1: "<<emcTrig->isHT1();
       cout<<"  isHT2: "<<emcTrig->isHT2()<<"  isHT3: "<<emcTrig->isHT3();
@@ -1923,7 +1734,6 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   TVector2 mQ;
   double mQx = 0., mQy = 0.;
   int order = 2;
-  int n,i;
   double phi, eta, pt;
   double pi = 1.0*TMath::Pi();
 
@@ -1935,12 +1745,13 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   }
 
   // loop over tracks
-  n = mPicoDst->numberOfTracks();
-  for (i=0; i<n; i++) {
+  int n = mPicoDst->numberOfTracks();
+  for(int i=0; i<n; i++) {
+    // get tracks
     StPicoTrack* track = mPicoDst->track(i);
     if(!track) { continue; }
 
-    // apply standard track cuts - (can apply more restrictive cuts below
+    // apply standard track cuts - (can apply more restrictive cuts below)
     // may change this back in future
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
@@ -1986,7 +1797,8 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
     mQx += trackweight * cos(phi * order);
     mQy += trackweight * sin(phi * order);
   }
- 
+
+  // set q-vector components 
   mQ.Set(mQx, mQy);
   double psi = mQ.Phi() / order;
   //return psi*180/pi;  // converted to degrees
@@ -1995,35 +1807,34 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
 // _____________________________________________________________________________________________
 StJet* StMyAnalysisMaker::GetLeadingJet(StRhoParameter* eventRho) {
-    // return pointer to the highest pt jet (before background subtraction) within acceptance
-    // only rudimentary cuts are applied on this level, hence the implementation outside of
-    // the framework
+  // return pointer to the highest pt jet (before background subtraction) within acceptance
+  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
   if(fJets) {
     Int_t iJets(fJets->GetEntriesFast());
     Double_t pt(0);
     StJet* leadingJet(0x0);
     if(!eventRho) {
-        for(Int_t i(0); i < iJets; i++) {
-            StJet* jet = static_cast<StJet*>(fJets->At(i));
-            //if(!AcceptMyJet(jet)) continue;
-            if(jet->Pt() > pt) {
-               leadingJet = jet;
-               pt = leadingJet->Pt();
-            }
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        //if(!AcceptJet(jet)) continue;
+        if(jet->Pt() > pt) {
+          leadingJet = jet;
+          pt = leadingJet->Pt();
         }
-        return leadingJet;
+      }
+      return leadingJet;
     } else {
-        // return leading jet after background subtraction
-        Double_t rho(0);
-        for(Int_t i(0); i < iJets; i++) {
-            StJet* jet = static_cast<StJet*>(fJets->At(i));
-            //if(!AcceptMyJet(jet)) continue;
-            if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-               leadingJet = jet;
-               pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-            }
+      // return leading jet after background subtraction
+      Double_t rho(0);
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        //if(!AcceptJet(jet)) continue;
+        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
+          leadingJet = jet;
+          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
         }
-        return leadingJet;
+      }
+      return leadingJet;
     }
   }
 
@@ -2191,8 +2002,10 @@ physics
 void StMyAnalysisMaker::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
-  hEventZVertex->Sumw2();
-  hTriggerPt->Sumw2();
+  //hEventZVertex->Sumw2();
+  //hCentrality->Sumw2();
+  //hMultiplicity->Sumw2();
+  //hRhovsCent->Sumw2();
   hJetPt->Sumw2();
   hJetCorrPt->Sumw2();
   hJetPt2->Sumw2();
@@ -2206,13 +2019,15 @@ void StMyAnalysisMaker::SetSumw2() {
   hJetTracksEta->Sumw2();
   hJetPtvsArea->Sumw2();
   fHistJetHEtaPhi->Sumw2();
-  fHistEventSelectionQA->Sumw2();
-  fHistEventSelectionQAafterCuts->Sumw2();
-  hTriggerIds->Sumw2();
-  hEmcTriggers->Sumw2();
-
+  //fHistEventSelectionQA->Sumw2();
+  //fHistEventSelectionQAafterCuts->Sumw2();
+  //hTriggerIds->Sumw2();
+  //hEmcTriggers->Sumw2();
+  //hMixEvtStatZVtx->Sumw2();
+  //hMixEvtStatCent->Sumw2();
+  //hMixEvtStatZvsCent->Sumw2();
+  
   fhnJH->Sumw2();
   fhnMixedEvents->Sumw2();
   fhnCorr->Sumw2();
-
 }
