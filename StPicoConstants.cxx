@@ -6,6 +6,8 @@ ClassImp(Pico)
    Float_t Pico::mMass[nPar] = {0.13957, 0.49368, 0.93827, 0.000511};
    Float_t Pico::mMassV0[nV0] = {0.49765, 1.11568};
 
+   Int_t Pico::kSkipThisEvent = -11;
+
    UShort_t Pico::USHORTMAX = 65535;
    Short_t  Pico::SHORTMAX  = 32767;
    UChar_t  Pico::UCHARMAX  = 255;

@@ -609,15 +609,16 @@ Double_t StRhoBase::GetScaleFactor(Double_t cent)
 TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
 {
   // Load the scale function from a file.
+  // "STARfileLocation" needs to be updated if loading rho function from file - dummy now
   TString fname(path);
-  if(fname.BeginsWith("alien://")) {
-    TGrid::Connect("alien://");
+  if(fname.BeginsWith("STARfileLocation://")) {
+    TGrid::Connect("STARfileLocation://");
   }
 
   TFile* file = TFile::Open(path);
 
   if(!file || file->IsZombie()) {
-    ::Error("AddTaskRho", "Could not open scale function file");
+    ::Error("StRhoBase", "Could not open scale function file");
     return 0;
   }
 

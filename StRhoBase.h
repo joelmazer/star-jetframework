@@ -125,6 +125,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   // maker names
   TString                mOutName;
   TString                fJetMakerName;
+  TString                fJetBGMakerName;
   TString                fRhoMakerName;
 
   StRhoBase(const StRhoBase&);             // not implemented

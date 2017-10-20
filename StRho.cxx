@@ -110,7 +110,8 @@ Int_t StRho::Finish() {
 //________________________________________________________________________
 void StRho::DeclareHistograms() {
     // declare histograms
-    fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 150, 0., 1500., 100, 0., 100.);
+    // mult was 150, 0, 1500
+    fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 160, 0., 800., 100, 0., 100.);
     fHistMultvsRho->GetXaxis()->SetTitle("Charged track multiplicity");
     fHistMultvsRho->GetYaxis()->SetTitle("#rho (GeV/c)/A");
 }
@@ -158,7 +159,8 @@ Int_t StRho::Make()
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
-  // zvertex cut - per the Aj analysis
+  // z-vertex cut
+  // per the Aj analysis (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;  // kStWarn;
 
   // get JetMaker
@@ -201,11 +203,15 @@ Int_t StRho::Make()
   else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
   else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
   else cbin = -99;
-  // ============================ end of CENTRALITY ============================== //
+
+  // cut on centrality for analysis before doing anything
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
 
   // get event multiplicity - TODO is this correct? same as that used for centrality
   //const int multiplicity = mPicoDst->numberOfTracks(); // this is total tracks not multiplicity
   const int multiplicity = refCorr2;
+
+  // ============================ end of CENTRALITY ============================== //
 
   // initialize Rho and scaled Rho
   fOutRho->SetVal(0);
@@ -282,11 +288,12 @@ Int_t StRho::Make()
     Double_t rho = TMath::Median(NjetAcc, rhovec);
     fOutRho->SetVal(rho);
 
+    // fill histo
     fHistMultvsRho->Fill(multiplicity, rho);
 
-    // if we want scaled Rho
+    // if we want scaled Rho from charged -> ch+ne
     if(fOutRhoScaled) {
-      //Double_t rhoScaled = rho * GetScaleFactor(fCent); //Don't need yet
+      //Double_t rhoScaled = rho * GetScaleFactor(fCent); //Don't need yet, fCent is in 5% bins
       Double_t rhoScaled = rho * 1.0;
       fOutRhoScaled->SetVal(rhoScaled);
     }

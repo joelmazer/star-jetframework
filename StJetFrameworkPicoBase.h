@@ -99,6 +99,17 @@ class StJetFrameworkPicoBase : public StMaker {
       kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30
     };    
 
+    // centrality bin range
+    enum fCentralityBin {
+      kCent010, kCent020,
+      kCent1020, kCent1030, kCent1040,
+      kCent2030, kCent2040, kCent2050, kCent2060,
+      kCent3050, kCent3060,
+      kCent4060, kCent4070, kCent4080,
+      kCent5080,
+      kCent6080
+    };
+
     StJetFrameworkPicoBase();
     StJetFrameworkPicoBase(const char *name);
     virtual ~StJetFrameworkPicoBase();
@@ -116,6 +127,8 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+    virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
+    virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
     // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -142,8 +155,16 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
 
+    // set names of makers for global use
+    virtual void            SetOutputFileName(const char *on)         { mOutName = on; }
+    virtual void            SetJetMakerName(const char *jn)           { fJetMakerName = jn; }
+    virtual void            SetJetBGMakerName(const char *bjn)        { fJetBGMakerName = bjn; }
+    virtual void            SetRhoMakerName(const char *rn)           { fRhoMakerName = rn; }
+    virtual void            SetRhoSparseMakerName(const char *rpn)    { fRhoSparseMakerName = rpn; }
+
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+    Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
@@ -154,8 +175,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
     Int_t                  fRunFlag;                // Run Flag enumerator value
-    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
+    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
+    Bool_t                 fRequireCentSelection;   // require particular centrality bin
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
@@ -163,6 +185,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fJetRad;                 // jet radius
     Double_t               fEventZVtxMinCut;        // min event z-vertex cut
     Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
+    Int_t                  fCentralitySelectionCut; // centrality selection cut
     Double_t               fTrackPtMinCut;          // min track pt cut
     Double_t               fTrackPtMaxCut;          // max track pt cut
     Double_t               fTrackPhiMinCut;         // min track phi cut
@@ -178,17 +201,18 @@ class StJetFrameworkPicoBase : public StMaker {
     Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t          fTrackWeight; // track weight for Q-vector summation
 
-    TClonesArray      *CloneAndReduceTrackList(TClonesArray* tracks);
+    TClonesArray   *CloneAndReduceTrackList(TClonesArray* tracks);
 
     // clonesarray collections of tracks and jets
-    TClonesArray          *fTracksME;//! track collection to slim down for mixed events
-    TClonesArray          *fJets;//! jet collection
+    TClonesArray   *fTracksME;//! track collection to slim down for mixed events
+    TClonesArray   *fJets;//! jet collection
 
     // PicoDstMaker and PicoDst object pointer
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
     StPicoEvent    *mPicoEvent;
     StJetMakerTask *JetMaker;
+    StJetMakerTask *JetMakerBG;
     StRho          *RhoMaker;
 
     // centrality objects
@@ -197,16 +221,13 @@ class StJetFrameworkPicoBase : public StMaker {
     StRefMultCorr* refmult2Corr;
 
     // output file name string 
-    TString      mOutName;
+    TString        mOutName;
 
     // maker names
-    TString                fJetMakerName;
-    TString                fRhoMakerName;
-
-    // counters 
-    Int_t        mEventCounter;//!
-    Int_t        mAllPVEventCounter;//!
-    Int_t        mInputEventCounter;//!
+    TString        fJetMakerName;
+    TString        fJetBGMakerName;
+    TString        fRhoMakerName;
+    TString        fRhoSparseMakerName;
 
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
@@ -214,7 +235,12 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fRhoVal;//!<!       // event rho value, same for local rho
     TString                fRhoName;///<       // rho name
 
-    // counters
+    // counters 
+    Int_t          mEventCounter;//!
+    Int_t          mAllPVEventCounter;//!
+    Int_t          mInputEventCounter;//!
+
+    // counters get functions
     Int_t GetEventCounter() {return mEventCounter;}
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}

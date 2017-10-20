@@ -2,7 +2,6 @@
 #include "TList.h"
 #include "TRandom.h"
 #include <iostream>
-#include "StRoot/StPicoEvent/StPicoTrack.h"
 
 using std::cout;
 using std::endl;
@@ -115,17 +114,6 @@ Int_t StEventPool::UpdatePool(TObjArray *trk)
 
   Int_t mult = trk->GetEntries();
   Int_t nTrk = NTracksInPool();
-
-//////////// TEST ///////////
-/*
-  cout<<"MULT = "<<mult<<"  nTrk = "<<nTrk<<endl;
-  for(Int_t iCA=0; iCA<mult; iCA++) {
-    StPicoTrack* trks = static_cast<StPicoTrack*>(trk->At(iCA));
-    if(!trks){ continue; }
-    cout<<"charge = "<<trks->charge()<<endl;
-  }
-*/
-/////////////////////////////
 
   if (!IsReady() && IsReady(nTrk + mult, GetCurrentNEvents() + 1))
     fNTimes++;

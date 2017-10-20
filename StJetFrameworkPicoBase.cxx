@@ -2,7 +2,8 @@
 // Author:  Joel Mazer for the STAR Collaboration
 // Affiliation: Rutgers University
 //
-//
+// this class is a base-class for the jet framework used with 
+// analysis over PicoDst's
 // ################################################################
 
 #include "StJetFrameworkPicoBase.h"
@@ -22,7 +23,7 @@
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
 
-// my STAR includes
+// jet-framework STAR includes
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
@@ -34,6 +35,7 @@
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
 
+// old file, kept for useful constants
 #include "StPicoConstants.h"
 
 // centrality
@@ -48,6 +50,22 @@ ClassImp(StJetFrameworkPicoBase)
 //-----------------------------------------------------------------------------
 StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   StMaker(),
+  doUsePrimTracks(kFALSE),
+  fDebugLevel(0),
+  fRunFlag(0),
+  fCorrJetPt(kFALSE),
+  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  fRequireCentSelection(kFALSE),
+  fMinPtJet(0.0),
+  fTrackBias(0.0),
+  fJetRad(0.4),
+  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
+  fCentralitySelectionCut(-99),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
+  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
+  fTrackDCAcut(3.0),
+  fTracknHitsFit(15), fTracknHitsRatio(0.52),
   fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
   fTracksME(0x0),
   fJets(0x0),
@@ -55,28 +73,18 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   mPicoDst(0x0),
   mPicoEvent(0x0),
   JetMaker(0),
+  JetMakerBG(0),
   RhoMaker(0),
-  fRunFlag(0),
-  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   grefmultCorr(0),
   refmultCorr(0),
   refmult2Corr(0),
   mOutName(""),
-  doUsePrimTracks(kFALSE),
-  fCorrJetPt(kFALSE),
-  fMinPtJet(0.0),
-  fTrackBias(0.0),
-  fJetRad(0.4),
-  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
-  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
-  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
-  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
-  fTrackDCAcut(3.0),
-  fTracknHitsFit(15), fTracknHitsRatio(0.52),
+  fJetMakerName(""),
+  fJetBGMakerName(""),
+  fRhoMakerName(""),
+  fRhoSparseMakerName(""),
   fRho(0x0),
   fRhoVal(0),
-  fJetMakerName(""),
-  fRhoMakerName(""),
   mEventCounter(0),
   mAllPVEventCounter(0),
   mInputEventCounter(0)
@@ -87,6 +95,22 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
 //-----------------------------------------------------------------------------
 StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   StMaker(name),
+  doUsePrimTracks(kFALSE),
+  fDebugLevel(0),
+  fRunFlag(0),
+  fCorrJetPt(kFALSE),
+  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  fRequireCentSelection(kFALSE),
+  fMinPtJet(0.0),
+  fTrackBias(0.0),
+  fJetRad(0.4),
+  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
+  fCentralitySelectionCut(-99),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
+  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
+  fTrackDCAcut(3.0),
+  fTracknHitsFit(15), fTracknHitsRatio(0.52), 
   fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
   fTracksME(0x0),
   fJets(0x0),
@@ -94,28 +118,18 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   mPicoDst(0x0),
   mPicoEvent(0x0),
   JetMaker(0),
+  JetMakerBG(0),
   RhoMaker(0),
-  fRunFlag(0),
-  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   grefmultCorr(0),
   refmultCorr(0),
   refmult2Corr(0),
   mOutName(""),
-  doUsePrimTracks(kFALSE),
-  fCorrJetPt(kFALSE),
-  fMinPtJet(0.0),
-  fTrackBias(0.0),
-  fJetRad(0.4),
-  fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
-  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
-  fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
-  fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
-  fTrackDCAcut(3.0),
-  fTracknHitsFit(15), fTracknHitsRatio(0.52), 
+  fJetMakerName(""),
+  fJetBGMakerName(""),
+  fRhoMakerName(""),
+  fRhoSparseMakerName(""),
   fRho(0x0),
   fRhoVal(0),
-  fJetMakerName(""),
-  fRhoMakerName(""),
   mEventCounter(0),
   mAllPVEventCounter(0),
   mInputEventCounter(0)
@@ -131,6 +145,7 @@ StJetFrameworkPicoBase::~StJetFrameworkPicoBase()
 
 //-----------------------------------------------------------------------------
 Int_t StJetFrameworkPicoBase::Init() {
+
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
 
@@ -665,6 +680,110 @@ Int_t StJetFrameworkPicoBase::EventCounter() {
 }
 
 //__________________________________________________________________________________________
-//void StJetFrameworkPicoBase::EventCounter() {
-//  mEventCounter++;
-//}
+Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
+  // this function is written to cut on centrality in a task for a given range
+  // STAR centrality is written in re-verse binning (0,15) where lowest bin is highest centrality
+  // -- this is a very poor approach
+  // -- Solution, Use:  Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
+  //    in order remap the centrality to a more appropriate binning scheme
+  //    (0, 15) where 0 will correspond to the 0-5% bin
+  // -- NOTE: Use the 16 bin scheme instead of 9, its more flexible
+  // -- Example usage:
+  //    Int_t cent16 = grefmultCorr->getCentralityBin16();
+  //    Int_t centbin = GetCentBin(cent16, 16);
+  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStWarn; (or StOk to suppress warnings)
+  //
+  // other bins can be added if needed...
+
+  Bool_t doAnalysis;
+  doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
+
+  // switch on bin selection
+  switch(fCentralitySelectionCut) {
+    case kCent010 :  // 0-10%
+      if((centbin>-1) && (centbin<2)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent020 :  // 0-20%
+      if((centbin>-1) && (centbin<4)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }  
+      break;
+
+    case kCent1020 : // 10-20%
+      if((centbin>1) && (centbin<4)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent1030 : // 10-30%
+      if((centbin>1) && (centbin<6)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent1040 : // 10-40%
+      if((centbin>1) && (centbin<8)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent2030 : // 20-30%
+      if((centbin>3) && (centbin<6)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent2040 : // 20-40%
+      if((centbin>3) && (centbin<8)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent2050 : // 20-50%
+      if((centbin>3) && (centbin<10)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent2060 : // 20-60%
+      if((centbin>3) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent3050 : // 30-50%
+      if((centbin>5) && (centbin<10)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent3060 : // 30-60%
+      if((centbin>5) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent4060 : // 40-60%
+      if((centbin>7) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent4070 : // 40-70%
+      if((centbin>7) && (centbin<14)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent4080 : // 40-80%
+      if((centbin>7) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent5080 : // 50-80%
+      if((centbin>9) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case kCent6080 : // 60-80%
+      if((centbin>11) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    default : // wrong entry
+      doAnalysis = kFALSE;
+
+  }
+
+  return doAnalysis;
+}

@@ -3,7 +3,10 @@
 
 // $Id$
 
-#include "StMaker.h"
+//#include "StMaker.h"
+#include "StRoot/StChain/StMaker.h"
+class StMaker;
+
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
 // TEST for clusters TODO
@@ -105,10 +108,12 @@ class StJetMakerTask : public StMaker {
   void    WriteHistograms();
 
   // switches
-  void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks   = P; } 
-  void         SetDebugLevel(Int_t l)           { fDebugLevel    = l;  }
-  virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
-  virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+  virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
+  virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
+  virtual void         SetRunFlag(Int_t f)              { fRunFlag              = f; }
+  virtual void         SetCentralityDef(Int_t c)        { fCentralityDef        = c; }
+  virtual void         SetTurnOnCentSelection(Bool_t o) { fRequireCentSelection = o; }
+  virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
 
 
   // event setters
@@ -211,6 +216,8 @@ class StJetMakerTask : public StMaker {
   void FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   //Int_t FindJets();
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
+  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+  Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
 
   // switches
   Bool_t                 doWriteHistos;           // write QA histos
@@ -218,13 +225,15 @@ class StJetMakerTask : public StMaker {
   Int_t                  fDebugLevel;             // debug printout level
   Int_t                  fRunFlag;                // Run Flag numerator value
   Int_t                  fCentralityDef;          // Centrality Definition enumerator value
+  Bool_t                 fRequireCentSelection;   // require particular centrality bin
 
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
+  Int_t                  fCentralitySelectionCut; // centrality selection cut
 
   // output file name string
-  TString         mOutName;
+  TString                mOutName;
 
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection

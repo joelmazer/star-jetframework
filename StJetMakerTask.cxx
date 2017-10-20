@@ -370,7 +370,8 @@ int StJetMakerTask::Make()
 
   // Z-vertex cut
   // per the Aj analysis (-40, 40)
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
+  // TEST: kStOk -> kStErr // Error, drop this and go to the next event
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //Pico::kSkipThisEvent; //kStOk; //kStWarn;
 
   // ============================ CENTRALITY ============================== //
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
@@ -382,6 +383,11 @@ int StJetMakerTask::Make()
   grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   Int_t cent16 = grefmultCorr->getCentralityBin16();
   if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  Int_t centbin = GetCentBin(cent16, 16);
+
+  // cut on centrality for analysis before doing anything
+  // TEST: kStOk -> kStErr // Error, drop this and go to the next event
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }  //kStErr; }
 
   // TClonesArrays - not needed anymore
   TClonesArray *tracks = 0;
@@ -509,7 +515,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
 
-      if(fDebugLevel==2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
+      if(fDebugLevel == 2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
 
       // use StEmcDetector to get position information
       //StEmcDetector* detector;
@@ -526,7 +532,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       mGeom->getEtaPhi(towID,towerEta,towerPhi);
       if(towerPhi < 0) towerPhi += 2*pi;
       if(towerPhi > 2*pi) towerPhi -= 2*pi;
-      if(fDebugLevel > 8) { 
+      if(fDebugLevel == 8) { 
         cout<<"towerID = "<<towID<<"  towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
       }
 
@@ -555,7 +561,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       phi = position.phi();
       z   = position.z();
       double theta = 2*TMath::ATan(exp(-1.0*eta));
-      //cout<<"theta = "<<theta<<endl;      
 
       // TEST comparing track position with cluster and tower
       double towPhi = towPosition.phi();
@@ -580,7 +585,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       fHistJetNTowervsPhivsEta->Fill(towPhi, towEta);
 
       // print some tower / cluster / track debug info
-      if(fDebugLevel > 8) {
+      if(fDebugLevel == 8) {
         cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
         cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
         cout<<" MatTowE = "<<cluster->btowE()<<"  MatTowE2 = "<<cluster->btowE2()<<"  MatTowE3 = "<<cluster->btowE3()<<endl;
@@ -707,7 +712,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 	nc++;
 */
       }
-    }
+    }  // end of constituent loop
 
     jet->SetNumberOfTracks(nt);
     jet->SetNumberOfClusters(nc);
@@ -715,7 +720,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetMaxClusterPt(maxCluster); // clusters not added yet
     jet->SetNEF(neutralE/jet->E()); // FIXME : currently not set properly - neutralE = 0
     jetCount++;
-  }
+
+  }  // end of jet loop
 }
 
 /**
@@ -1094,3 +1100,128 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   // passed all above cuts - keep track and fill input vector to fastjet
   return kTRUE;
 }
+
+//________________________________________________________________________
+Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
+{  // Get centrality bin.
+  Int_t centbin = -1;
+
+  if(nBin == 16) {
+    centbin = nBin - 1 - cent;
+  }
+  if(nBin == 9) {
+    centbin = nBin - 1 - cent;
+  }
+
+  return centbin;
+}
+
+//__________________________________________________________________________________________
+Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
+  // this function is written to cut on centrality in a task for a given range
+  // STAR centrality is written in re-verse binning (0,15) where lowest bin is highest centrality
+  // -- this is a very poor approach
+  // -- Solution, Use:  Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
+  //    in order remap the centrality to a more appropriate binning scheme
+  //    (0, 15) where 0 will correspond to the 0-5% bin
+  // -- NOTE: Use the 16 bin scheme instead of 9, its more flexible
+  // -- Example usage:
+  //    Int_t cent16 = grefmultCorr->getCentralityBin16();
+  //    Int_t centbin = GetCentBin(cent16, 16);
+  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStWarn; (or StOk to suppress warnings)
+  //
+  // other bins can be added if needed...
+
+  Bool_t doAnalysis;
+  doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
+
+  // switch on bin selection
+  switch(fCentralitySelectionCut) {
+    case StJetFrameworkPicoBase::kCent010 :  // 0-10%
+      if((centbin>-1) && (centbin<2)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent020 :  // 0-20%
+      if((centbin>-1) && (centbin<4)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent1020 : // 10-20%
+      if((centbin>1) && (centbin<4)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent1030 : // 10-30%
+      if((centbin>1) && (centbin<6)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent1040 : // 10-40%
+      if((centbin>1) && (centbin<8)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent2030 : // 20-30%
+      if((centbin>3) && (centbin<6)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent2040 : // 20-40%
+      if((centbin>3) && (centbin<8)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent2050 : // 20-50%
+      if((centbin>3) && (centbin<10)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent2060 : // 20-60%
+      if((centbin>3) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent3050 : // 30-50%
+      if((centbin>5) && (centbin<10)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent3060 : // 30-60%
+      if((centbin>5) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent4060 : // 40-60%
+      if((centbin>7) && (centbin<12)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent4070 : // 40-70%
+      if((centbin>7) && (centbin<14)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent4080 : // 40-80%
+      if((centbin>7) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent5080 : // 50-80%
+      if((centbin>9) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    case StJetFrameworkPicoBase::kCent6080 : // 60-80%
+      if((centbin>11) && (centbin<16)) { doAnalysis = kTRUE; }
+      else { doAnalysis = kFALSE; }
+      break;
+
+    default : // wrong entry
+      doAnalysis = kFALSE;
+
+  }
+
+  return doAnalysis;
+}
+

@@ -90,6 +90,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   mOutName = outName;
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
+  doPrintEventCounter = kFALSE;
   fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr = kFALSE;
@@ -215,6 +216,7 @@ Int_t StMyAnalysisMaker::Finish() {
     fout->mkdir(fAnalysisMakerName);
     fout->cd(fAnalysisMakerName);
     WriteHistograms();
+
     fout->cd();
     fout->Write();
     fout->Close();
@@ -252,7 +254,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
   hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
 
-  fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-Hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
+  fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
   // Event Selection QA histo
   fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 19.5);
@@ -272,6 +274,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   // set up centrality bins for mixed events
   // for pp we need mult bins for event mixing. Create binning here, to also make a histogram from it
+  // TODO needs updating for STAR multiplicities
   Int_t nCentralityBinspp = 8;
   Double_t centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
 
@@ -374,10 +377,7 @@ void StMyAnalysisMaker::WriteHistograms() {
 void StMyAnalysisMaker::Clear(Option_t *opt) {
   fJets->Clear();
 
-/*
-  delete [] fTracksME; fTracksME=0;
-  delete fhnJH; fhnJH = 0;
-*/
+  //delete [] fTracksME; fTracksME=0;
 }
 
 //----------------------------------------------------------------------------- 
@@ -394,7 +394,7 @@ Int_t StMyAnalysisMaker::Make() {
   // update counter
 //  mEventCounter++;
 //  cout<<"StMyANMaker event# = "<<mEventCounter<<endl;
-  cout<<"StMyAnMaker event# = "<<EventCounter()<<endl;
+  if(doPrintEventCounter) cout<<"StMyAnMaker event# = "<<EventCounter()<<endl;
 
   // get PicoDstMaker 
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -425,8 +425,8 @@ Int_t StMyAnalysisMaker::Make() {
   double zVtx = mVertex.z();
   
   // Z-vertex cut 
-  // the Aj analysis (-40, 40)
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
+  // the Aj analysis cut on (-40, 40) for reference
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
   hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
@@ -435,7 +435,53 @@ Int_t StMyAnalysisMaker::Make() {
   Int_t eventId = mPicoEvent->eventId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
   Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  //cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
+  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?i
+
+  // ============================ CENTRALITY ============================== //
+  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
+  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
+  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
+  int grefMult = mPicoEvent->grefMult();
+  int refMult = mPicoEvent->refMult();
+  grefmultCorr->init(RunId);
+  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+//  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
+//  if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
+//  if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
+//  if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+  Int_t cent16 = grefmultCorr->getCentralityBin16();
+  Int_t cent9 = grefmultCorr->getCentralityBin9();
+  Int_t centbin = GetCentBin(cent16, 16);
+  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+  Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
+  Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+  //Double_t centbinscaled = centbin * 5.0;
+
+  // centrality / multiplicity histograms
+  hMultiplicity->Fill(refCorr2);
+  //grefmultCorr->isCentralityOk(cent16)
+  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  double centralityScaled = centbin*5.0;
+  hCentrality->Fill(centralityScaled);
+
+  // to limit filling unused entries in sparse, only fill for certain centrality ranges
+  // ranges can be different than functional cent bin setter
+  Int_t cbin = -1;
+  // need to figure out centrality first in STAR: TODO
+  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
+  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
+  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
+  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
+  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
+  else cbin = -99;
+
+  // cut on centrality for analysis before doing anything
+//  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStWarn; }
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
+
+  // ============================ end of CENTRALITY ============================== //
 
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
@@ -466,8 +512,7 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
-  // trigger information:
-  //cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
+  // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
   // Run16
@@ -490,47 +535,8 @@ Int_t StMyAnalysisMaker::Make() {
   }
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
-  //cout<<"EMCtrigger: "<<fHaveEmcTrigger<<"  HaveMBevent: "<<fHaveMBevent<<endl;
 
-  // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
-  int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-//  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//  if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//  if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//  if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t cent9 = grefmultCorr->getCentralityBin9();
-  Int_t centbin = GetCentBin(cent16, 16);
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-  Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
-
-  // centrality / multiplicity histograms
-  hMultiplicity->Fill(refCorr2);
-  //grefmultCorr->isCentralityOk(cent16)
-  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; } 
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  hCentrality->Fill(centbin*5.0);
-
-  // to limit filling unused entries in sparse, only fill for certain centrality ranges
-  // ranges can be different than functional cent bin setter
-  Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
-  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
-  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
-  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
-  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
-  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
-  else cbin = -99;
-  // ============================ end of CENTRALITY ============================== //
-
+  // ================= JetMaker ================ //
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
   const char *fJetMakerNameCh = fJetMakerName;
@@ -552,6 +558,7 @@ Int_t StMyAnalysisMaker::Make() {
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
 
+  // ============== RhoMaker =============== //
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
   RhoMaker = (StRho*)GetMaker(fRhoMakerName);
   const char *fRhoMakerNameCh = fRhoMakerName;
@@ -567,7 +574,7 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;    
   } 
   
-  // get rho/area       fRho->ls("");
+  // get rho/area value from rho object     fRho->ls("");
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
   //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
@@ -638,7 +645,7 @@ Int_t StMyAnalysisMaker::Make() {
     if(doComments) cout<<"Jet# = "<<ijet<<"  JetPt = "<<jetpt<<"  JetE = "<<jetE<<endl;
     if(doComments) cout<<"MaxtrackPt = "<<maxtrackpt<<"  NtrackConstit = "<<NtrackConstit<<endl;
 
-    // get highest Pt jet in event
+    // get highest Pt jet in event (leading jet)
     if(highestjetpt<jetpt){
       ijethi=ijet;
       highestjetpt=jetpt;

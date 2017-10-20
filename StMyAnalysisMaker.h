@@ -77,6 +77,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
+    virtual void            SetPrintEventCounter(Bool_t c)     { doPrintEventCounter = c; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
 
@@ -137,6 +138,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
+    Bool_t                 doPrintEventCounter;     // print event # switch
     Int_t                  fRunFlag;                // Run Flag numerator value
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Int_t                  fDoEffCorr;              // efficiency correction to tracks
