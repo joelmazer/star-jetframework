@@ -3,9 +3,7 @@
 
 // $Id$
 
-//#include "StMaker.h"
-#include "StRoot/StChain/StMaker.h"
-class StMaker;
+#include "StMaker.h"
 
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
