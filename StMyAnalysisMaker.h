@@ -218,6 +218,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
 
     // histograms
     TH1F* hEventPlane;//!   
+    TH1F* hEventPlaneWeighted;//!
     TH1F* hEventZVertex;//!
     TH1F* hCentrality;//!
     TH1F* hMultiplicity;//!

@@ -78,7 +78,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
   fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
-  fTrackWeight = 1; fEvenPlaneMaxTrackPtCut = 5.0;
+  fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
+  fEvenPlaneMaxTrackPtCut = 5.0;
   fPoolMgr = 0x0;
   fJets = 0x0;
   mPicoDstMaker = 0x0;
@@ -130,6 +131,7 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 { /*  */
   // destructor
   delete hEventPlane;
+  delete hEventPlaneWeighted;
   delete hEventZVertex;
   delete hCentrality;
   delete hMultiplicity;
@@ -235,6 +237,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   // QA histos
   hEventPlane = new TH1F("hEventPlane", "Event Plane distribution", 72, 0.0, 1.0*pi);
+  hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100); 
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
@@ -257,8 +260,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
   fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
   // Event Selection QA histo
-  fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 19.5);
-  fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 19.5);
+  fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
+  fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
   hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
@@ -336,6 +339,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
 void StMyAnalysisMaker::WriteHistograms() {
   // default histos
   hEventPlane->Write();
+  hEventPlaneWeighted->Write();
   hEventZVertex->Write();
   hCentrality->Write();
   hMultiplicity->Write();
@@ -557,6 +561,11 @@ Int_t StMyAnalysisMaker::Make() {
   fLeadingJet = GetLeadingJet();
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
+
+  double eventWeight = grefmultCorr->getWeight();
+  hEventPlaneWeighted->Fill(rpAngle, eventWeight);
+
+  //return kStOk;
 
   // ============== RhoMaker =============== //
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
@@ -2009,6 +2018,7 @@ physics
 void StMyAnalysisMaker::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
+  hEventPlaneWeighted->Sumw2();
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();

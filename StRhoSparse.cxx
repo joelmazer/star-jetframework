@@ -240,7 +240,7 @@ Int_t StRhoSparse::Make()
   Double_t fCent = centbin * 5.0;
 
   // cut on centrality for analysis before doing anything
-  cout<<"fCentralitySelectionCut = "<<fCentralitySelectionCut<<endl;
+  if(fDebugLevel == 3) { cout<<"fCentralitySelectionCut = "<<fCentralitySelectionCut<<endl; }
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges

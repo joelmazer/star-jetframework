@@ -49,6 +49,7 @@ public:
   static Float_t mMass[nPar];// = {0.13957, 0.49368, 0.93827, 0.000511};
   static Float_t mMassV0[nV0];// = {0.49765, 1.11568};
 
+  // added for Test Oct19, 2017
   static Int_t kSkipThisEvent;// = 8;
 
   static UShort_t USHORTMAX;// = 65535;
