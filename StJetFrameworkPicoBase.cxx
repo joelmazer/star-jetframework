@@ -85,6 +85,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fRhoSparseMakerName(""),
   fRho(0x0),
   fRhoVal(0),
+  fAddToHistogramsName(""),
   mEventCounter(0),
   mAllPVEventCounter(0),
   mInputEventCounter(0)
@@ -130,6 +131,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fRhoSparseMakerName(""),
   fRho(0x0),
   fRhoVal(0),
+  fAddToHistogramsName(""),
   mEventCounter(0),
   mAllPVEventCounter(0),
   mInputEventCounter(0)
@@ -145,6 +147,7 @@ StJetFrameworkPicoBase::~StJetFrameworkPicoBase()
 
 //-----------------------------------------------------------------------------
 Int_t StJetFrameworkPicoBase::Init() {
+  fAddToHistogramsName = "";
 
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);

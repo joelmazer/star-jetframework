@@ -187,6 +187,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTrackvsPt)   delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)  delete fHistJetNTrackvsPhi;
   if(fHistJetNTrackvsEta)  delete fHistJetNTrackvsEta;
+  if(fHistJetNTrackvsPhivsEta) delete fHistJetNTrackvsPhivsEta;
   if(fHistJetNTowervsE)    delete fHistJetNTowervsE;
   if(fHistJetNTowervsPhi)  delete fHistJetNTowervsPhi;
   if(fHistJetNTowervsEta)  delete fHistJetNTowervsEta;
@@ -289,6 +290,19 @@ Int_t StJetMakerTask::Finish() {
     fout->Close();
   }
 
+/*   ===== test ======
+  if(mOutName!="") {
+    cout<<"checking output file in StJetMakerTask::Finish().."<<endl;
+    TFile *fout = new TFile(mOutName.Data(),"UPDATE");
+    fout->cd();
+    fout->mkdir(GetName());
+    fout->cd(GetName());
+    WriteHistograms();
+    fout->cd();
+    fout->Close();
+  }
+*/
+
   return kStOK;
 }
 
@@ -299,10 +313,11 @@ void StJetMakerTask::DeclareHistograms() {
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
+    fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
     fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
     fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2*pi);
     fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
-    fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+    fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet tower constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
 }
 
 //________________________________________________________________________
@@ -312,6 +327,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
   fHistJetNTrackvsEta->Write();
+  fHistJetNTrackvsPhivsEta->Write();
   fHistJetNTowervsE->Write();
   fHistJetNTowervsPhi->Write();
   fHistJetNTowervsEta->Write();
@@ -676,12 +692,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         if(phi > 2*pi) phi-= 2*pi;
 
         // find max track pt
-        if (pt>maxTrack) maxTrack=pt;
+        if(pt>maxTrack) maxTrack=pt;
 
         // fill some QA histograms
         fHistJetNTrackvsPt->Fill(pt);
         fHistJetNTrackvsPhi->Fill(phi);
         fHistJetNTrackvsEta->Fill(eta);
+        fHistJetNTrackvsPhivsEta->Fill(phi, eta);
 
 	nt++;
 //============================

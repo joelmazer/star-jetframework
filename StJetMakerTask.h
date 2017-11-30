@@ -309,11 +309,11 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   // centrality objects
   StRefMultCorr* grefmultCorr;
 
-
   // histograms
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
+  TH2F           *fHistJetNTrackvsPhivsEta;//!
   TH1F           *fHistJetNTowervsE;//!
   TH1F           *fHistJetNTowervsPhi;//!
   TH1F           *fHistJetNTowervsEta;//!

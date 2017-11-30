@@ -162,6 +162,10 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetRhoMakerName(const char *rn)           { fRhoMakerName = rn; }
     virtual void            SetRhoSparseMakerName(const char *rpn)    { fRhoSparseMakerName = rpn; }
 
+    // add-to histogram name
+    virtual void           AddToHistogramsName(TString add)           { fAddToHistogramsName = add  ; }
+    virtual TString        GetAddedHistogramsStringToName() const     { return fAddToHistogramsName ; }
+
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
@@ -234,6 +238,9 @@ class StJetFrameworkPicoBase : public StMaker {
     StRhoParameter        *fRho;//!<!          // event rho
     Double_t               fRhoVal;//!<!       // event rho value, same for local rho
     TString                fRhoName;///<       // rho name
+
+    // add to histograms name
+    TString                fAddToHistogramsName; ///<  Add this string to histograms name.
 
     // counters 
     Int_t          mEventCounter;//!

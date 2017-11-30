@@ -73,8 +73,6 @@ class StRhoBase : public StJetFrameworkPicoBase {
  protected:
   Bool_t                 FillHistograms();
 
-  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
-
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
 

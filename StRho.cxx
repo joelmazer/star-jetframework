@@ -103,6 +103,19 @@ Int_t StRho::Finish() {
     fout->Close();
   }
 
+/*   ===== test ======
+  if(mOutName!="") {
+    cout<<"checking output file in StRhoMaker::Finish().."<<endl;
+    TFile *fout = new TFile(mOutName.Data(),"RECREATE");
+    fout->cd();
+    fout->mkdir(GetName());
+    fout->cd(GetName());
+    WriteHistograms();
+    fout->cd();
+    fout->Close();
+  }
+*/
+
   //cout<<"End of StRho::Finish"<<endl;
   return kStOK;
 }
@@ -224,6 +237,7 @@ Int_t StRho::Make()
 
   // exclude leading jets
   if(fNExclLeadJets > 0) {
+    // loop over jets
     for (Int_t ij = 0; ij < Njets; ++ij) {
       StJet *jet = static_cast<StJet*>(fJets->At(ij));
       if(!jet) { continue; } 
@@ -231,20 +245,21 @@ Int_t StRho::Make()
       // NEED TO CHECK DEFAULTS // FIXME
       //if (!AcceptJet(jet)) continue;
       // get some jet parameters
-      double jetpt = jet->Pt();
+      double jetPt = jet->Pt();
       double jetEta = jet->Eta();
       double jetPhi = jet->Phi();
+      double jetArea = jet->Area();
       // some threshold cuts for tests
-      if(jetpt < 0) continue;
+      if(jetPt < 0) continue;
 
       // get ID and pt of the leading and sub-leading jet   
-      if(jet->Pt() > maxJetPts[0]) {
+      if(jetPt > maxJetPts[0]) {
 	maxJetPts[1] = maxJetPts[0];
 	maxJetIds[1] = maxJetIds[0];
-	maxJetPts[0] = jet->Pt();
+	maxJetPts[0] = jetPt;
 	maxJetIds[0] = ij;
-      } else if (jet->Pt() > maxJetPts[1]) {
-	maxJetPts[1] = jet->Pt();
+      } else if (jetPt > maxJetPts[1]) {
+	maxJetPts[1] = jetPt;
 	maxJetIds[1] = ij;
       }
     }
@@ -265,20 +280,21 @@ Int_t StRho::Make()
     if(iJets == maxJetIds[0] || iJets == maxJetIds[1])
       continue;
 
-    // pointer to jets
+    // pointer to jet
     StJet *jet = static_cast<StJet*>(fJets->At(iJets));
     if(!jet) { continue; } 
 
     // NEED TO CHECK FOR DEFAULTS - cuts are done at the jet finder level
     //if(!AcceptJet(jet)) continue; //FIXME
     // get some get parameters
-    double jetpt = jet->Pt();
+    double jetPt = jet->Pt();
     double jetEta = jet->Eta();
     double jetPhi = jet->Phi();
+    double jetArea = jet->Area();
     // some threshold cuts for tests
-    if(jetpt < 0) continue;
+    if(jetPt < 0) continue;
  
-    rhovec[NjetAcc] = jet->Pt() / jet->Area();
+    rhovec[NjetAcc] = jetPt / jetArea;
     ++NjetAcc;
   }
 

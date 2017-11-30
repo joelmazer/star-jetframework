@@ -29,6 +29,9 @@
 #include "TFile.h"
 #include <THnSparse.h>
 #include "TParameter.h"
+#include <TProfile.h>
+#include "TRandom.h"
+#include "TRandom3.h"
 
 // STAR includes
 #include "StThreeVectorF.hh"
@@ -45,6 +48,9 @@
 #include "StEventPoolManager.h"
 #include "StPicoTrk.h"
 #include "StFemtoTrack.h"
+#include "StEPFlattener.h"
+#include "StCalibContainer.h"
+#include "runlistP16ij.h"
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -53,14 +59,14 @@
 #include "StRoot/StPicoEvent/StPicoBTofHit.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoMtdTrigger.h"
-//#include "StRoot/StPicoEvent/StPicoEmcPidTraits.h" // OLD
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
+// old file kept
 #include "StPicoConstants.h"
 
-// centrality
+// centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
@@ -77,11 +83,31 @@ ClassImp(StMyAnalysisMaker)
 StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
-  fLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
+  fLeadingJet = 0; fSubLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
-  fEvenPlaneMaxTrackPtCut = 5.0;
+  fEventPlaneMaxTrackPtCut = 5.0;
+  recenter_read_switch = kFALSE;     // FIXME
+  phi_shift_switch = kFALSE;         // keep off! for TPC
+  shift_read_switch = kFALSE;        // FIXME
+  zdc_recenter_read_switch = kFALSE; // ZDC recenter switch
+  zdc_shift_read_switch = kFALSE;    // ZDC shift switch
+  zdc_apply_corr_switch = kFALSE;    // ZDC final corrections
+  bbc_recenter_read_switch = kFALSE; // BBC recenter switch
+  bbc_shift_read_switch = kFALSE;    // BBC shift switch 
+  bbc_apply_corr_switch = kFALSE;    // BBC final corrections
   fPoolMgr = 0x0;
   fJets = 0x0;
+  fRunNumber = 0;
+  fEPcalibFileName = "$STROOT_CALIB/eventplaneFlat.root"; 
+  fFlatContainer = 0x0;
+  fTPCnFlat = 0x0;
+  fTPCpFlat = 0x0;
+  fBBCFlat = 0x0;
+  fZDCFlat = 0x0;
+  fEPTPCn = 0.;
+  fEPTPCp = 0.;
+  fEPBBC = 0.;
+  fEPZDC = 0.;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
@@ -89,6 +115,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   RhoMaker = 0;
   grefmultCorr = 0;
   mOutName = outName;
+  mOutNameEP = "";
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   doPrintEventCounter = kFALSE;
@@ -107,17 +134,23 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fTracknHitsFit = 15; fTracknHitsRatio = 0.52; 
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
   fCentBinSize = 5; fReduceStatsCent = -1;
+  fCentralityScaled = 0.;
+  ref16 = -99; ref9 = -99;
   fTriggerEventType = 0; fMixingEventType = 0;
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
   fhnJH = 0x0;
   fhnMixedEvents = 0x0;
   fhnCorr = 0x0;
+  fhnEP = 0x0;
   fRho = 0x0;
   fRhoVal = 0;
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
+
+  //if(doEventPlaneCorrections) 
+  InitParameters();
 
 /*
   mEventCounter = 0;
@@ -131,7 +164,18 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 { /*  */
   // destructor
   delete hEventPlane;
+  delete hEventPlane2pi;
   delete hEventPlaneWeighted;
+  delete fHistEPTPCnAlt;
+  delete fHistEPTPCpAlt;
+  delete fHistEPTPCn;
+  delete fHistEPTPCp;
+  delete fHistEPBBC;
+  delete fHistEPZDC;
+  delete fHistEPTPCnFlatten;
+  delete fHistEPTPCpFlatten;
+  delete fHistEPBBCFlatten;
+  delete fHistEPZDCFlatten;
   delete hEventZVertex;
   delete hCentrality;
   delete hMultiplicity;
@@ -157,9 +201,81 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hMixEvtStatCent;
   delete hMixEvtStatZvsCent;
 
+  if(ZdcDis_W) delete ZdcDis_W;
+  if(ZdcDis_E) delete ZdcDis_E;
+  if(BBCDis_W) delete BBCDis_W;
+  if(BBCDis_E) delete BBCDis_E;
+
+  if(phi_shift_switch){
+    for(int i=0;i<2;i++){
+      for(int j=0;j<2;j++){
+        for(int k=0;k<9;k++){
+          if(phishiftA[i][j][k]) delete phishiftA[i][j][k];
+          if(phishiftB[i][j][k]) delete phishiftB[i][j][k];
+        }
+      }
+    }
+  }
+
+  for(int i=0; i<9; i++){ // centr
+    for(int j=0; j<15; j++){ // vz
+      if(recenter_read_switch) {
+        if(Q2_p[i][j]) delete Q2_p[i][j];
+        if(Q2_m[i][j]) delete Q2_m[i][j];
+      }
+
+      if(shift_read_switch) { 
+        if(ShiftA[i][j]) delete ShiftA[i][j];
+        if(ShiftB[i][j]) delete ShiftB[i][j];
+      }
+
+      if(bbc_shift_read_switch) { 
+        if(bbc_ShiftA[i][j]) delete bbc_ShiftA[i][j];
+        if(bbc_ShiftB[i][j]) delete bbc_ShiftB[i][j];
+      }
+    }
+  }
+
+  //if(res_cen) delete res_cen;
+  if(zdc_center_ex) delete zdc_center_ex;
+  if(zdc_center_ey) delete zdc_center_ey;
+  if(zdc_center_wx) delete zdc_center_wx;
+  if(zdc_center_wy) delete zdc_center_wy;
+  if(bbc_center_ex) delete bbc_center_ex;
+  if(bbc_center_ey) delete bbc_center_ey;
+  if(bbc_center_wx) delete bbc_center_wx;
+  if(bbc_center_wy) delete bbc_center_wy;
+
+  if(bbc_res) delete bbc_res;
+  if(zdc_psi) delete zdc_psi;
+  if(checkbbc) delete checkbbc;
+  if(psi2_tpc_bbc) delete psi2_tpc_bbc;
+  if(bbc_psi_evw) delete bbc_psi_evw;
+  if(bbc_psi_raw) delete bbc_psi_raw;
+  if(bbc_psi_rcd) delete bbc_psi_rcd;
+  if(bbc_psi_sft) delete bbc_psi_sft;
+  if(bbc_psi_e) delete bbc_psi_e;
+  if(bbc_psi_w) delete bbc_psi_w;
+
+  if(Psi2) delete Psi2;
+  if(Psi2m) delete Psi2m;
+  if(Psi2p) delete Psi2p;
+  if(Delta_Psi2) delete Delta_Psi2;
+  if(Shift_delta_psi2) delete Shift_delta_psi2;
+  if(Psi2_rcd) delete Psi2_rcd;
+  if(Psi2_final) delete Psi2_final;
+  if(Psi2_final_folded) delete Psi2_final_folded;
+  if(Psi2_final_raw) delete Psi2_final_raw;
+  if(Phi_sp_raw) delete Phi_sp_raw;
+  for(int i=0; i<9; i++){
+    if(Phi_sp_wopx[i]) delete Phi_sp_wopx[i];
+    if(Phi_sp_folded[i]) delete Phi_sp_folded[i];
+  }
+
   delete fhnJH;
   delete fhnMixedEvents;
   delete fhnCorr;
+  delete fhnEP;
 
 //  fJets->Clear(); delete fJets;
 //  fRho->Clear(); delete fRho; 
@@ -172,14 +288,26 @@ Int_t StMyAnalysisMaker::Init() {
 
   // initialize the histograms
   DeclareHistograms();
+  //DeclareEventPlaneHistograms();  // TODO - set up a switch
 
-  // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
+  // initialize calibration file for event plane
+  //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
+  ////fCalibFile = new TFile(fEPcalibFileName.Data(), "READ");
+  fCalibFile = new TFile("StRoot/StMyAnalysisMaker/recenter_calib_file.root", "READ");
+  if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
+  fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/shift_calib_file.root", "READ");
+  if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
+
+  //TFile *fBBCcalibFile = new TFile("BBC_recenter_calib_file.root", "READ");
+  //fBBCcalibFile = new TFile("BBC_recenter_calib_file.root", "READ");
+  //TFile *fZDCcalibFile = new TFile("ZDC_recenter_calib_file.root", "READ");
+  //fZDCcalibFile = new TFile("ZDC_recenter_calib_file.root", "READ");
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
-  //fjEts->SetOwner(kTRUE);
- 
+  //fJets->SetOwner(kTRUE);
+
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
@@ -201,16 +329,11 @@ Int_t StMyAnalysisMaker::Finish() {
   //cout << "\tWithout PV cuts: "<< mAllPVEventCounter << " events"<<endl;
   //cout << "\tInput events: "<<mInputEventCounter<<endl;
 
-  //  Write histos to file and close it.
-/*
-    if(mOutName!="") {
-    TFile *fout = new TFile(mOutName.Data(),"RECREATE");
-    fout->cd();
-    WriteHistograms();
-    fout->Close();
-  }
-*/
+  // close event plane calibration files (if open)
+  if(fCalibFile->IsOpen()) fCalibFile->Close();
+  if(fCalibFile2->IsOpen()) fCalibFile2->Close();
 
+  //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     //fout->ls();
@@ -224,6 +347,33 @@ Int_t StMyAnalysisMaker::Finish() {
     fout->Close();
   }
 
+  //  Write event plane histos to file and close it.
+  if(mOutNameEP!="") {
+    //TFile *foutEP = new TFile(mOutName.Data(), "UPDATE");
+    TFile *foutEP = new TFile(mOutNameEP.Data(), "RECREATE");
+    foutEP->cd();
+    //foutEP->mkdir(fAnalysisMakerName);
+    //foutEP->cd(fAnalysisMakerName);
+    WriteEventPlaneHistograms();
+
+    //foutEP->cd();
+    foutEP->Write();
+    foutEP->Close();
+  }
+
+/*   ===== test ======
+  if(mOutName!="") {
+    cout<<"checking output file in StMyAnalysisMaker::Finish().."<<endl;
+    TFile *fout = new TFile(mOutName.Data(),"UPDATE");
+    fout->cd();
+    fout->mkdir(GetName());
+    fout->cd(GetName());
+    WriteHistograms();
+    fout->cd();
+    fout->Close();
+  }
+*/
+
   cout<<"End of StMyAnalysisMaker::Finish"<<endl;
 
   StMemStat::PrintMem("End of Finish...");
@@ -236,8 +386,19 @@ void StMyAnalysisMaker::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
   // QA histos
-  hEventPlane = new TH1F("hEventPlane", "Event Plane distribution", 72, 0.0, 1.0*pi);
+  hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
+  hEventPlane2pi = new TH1F("hEventPlane2pi", "Event plane distribution 2#pi", 72, 0.0, 2.0*pi);  //TODO delete this soon
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
+  fHistEPTPCnAlt = new TH2F("fHistEPTPCnAlt", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPTPCpAlt = new TH2F("fHistEPTPCpAlt", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPTPCn = new TH2F("fHistEPTPCn", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPTPCp = new TH2F("fHistEPTPCp", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPBBC = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, pi, pi);
+  fHistEPZDC = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, pi, pi);
+  fHistEPTPCnFlatten = new TH2F("fHistEPTPCnFlatten", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPTPCpFlatten = new TH2F("fHistEPTPCpFlatten", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPBBCFlatten = new TH2F("fHistEPBBCFlatten", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPZDCFlatten = new TH2F("fHistEPZDCFlatten", "", 20, 0., 100., 72, -pi, pi);
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100); 
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
@@ -267,6 +428,104 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
   hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", 20, 0, 100);
   hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", 20, 0, 100, 20, -40.0, 40.0);
+
+  // Nov22, 2017 - Event plane histos added for corrections, calculations
+  float range = 12.;
+  float range_b = 2.;
+  ZdcDis_W = new TH2F("ZdcDis_W","",400,-range,range,400,-range,range);
+  ZdcDis_E = new TH2F("ZdcDis_E","",400,-range,range,400,-range,range);
+  BBCDis_W = new TH2F("BBCDis_W","",400,-range_b,range_b,400,-range_b,range_b);
+  BBCDis_E = new TH2F("BBCDis_E","",400,-range_b,range_b,400,-range_b,range_b);
+
+  // TPC recentering Q-vector
+  if(recenter_read_switch){
+    for(int i=0; i<9; i++){//centr
+      for(int j=0; j<15; j++){//vz
+        Q2_p[i][j] = new TProfile(Form("Q2_p%d_%d",i,j),Form("Q2 for postive eta,centr%d,vz%d",i,j),2,0,2);
+        Q2_m[i][j] = new TProfile(Form("Q2_m%d_%d",i,j),Form("Q2 for minus eta,centr%d,vz%d",i,j),2,0,2);
+      }
+    }
+  }
+
+  // TPC event plane shift
+  if(phi_shift_switch){
+    TString* TPCcorrA;
+    TString* TPCcorrB;
+    for(int i=0;i<2;i++){
+      for(int j=0;j<2;j++){
+        for(int k=0;k<9;k++){
+          TPCcorrA = new TString("TPCphishiftA_");
+          TPCcorrB = new TString("TPCphishiftB_");
+          *TPCcorrA+=i;
+          *TPCcorrA+=j;
+          *TPCcorrA+=k;
+          *TPCcorrB+=i;
+          *TPCcorrB+=j;
+          *TPCcorrB+=k;
+          phishiftA[i][j][k] = new TProfile(TPCcorrA->Data(),"",21,0,21,-100,100);
+          phishiftB[i][j][k] = new TProfile(TPCcorrB->Data(),"",21,0,21,-100,100);
+          delete TPCcorrA;
+          delete TPCcorrB;
+        }
+      }
+    }
+  }
+
+  // TPC shift
+  if(shift_read_switch){
+    for(int i=0; i<9; i++){//centr
+      for(int j=0; j<15; j++){//vz
+        ShiftA[i][j] = new TProfile(Form("ShiftA%d_%d",i,j),"An",20,0,20,-100,100);
+        ShiftB[i][j] = new TProfile(Form("ShiftB%d_%d",i,j),"Bn",20,0,20,-100,100);
+      }
+    }
+  }
+
+  // BBC shift
+  if(bbc_shift_read_switch){
+    for(int i=0; i<9; i++){//centr
+      for(int j=0; j<15; j++){//vz
+        bbc_ShiftA[i][j] = new TProfile(Form("bbc_ShiftA%d_%d",i,j),"An",20,0,20,-100,100);
+        bbc_ShiftB[i][j] = new TProfile(Form("bbc_ShiftB%d_%d",i,j),"Bn",20,0,20,-100,100);
+      }
+    }
+  }
+
+  //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
+  zdc_center_ex = new TProfile("zdc_center_ex","",1359, 0, 1359, -100, 100);
+  zdc_center_ey = new TProfile("zdc_center_ey","",1359, 0, 1359, -100, 100);
+  zdc_center_wx = new TProfile("zdc_center_wx","",1359, 0, 1359, -100, 100);
+  zdc_center_wy = new TProfile("zdc_center_wy","",1359, 0, 1359, -100, 100);
+  bbc_center_ex = new TProfile("bbc_center_ex","",1359, 0, 1359, -100, 100);
+  bbc_center_ey = new TProfile("bbc_center_ey","",1359, 0, 1359, -100, 100);
+  bbc_center_wx = new TProfile("bbc_center_wx","",1359, 0, 1359, -100, 100);
+  bbc_center_wy = new TProfile("bbc_center_wy","",1359, 0, 1359, -100, 100);
+ 
+  bbc_res= new TProfile("bbc_res","",10, 0, 10, -100, 100);
+  zdc_psi = new TH1F("zdc_psi","zdc psi1",1000,-2*pi, 2*pi);
+  checkbbc = new TH1F("checkbbc","difference between psi2 and bbc ps2",1000,-2*pi, 2*pi);
+  psi2_tpc_bbc = new TH2F("psi2_tpc_bbc","tpc psi2 vs. bbc psi2",1000,-2*pi, 2*pi, 1000, -2*pi, 2*pi);
+  bbc_psi_evw = new TH2F("bbc_psi_evw","bbc psi2 east vs. bbc psi2 west",1000,-2*pi, 2*pi, 1000, -2*pi, 2*pi);
+  bbc_psi_raw = new TH1F("bbc_psi_raw","bbc psi1",1000,-2*pi, 2*pi); 
+  bbc_psi_rcd = new TH1F("bbc_psi_rcd","bbc psi1",1000,-2*pi, 2*pi);
+  bbc_psi_sft = new TH1F("bbc_psi_sft","bbc psi1",1000,-2*pi, 2*pi);
+  bbc_psi_e = new TH1F("bbc_psi_e","bbc psi1",1000,-2*pi, 2*pi);
+  bbc_psi_w = new TH1F("bbc_psi_w","bbc psi1",1000,-2*pi, 2*pi);
+
+  Psi2 = new TH1F("Psi2","raw #Psi_{2} distribution",1000,-2*pi, 2*pi);
+  Psi2m = new TH1F("Psi2m","minus eta raw #Psi_{2} distribution",1000,-2*pi, 2*pi);
+  Psi2p = new TH1F("Psi2p","positive eta raw #Psi_{2} distribution",1000,-2*pi, 2*pi);
+  Delta_Psi2 = new TH1F("Delta_Psi2","#Delta #Psi_{2} distribution",1000,-2*pi, 2*pi);
+  Shift_delta_psi2 = new TH1F("Shift_delta_psi2","shift_delta_psi2 distribution",4000,-8*pi, 8*pi);
+  Psi2_rcd = new TH1F("Psi2_rcd","recentered #Psi_{2} distribution",1000,-2*pi, 2*pi);
+  Psi2_final = new TH1F("Psi2_final","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
+  Psi2_final_folded = new TH1F("Psi2_final_folded","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
+  Psi2_final_raw = new TH1F("Psi2_final_raw","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
+  Phi_sp_raw = new TH1F("Phi_sp_raw","trigger phi and psi2 separated angle",2000,-4*pi,4*pi);
+  for(int i=0; i<9; i++){
+    Phi_sp_wopx[i] = new TH1F(Form("Phi_sp_wopx_%d",i),"trigger phi and psi2 separated angle",2000,0, pi);
+    Phi_sp_folded[i] = new TH1F(Form("Phi_sp_folded_%d",i),"trigger phi and psi2 separated angle",2000,0, pi);
+  }
 
   // set up jet-hadron sparse
   UInt_t bitcodeMESE = 0; // bit coded, see GetDimParams() below
@@ -331,15 +590,32 @@ void StMyAnalysisMaker::DeclareHistograms() {
   bitcodeCorr = 1<<0 | 1<<1 | 1<<2 | 1<<3; // | 1<<4;
   fhnCorr = NewTHnSparseFCorr("fhnCorr", bitcodeCorr);
 
+  UInt_t bitcodeEP = 0; // bit coded, see GetDimparamsEP() below
+  bitcodeEP = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7;
+  fhnEP = NewTHnSparseF("fhnEP", bitcodeEP);
+
   // Switch on Sumw2 for all histos
   SetSumw2();
+  SetEPSumw2(); // TODO set up with a switch in future
 }
 
-//-----------------------------------------------------------------------------
+// write histograms
+//_____________________________________________________________________________
 void StMyAnalysisMaker::WriteHistograms() {
   // default histos
   hEventPlane->Write();
+  hEventPlane2pi->Write();
   hEventPlaneWeighted->Write();
+  fHistEPTPCnAlt->Write();
+  fHistEPTPCpAlt->Write();
+  fHistEPTPCn->Write();
+  fHistEPTPCp->Write();
+  fHistEPBBC->Write();
+  fHistEPZDC->Write();
+  fHistEPTPCnFlatten->Write();
+  fHistEPTPCpFlatten->Write();
+  fHistEPBBCFlatten->Write();
+  fHistEPZDCFlatten->Write();
   hEventZVertex->Write();
   hCentrality->Write();
   hMultiplicity->Write();
@@ -358,7 +634,6 @@ void StMyAnalysisMaker::WriteHistograms() {
   hJetTracksPhi->Write();
   hJetTracksEta->Write();
   hJetPtvsArea->Write();
-
   fHistJetHEtaPhi->Write();
 
   // QA histos
@@ -374,18 +649,95 @@ void StMyAnalysisMaker::WriteHistograms() {
   fhnJH->Write();
   fhnMixedEvents->Write();
   fhnCorr->Write();
+
+  fhnEP->Write();
 }
 
-//----------------------------------------------------------------------------- 
+// write event plane histograms
+//_____________________________________________________________________________
+void StMyAnalysisMaker::WriteEventPlaneHistograms() {
+  ZdcDis_W->Write();
+  ZdcDis_E->Write();
+  BBCDis_W->Write();
+  BBCDis_E->Write();
+
+  if(phi_shift_switch){
+    for(int i=0;i<2;i++){
+      for(int j=0;j<2;j++){
+        for(int k=0;k<9;k++){
+          phishiftA[i][j][k]->Write();
+          phishiftB[i][j][k]->Write();
+        }
+      }
+    }
+  }
+
+  for(int i=0; i<9; i++){ // centr
+    for(int j=0; j<15; j++){ // vz
+      if(recenter_read_switch) Q2_p[i][j]->Write();
+      if(recenter_read_switch) Q2_m[i][j]->Write();
+
+      if(shift_read_switch) ShiftA[i][j]->Write();
+      if(shift_read_switch) ShiftB[i][j]->Write();
+      
+      if(bbc_shift_read_switch) bbc_ShiftA[i][j]->Write();
+      if(bbc_shift_read_switch) bbc_ShiftB[i][j]->Write();
+    }
+  }
+
+  //res_cen->Write();
+  if(zdc_recenter_read_switch){
+    zdc_center_ex->Write();
+    zdc_center_ey->Write();
+    zdc_center_wx->Write();
+    zdc_center_wy->Write();
+  }
+ 
+  if(bbc_recenter_read_switch){ // added this in
+    bbc_center_ex->Write();
+    bbc_center_ey->Write();
+    bbc_center_wx->Write();
+    bbc_center_wy->Write();
+  }
+
+  bbc_res->Write();
+  zdc_psi->Write();
+  checkbbc->Write();
+  psi2_tpc_bbc->Write();
+  bbc_psi_evw->Write();
+  bbc_psi_raw->Write();
+  bbc_psi_rcd->Write();
+  bbc_psi_sft->Write();
+  bbc_psi_e->Write();
+  bbc_psi_w->Write();
+
+  Psi2->Write();
+  Psi2m->Write();
+  Psi2p->Write();
+  Delta_Psi2->Write();
+  Shift_delta_psi2->Write();
+  Psi2_rcd->Write();
+  Psi2_final->Write();
+  Psi2_final_folded->Write();
+  Psi2_final_raw->Write();
+  Phi_sp_raw->Write();
+  for(int i=0; i<9; i++){
+    Phi_sp_wopx[i]->Write();
+    Phi_sp_folded[i]->Write();
+  }
+
+}
+
 // OLD user code says: //  Called every event after Make(). 
+//_____________________________________________________________________________
 void StMyAnalysisMaker::Clear(Option_t *opt) {
   fJets->Clear();
 
   //delete [] fTracksME; fTracksME=0;
 }
-
-//----------------------------------------------------------------------------- 
+ 
 //  This method is called every event.
+//_____________________________________________________________________________
 Int_t StMyAnalysisMaker::Make() {
   const double pi = 1.0*TMath::Pi();
   bool printInfo = kFALSE;
@@ -435,11 +787,22 @@ Int_t StMyAnalysisMaker::Make() {
 
   // let me know the Run #, fill, and event ID
   Int_t RunId = mPicoEvent->runId();
+  fRunNumber = mPicoEvent->runId();
   Int_t fillId = mPicoEvent->fillId();
   Int_t eventId = mPicoEvent->eventId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
   Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?i
+
+  // ================= Event Plane flattening container ==============
+  // set up event plane flattening container 
+  TObjArray *maps = (TObjArray*)fFlatContainer->GetObject(fRunNumber,"eventplaneFlat");
+  if(maps) {
+    fTPCnFlat = (StEPFlattener*)maps->At(0);
+    fTPCpFlat = (StEPFlattener*)maps->At(1);
+    fBBCFlat = (StEPFlattener*)maps->At(2);
+    fZDCFlat = (StEPFlattener*)maps->At(3);
+  }
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
@@ -456,11 +819,12 @@ Int_t StMyAnalysisMaker::Make() {
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   Int_t cent16 = grefmultCorr->getCentralityBin16();
   Int_t cent9 = grefmultCorr->getCentralityBin9();
+  ref9 = GetCentBin(cent9, 9);
+  ref16 = GetCentBin(cent16, 16);  
   Int_t centbin = GetCentBin(cent16, 16);
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
   Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
-  //Double_t centbinscaled = centbin * 5.0;
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
@@ -468,6 +832,7 @@ Int_t StMyAnalysisMaker::Make() {
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   double centralityScaled = centbin*5.0;
+  double fCentralityScaled = centbin*5.0;
   hCentrality->Fill(centralityScaled);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
@@ -482,7 +847,6 @@ Int_t StMyAnalysisMaker::Make() {
   else cbin = -99;
 
   // cut on centrality for analysis before doing anything
-//  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStWarn; }
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
 
   // ============================ end of CENTRALITY ============================== //
@@ -519,7 +883,8 @@ Int_t StMyAnalysisMaker::Make() {
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
-  // Run16
+  // Run16 triggers:
+  // 
   int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
   int arrBHT2[] = {4, 16, 17, 530202, 540203};
   int arrBHT3[] = {17, 520203, 530213};
@@ -537,6 +902,7 @@ Int_t StMyAnalysisMaker::Make() {
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
   }
+
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
 
@@ -561,11 +927,23 @@ Int_t StMyAnalysisMaker::Make() {
   fLeadingJet = GetLeadingJet();
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
+  hEventPlane2pi->Fill(rpAngle);
 
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
-  //return kStOk;
+  GetEventPlane(kFALSE, fCentralityScaled);
+
+  // ==================================================================
+  // 1) get z-vertex binning
+  // 2) call BBC_EP_Cal to calculate corrections for BBC event plane
+
+  //if(ref9 < 0) return kStOK;    // >80% centrality;
+  int region_vz = GetVzRegion(zVtx);
+  if(region_vz > 900) return kStOK;
+  BBC_EP_Cal(ref9, region_vz, 2);
+
+  // ===================================================================================
 
   // ============== RhoMaker =============== //
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
@@ -599,6 +977,7 @@ Int_t StMyAnalysisMaker::Make() {
     cout<<"njets = "<<njets<<"  ntracks = "<<ntracks<<"  nglobaltracks = "<<nglobaltracks<<"  refCorr2 = "<<refCorr2<<"  grefMult = "<<grefMult<<"  centbin = "<<centbin<<endl;
   }
 
+  // ====================== Jet loop below ============================
   // loop over Jets in the event: initialize some parameter variables
   double jetarea, jetpt, corrjetpt, jetptselected, jetE, jetEta, jetPhi, jetNEF, maxtrackpt, NtrackConstit;
   double gpt, gp, phi, eta, px, py, pt, pz, charge;
@@ -1427,6 +1806,84 @@ void StMyAnalysisMaker::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nb
    }// end of switch
 } // end of Correction (ME) sparse
 
+//______________________________________________________________________
+THnSparse* StMyAnalysisMaker::NewTHnSparseEP(const char* name, UInt_t entries) {
+  // generate new THnSparseD, axes are defined in GetDimParamsD()
+  Int_t count = 0;
+  UInt_t tmp = entries;
+  while(tmp!=0){
+    count++;
+    tmp = tmp &~ -tmp;  // clear lowest bit
+  }
+
+  TString hnTitle(name);
+  const Int_t dim = count;
+  Int_t nbins[dim];
+  Double_t xmin[dim];
+  Double_t xmax[dim];
+
+  Int_t i=0;
+  Int_t c=0;
+  while(c<dim && i<32){
+    if(entries&(1<<i)){
+      TString label("");
+      GetDimParamsEP(i, label, nbins[c], xmin[c], xmax[c]);
+      hnTitle += Form(";%s",label.Data());
+      c++;
+    }
+
+    i++;
+  }
+  hnTitle += ";";
+
+  return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
+} // end of NewTHnSparseEP
+
+//______________________________________________________________________________________________
+void StMyAnalysisMaker::GetDimParamsEP(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
+{
+   //stores label and binning of axis for THnSparse
+   const Double_t pi = TMath::Pi();
+
+   switch(iEntry){
+
+    case 0:
+      label = "centrality 5% bin";
+      nbins = 20; //16;
+      xmin = 0.;
+      xmax = 100.; //16.;
+      break;
+
+    case 1:
+      label = "track Qx-vector";
+      nbins = 72;
+      xmin = -90.;
+      xmax = 90.;
+      break;
+
+    case 2:
+      label = "track Qy-vector";
+      nbins = 72;
+      xmin = -90.;
+      xmax = 90.;
+      break;
+
+    case 3:
+      label = "event plane angle";
+      nbins = 72;
+      xmin = 0.;
+      xmax = pi;
+      break;
+
+    case 4: // may delete this case
+      label = "Jet p_{T} corrected with Rho";
+      nbins = 50;
+      xmin = -50.;
+      xmax = 200.;
+      break;
+
+   }// end of switch
+} // end of event plane sparse
 
 //_________________________________________________
 // From CF event mixing code PhiCorrelations
@@ -1449,7 +1906,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
   // loop over tracks
   Int_t nMixTracks = mPicoDst->numberOfTracks();
   Int_t iterTrk = 0;
-  Double_t phi, eta, px, py, pt, pz, p, charge;
+  Double_t phi, eta, pt, charge; //, px, py, pz, p;
   const double pi = 1.0*TMath::Pi();
   for (Int_t i=0; i<nMixTracks; i++) { 
     // get tracks
@@ -1755,14 +2212,14 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
   // leading jet check and removal
   Float_t excludeInEta = -999;
-  fLeadingJet = GetLeadingJet();
-  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
+  fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
+  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
 
   // loop over tracks
-  int n = mPicoDst->numberOfTracks();
-  for(int i=0; i<n; i++) {
+  int nTrack = mPicoDst->numberOfTracks();
+  for(int i=0; i<nTrack; i++) {
     // get tracks
     StPicoTrack* track = mPicoDst->track(i);
     if(!track) { continue; }
@@ -1787,8 +2244,8 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
     }
 
     // should set a soft pt range (0.2 - 5.0?)
-    // more acceptance cuts now - after getting 3vector - hardcoded for now
-    if(pt > fEvenPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+    // more acceptance cuts now - after getting 3-vector
+    if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     if(phi < 0) phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
 
@@ -1818,6 +2275,12 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   mQ.Set(mQx, mQy);
   double psi = mQ.Phi() / order;
   //return psi*180/pi;  // converted to degrees
+
+  // fill info for q-vectors, etc..
+  Double_t EPentries[4] = {fCentralityScaled, mQx, mQy, psi};
+  fhnEP->Fill(EPentries);
+
+  //cout<<"mQx = "<<mQx<<"  mQy = "<<mQy<<endl;
   return psi;
 }
 
@@ -1826,10 +2289,13 @@ StJet* StMyAnalysisMaker::GetLeadingJet(StRhoParameter* eventRho) {
   // return pointer to the highest pt jet (before background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
   if(fJets) {
+    // get number of jets, initialize pt and leading jet pointer
     Int_t iJets(fJets->GetEntriesFast());
     Double_t pt(0);
     StJet* leadingJet(0x0);
-    if(!eventRho) {
+
+    if(!eventRho) { // no rho parameter provided
+      // loop over jets
       for(Int_t i(0); i < iJets; i++) {
         StJet* jet = static_cast<StJet*>(fJets->At(i));
         //if(!AcceptJet(jet)) continue;
@@ -1839,15 +2305,76 @@ StJet* StMyAnalysisMaker::GetLeadingJet(StRhoParameter* eventRho) {
         }
       }
       return leadingJet;
-    } else {
+    } else { // rho parameter provided
       // return leading jet after background subtraction
       Double_t rho(0);
+      // loop over jets
       for(Int_t i(0); i < iJets; i++) {
         StJet* jet = static_cast<StJet*>(fJets->At(i));
         //if(!AcceptJet(jet)) continue;
         if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
           leadingJet = jet;
           pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
+        }
+      }
+      return leadingJet;
+    }
+  }
+
+  return 0x0;
+}
+
+// _____________________________________________________________________________________________
+StJet* StMyAnalysisMaker::GetSubLeadingJet(StRhoParameter* eventRho) {
+  // return pointer to the second highest pt jet (before background subtraction) within acceptance
+  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
+  if(fJets) {
+    // get number of jets 
+    Int_t iJets(fJets->GetEntriesFast());
+
+    // initialize pt's
+    Double_t pt(0);
+    Double_t pt2(0);
+
+    // leading and subleading jet pointers
+    StJet* leadingJet(0x0);
+    StJet* subleadingJet(0x0);
+
+    if(!eventRho) { // no rho parameter provided
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // leading jet
+        if(jet->Pt() > pt) {
+          leadingJet = jet;
+          pt = leadingJet->Pt();
+        }
+
+        // subleading jet
+        if((jet->Pt() > pt2) && (jet->Pt() < pt)) { 
+          subleadingJet = jet;
+          pt2 = subleadingJet->Pt();
+        }
+
+      }
+      return subleadingJet;
+
+    } else { // rho parameter provided
+      // return leading jet after background subtraction
+      Double_t rho(0);
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // leading jet
+        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
+          leadingJet = jet;
+          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
+        }
+
+        // subleading jet
+        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
+          subleadingJet = jet;
+          pt2 = subleadingJet->Pt();
         }
       }
       return leadingJet;
@@ -2015,10 +2542,23 @@ physics
 }
 */
 
+// Set the bin errors on histograms
+// __________________________________________________________________________________
 void StMyAnalysisMaker::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
+  hEventPlane2pi->Sumw2();
   hEventPlaneWeighted->Sumw2();
+  fHistEPTPCnAlt->Sumw2();
+  fHistEPTPCpAlt->Sumw2();
+  fHistEPTPCn->Sumw2();
+  fHistEPTPCp->Sumw2();
+  fHistEPBBC->Sumw2();
+  fHistEPZDC->Sumw2();
+  fHistEPTPCnFlatten->Sumw2();
+  fHistEPTPCpFlatten->Sumw2();
+  fHistEPBBCFlatten->Sumw2();
+  fHistEPZDCFlatten->Sumw2();
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
@@ -2047,4 +2587,728 @@ void StMyAnalysisMaker::SetSumw2() {
   fhnJH->Sumw2();
   fhnMixedEvents->Sumw2();
   fhnCorr->Sumw2();
+  fhnEP->Sumw2();
+
 }
+
+//
+// set sumw2 for event plane histograms
+// __________________________________________________________________________________
+void StMyAnalysisMaker::SetEPSumw2() {
+  ZdcDis_W->Sumw2();
+  ZdcDis_E->Sumw2();
+  BBCDis_W->Sumw2();
+  BBCDis_E->Sumw2();
+
+  if(phi_shift_switch){
+    for(int i=0;i<2;i++){
+      for(int j=0;j<2;j++){
+        for(int k=0;k<9;k++){
+          phishiftA[i][j][k]->Sumw2();
+          phishiftB[i][j][k]->Sumw2();
+        }
+      }
+    }
+  }
+
+  for(int i=0; i<9; i++){ // centr
+    for(int j=0; j<15; j++){ // vz
+      if(recenter_read_switch) Q2_p[i][j]->Sumw2();
+      if(recenter_read_switch) Q2_m[i][j]->Sumw2();
+
+      if(shift_read_switch) ShiftA[i][j]->Sumw2();
+      if(shift_read_switch) ShiftB[i][j]->Sumw2();
+      
+      if(bbc_shift_read_switch) bbc_ShiftA[i][j]->Sumw2();
+      if(bbc_shift_read_switch) bbc_ShiftB[i][j]->Sumw2();
+    }
+  }
+
+  ////res_cen->Sumw2();
+  if(zdc_recenter_read_switch){
+    zdc_center_ex->Sumw2();
+    zdc_center_ey->Sumw2();
+    zdc_center_wx->Sumw2();
+    zdc_center_wy->Sumw2();
+  }
+  if(bbc_recenter_read_switch){
+    bbc_center_ex->Sumw2();
+    bbc_center_ey->Sumw2();
+    bbc_center_wx->Sumw2();
+    bbc_center_wy->Sumw2();
+  }
+
+  bbc_res->Sumw2();
+  zdc_psi->Sumw2();
+  checkbbc->Sumw2();
+  psi2_tpc_bbc->Sumw2();
+  bbc_psi_evw->Sumw2();
+  bbc_psi_raw->Sumw2();
+  bbc_psi_rcd->Sumw2();
+  bbc_psi_sft->Sumw2();
+  bbc_psi_e->Sumw2();
+  bbc_psi_w->Sumw2();
+
+  Psi2->Sumw2();
+  Psi2m->Sumw2();
+  Psi2p->Sumw2();
+  Delta_Psi2->Sumw2();
+  Shift_delta_psi2->Sumw2();
+  Psi2_rcd->Sumw2();
+  Psi2_final->Sumw2();
+  Psi2_final_folded->Sumw2();
+  Psi2_final_raw->Sumw2();
+  Phi_sp_raw->Sumw2();
+  for(int i=0; i<9; i++){
+    Phi_sp_wopx[i]->Sumw2();
+    Phi_sp_folded[i]->Sumw2();
+  }
+
+}
+
+//
+// Initialize parameters
+// __________________________________________________________________________________
+void StMyAnalysisMaker::InitParameters()
+{
+  //AddToHistogramsName("Flow_");
+  // FIXME update this!
+  fFlatContainer = new StCalibContainer("eventplaneFlat");
+  fFlatContainer->InitFromFile("$STROOT_CALIB/eventplaneFlat.root", "eventplaneFlat");
+}  
+
+// TPC negative eta region event plane flattening
+// __________________________________________________________________________________
+Double_t StMyAnalysisMaker::ApplyFlatteningTPCn(Double_t phi, Double_t c)
+{
+  if (fTPCnFlat) return fTPCnFlat->MakeFlat(phi,c);
+  return phi;
+}
+
+// TPC positive eta region event plane flattening
+// __________________________________________________________________________________
+Double_t StMyAnalysisMaker::ApplyFlatteningTPCp(Double_t phi, Double_t c)
+{ 
+  if (fTPCpFlat) return fTPCpFlat->MakeFlat(phi,c);
+  return phi;
+}
+
+// BBC event plane flattening
+// __________________________________________________________________________________
+Double_t StMyAnalysisMaker::ApplyFlatteningBBC(Double_t phi, Double_t c)
+{
+  if (fBBCFlat) return fBBCFlat->MakeFlat(phi,c);
+  return phi;
+}
+
+// ZDC event plane flattening
+// __________________________________________________________________________________
+Double_t StMyAnalysisMaker::ApplyFlatteningZDC(Double_t phi, Double_t c)
+{
+  if (fZDCFlat) return fZDCFlat->MakeFlat(phi,c);
+  return phi;
+}
+
+// ________________________________________________________________________________________
+void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Double_t fCentralityScaled)
+{ 
+  // ===============================
+  // get event B (magnetic) field
+  Float_t Bfield = mPicoEvent->bField();
+
+  // get vertex 3-vector and declare variables
+  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  double zVtx = mVertex.z();
+
+  TVector2 mQtpcn, mQtpcp;
+  double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
+  int order = 2;
+  double phi, eta, pt;
+  double pi = 1.0*TMath::Pi();
+
+  // leading jet check and removal
+  Float_t excludeInEta = -999;
+  fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
+  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
+    if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
+  }
+
+  // loop over tracks
+  int nTrack = mPicoDst->numberOfTracks();
+  for(int i=0; i<nTrack; i++) {
+    // get tracks
+    StPicoTrack* track = mPicoDst->track(i);
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
+
+    // declare kinematic variables
+    if(doUsePrimTracks) {
+      // get primary track variables
+      StThreeVectorF mPMomentum = track->pMom();
+      phi = mPMomentum.phi();
+      eta = mPMomentum.pseudoRapidity();
+      pt = mPMomentum.perp();
+    } else {
+      // get global track variables
+      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
+      phi = mgMomentum.phi();
+      eta = mgMomentum.pseudoRapidity();
+      pt = mgMomentum.perp();
+    }
+
+    // should set a soft pt range (0.2 - 5.0?)
+    // more acceptance cuts now - after getting 3-vector
+    if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+//    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
+    if(phi < -2*pi) phi += 2*pi;
+    if(phi > 2*pi) phi -= 2*pi;
+
+    // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
+//    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;  // just commented out
+    if(fExcludeLeadingJetsFromFit > 0 && 
+      ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || 
+       (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+
+    // configure track weight when performing Q-vector summation
+    double trackweight;
+    if(fTrackWeight == kNoWeight) {
+      trackweight = 1.0;
+    } else if(fTrackWeight == kPtLinearWeight) {
+      trackweight = pt;
+    } else if(fTrackWeight == kPtLinear2Const5Weight) {
+      if(pt <= 2.0) trackweight = pt;
+      if(pt > 2.0) trackweight = 2.0;
+    } else {
+      // nothing choosen, so don't use weight
+      trackweight = 1.0;
+    }
+
+    if(eta < 0) {
+      // sum up q-vectors on negative eta side
+      mQtpcnx += trackweight * cos(phi * order);
+      mQtpcny += trackweight * sin(phi * order);
+    }
+    if(eta > 0) {
+      // sum up q-vectors on positive eta side
+      mQtpcpx += trackweight * cos(phi * order);
+      mQtpcpy += trackweight * sin(phi * order);
+    }
+
+  } // end of track loop
+
+  // set q-vector components 
+  mQtpcn.Set(mQtpcnx, mQtpcny);
+  mQtpcp.Set(mQtpcpx, mQtpcpy);
+  double psiTPCneg = mQtpcn.Phi() / order;
+  double psiTPCpos = mQtpcp.Phi() / order;
+
+  // combine x-y vectors for neg and pos Eta ranges
+  Double_t tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
+  Double_t tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
+  //Double_t tpcn3 = (0.5*TMath::ATan(mQtpcny / mQtpcnx));
+  //Double_t tpcp3 = (0.5*TMath::ATan(mQtpcpy / mQtpcpx));
+
+  // Method 1: used in ALICE
+  // Method 2:
+  // Method 3: should be exactly the same as Method 2 (but 20-30%+ of time they differ)
+  // TEST - TODO
+  double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );
+  if(n1 > TMath::Pi()) n1-=TMath::Pi();
+  double p1 = TVector2::Phi_0_2pi( mQtpcp.Phi() / order );
+  if(p1 > TMath::Pi()) p1-=TMath::Pi();
+  double n2 = TVector2::Phi_0_2pi( tpcn2 );
+  if(n2 > TMath::Pi()) n2-=TMath::Pi();
+  double p2 = TVector2::Phi_0_2pi( tpcp2 );
+  if(p2 > TMath::Pi()) p2-=TMath::Pi();
+  //double n3 = TVector2::Phi_0_2pi( tpcn3);
+  //if(n3 > TMath::Pi()) n3-=TMath::Pi();
+  //double p3 = TVector2::Phi_0_2pi( tpcp3 );
+  //if(p3 > TMath::Pi()) p3-=TMath::Pi();
+
+  // test print info
+  //cout<<"mQtpcnx = "<<mQtpcnx<<"  mQtpcny = "<<mQtpcny<<endl;
+  //cout<<"n1 = "<<n1<<"  p1 = "<<p1<<endl;
+  //cout<<"n2 = "<<n2<<"  p2 = "<<p2<<endl;
+  ///cout<<"n3 = "<<n3<<"  p3 = "<<p3<<endl;
+
+  // ===============================   
+  // Calculate the Event Plane
+  double fEPTPCn = mQtpcn.Phi() / order;
+  double fEPTPCp = mQtpcp.Phi() / order;
+
+/*
+  fEPTPCn  = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0",  fInputEvent)); 
+  if(fEPTPCn>TMath::Pi()) fEPTPCn-=TMath::Pi();
+  fEPTPCp  = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0",  fInputEvent)); 
+  if(fEPTPCp>TMath::Pi()) fEPTPCp-=TMath::Pi();
+  fEPBBC = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0A", fInputEvent)); 
+  if(fEPBBC>TMath::Pi()) fEPBBC-=TMath::Pi();
+  fEPZDC = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0C", fInputEvent)); 
+  if(fEPZDC>TMath::Pi()) fEPZDC-=TMath::Pi();
+*/
+
+  // standard event plane distributions as function of centrality
+  //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
+  fHistEPTPCnAlt->Fill(fCentralityScaled, tpcn2);
+  fHistEPTPCpAlt->Fill(fCentralityScaled, tpcp2);
+  fHistEPTPCn->Fill(fCentralityScaled, fEPTPCn);
+  fHistEPTPCp->Fill(fCentralityScaled, fEPTPCp);
+  fHistEPBBC->Fill(fCentralityScaled, fEPBBC);
+  fHistEPZDC->Fill(fCentralityScaled, fEPZDC);
+
+  // if we want to flatten event plane
+  if(flattenEP) {
+    fEPTPCn = ApplyFlatteningTPCn(fEPTPCn, fCentralityScaled);
+    fEPTPCp = ApplyFlatteningTPCp(fEPTPCp, fCentralityScaled);
+    fEPBBC = ApplyFlatteningBBC(fEPBBC, fCentralityScaled);
+    fEPZDC = ApplyFlatteningZDC(fEPZDC, fCentralityScaled);
+    //if (fEPTPC != -999.) fEPTPC = ApplyFlatteningTPC(fEPTPC, fCentralityScaled);
+    while (fEPTPCn<0.) fEPTPCn+=TMath::Pi(); while (fEPTPCn>TMath::Pi()) fEPTPCn-=TMath::Pi();
+    while (fEPTPCp<0.) fEPTPCp+=TMath::Pi(); while (fEPTPCp>TMath::Pi()) fEPTPCp-=TMath::Pi();
+    while (fEPBBC<0.)  fEPBBC+=TMath::Pi();  while (fEPBBC>TMath::Pi())  fEPBBC-=TMath::Pi();
+    while (fEPZDC<0.)  fEPZDC+=TMath::Pi();  while (fEPZDC>TMath::Pi())  fEPZDC-=TMath::Pi();
+
+    fHistEPTPCnFlatten->Fill(fCentralityScaled, fEPTPCn);
+    fHistEPTPCpFlatten->Fill(fCentralityScaled, fEPTPCp);
+    fHistEPBBCFlatten->Fill(fCentralityScaled, fEPBBC);
+    fHistEPZDCFlatten->Fill(fCentralityScaled, fEPZDC);
+  }
+
+/*
+  fHistEPDiffV0A_V0CR0->Fill(fCentrality, TMath::Cos(2.0*(fEPV0A - fEPV0CR0)));
+  fHistEPDiffV0A_V0CR3->Fill(fCentrality, TMath::Cos(2.0*(fEPV0A - fEPV0CR3)));
+  fHistEPDiffV0CR0_V0CR3->Fill(fCentrality, TMath::Cos(2.0*(fEPV0CR0 - fEPV0CR3)));
+  fHistEPDiffV0C_V0AR4->Fill(fCentrality, TMath::Cos(2.0*(fEPV0C - fEPV0AR4)));
+  fHistEPDiffV0C_V0AR7->Fill(fCentrality, TMath::Cos(2.0*(fEPV0C - fEPV0AR7)));
+  fHistEPDiffV0AR4_V0AR7->Fill(fCentrality, TMath::Cos(2.0*(fEPV0AR4 - fEPV0AR7)));   
+  fHistEPDiffV0AR_V0CR->Fill(fCentrality, TMath::Cos(2.0*(fEPV0AR - fEPV0CR)));
+*/
+}
+
+// 1) get the binning for: ref9 and region_vz
+// 2) get function: GetRunNo( );
+// 3) 
+
+// 
+// BBC event plane calculation
+// ______________________________________________________________________
+Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult, the region of vz, and order of EP
+  // constant
+  double pi = 1.0*TMath::Pi();
+  
+  // get run ID, transform to run order for filling histogram of corrections
+  int RunId = mPicoEvent->runId();
+  int RunId_Order = GetRunNo(RunId);// + 1; // FIXME - I don't know I want to do this
+  if(RunId_Order < -1) return kStOK;
+
+  // initialize some BBC parameters
+  const int N_B = 16;
+  double bbc_E[N_B] = {0.};
+  double bbc_W[N_B] = {0.};
+  double sum_E = 0.;
+  double sum_W = 0.;
+  for(int i=0; i<N_B; i++){
+    bbc_E[i] = mPicoEvent->bbcAdcEast(i);
+    bbc_W[i] = mPicoEvent->bbcAdcWest(i);
+    sum_E += bbc_E[i];
+    sum_W += bbc_W[i];
+  }
+
+  if(sum_E < 1e-6 || sum_W < 1e-6) return kStOK;
+
+  // loop over BBC tiles
+  for(int i=0; i<N_B; i++){
+    bbc_E[i] /= sum_E;
+    bbc_W[i] /= sum_W;
+  }
+
+  // initialize BBC sum and angle parameters
+  double sumsin_E = 0., sumcos_E = 0.;
+  double sumsin_W = 0., sumcos_W = 0.;
+  double phi_pE = 0;
+  double phi_pW = 0;
+
+  // loop over BBC tiles
+  for(int i=0; i<N_B; i++){
+    phi_pE = BBC_GetPhi(0, i);
+    phi_pW = BBC_GetPhi(1, i);
+    sumsin_E += bbc_E[i]*sin(n*phi_pE); 
+    sumcos_E += bbc_E[i]*cos(n*phi_pE);
+    sumsin_W += bbc_W[i]*sin(n*phi_pW); 
+    sumcos_W += bbc_W[i]*cos(n*phi_pW); 
+  }
+
+  // STEP1: for re-centering the BBC event plane angle
+  if(bbc_recenter_read_switch){
+    bbc_center_ex->Fill(RunId_Order+0.5, sumcos_E);
+    bbc_center_ey->Fill(RunId_Order+0.5, sumsin_E);
+    bbc_center_wx->Fill(RunId_Order+0.5, sumcos_W);
+    bbc_center_wy->Fill(RunId_Order+0.5, sumsin_E);
+  }
+
+  // create Q-vectors
+  TVector2 bQE, bQW, bQ, bQ_raw; 
+  bQ_raw.Set((sumcos_E - sumcos_W), (sumsin_E - sumsin_W)); // this is raw Q vector
+
+  // STEP2: correct angles: re-centering and then do shift below
+  //TFile *fBBCcalibFile = new TFile("BBC_recenter_calib_file.root", "READ");
+  if(fCalibFile && bbc_shift_read_switch) {
+    // Method 1: reading values from a function in a *.h file (Liang method)
+    // recentering procedure
+    /*sumcos_E -= BBC_center_ex[RunId_Order];
+    sumsin_E -= BBC_center_ey[RunId_Order];
+    sumcos_W -= BBC_center_wx[RunId_Order];
+    sumsin_W -= BBC_center_wy[RunId_Order];
+    */
+
+    // Method 2: reading values from *.root files
+    TProfile* hBBC_center_ex = (TProfile*)fCalibFile->Get("bbc_center_ex");
+    hBBC_center_ex->SetName("hBBC_center_ex");
+    sumcos_E -= hBBC_center_ex->GetBinContent(RunId_Order + 1);
+
+    TProfile* hBBC_center_ey = (TProfile*)fCalibFile->Get("bbc_center_ey");
+    hBBC_center_ey->SetName("hBBC_center_ey");
+    sumsin_E -= hBBC_center_ey->GetBinContent(RunId_Order + 1);
+
+    TProfile* hBBC_center_wx = (TProfile*)fCalibFile->Get("bbc_center_wx");
+    hBBC_center_wx->SetName("hBBC_center_wx");
+    sumcos_W -= hBBC_center_wx->GetBinContent(RunId_Order + 1);
+
+    TProfile* hBBC_center_wy = (TProfile*)fCalibFile->Get("bbc_center_wy");
+    hBBC_center_wy->SetName("hBBC_center_wy");
+    sumsin_W -= hBBC_center_wy->GetBinContent(RunId_Order + 1);
+
+    // test statement
+    //cout<<"RunID_Order = "<<RunId_Order + 1<<"  hBBC_center_ex max = "<<hBBC_center_ex->GetMaximum()<<"  bin# = "<<hBBC_center_ex->GetMaximumBin()<<endl;
+
+    // delete temp histos
+    delete hBBC_center_ex;
+    delete hBBC_center_ey;
+    delete hBBC_center_wx;
+    delete hBBC_center_wy;
+  }
+
+  // fill east/west BBC angles
+  BBCDis_W->Fill(sumcos_W, sumsin_W);
+  BBCDis_E->Fill(sumcos_E, sumsin_E);
+
+  // set vector components
+  bQE.Set(sumcos_E, sumsin_E);
+  bQW.Set(sumcos_W, sumsin_W);
+  bQ.Set((sumcos_E + sumcos_W), (sumsin_E + sumsin_W));
+
+  // set BBC angles
+  double bPhi_East = bQE.Phi();
+  double bPhi_West = bQW.Phi();
+  double bPhi_raw = bQ_raw.Phi();
+  double bPhi_rcd = bQ.Phi();
+  bPhi_East /= n;
+  bPhi_West /= n;
+  bPhi_rcd /= n;
+  bPhi_raw /= n;
+
+  // STEP2: calculate shift correction and fill histos
+  // shift correction to BBC event plane angle
+  double btimes, bBn, bAn;
+  if(bbc_shift_read_switch){
+    for(int s=1;s<21;s++) {
+      btimes = double(1./s); //2/(order*2)
+      bBn =   btimes*cos(2*s*bPhi_rcd);
+      bAn = -(btimes*sin(2*s*bPhi_rcd));
+      bbc_ShiftA[ref9][region_vz]->Fill(s - 0.5, bAn);
+      bbc_ShiftB[ref9][region_vz]->Fill(s - 0.5, bBn);
+    }	
+  }
+
+  // STEP3: read shift correction for BBC event plane (read in from file)
+  double bbc_delta_psi = 0.;	
+  double bbc_shift_A = 0., bbc_shift_B = 0.; 
+  if(fCalibFile2 && bbc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
+    for(int nharm=1; nharm<21; nharm++){
+      ////bbc_delta_psi += (bbc_shift_A[ref9][region_vz][z-1]*cos(2*z*bPhi_rcd) + bbc_shift_B[ref9][region_vz][z-1]*sin(2*z*bPhi_rcd)); 
+
+      // Method 2:
+      TProfile* hBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("bbc_ShiftA%i_%i", ref9, region_vz));
+      hBBC_ShiftA->SetName(Form("hBBC_ShiftA%i_%i", ref9, region_vz));
+      bbc_shift_A = hBBC_ShiftA->GetBinContent(nharm);
+
+      TProfile* hBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("bbc_ShiftB%i_%i", ref9, region_vz));
+      hBBC_ShiftB->SetName(Form("hBBC_ShiftB%i_%i", ref9, region_vz));
+      bbc_shift_B = hBBC_ShiftB->GetBinContent(nharm);
+
+      // perform 'shift' to BBC event plane angle
+      bbc_delta_psi += (bbc_shift_A * cos(2*nharm*bPhi_rcd) + bbc_shift_B * sin(2*nharm*bPhi_rcd));
+
+      // delete temp histos
+      delete hBBC_ShiftA;
+      delete hBBC_ShiftB;
+    }
+
+  }
+
+  int ns = 0;
+  ns = int(fabs(bbc_delta_psi) / pi);
+  if(bbc_delta_psi > 0) bbc_delta_psi -= ns*pi;
+  if(bbc_delta_psi < 0) bbc_delta_psi += ns*pi;
+
+  double bPhi_sft = bPhi_rcd + bbc_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);
+  double b_res = cos(2*(bPhi_East - bPhi_West - pi));
+
+  // fill a bunch of histograms
+  ////checkbbc->Fill(PSI2-bPhi_sft);// FIXME
+  //psi2_tpc_bbc->Fill(PSI2, bPhi_rcd);
+  //bbc_res->Fill((8 - ref9) + 0.5, b_res); // FIXME don't need to re-map
+  bbc_res->Fill((8 - ref9) + 0.5, b_res); // FIXME don't need to re-map
+  bbc_psi_e->Fill(bPhi_East);
+  bbc_psi_w->Fill(bPhi_West);
+  bbc_psi_evw->Fill(bPhi_East, bPhi_West);
+  bbc_psi_raw->Fill(bPhi_raw);
+  bbc_psi_rcd->Fill(bPhi_rcd);
+  bbc_psi_sft->Fill(bPhi_sft);
+
+  // set psi for n=2
+  ////PSI2 = bPhi_rcd; // FIXME
+}
+
+//
+// ZDC event plane calculation
+// ______________________________________________________________________
+Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
+  // get the runID
+  int RunId = mPicoEvent->runId();
+  int RunId_Order = GetRunNo(RunId);
+  if(RunId_Order < -1) return kStOK;
+
+  // initialize some east/west horizontal and vertical values - what are they?
+  float zdc_EH[8] = {0.};
+  float zdc_WH[8] = {0.};
+  float zdc_EV[7] = {0.};
+  float zdc_WV[7] = {0.};
+
+  // loop over horizontal
+  for(int i=0;i<8;i++){// read in the value of adc deposition
+    zdc_EH[i] = mPicoEvent->ZdcSmdEastHorizontal(i);
+    zdc_WH[i] = mPicoEvent->ZdcSmdWestHorizontal(i);
+  }
+	
+  // loop over vertical
+  for(int i=0;i<7;i++){
+    zdc_EV[i] = mPicoEvent->ZdcSmdEastVertical(i);
+    zdc_WV[i] = mPicoEvent->ZdcSmdWestVertical(i);
+  }
+
+  // initialize the east and west horizontal and vertical components
+  float eh = 0., wh = 0., ev = 0., wv = 0.;
+  float w_eh = 0., w_wh = 0., w_ev = 0., w_wv = 0.;
+
+  // h: horizontal - X, v: vertical - Y
+  // loop over horizontal tiles for ZDCSMD
+  for(int i=0; i<8; i++){
+    eh += zdc_EH[i]*ZDCSMD_GetPosition(RunId_Order, 0, 1, i); // east=0, west= 1
+    wh += zdc_WH[i]*ZDCSMD_GetPosition(RunId_Order, 1, 1, i); // vertical=0, horizon= 1
+    w_eh += zdc_EH[i];
+    w_wh += zdc_WH[i];
+  }
+
+  // loop over vertical tiles for ZDCSMD
+  for(int i=0; i<7; i++){
+    ev += zdc_EV[i]*ZDCSMD_GetPosition(RunId_Order, 0, 0, i);
+    wv += zdc_WV[i]*ZDCSMD_GetPosition(RunId_Order, 1, 0, i);
+    w_ev += zdc_EV[i];
+    w_wv += zdc_WV[i];
+  }
+
+  float mQex,mQey,mQwx,mQwy;
+  mQex = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (ev/w_ev):0.;
+  mQey = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (eh/w_eh):0.;
+  mQwx = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (wv/w_wv):0.;
+  mQwy = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (wh/w_wh):0.;
+
+  // STEP1: fill histograms with recentering corrections for ZDC
+  // fill some histograms with Q vectors and after re-centering event plane
+  if(w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.){
+    ZdcDis_W->Fill(mQwx, mQwy);
+    ZdcDis_E->Fill(mQex, mQey);
+
+    // if re-centering done for ZDC
+    if(zdc_recenter_read_switch){
+      zdc_center_ex->Fill(RunId_Order + 0.5, mQex);
+      zdc_center_ey->Fill(RunId_Order + 0.5, mQey);
+      zdc_center_wx->Fill(RunId_Order + 0.5, mQwx);
+      zdc_center_wy->Fill(RunId_Order + 0.5, mQwy);
+    }
+  }
+
+  // initialize vectors
+  TVector2 mQ, mQw, mQe;
+  mQe.Set(mQex, mQey);
+  mQw.Set(mQwx, mQwy);
+  mQ = mQe - mQw;
+  float psi_e = -999;
+  float psi_w = -999;
+  float psi_full = -999;
+
+  if(w_ev > 1e-6 && w_eh > 1e-6) psi_e = mQe.Phi();
+  if(w_wv > 1e-6 && w_wh > 1e-6) psi_w = mQw.Phi();
+
+  // calculate ZDC event plane
+  if(psi_e > -900. && psi_w > -900.) {
+    psi_full = mQ.Phi();
+    zdc_psi->Fill(psi_full);
+  } 
+	
+  //  cout<<"zdc phi="<< psi_full<<endl;
+  //  PSI2 = psi_full;
+
+}
+
+//
+// get angle of BBC
+// ______________________________________________________________________
+Float_t StMyAnalysisMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 1)
+  float pi = 1.0*TMath::Pi();
+  //TRandom* gRandom(1); // FIXME added for missing variable
+
+  //TRandom rndm;
+  float phi_div = pi/6.;
+  float bbc_phi = phi_div;
+
+  switch(iTile) {
+    case 0: bbc_phi = 3*phi_div;
+        break;
+    case 1: bbc_phi = phi_div;
+        break;
+    case 2: bbc_phi = -1*phi_div;
+        break;
+    case 3: bbc_phi = -3*phi_div;
+        break;
+    case 4: bbc_phi = -5*phi_div;
+        break;
+    case 5: bbc_phi = 5*phi_div;
+        break;
+    case 6: bbc_phi = (gRandom->Rndm()>0.5) ? 2*phi_div:4*phi_div;
+        break;
+    case 7: bbc_phi = 3*phi_div;
+        break;
+    case 8: bbc_phi = phi_div;
+        break;
+    case 9: bbc_phi = 0.;
+        break;
+    case 10: bbc_phi = -phi_div;
+        break;
+    case 11: bbc_phi = (gRandom->Rndm() > 0.5) ? -2*phi_div:-4*phi_div;
+        break;
+    case 12: bbc_phi = -3*phi_div;
+        break;
+    case 13: bbc_phi = -5*phi_div;
+        break;
+    case 14: bbc_phi = pi;
+        break;
+    case 15: bbc_phi = 5*phi_div;
+        break;
+    case 16: bbc_phi = 3*phi_div;
+        break;
+    case 17: bbc_phi = 0.;
+        break;
+    case 18: bbc_phi = -3*phi_div;
+        break;
+    case 19: bbc_phi = pi;
+        break;
+    case 20: bbc_phi = 3*phi_div;
+        break;
+    case 21: bbc_phi = 0.;
+        break;
+    case 22: bbc_phi = -3*phi_div;
+        break;
+    case 23: bbc_phi = pi;
+        break;
+  }
+
+  if(e_w == 0) {
+    if( bbc_phi > -0.001) {bbc_phi = pi - bbc_phi; }
+    else{ bbc_phi = -pi - bbc_phi; }
+  }
+  if (bbc_phi < 0.) { bbc_phi += 2*pi;}
+
+  return bbc_phi;
+}
+
+// 
+// get position of ZDCSMD
+// ______________________________________________________________________
+Float_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip) {
+
+  Float_t zdcsmd_y[8] = {1.25,3.25,5.25,7.25,9.25,11.25,13.25,15.25};//pre-define the position of each slot.
+  Float_t zdcsmd_x[7] = {0.5,2,3.5,5,6.5,8,9.5};
+
+  // STEP2:
+  // correct angles: re-centering ZDC event plane
+  //TFile *fZDCcalibFile = new TFile("ZDC_recenter_calib_file.root", "READ");
+  float mZDCSMDCenterex = 0.0, mZDCSMDCenterey = 0.0, mZDCSMDCenterwx = 0.0, mZDCSMDCenterwy = 0.0; 
+  if(fCalibFile && zdc_shift_read_switch) {
+    // recentering procedure - read from a function in .h file (Liang method) 
+    //mZDCSMDCenterex = center_ex[id_order];
+    //mZDCSMDCenterey = center_ey[id_order];
+    //mZDCSMDCenterwx = center_wx[id_order];
+    //mZDCSMDCenterwy = center_wy[id_order];
+
+    // get corrections from histograms of calibration .root file
+    TProfile* hZDC_center_ex = (TProfile*)fCalibFile->Get("zdc_center_ex");
+    hZDC_center_ex->SetName("hZDC_center_ex");
+    mZDCSMDCenterex = hZDC_center_ex->GetBinContent(id_order + 1);
+
+    TProfile* hZDC_center_ey = (TProfile*)fCalibFile->Get("zdc_center_ey");
+    hZDC_center_ey->SetName("hZDC_center_ey");
+    mZDCSMDCenterey = hZDC_center_ey->GetBinContent(id_order + 1);
+
+    TProfile* hZDC_center_wx = (TProfile*)fCalibFile->Get("zdc_center_wx");
+    hZDC_center_wx->SetName("hZDC_center_wx");
+    mZDCSMDCenterwx = hZDC_center_wx->GetBinContent(id_order + 1);
+
+    TProfile* hZDC_center_wy = (TProfile*)fCalibFile->Get("zdc_center_wy");
+    hZDC_center_wy->SetName("hZDC_center_wy");
+    mZDCSMDCenterwy = hZDC_center_wy->GetBinContent(id_order + 1);
+  }
+
+  // perform re-centering of ZDC event plane angle
+  if(zdc_recenter_read_switch){	
+    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip];
+    if(eastwest == 1 && verthori == 0) return -zdcsmd_x[strip];
+    if(eastwest == 0 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
+    if(eastwest == 1 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
+  } else {
+    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip] - mZDCSMDCenterex;
+    if(eastwest == 1 && verthori == 0) return -mZDCSMDCenterwx - zdcsmd_x[strip];
+    if(eastwest == 0 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterey;
+    if(eastwest == 1 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterwy;
+  }
+
+  return 0;
+}
+
+// this is temp to test code from Liang
+Int_t StMyAnalysisMaker::GetRunNo(int runid){ 
+  //1287
+  for(int i=0;i<1359;i++){
+    if(RunIdNo[i]==runid) {
+      return i;
+    }
+  }
+
+  return -999;
+}
+
+// this is temp to test code from Liang
+Int_t StMyAnalysisMaker::GetVzRegion(float Vz)// 0-14, 15
+{ // 0-60 cm
+  if(fabs(Vz >= 30.)) return 999;  // THIS CUT IS ALREADY DONE
+  //int regionvz=int((Vz+30)/6.);  // bin width is equal to 6 centi-meters
+  int regionvz = int((Vz+30.)/4.); // bin width is equal to 4 centi-meters
+  if(regionvz >= 15 || regionvz <= -1) return 999;   // FIXME! don't need this
+
+  return regionvz;
+  //      return 0;
+}
+

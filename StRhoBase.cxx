@@ -229,16 +229,8 @@ Int_t StRhoBase::Finish() {
 /*
   //  Write histos to file and close it.
   if(mOutName!="") {
-    TFile *fout = new TFile(mOutName.Data(),"RECREATE");
-    fout->cd();
-    WriteHistograms();
-    fout->Close();
-  }
-*/
-
-/*
-  //  Write histos to file and close it.
-  if(mOutName!="") {
+    // use "RECREATE" to create new file, if it exists it will be overwritten
+    // use "UPDATE" to open existing file for writing, if no file exists, it is created
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
     fout->cd(fRhoMakerName);
@@ -637,42 +629,4 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
   delete file;
 
   return fScaleFunction;
-}
-
-//________________________________________________________________________
-Int_t StRhoBase::GetCentBin(Int_t cent, Int_t nBin) const
-{  // Get centrality bin.
-  Int_t centbin = -1;
-
-  if(nBin == 16) {
-    if(cent == 0)  centbin = 15;
-    if(cent == 1)  centbin = 14;
-    if(cent == 2)  centbin = 13;
-    if(cent == 3)  centbin = 12;
-    if(cent == 4)  centbin = 11;
-    if(cent == 5)  centbin = 10;
-    if(cent == 6)  centbin = 9;
-    if(cent == 7)  centbin = 8;
-    if(cent == 8)  centbin = 7;
-    if(cent == 9)  centbin = 6;
-    if(cent == 10) centbin = 5;
-    if(cent == 11) centbin = 4;
-    if(cent == 12) centbin = 3;
-    if(cent == 13) centbin = 2;
-    if(cent == 14) centbin = 1;
-    if(cent == 15) centbin = 0;
-  }
-  if(nBin == 9) {
-    if(cent == 0)  centbin = 8;
-    if(cent == 1)  centbin = 7;
-    if(cent == 2)  centbin = 6;
-    if(cent == 3)  centbin = 5;
-    if(cent == 4)  centbin = 4;
-    if(cent == 5)  centbin = 3;
-    if(cent == 6)  centbin = 2;
-    if(cent == 7)  centbin = 1;
-    if(cent == 8)  centbin = 0;
-  }
-
-  return centbin;
 }
