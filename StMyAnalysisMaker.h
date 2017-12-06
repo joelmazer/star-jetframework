@@ -130,15 +130,17 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(Int_t weight)          {fTrackWeight = weight; }
     virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEventPlaneMaxTrackPtCut = m; }  
-    virtual void            SetRecenterRead(Bool_t rc)                      {recenter_read_switch = rc; }
     virtual void            SetPhiShift(Bool_t ps)                          {phi_shift_switch = ps; }
-    virtual void            SetShiftRead(Bool_t rc)                         {shift_read_switch = rc; }
+    virtual void            SetTPCRecenterRead(Bool_t trc)                  {tpc_recenter_read_switch = trc; }
+    virtual void            SetTPCShiftRead(Bool_t ts)                      {tpc_shift_read_switch = ts; }
+    virtual void            SetTPCApplyCorrections(Bool_t tac)              {tpc_apply_corr_switch = tac; }
     virtual void            SetZDCrecentering(Bool_t zrc)                   {zdc_recenter_read_switch = zrc; }
     virtual void            SetZDCShiftRead(Bool_t zs)                      {zdc_shift_read_switch = zs; }
     virtual void            SetZDCApplyCorrections(Bool_t zac)              {zdc_apply_corr_switch = zac; }
     virtual void            SetBBCrecentering(Bool_t brc)                   {bbc_recenter_read_switch = brc; }
     virtual void            SetBBCShiftRead(Bool_t bs)                      {bbc_shift_read_switch = bs; }
     virtual void            SetBBCApplyCorrections(Bool_t bac)              {bbc_apply_corr_switch = bac; }
+    virtual void            SetHistBinLimitsCenZvert(Int_t cmin, Int_t cmax, Int_t zmin, Int_t zmax)   { fHistCentBinMin = cmin; fHistCentBinMax = cmax; fHistZvertBinMin = zmin; fHistZvertBinMax = zmax; }
 
     // Where to read calib object with EP calibration if not default
     void                   SetEPcalibFileName(const TString filename) {fEPcalibFileName = filename; } 
@@ -151,7 +153,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
     TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t               GetReactionPlane();                                   // get reaction plane angle
-    void                   GetEventPlane(Bool_t flattenEP, Double_t fCentralityScaled);                      // get event plane / flatten and fill histos 
+    void                   GetEventPlane(Bool_t flattenEP);                      // get event plane / flatten and fill histos 
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Bool_t                 AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                 DoComparison(int myarr[], int elems);
@@ -160,6 +162,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
     // Added from Liang
+    void                   QvectorCal(int ref9, int region_vz);
+    Int_t                  EventPlaneCal(int ref9, int region_vz);
     Int_t                  BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
     Int_t                  ZDC_EP_Cal(int ref9, int region_vz);
     Float_t                BBC_GetPhi(int e_w,int iTile); //east == 0
@@ -204,6 +208,13 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t       fCentralityScaled;           // scaled by 5% centrality 
     Int_t          ref16;                       // multiplicity bin (16)
     Int_t          ref9;                        // multiplicity bin (9)
+    //Int_t          minCbin;
+    //Int_t          maxCbin;
+
+    // event
+    Double_t        Bfield;                      // event Bfield
+    StThreeVectorF  mVertex;                     // event vertex 3-vector
+    Double_t        zVtx;                        // z-vertex component
 
     // event selection types
     UInt_t         fTriggerEventType;           // Physics selection of event used for signal
@@ -216,15 +227,33 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
     Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
-    Bool_t         recenter_read_switch;        // recenter reader
     Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!
-    Bool_t         shift_read_switch;           // shift reader 
+    Bool_t         tpc_recenter_read_switch;    // tpc recenter reader
+    Bool_t         tpc_shift_read_switch;       // tpc shift reader
+    Bool_t         tpc_apply_corr_switch;       // tpc apply final corrections
     Bool_t         zdc_recenter_read_switch;    // zdc recentering switch
     Bool_t         zdc_shift_read_switch;       // zdc shift reader
     Bool_t         zdc_apply_corr_switch;       // zdc apply final corrections
     Bool_t         bbc_recenter_read_switch;    // bbc recentering switch
     Bool_t         bbc_shift_read_switch;       // bbc shift reader
     Bool_t         bbc_apply_corr_switch;       // bbc apply final corrections
+    Int_t          fHistCentBinMin;             // min centrality bin for histogram loop
+    Int_t          fHistCentBinMax;             // max centrality bin for histogram loop
+    Int_t          fHistZvertBinMin;            // min z-vertex bin for histogram loop
+    Int_t          fHistZvertBinMax;            // min z-vertex bin for histogram loop
+
+    // global variables used with TPC event plane corrections
+    Double_t       Q2x_raw;
+    Double_t       Q2y_raw;
+    Double_t       Q2x_p;
+    Double_t       Q2x_m;
+    Double_t       Q2y_p;
+    Double_t       Q2y_m;
+    Double_t       Q2x;
+    Double_t       Q2y;
+    Double_t       TPC_PSI2;
+    Double_t       PSI2;
+    Double_t       RES;
 
     // event pool
     TClonesArray          *CloneAndReduceTrackList();
@@ -334,37 +363,40 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH2  *hMixEvtStatZvsCent;//!
 
     // event plane histograms for corrections and calculations
-    TH2F *ZdcDis_W;//!
-    TH2F *ZdcDis_E;//!
-    TH2F *BBCDis_W;//!
-    TH2F *BBCDis_E;//!
-    TProfile *Q2_p[9][15];//!
-    TProfile *Q2_m[9][15];//!
+    TH2F *hZDCDis_W;//!
+    TH2F *hZDCDis_E;//!
+    TH2F *hBBCDis_W;//!
+    TH2F *hBBCDis_E;//!
+    TProfile *Q2_p[9][20];//!  // 15
+    TProfile *Q2_m[9][20];//!  // 15
     TProfile *phishiftA[2][2][9];
     TProfile *phishiftB[2][2][9];
-    TProfile *ShiftA[9][15];//!
-    TProfile *ShiftB[9][15];//!
-    TProfile *bbc_ShiftA[9][15];//!
-    TProfile *bbc_ShiftB[9][15];//!
+    TProfile *hTPC_shift_N[9][20];//! // 15
+    TProfile *hTPC_shift_P[9][20];//! // 15
+    TProfile *hBBC_shift_A[9][20];//! // 15
+    TProfile *hBBC_shift_B[9][20];//! // 15
+    TProfile *hZDC_shift_A[9][20];//! // new
+    TProfile *hZDC_shift_B[9][20];//! // new
     TProfile *res_cen;//!
-    TProfile *zdc_center_ex;//!
-    TProfile *zdc_center_ey;//!
-    TProfile *zdc_center_wx;//!
-    TProfile *zdc_center_wy;//!
-    TProfile *bbc_center_ex;//!
-    TProfile *bbc_center_ey;//!
-    TProfile *bbc_center_wx;//!
-    TProfile *bbc_center_wy;//!
+    TProfile *hZDC_center_ex;//!
+    TProfile *hZDC_center_ey;//!
+    TProfile *hZDC_center_wx;//!
+    TProfile *hZDC_center_wy;//!
+    TProfile *hBBC_center_ex;//!
+    TProfile *hBBC_center_ey;//!
+    TProfile *hBBC_center_wx;//!
+    TProfile *hBBC_center_wy;//!
     TProfile *bbc_res;
     TH1F *zdc_psi;//!
-    TH1F* checkbbc;//!
+    TH1F *checkbbc;//!
     TH2F *psi2_tpc_bbc;//!
-    TH2F *bbc_psi_evw;//!
-    TH1F *bbc_psi_rcd;//!
-    TH1F *bbc_psi_sft;//!
-    TH1F *bbc_psi_raw;//!
     TH1F *bbc_psi_e;//!
     TH1F *bbc_psi_w;//!
+    TH2F *bbc_psi_evw;//!
+    TH1F *bbc_psi_raw;//!
+    TH1F *bbc_psi_rcd;//!
+    TH1F *bbc_psi_sft;//!
+    TH1F *bbc_psi_fnl;//!
 
     TH1F *Psi2;//!
     TH1F *Psi2m;//!
@@ -375,9 +407,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1F *Psi2_final;//!
     TH1F *Psi2_final_raw;//!
     TH1F *Psi2_final_folded;//!
-    TH1F *Phi_sp_raw;//!
-    TH1F *Phi_sp_folded[9];//!
-    TH1F *Phi_sp_wopx[9];//!
 
     // THn Sparse's jet sparse
     THnSparse             *fhnJH;//!           // jet hadron events matrix

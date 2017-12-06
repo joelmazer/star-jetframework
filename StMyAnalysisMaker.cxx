@@ -51,6 +51,12 @@
 #include "StEPFlattener.h"
 #include "StCalibContainer.h"
 #include "runlistP16ij.h"
+#include "tpc_recenter_data.h"
+#include "bbc_recenter_data.h"
+#include "zdc_recenter_data.h"
+#include "tpc_shift_data.h"
+#include "bbc_shift_data.h"
+#include "zdc_shift_data.h"
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -83,18 +89,34 @@ ClassImp(StMyAnalysisMaker)
 StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
-  fLeadingJet = 0; fSubLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
+  fLeadingJet = 0x0; fSubLeadingJet = 0; fExcludeLeadingJetsFromFit = 1.0; 
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
-  recenter_read_switch = kFALSE;     // FIXME
-  phi_shift_switch = kFALSE;         // keep off! for TPC
-  shift_read_switch = kFALSE;        // FIXME
+  phi_shift_switch = kFALSE;         // keep off! 
+  tpc_recenter_read_switch = kFALSE; // TPC recenter switch
+  tpc_shift_read_switch = kFALSE;    // TPC shift switch
+  tpc_apply_corr_switch = kFALSE;    // TPC finall corrections
   zdc_recenter_read_switch = kFALSE; // ZDC recenter switch
   zdc_shift_read_switch = kFALSE;    // ZDC shift switch
   zdc_apply_corr_switch = kFALSE;    // ZDC final corrections
   bbc_recenter_read_switch = kFALSE; // BBC recenter switch
   bbc_shift_read_switch = kFALSE;    // BBC shift switch 
   bbc_apply_corr_switch = kFALSE;    // BBC final corrections
+  fHistCentBinMin = 0;
+  fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
+  fHistZvertBinMin = 0;
+  fHistZvertBinMax = 20;             // (-40, 40) 4cm bins
+  Q2x_raw = 0.;
+  Q2y_raw = 0.;
+  Q2x_p = 0.;
+  Q2x_m = 0.;
+  Q2y_p = 0.;
+  Q2y_m = 0.;
+  Q2x = 0.;
+  Q2y = 0.;
+  TPC_PSI2 = -999;
+  PSI2 = -999;
+  RES = -999;
   fPoolMgr = 0x0;
   fJets = 0x0;
   fRunNumber = 0;
@@ -136,6 +158,9 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fCentBinSize = 5; fReduceStatsCent = -1;
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
+  Bfield = 0.0;
+  mVertex = 0x0;
+  zVtx = 0.0;
   fTriggerEventType = 0; fMixingEventType = 0;
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
@@ -201,10 +226,10 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hMixEvtStatCent;
   delete hMixEvtStatZvsCent;
 
-  if(ZdcDis_W) delete ZdcDis_W;
-  if(ZdcDis_E) delete ZdcDis_E;
-  if(BBCDis_W) delete BBCDis_W;
-  if(BBCDis_E) delete BBCDis_E;
+  if(hZDCDis_W) delete hZDCDis_W;
+  if(hZDCDis_E) delete hZDCDis_E;
+  if(hBBCDis_W) delete hBBCDis_W;
+  if(hBBCDis_E) delete hBBCDis_E;
 
   if(phi_shift_switch){
     for(int i=0;i<2;i++){
@@ -217,45 +242,52 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
     }
   }
 
-  for(int i=0; i<9; i++){ // centr
-    for(int j=0; j<15; j++){ // vz
-      if(recenter_read_switch) {
+  for(int i=0; i<9; i++){ // centrality
+    for(int j=0; j<20; j++){ // vz (15)
+      if(tpc_recenter_read_switch) {
         if(Q2_p[i][j]) delete Q2_p[i][j];
         if(Q2_m[i][j]) delete Q2_m[i][j];
       }
 
-      if(shift_read_switch) { 
-        if(ShiftA[i][j]) delete ShiftA[i][j];
-        if(ShiftB[i][j]) delete ShiftB[i][j];
+      if(tpc_shift_read_switch) { 
+        if(hTPC_shift_N[i][j]) delete hTPC_shift_N[i][j];
+        if(hTPC_shift_P[i][j]) delete hTPC_shift_P[i][j];
       }
 
       if(bbc_shift_read_switch) { 
-        if(bbc_ShiftA[i][j]) delete bbc_ShiftA[i][j];
-        if(bbc_ShiftB[i][j]) delete bbc_ShiftB[i][j];
+        if(hBBC_shift_A[i][j]) delete hBBC_shift_A[i][j];
+        if(hBBC_shift_B[i][j]) delete hBBC_shift_B[i][j];
       }
-    }
-  }
+
+      if(zdc_shift_read_switch) {
+        if(hZDC_shift_A[i][j]) delete hZDC_shift_A[i][j];
+        if(hZDC_shift_B[i][j]) delete hZDC_shift_B[i][j];
+      }
+
+    } // vz
+  } // cen
 
   //if(res_cen) delete res_cen;
-  if(zdc_center_ex) delete zdc_center_ex;
-  if(zdc_center_ey) delete zdc_center_ey;
-  if(zdc_center_wx) delete zdc_center_wx;
-  if(zdc_center_wy) delete zdc_center_wy;
-  if(bbc_center_ex) delete bbc_center_ex;
-  if(bbc_center_ey) delete bbc_center_ey;
-  if(bbc_center_wx) delete bbc_center_wx;
-  if(bbc_center_wy) delete bbc_center_wy;
+  if(hZDC_center_ex) delete hZDC_center_ex;
+  if(hZDC_center_ey) delete hZDC_center_ey;
+  if(hZDC_center_wx) delete hZDC_center_wx;
+  if(hZDC_center_wy) delete hZDC_center_wy;
+  if(hBBC_center_ex) delete hBBC_center_ex;
+  if(hBBC_center_ey) delete hBBC_center_ey;
+  if(hBBC_center_wx) delete hBBC_center_wx;
+  if(hBBC_center_wy) delete hBBC_center_wy;
 
   if(bbc_res) delete bbc_res;
   if(zdc_psi) delete zdc_psi;
   if(checkbbc) delete checkbbc;
   if(psi2_tpc_bbc) delete psi2_tpc_bbc;
+  if(bbc_psi_e) delete bbc_psi_e;
+  if(bbc_psi_w) delete bbc_psi_w;
   if(bbc_psi_evw) delete bbc_psi_evw;
   if(bbc_psi_raw) delete bbc_psi_raw;
   if(bbc_psi_rcd) delete bbc_psi_rcd;
   if(bbc_psi_sft) delete bbc_psi_sft;
-  if(bbc_psi_e) delete bbc_psi_e;
-  if(bbc_psi_w) delete bbc_psi_w;
+  if(bbc_psi_fnl) delete bbc_psi_fnl;
 
   if(Psi2) delete Psi2;
   if(Psi2m) delete Psi2m;
@@ -266,11 +298,6 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   if(Psi2_final) delete Psi2_final;
   if(Psi2_final_folded) delete Psi2_final_folded;
   if(Psi2_final_raw) delete Psi2_final_raw;
-  if(Phi_sp_raw) delete Phi_sp_raw;
-  for(int i=0; i<9; i++){
-    if(Phi_sp_wopx[i]) delete Phi_sp_wopx[i];
-    if(Phi_sp_folded[i]) delete Phi_sp_folded[i];
-  }
 
   delete fhnJH;
   delete fhnMixedEvents;
@@ -432,22 +459,21 @@ void StMyAnalysisMaker::DeclareHistograms() {
   // Nov22, 2017 - Event plane histos added for corrections, calculations
   float range = 12.;
   float range_b = 2.;
-  ZdcDis_W = new TH2F("ZdcDis_W","",400,-range,range,400,-range,range);
-  ZdcDis_E = new TH2F("ZdcDis_E","",400,-range,range,400,-range,range);
-  BBCDis_W = new TH2F("BBCDis_W","",400,-range_b,range_b,400,-range_b,range_b);
-  BBCDis_E = new TH2F("BBCDis_E","",400,-range_b,range_b,400,-range_b,range_b);
+  hZDCDis_W = new TH2F("hZDCDis_W","",400,-range,range,400,-range,range);
+  hZDCDis_E = new TH2F("hZDCDis_E","",400,-range,range,400,-range,range);
+  hBBCDis_W = new TH2F("hBBCDis_W","",400,-range_b,range_b,400,-range_b,range_b);
+  hBBCDis_E = new TH2F("hBBCDis_E","",400,-range_b,range_b,400,-range_b,range_b);
 
   // TPC recentering Q-vector
-  if(recenter_read_switch){
-    for(int i=0; i<9; i++){//centr
-      for(int j=0; j<15; j++){//vz
+  if(tpc_recenter_read_switch){
+    for(int i=0; i<9; i++){ // centrality
+      for(int j=0; j<20; j++){ // vz (15)
         Q2_p[i][j] = new TProfile(Form("Q2_p%d_%d",i,j),Form("Q2 for postive eta,centr%d,vz%d",i,j),2,0,2);
         Q2_m[i][j] = new TProfile(Form("Q2_m%d_%d",i,j),Form("Q2 for minus eta,centr%d,vz%d",i,j),2,0,2);
       }
     }
   }
 
-  // TPC event plane shift
   if(phi_shift_switch){
     TString* TPCcorrA;
     TString* TPCcorrB;
@@ -471,46 +497,57 @@ void StMyAnalysisMaker::DeclareHistograms() {
     }
   }
 
-  // TPC shift
-  if(shift_read_switch){
-    for(int i=0; i<9; i++){//centr
-      for(int j=0; j<15; j++){//vz
-        ShiftA[i][j] = new TProfile(Form("ShiftA%d_%d",i,j),"An",20,0,20,-100,100);
-        ShiftB[i][j] = new TProfile(Form("ShiftB%d_%d",i,j),"Bn",20,0,20,-100,100);
+  // TPC shift of event plane
+  if(tpc_shift_read_switch){
+    for(int i=0; i<9; i++){ // centrality
+      for(int j=0; j<20; j++){ // vz (15)
+        hTPC_shift_N[i][j] = new TProfile(Form("hTPC_shift_N%d_%d",i,j),"Nn",20,0,20,-100,100);
+        hTPC_shift_P[i][j] = new TProfile(Form("hTPC_shift_P%d_%d",i,j),"Pn",20,0,20,-100,100);
       }
     }
   }
 
   // BBC shift
   if(bbc_shift_read_switch){
-    for(int i=0; i<9; i++){//centr
-      for(int j=0; j<15; j++){//vz
-        bbc_ShiftA[i][j] = new TProfile(Form("bbc_ShiftA%d_%d",i,j),"An",20,0,20,-100,100);
-        bbc_ShiftB[i][j] = new TProfile(Form("bbc_ShiftB%d_%d",i,j),"Bn",20,0,20,-100,100);
+    for(int i=0; i<9; i++){ // centrality
+      for(int j=0; j<20; j++){ //vz (15)
+        hBBC_shift_A[i][j] = new TProfile(Form("hBBC_shift_A%d_%d",i,j),"An",20,0,20,-100,100);
+        hBBC_shift_B[i][j] = new TProfile(Form("hBBC_shift_B%d_%d",i,j),"Bn",20,0,20,-100,100);
+      }
+    }
+  }
+
+  // ZDC shift
+  if(zdc_shift_read_switch){
+    for(int i=0; i<9; i++){ // centrality
+      for(int j=0; j<20; j++){ //vz (15)
+        hZDC_shift_A[i][j] = new TProfile(Form("hZDC_shift_A%d_%d",i,j),"An",20,0,20,-100,100);
+        hZDC_shift_B[i][j] = new TProfile(Form("hZDC_shift_B%d_%d",i,j),"Bn",20,0,20,-100,100);
       }
     }
   }
 
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
-  zdc_center_ex = new TProfile("zdc_center_ex","",1359, 0, 1359, -100, 100);
-  zdc_center_ey = new TProfile("zdc_center_ey","",1359, 0, 1359, -100, 100);
-  zdc_center_wx = new TProfile("zdc_center_wx","",1359, 0, 1359, -100, 100);
-  zdc_center_wy = new TProfile("zdc_center_wy","",1359, 0, 1359, -100, 100);
-  bbc_center_ex = new TProfile("bbc_center_ex","",1359, 0, 1359, -100, 100);
-  bbc_center_ey = new TProfile("bbc_center_ey","",1359, 0, 1359, -100, 100);
-  bbc_center_wx = new TProfile("bbc_center_wx","",1359, 0, 1359, -100, 100);
-  bbc_center_wy = new TProfile("bbc_center_wy","",1359, 0, 1359, -100, 100);
+  hZDC_center_ex = new TProfile("hZDC_center_ex","",1359, 0, 1359, -100, 100);
+  hZDC_center_ey = new TProfile("hZDC_center_ey","",1359, 0, 1359, -100, 100);
+  hZDC_center_wx = new TProfile("hZDC_center_wx","",1359, 0, 1359, -100, 100);
+  hZDC_center_wy = new TProfile("hZDC_center_wy","",1359, 0, 1359, -100, 100);
+  hBBC_center_ex = new TProfile("hBBC_center_ex","",1359, 0, 1359, -100, 100);
+  hBBC_center_ey = new TProfile("hBBC_center_ey","",1359, 0, 1359, -100, 100);
+  hBBC_center_wx = new TProfile("hBBC_center_wx","",1359, 0, 1359, -100, 100);
+  hBBC_center_wy = new TProfile("hBBC_center_wy","",1359, 0, 1359, -100, 100);
  
   bbc_res= new TProfile("bbc_res","",10, 0, 10, -100, 100);
   zdc_psi = new TH1F("zdc_psi","zdc psi1",1000,-2*pi, 2*pi);
   checkbbc = new TH1F("checkbbc","difference between psi2 and bbc ps2",1000,-2*pi, 2*pi);
   psi2_tpc_bbc = new TH2F("psi2_tpc_bbc","tpc psi2 vs. bbc psi2",1000,-2*pi, 2*pi, 1000, -2*pi, 2*pi);
+  bbc_psi_e = new TH1F("bbc_psi_e","bbc psi1",1000,-2*pi, 2*pi);
+  bbc_psi_w = new TH1F("bbc_psi_w","bbc psi1",1000,-2*pi, 2*pi);
   bbc_psi_evw = new TH2F("bbc_psi_evw","bbc psi2 east vs. bbc psi2 west",1000,-2*pi, 2*pi, 1000, -2*pi, 2*pi);
   bbc_psi_raw = new TH1F("bbc_psi_raw","bbc psi1",1000,-2*pi, 2*pi); 
   bbc_psi_rcd = new TH1F("bbc_psi_rcd","bbc psi1",1000,-2*pi, 2*pi);
   bbc_psi_sft = new TH1F("bbc_psi_sft","bbc psi1",1000,-2*pi, 2*pi);
-  bbc_psi_e = new TH1F("bbc_psi_e","bbc psi1",1000,-2*pi, 2*pi);
-  bbc_psi_w = new TH1F("bbc_psi_w","bbc psi1",1000,-2*pi, 2*pi);
+  bbc_psi_fnl = new TH1F("bbc_psi_fnl","bbc psi1 corrected", 1000, -2*pi, 2*pi);
 
   Psi2 = new TH1F("Psi2","raw #Psi_{2} distribution",1000,-2*pi, 2*pi);
   Psi2m = new TH1F("Psi2m","minus eta raw #Psi_{2} distribution",1000,-2*pi, 2*pi);
@@ -521,11 +558,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
   Psi2_final = new TH1F("Psi2_final","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
   Psi2_final_folded = new TH1F("Psi2_final_folded","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
   Psi2_final_raw = new TH1F("Psi2_final_raw","final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
-  Phi_sp_raw = new TH1F("Phi_sp_raw","trigger phi and psi2 separated angle",2000,-4*pi,4*pi);
-  for(int i=0; i<9; i++){
-    Phi_sp_wopx[i] = new TH1F(Form("Phi_sp_wopx_%d",i),"trigger phi and psi2 separated angle",2000,0, pi);
-    Phi_sp_folded[i] = new TH1F(Form("Phi_sp_folded_%d",i),"trigger phi and psi2 separated angle",2000,0, pi);
-  }
 
   // set up jet-hadron sparse
   UInt_t bitcodeMESE = 0; // bit coded, see GetDimParams() below
@@ -656,10 +688,10 @@ void StMyAnalysisMaker::WriteHistograms() {
 // write event plane histograms
 //_____________________________________________________________________________
 void StMyAnalysisMaker::WriteEventPlaneHistograms() {
-  ZdcDis_W->Write();
-  ZdcDis_E->Write();
-  BBCDis_W->Write();
-  BBCDis_E->Write();
+  hZDCDis_W->Write();
+  hZDCDis_E->Write();
+  hBBCDis_W->Write();
+  hBBCDis_E->Write();
 
   if(phi_shift_switch){
     for(int i=0;i<2;i++){
@@ -673,43 +705,47 @@ void StMyAnalysisMaker::WriteEventPlaneHistograms() {
   }
 
   for(int i=0; i<9; i++){ // centr
-    for(int j=0; j<15; j++){ // vz
-      if(recenter_read_switch) Q2_p[i][j]->Write();
-      if(recenter_read_switch) Q2_m[i][j]->Write();
+    for(int j=0; j<20; j++){ // vz (15)
+      if(tpc_recenter_read_switch) Q2_p[i][j]->Write();
+      if(tpc_recenter_read_switch) Q2_m[i][j]->Write();
 
-      if(shift_read_switch) ShiftA[i][j]->Write();
-      if(shift_read_switch) ShiftB[i][j]->Write();
+      if(tpc_shift_read_switch) hTPC_shift_N[i][j]->Write();
+      if(tpc_shift_read_switch) hTPC_shift_P[i][j]->Write();
       
-      if(bbc_shift_read_switch) bbc_ShiftA[i][j]->Write();
-      if(bbc_shift_read_switch) bbc_ShiftB[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_A[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_B[i][j]->Write();
+
+      if(zdc_shift_read_switch) hZDC_shift_A[i][j]->Write();
+      if(zdc_shift_read_switch) hZDC_shift_B[i][j]->Write();
     }
   }
 
   //res_cen->Write();
   if(zdc_recenter_read_switch){
-    zdc_center_ex->Write();
-    zdc_center_ey->Write();
-    zdc_center_wx->Write();
-    zdc_center_wy->Write();
+    hZDC_center_ex->Write();
+    hZDC_center_ey->Write();
+    hZDC_center_wx->Write();
+    hZDC_center_wy->Write();
   }
  
   if(bbc_recenter_read_switch){ // added this in
-    bbc_center_ex->Write();
-    bbc_center_ey->Write();
-    bbc_center_wx->Write();
-    bbc_center_wy->Write();
+    hBBC_center_ex->Write();
+    hBBC_center_ey->Write();
+    hBBC_center_wx->Write();
+    hBBC_center_wy->Write();
   }
 
   bbc_res->Write();
   zdc_psi->Write();
   checkbbc->Write();
   psi2_tpc_bbc->Write();
+  bbc_psi_e->Write();
+  bbc_psi_w->Write();
   bbc_psi_evw->Write();
   bbc_psi_raw->Write();
   bbc_psi_rcd->Write();
   bbc_psi_sft->Write();
-  bbc_psi_e->Write();
-  bbc_psi_w->Write();
+  bbc_psi_fnl->Write();
 
   Psi2->Write();
   Psi2m->Write();
@@ -720,11 +756,6 @@ void StMyAnalysisMaker::WriteEventPlaneHistograms() {
   Psi2_final->Write();
   Psi2_final_folded->Write();
   Psi2_final_raw->Write();
-  Phi_sp_raw->Write();
-  for(int i=0; i<9; i++){
-    Phi_sp_wopx[i]->Write();
-    Phi_sp_folded[i]->Write();
-  }
 
 }
 
@@ -774,11 +805,11 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
   // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField(); 
+  Bfield = mPicoEvent->bField(); 
 
-  // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
+  // get vertex 3-vector and z-vertex component
+  mVertex = mPicoEvent->primaryVertex();
+  zVtx = mVertex.z();
   
   // Z-vertex cut 
   // the Aj analysis cut on (-40, 40) for reference
@@ -832,7 +863,7 @@ Int_t StMyAnalysisMaker::Make() {
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   double centralityScaled = centbin*5.0;
-  double fCentralityScaled = centbin*5.0;
+  fCentralityScaled = centbin*5.0;
   hCentrality->Fill(centralityScaled);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
@@ -932,7 +963,7 @@ Int_t StMyAnalysisMaker::Make() {
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
-  GetEventPlane(kFALSE, fCentralityScaled);
+  GetEventPlane(kFALSE);
 
   // ==================================================================
   // 1) get z-vertex binning
@@ -942,6 +973,8 @@ Int_t StMyAnalysisMaker::Make() {
   int region_vz = GetVzRegion(zVtx);
   if(region_vz > 900) return kStOK;
   BBC_EP_Cal(ref9, region_vz, 2);
+  ZDC_EP_Cal(ref9, region_vz);
+  QvectorCal(ref9, region_vz);
 
   // ===================================================================================
 
@@ -1334,121 +1367,6 @@ Int_t StMyAnalysisMaker::Make() {
   //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
 
   //StMemStat::PrintMem("MyAnalysisMaker at end of make");
-
-  return kStOK; //for tests = don't need rest of this functions code since passing collection of jets
-
-  // ======================================================================
-  // ============================ Do some jet stuff =======================
-  // Fastjet analysis - select algorithm and parameters
-  // recombination schemes: 
-  // E_scheme, pt_scheme, pt2_scheme, Et_scheme, Et2_scheme, BIpt_scheme, BIpt2_scheme, WTA_pt_scheme, WTA_modp_scheme
-
-/*
-  double Rparam = 0.4;
-  fastjet::Strategy               strategy = fastjet::Best;
-  //fastjet::RecombinationScheme    recombScheme = fastjet::E_scheme; // was set as the default
-  fastjet::RecombinationScheme    recombScheme = fastjet::BIpt_scheme;
-  fastjet::JetDefinition         *jetDef = NULL;
-  fastjet::JetAlgorithm          algorithm;
-  int    power   = -1;     // -1 = anti-kT; 0 = C/A; 1 = kT
-  if (power == -1)      algorithm = fastjet::antikt_algorithm;
-  if (power ==  0)      algorithm = fastjet::cambridge_algorithm;
-  if (power ==  1)      algorithm = fastjet::kt_algorithm; // was set as the default
-
-  // set jet definition
-  jetDef = new fastjet::JetDefinition(algorithm, Rparam, recombScheme, strategy);
-
-  // Fastjet input
-  std::vector <fastjet::PseudoJet> fjInputs;
-
-  // Reset Fastjet input
-  fjInputs.resize(0);
-
-  // loop over tracks
-  for(int itrack=0;itrack<ntracks;itrack++){
-    StPicoTrack* trk = mPicoDst->track(itrack);
-    if(!trk){ continue; }
-    if(trk->gPt() < 0.2){ continue; }
-
-    // check if primary track
-    if((!trk->isPrimary())) continue;
-
-    StThreeVectorF mPMomentum = trk->pMom(); 
-
-    // declare kinematic variables
-    double pt = trk->gPt();
-    double p = trk->gPtot();
-    double phi = mPMomentum.phi();
-    double eta = mPMomentum.pseudoRapidity();
-    double px = mPMomentum.x();
-    double py = mPMomentum.y();
-    double pz = mPMomentum.z();
-
-    // Store as input to Fastjet:    (px, py, pz, E) => use p for E for now
-    fjInputs.push_back( fastjet::PseudoJet(px, py, pz, p ) );
-  }
-
-  // no jets (particle) in event
-  if (fjInputs.size() == 0) {
-    cout << "Error: event with no final state particles" << endl;
-    return kFALSE;
-  }
-
-  // Run Fastjet algorithm
-  vector <fastjet::PseudoJet> inclusiveJets, sortedJets, selJets;
-  fastjet::ClusterSequence clustSeq(fjInputs, *jetDef);
-
-  // Extract inclusive jets sorted by pT (note minimum pT of 10.0 GeV)
-  inclusiveJets = clustSeq.inclusive_jets(10.0);
-  sortedJets    = sorted_by_pt(inclusiveJets);
-
-  // apply some cuts for a subset of jets
-  fastjet::Selector select_eta = fastjet::SelectorEtaRange(-0.5, 0.5); // selects |eta| < 0.5
-  fastjet::Selector select_phi = fastjet::SelectorPhiRange(0, 3.1); // selecta 1.6 < phi < 2.94
-  fastjet::Selector select_pt = fastjet::SelectorPtRange(10, 40); // selecta 20 < pt < 40
-  fastjet::Selector select_Nhard = fastjet::SelectorNHardest(2);
-  fastjet::Selector select_eta_phi = select_eta && select_phi; //&& select_Nhard;
-
-  // fill subset
-  selJets = select_eta_phi(sortedJets);
-
-  // For the first event, print the FastJet details
-  if (firstEvent) {
-    cout << "Ran " << jetDef->description() << endl;
-    cout << "Strategy adopted by FastJet was "
-         << clustSeq.strategy_string() << endl << endl;
-    firstEvent = false;
-  }
-
-  // loop over reconstructed jets
-  ///if(printInfo) cout<<"       pt       eta       phi"<<endl;
-  //cout<<"       pt       eta       phi"<<endl;
-  for(int i = 0; i< sortedJets.size(); i++) {
-    ///if(printInfo) cout<<"jet " <<i<<": "<<sortedJets[i].pt()<<" "<<sortedJets[i].eta()<<" "<<sortedJets[i].phi()<<endl;
-    if(i==0) { 
-      cout<<"       pt       eta       phi"<<endl;
-      cout<<"jet " <<i<<": "<<sortedJets[i].pt()<<" "<<sortedJets[i].eta()<<" "<<sortedJets[i].phi()<<endl;
-    }
-
-    // fill some jet histos
-    hJetPt2->Fill(sortedJets[i].pt());
-
-    // Loop over jet constituents
-    vector <fastjet::PseudoJet> constituents = sortedJets[i].constituents();
-    vector <fastjet::PseudoJet> sortedconstituents = sorted_by_pt(constituents);
-    for(int j = 0; j < sortedconstituents.size(); j++) {
-      if(printInfo) cout<<"    constituent "<<j<<"'s pt: "<<sortedconstituents[j].pt()<<endl;
-
-      Double_t z = sortedconstituents[j].pt() / sortedJets[i].Et();
-    }
-
-    //Double_t var[4] = {sortedJets[i].pt(), sortedJets[i].phi(), sortedJets[i].eta(), sortedconstituents.size()}; //,sortedJets[i].area()};
-  }
-
-  delete jetDef;
-
-*/
-  // ======================================================================
 
   return kStOK;
 }
@@ -1896,13 +1814,6 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
 
-  // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField();
-
-  // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
-
   // loop over tracks
   Int_t nMixTracks = mPicoDst->numberOfTracks();
   Int_t iterTrk = 0;
@@ -2196,13 +2107,6 @@ Bool_t StMyAnalysisMaker::DoComparison(int myarr[], int elems) {
 
 //________________________________________________________________________
 Double_t StMyAnalysisMaker::GetReactionPlane() { 
-  // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField();
-
-  // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
-
   //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
   TVector2 mQ;
   double mQx = 0., mQy = 0.;
@@ -2212,7 +2116,7 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
   // leading jet check and removal
   Float_t excludeInEta = -999;
-  fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
+  //fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
@@ -2595,10 +2499,10 @@ void StMyAnalysisMaker::SetSumw2() {
 // set sumw2 for event plane histograms
 // __________________________________________________________________________________
 void StMyAnalysisMaker::SetEPSumw2() {
-  ZdcDis_W->Sumw2();
-  ZdcDis_E->Sumw2();
-  BBCDis_W->Sumw2();
-  BBCDis_E->Sumw2();
+  hZDCDis_W->Sumw2();
+  hZDCDis_E->Sumw2();
+  hBBCDis_W->Sumw2();
+  hBBCDis_E->Sumw2();
 
   if(phi_shift_switch){
     for(int i=0;i<2;i++){
@@ -2611,43 +2515,49 @@ void StMyAnalysisMaker::SetEPSumw2() {
     }
   }
 
-  for(int i=0; i<9; i++){ // centr
-    for(int j=0; j<15; j++){ // vz
-      if(recenter_read_switch) Q2_p[i][j]->Sumw2();
-      if(recenter_read_switch) Q2_m[i][j]->Sumw2();
+/*
+  for(int i=0; i<9; i++){ // centrality
+    for(int j=0; j<20; j++){ // vz (15)
+      if(tpc_recenter_read_switch) Q2_p[i][j]->Sumw2();
+      if(tpc_recenter_read_switch) Q2_m[i][j]->Sumw2();
 
-      if(shift_read_switch) ShiftA[i][j]->Sumw2();
-      if(shift_read_switch) ShiftB[i][j]->Sumw2();
+      if(tpc_shift_read_switch) hTPC_shift_N[i][j]->Sumw2();
+      if(tpc_shift_read_switch) hTPC_shift_P[i][j]->Sumw2();
       
-      if(bbc_shift_read_switch) bbc_ShiftA[i][j]->Sumw2();
-      if(bbc_shift_read_switch) bbc_ShiftB[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_A[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_B[i][j]->Sumw2();
+
+      if(zdc_shift_read_switch) hZDC_shift_A[i][j]->Sumw2();
+      if(zdc_shift_read_switch) hZDC_shift_B[i][j]->Sumw2();
     }
   }
 
   ////res_cen->Sumw2();
   if(zdc_recenter_read_switch){
-    zdc_center_ex->Sumw2();
-    zdc_center_ey->Sumw2();
-    zdc_center_wx->Sumw2();
-    zdc_center_wy->Sumw2();
+    hZDC_center_ex->Sumw2();
+    hZDC_center_ey->Sumw2();
+    hZDC_center_wx->Sumw2();
+    hZDC_center_wy->Sumw2();
   }
   if(bbc_recenter_read_switch){
-    bbc_center_ex->Sumw2();
-    bbc_center_ey->Sumw2();
-    bbc_center_wx->Sumw2();
-    bbc_center_wy->Sumw2();
+    hBBC_center_ex->Sumw2();
+    hBBC_center_ey->Sumw2();
+    hBBC_center_wx->Sumw2();
+    hBBC_center_wy->Sumw2();
   }
+*/
 
   bbc_res->Sumw2();
   zdc_psi->Sumw2();
   checkbbc->Sumw2();
   psi2_tpc_bbc->Sumw2();
+  bbc_psi_e->Sumw2();
+  bbc_psi_w->Sumw2();
   bbc_psi_evw->Sumw2();
   bbc_psi_raw->Sumw2();
   bbc_psi_rcd->Sumw2();
   bbc_psi_sft->Sumw2();
-  bbc_psi_e->Sumw2();
-  bbc_psi_w->Sumw2();
+  bbc_psi_fnl->Sumw2();
 
   Psi2->Sumw2();
   Psi2m->Sumw2();
@@ -2658,11 +2568,6 @@ void StMyAnalysisMaker::SetEPSumw2() {
   Psi2_final->Sumw2();
   Psi2_final_folded->Sumw2();
   Psi2_final_raw->Sumw2();
-  Phi_sp_raw->Sumw2();
-  for(int i=0; i<9; i++){
-    Phi_sp_wopx[i]->Sumw2();
-    Phi_sp_folded[i]->Sumw2();
-  }
 
 }
 
@@ -2710,16 +2615,8 @@ Double_t StMyAnalysisMaker::ApplyFlatteningZDC(Double_t phi, Double_t c)
 }
 
 // ________________________________________________________________________________________
-void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Double_t fCentralityScaled)
+void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP)
 { 
-  // ===============================
-  // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField();
-
-  // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
-
   TVector2 mQtpcn, mQtpcp;
   double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
   int order = 2;
@@ -2728,7 +2625,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Double_t fCentralityScal
 
   // leading jet check and removal
   Float_t excludeInEta = -999;
-  fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
+  //fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
@@ -2942,10 +2839,10 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   // STEP1: for re-centering the BBC event plane angle
   if(bbc_recenter_read_switch){
-    bbc_center_ex->Fill(RunId_Order+0.5, sumcos_E);
-    bbc_center_ey->Fill(RunId_Order+0.5, sumsin_E);
-    bbc_center_wx->Fill(RunId_Order+0.5, sumcos_W);
-    bbc_center_wy->Fill(RunId_Order+0.5, sumsin_E);
+    hBBC_center_ex->Fill(RunId_Order+0.5, sumcos_E);
+    hBBC_center_ey->Fill(RunId_Order+0.5, sumsin_E);
+    hBBC_center_wx->Fill(RunId_Order+0.5, sumcos_W);
+    hBBC_center_wy->Fill(RunId_Order+0.5, sumsin_E);
   }
 
   // create Q-vectors
@@ -2955,44 +2852,45 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   // STEP2: correct angles: re-centering and then do shift below
   //TFile *fBBCcalibFile = new TFile("BBC_recenter_calib_file.root", "READ");
   if(fCalibFile && bbc_shift_read_switch) {
-    // Method 1: reading values from a function in a *.h file (Liang method)
+    // Method 1: reading values from a function in a *.h file
     // recentering procedure
-    /*sumcos_E -= BBC_center_ex[RunId_Order];
-    sumsin_E -= BBC_center_ey[RunId_Order];
-    sumcos_W -= BBC_center_wx[RunId_Order];
-    sumsin_W -= BBC_center_wy[RunId_Order];
-    */
+    sumcos_E -= bbc_center_ex[RunId_Order];
+    sumsin_E -= bbc_center_ey[RunId_Order];
+    sumcos_W -= bbc_center_wx[RunId_Order];
+    sumsin_W -= bbc_center_wy[RunId_Order];
 
+/*
     // Method 2: reading values from *.root files
-    TProfile* hBBC_center_ex = (TProfile*)fCalibFile->Get("bbc_center_ex");
-    hBBC_center_ex->SetName("hBBC_center_ex");
-    sumcos_E -= hBBC_center_ex->GetBinContent(RunId_Order + 1);
+    TProfile* htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
+    htempBBC_center_ex->SetName("htempBBC_center_ex");
+    sumcos_E -= htempBBC_center_ex->GetBinContent(RunId_Order + 1);
 
-    TProfile* hBBC_center_ey = (TProfile*)fCalibFile->Get("bbc_center_ey");
-    hBBC_center_ey->SetName("hBBC_center_ey");
-    sumsin_E -= hBBC_center_ey->GetBinContent(RunId_Order + 1);
+    TProfile* htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
+    htempBBC_center_ey->SetName("htempBBC_center_ey");
+    sumsin_E -= htempBBC_center_ey->GetBinContent(RunId_Order + 1);
 
-    TProfile* hBBC_center_wx = (TProfile*)fCalibFile->Get("bbc_center_wx");
-    hBBC_center_wx->SetName("hBBC_center_wx");
-    sumcos_W -= hBBC_center_wx->GetBinContent(RunId_Order + 1);
+    TProfile* htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
+    htempBBC_center_wx->SetName("htempBBC_center_wx");
+    sumcos_W -= htempBBC_center_wx->GetBinContent(RunId_Order + 1);
 
-    TProfile* hBBC_center_wy = (TProfile*)fCalibFile->Get("bbc_center_wy");
-    hBBC_center_wy->SetName("hBBC_center_wy");
-    sumsin_W -= hBBC_center_wy->GetBinContent(RunId_Order + 1);
+    TProfile* htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
+    htempBBC_center_wy->SetName("htempBBC_center_wy");
+    sumsin_W -= htempBBC_center_wy->GetBinContent(RunId_Order + 1);
 
     // test statement
-    //cout<<"RunID_Order = "<<RunId_Order + 1<<"  hBBC_center_ex max = "<<hBBC_center_ex->GetMaximum()<<"  bin# = "<<hBBC_center_ex->GetMaximumBin()<<endl;
+    //cout<<"RunID_Order = "<<RunId_Order + 1<<"  hBBC_center_ex max = "<<htempBBC_center_ex->GetMaximum()<<"  bin# = "<<htempBBC_center_ex->GetMaximumBin()<<endl;
 
     // delete temp histos
-    delete hBBC_center_ex;
-    delete hBBC_center_ey;
-    delete hBBC_center_wx;
-    delete hBBC_center_wy;
+    delete htempBBC_center_ex;
+    delete htempBBC_center_ey;
+    delete htempBBC_center_wx;
+    delete htempBBC_center_wy;
+*/
   }
 
   // fill east/west BBC angles
-  BBCDis_W->Fill(sumcos_W, sumsin_W);
-  BBCDis_E->Fill(sumcos_E, sumsin_E);
+  hBBCDis_W->Fill(sumcos_W, sumsin_W);
+  hBBCDis_E->Fill(sumcos_E, sumsin_E);
 
   // set vector components
   bQE.Set(sumcos_E, sumsin_E);
@@ -3017,33 +2915,40 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       btimes = double(1./s); //2/(order*2)
       bBn =   btimes*cos(2*s*bPhi_rcd);
       bAn = -(btimes*sin(2*s*bPhi_rcd));
-      bbc_ShiftA[ref9][region_vz]->Fill(s - 0.5, bAn);
-      bbc_ShiftB[ref9][region_vz]->Fill(s - 0.5, bBn);
+      hBBC_shift_A[ref9][region_vz]->Fill(s - 0.5, bAn);
+      hBBC_shift_B[ref9][region_vz]->Fill(s - 0.5, bBn);
     }	
   }
 
   // STEP3: read shift correction for BBC event plane (read in from file)
   double bbc_delta_psi = 0.;	
-  double bbc_shift_A = 0., bbc_shift_B = 0.; 
+  double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; 
   if(fCalibFile2 && bbc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
     for(int nharm=1; nharm<21; nharm++){
+      // Method 1: load from *.h file function
+      // perform 'shift' to BBC event plane angle
+      // Dec5
       ////bbc_delta_psi += (bbc_shift_A[ref9][region_vz][z-1]*cos(2*z*bPhi_rcd) + bbc_shift_B[ref9][region_vz][z-1]*sin(2*z*bPhi_rcd)); 
+      bbc_delta_psi += (bbc_shift_A[ref9][region_vz][nharm-1] * cos(2*nharm*bPhi_rcd) + 
+                        bbc_shift_B[ref9][region_vz][nharm-1] * sin(2*nharm*bPhi_rcd));
 
-      // Method 2:
-      TProfile* hBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("bbc_ShiftA%i_%i", ref9, region_vz));
-      hBBC_ShiftA->SetName(Form("hBBC_ShiftA%i_%i", ref9, region_vz));
-      bbc_shift_A = hBBC_ShiftA->GetBinContent(nharm);
+/*
+      // Method 2: load from *.root calibration file
+      TProfile* htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
+      htempBBC_ShiftA->SetName(Form("htempBBC_ShiftA%i_%i", ref9, region_vz));
+      bbc_shift_Aval = htempBBC_ShiftA->GetBinContent(nharm);
 
-      TProfile* hBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("bbc_ShiftB%i_%i", ref9, region_vz));
-      hBBC_ShiftB->SetName(Form("hBBC_ShiftB%i_%i", ref9, region_vz));
-      bbc_shift_B = hBBC_ShiftB->GetBinContent(nharm);
+      TProfile* htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
+      htempBBC_ShiftB->SetName(Form("htempBBC_ShiftB%i_%i", ref9, region_vz));
+      bbc_shift_Bval = htempBBC_ShiftB->GetBinContent(nharm);
 
       // perform 'shift' to BBC event plane angle
-      bbc_delta_psi += (bbc_shift_A * cos(2*nharm*bPhi_rcd) + bbc_shift_B * sin(2*nharm*bPhi_rcd));
+      bbc_delta_psi += (bbc_shift_Aval * cos(2*nharm*bPhi_rcd) + bbc_shift_Bval * sin(2*nharm*bPhi_rcd));
 
       // delete temp histos
-      delete hBBC_ShiftA;
-      delete hBBC_ShiftB;
+      delete htempBBC_ShiftA;
+      delete htempBBC_ShiftB;
+*/
     }
 
   }
@@ -3053,23 +2958,32 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   if(bbc_delta_psi > 0) bbc_delta_psi -= ns*pi;
   if(bbc_delta_psi < 0) bbc_delta_psi += ns*pi;
 
+  // shifted BBC event plane angle
   double bPhi_sft = bPhi_rcd + bbc_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);
   double b_res = cos(2*(bPhi_East - bPhi_West - pi));
+
+  // make shifted event plane from {0, pi}
+  double bPhi_fnl = bPhi_rcd + bbc_delta_psi;
+  if(bPhi_fnl < pi) bPhi_fnl += pi;
+  if(bPhi_fnl > pi) bPhi_fnl -= pi;
 
   // fill a bunch of histograms
   ////checkbbc->Fill(PSI2-bPhi_sft);// FIXME
   //psi2_tpc_bbc->Fill(PSI2, bPhi_rcd);
   //bbc_res->Fill((8 - ref9) + 0.5, b_res); // FIXME don't need to re-map
-  bbc_res->Fill((8 - ref9) + 0.5, b_res); // FIXME don't need to re-map
+  bbc_res->Fill((ref9) + 0.5, b_res);
   bbc_psi_e->Fill(bPhi_East);
   bbc_psi_w->Fill(bPhi_West);
   bbc_psi_evw->Fill(bPhi_East, bPhi_West);
-  bbc_psi_raw->Fill(bPhi_raw);
-  bbc_psi_rcd->Fill(bPhi_rcd);
-  bbc_psi_sft->Fill(bPhi_sft);
+  bbc_psi_raw->Fill(bPhi_raw);  // raw event plane
+  bbc_psi_rcd->Fill(bPhi_rcd);  // re-centered event plane
+  bbc_psi_sft->Fill(bPhi_sft);  // shifted event plane
+  bbc_psi_fnl->Fill(bPhi_fnl);  // final BBC event plane {0, pi}
 
   // set psi for n=2
   ////PSI2 = bPhi_rcd; // FIXME
+
+  return kStOk;
 }
 
 //
@@ -3087,13 +3001,13 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
   float zdc_EV[7] = {0.};
   float zdc_WV[7] = {0.};
 
-  // loop over horizontal
-  for(int i=0;i<8;i++){// read in the value of adc deposition
+  // loop over horizontal - read in the value of the adc deposition
+  for(int i=0;i<8;i++){
     zdc_EH[i] = mPicoEvent->ZdcSmdEastHorizontal(i);
     zdc_WH[i] = mPicoEvent->ZdcSmdWestHorizontal(i);
   }
 	
-  // loop over vertical
+  // loop over vertical - read in the value of the adc deposition
   for(int i=0;i<7;i++){
     zdc_EV[i] = mPicoEvent->ZdcSmdEastVertical(i);
     zdc_WV[i] = mPicoEvent->ZdcSmdWestVertical(i);
@@ -3120,7 +3034,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
     w_wv += zdc_WV[i];
   }
 
-  float mQex,mQey,mQwx,mQwy;
+  float mQex, mQey, mQwx, mQwy;
   mQex = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (ev/w_ev):0.;
   mQey = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (eh/w_eh):0.;
   mQwx = (w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.) ? (wv/w_wv):0.;
@@ -3129,15 +3043,15 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
   // STEP1: fill histograms with recentering corrections for ZDC
   // fill some histograms with Q vectors and after re-centering event plane
   if(w_ev>0. && w_wv>0. && w_eh>0. && w_wh>0.){
-    ZdcDis_W->Fill(mQwx, mQwy);
-    ZdcDis_E->Fill(mQex, mQey);
+    hZDCDis_W->Fill(mQwx, mQwy);
+    hZDCDis_E->Fill(mQex, mQey);
 
-    // if re-centering done for ZDC
+    // fill re-centering info for ZDC
     if(zdc_recenter_read_switch){
-      zdc_center_ex->Fill(RunId_Order + 0.5, mQex);
-      zdc_center_ey->Fill(RunId_Order + 0.5, mQey);
-      zdc_center_wx->Fill(RunId_Order + 0.5, mQwx);
-      zdc_center_wy->Fill(RunId_Order + 0.5, mQwy);
+      hZDC_center_ex->Fill(RunId_Order + 0.5, mQex);
+      hZDC_center_ey->Fill(RunId_Order + 0.5, mQey);
+      hZDC_center_wx->Fill(RunId_Order + 0.5, mQwx);
+      hZDC_center_wy->Fill(RunId_Order + 0.5, mQwy);
     }
   }
 
@@ -3149,19 +3063,53 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
   float psi_e = -999;
   float psi_w = -999;
   float psi_full = -999;
+  float zPhi_rcd = -999;
 
+  // get east and west ZDC phi
   if(w_ev > 1e-6 && w_eh > 1e-6) psi_e = mQe.Phi();
   if(w_wv > 1e-6 && w_wh > 1e-6) psi_w = mQw.Phi();
 
-  // calculate ZDC event plane
+  // calculate full ZDC event plane
   if(psi_e > -900. && psi_w > -900.) {
     psi_full = mQ.Phi();
+    zPhi_rcd = mQ.Phi();
     zdc_psi->Fill(psi_full);
   } 
-	
+
+  // ============================================
+  // ================ NEW ========================
+  // STEP2: calculate shift correction and fill histos
+  // shift correction to BBC event plane angle
+  double btimes, zBn, zAn;
+  if(zdc_shift_read_switch){
+    for(int s=1;s<21;s++) {
+      btimes = double(1./s); //2/(order*2)
+      zBn =   btimes*cos(2*s*zPhi_rcd);
+      zAn = -(btimes*sin(2*s*zPhi_rcd));
+      hZDC_shift_A[ref9][region_vz]->Fill(s - 0.5, zAn);
+      hZDC_shift_B[ref9][region_vz]->Fill(s - 0.5, zBn);
+    }
+  }
+
+  // STEP3: read shift correction for BBC event plane (read in from file)
+  double zdc_delta_psi = 0.;
+  double zdc_shift_Aval = 0., zdc_shift_Bval = 0.;
+  if(fCalibFile2 && zdc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
+    for(int nharm=1; nharm<21; nharm++){
+      // Method 1: load from *.h file function
+      // perform 'shift' to ZDC event plane angle
+      zdc_delta_psi += (zdc_shift_A[ref9][region_vz][nharm-1] * cos(2*nharm*zPhi_rcd) +
+                        zdc_shift_B[ref9][region_vz][nharm-1] * sin(2*nharm*zPhi_rcd));
+
+    }
+  }
+
+  // ============================================	
+
   //  cout<<"zdc phi="<< psi_full<<endl;
   //  PSI2 = psi_full;
 
+  return kStOk;
 }
 
 //
@@ -3170,7 +3118,6 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz) {
 Float_t StMyAnalysisMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 1)
   float pi = 1.0*TMath::Pi();
   //TRandom* gRandom(1); // FIXME added for missing variable
-
   //TRandom rndm;
   float phi_div = pi/6.;
   float bbc_phi = phi_div;
@@ -3188,7 +3135,7 @@ Float_t StMyAnalysisMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 
         break;
     case 5: bbc_phi = 5*phi_div;
         break;
-    case 6: bbc_phi = (gRandom->Rndm()>0.5) ? 2*phi_div:4*phi_div;
+    case 6: bbc_phi = (gRandom->Rndm() > 0.5) ? 2*phi_div:4*phi_div;
         break;
     case 7: bbc_phi = 3*phi_div;
         break;
@@ -3238,38 +3185,45 @@ Float_t StMyAnalysisMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 
 // 
 // get position of ZDCSMD
 // ______________________________________________________________________
-Float_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip) {
+Float_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int verthori, int strip) {
 
-  Float_t zdcsmd_y[8] = {1.25,3.25,5.25,7.25,9.25,11.25,13.25,15.25};//pre-define the position of each slot.
+  Float_t zdcsmd_y[8] = {1.25,3.25,5.25,7.25,9.25,11.25,13.25,15.25}; // pre-define the position of each slot.
   Float_t zdcsmd_x[7] = {0.5,2,3.5,5,6.5,8,9.5};
 
   // STEP2:
   // correct angles: re-centering ZDC event plane
   //TFile *fZDCcalibFile = new TFile("ZDC_recenter_calib_file.root", "READ");
   float mZDCSMDCenterex = 0.0, mZDCSMDCenterey = 0.0, mZDCSMDCenterwx = 0.0, mZDCSMDCenterwy = 0.0; 
-  if(fCalibFile && zdc_shift_read_switch) {
-    // recentering procedure - read from a function in .h file (Liang method) 
-    //mZDCSMDCenterex = center_ex[id_order];
-    //mZDCSMDCenterey = center_ey[id_order];
-    //mZDCSMDCenterwx = center_wx[id_order];
-    //mZDCSMDCenterwy = center_wy[id_order];
+  if(fCalibFile && (zdc_shift_read_switch || zdc_apply_corr_switch)) {  // FIXME - do I want the or statement there?
+    // recentering procedure - read from a function in .h file 
+    mZDCSMDCenterex = zdc_center_ex[id_order];
+    mZDCSMDCenterey = zdc_center_ey[id_order];
+    mZDCSMDCenterwx = zdc_center_wx[id_order];
+    mZDCSMDCenterwy = zdc_center_wy[id_order];
 
+/*
     // get corrections from histograms of calibration .root file
-    TProfile* hZDC_center_ex = (TProfile*)fCalibFile->Get("zdc_center_ex");
-    hZDC_center_ex->SetName("hZDC_center_ex");
-    mZDCSMDCenterex = hZDC_center_ex->GetBinContent(id_order + 1);
+    TProfile* htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
+    htempZDC_center_ex->SetName("htempZDC_center_ex");
+    mZDCSMDCenterex = htempZDC_center_ex->GetBinContent(id_order + 1);
 
-    TProfile* hZDC_center_ey = (TProfile*)fCalibFile->Get("zdc_center_ey");
-    hZDC_center_ey->SetName("hZDC_center_ey");
-    mZDCSMDCenterey = hZDC_center_ey->GetBinContent(id_order + 1);
+    TProfile* htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
+    htempZDC_center_ey->SetName("htempZDC_center_ey");
+    mZDCSMDCenterey = htempZDC_center_ey->GetBinContent(id_order + 1);
 
-    TProfile* hZDC_center_wx = (TProfile*)fCalibFile->Get("zdc_center_wx");
-    hZDC_center_wx->SetName("hZDC_center_wx");
-    mZDCSMDCenterwx = hZDC_center_wx->GetBinContent(id_order + 1);
+    TProfile* htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
+    htempZDC_center_wx->SetName("htempZDC_center_wx");
+    mZDCSMDCenterwx = htempZDC_center_wx->GetBinContent(id_order + 1);
 
-    TProfile* hZDC_center_wy = (TProfile*)fCalibFile->Get("zdc_center_wy");
-    hZDC_center_wy->SetName("hZDC_center_wy");
-    mZDCSMDCenterwy = hZDC_center_wy->GetBinContent(id_order + 1);
+    TProfile* htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
+    htempZDC_center_wy->SetName("htempZDC_center_wy");
+    mZDCSMDCenterwy = htempZDC_center_wy->GetBinContent(id_order + 1);
+
+   delete htempZDC_center_ex;
+   delete htempZDC_center_ey;
+   delete htempZDC_center_wx;
+   delete htempZDC_center_wy;
+*/
   }
 
   // perform re-centering of ZDC event plane angle
@@ -3285,7 +3239,7 @@ Float_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order,int eastwest,int vert
     if(eastwest == 1 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterwy;
   }
 
-  return 0;
+  return kStOk;
 }
 
 // this is temp to test code from Liang
@@ -3301,14 +3255,283 @@ Int_t StMyAnalysisMaker::GetRunNo(int runid){
 }
 
 // this is temp to test code from Liang
-Int_t StMyAnalysisMaker::GetVzRegion(float Vz)// 0-14, 15
-{ // 0-60 cm
+Int_t StMyAnalysisMaker::GetVzRegion(float Vz) // 0-14, 15          0-19, 20
+{
   if(fabs(Vz >= 30.)) return 999;  // THIS CUT IS ALREADY DONE
   //int regionvz=int((Vz+30)/6.);  // bin width is equal to 6 centi-meters
-  int regionvz = int((Vz+30.)/4.); // bin width is equal to 4 centi-meters
-  if(regionvz >= 15 || regionvz <= -1) return 999;   // FIXME! don't need this
+  //int regionvz = int((Vz+30.)/4.); // bin width is equal to 4 centi-meters
+  //if(regionvz >= 15 || regionvz <= -1) return 999;   // FIXME! don't need this
+
+  // 0-19, 20 bins (-40 to 40)
+  int regionvz = int((Vz+40.)/4.); // bin width is equal to 4 centi-meters
+  if(regionvz >= 20 || regionvz <= -1) return 999;
 
   return regionvz;
   //      return 0;
 }
 
+// Calculate TPC event plane angle with correction
+// ___________________________________________________________________________________
+Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz) {
+  double res = 0.;
+  double pi = 1.0*TMath::Pi();
+
+  // function to calculate Q-vectors
+  QvectorCal(ref9, region_vz);
+
+  // local variable
+  double psi2, psi2m, psi2p, psi2_rcd;
+  if(fabs(Q2x_raw == 0.) && fabs(Q2y_raw == 0.))  return kStOK;
+
+  // calculate event plane angles - CHECK RANGES TODO
+  psi2 = atan2(Q2y_raw, Q2x_raw);//(-pi, pi]
+  psi2_rcd = atan2(Q2y, Q2x);
+  psi2p = atan2(Q2y_p, Q2x_p);//(-pi, pi]
+  psi2m = atan2(Q2y_m, Q2x_m);//(-pi, pi]
+
+  // forces range {0, 2pi}
+  if(psi2 < 0.)   psi2 += 2*pi; //(0, 2*pi]
+  if(psi2m < 0.)  psi2m += 2*pi;//(0, 2*pi]
+  if(psi2p < 0.)  psi2p += 2*pi;//(0, 2*pi]
+  if(psi2_rcd < 0.) psi2_rcd += 2*pi;
+
+  // what are these??
+  psi2_rcd /= 2.;
+  psi2 /= 2.; //(0, pi)
+  psi2m /= 2.;//(0, pi)
+  psi2p /= 2.;//(0, pi)
+
+  // fill TPC event plane histos
+  Psi2->Fill(psi2);              // raw psi2
+  Psi2_rcd->Fill(psi2_rcd);      // recentered psi2
+  Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2
+
+  res = 2.*(cos(2*(psi2m - psi2p)));
+  RES = res;
+
+  // TODO - double check this! 
+  if(fabs(Q2x_m) > 1e-6 || fabs(Q2y_m) > 1e-6) Psi2m->Fill(psi2m);
+  if(fabs(Q2x_p) > 1e-6 || fabs(Q2y_p) > 1e-6) Psi2p->Fill(psi2p);
+
+  //================================shift reading
+  double times, Bn, An;
+  if(tpc_shift_read_switch){
+    // loop over (s) harmonics
+    for(int s=1;s<21;s++) {
+      times = double(1./s); //2/(order*2)
+      Bn =   times*cos(2*s*psi2_rcd);
+      An = -(times*sin(2*s*psi2_rcd));
+      hTPC_shift_N[ref9][region_vz]->Fill(s - 0.5, An);
+      hTPC_shift_P[ref9][region_vz]->Fill(s - 0.5, Bn);
+    }  
+  }
+
+  //=================================shift correction
+  // STEP3: read shift correction fo TPC event plane (read in from file)
+  double shift_delta_psi = 0.;
+  double tpc_shift_Nval = 0., tpc_shift_Pval = 0.;
+  if(fCalibFile2 && tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
+    // loop over harmonics
+    for(int nharm=1; nharm<21; nharm++){
+      // Method 1: load from *.h file function
+      // perform 'shift' to TPC event plane angle
+      // Dec5
+      //shift_delta_psi += (shift_A[ref9][region_vz][z-1]*cos(2*z*psi2_rcd) + shift_B[ref9][region_vz][z-1]*sin(2*z*psi2_rcd));
+      shift_delta_psi += (tpc_shift_N[ref9][region_vz][nharm-1] * cos(2*nharm*psi2_rcd) +
+                          tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*psi2_rcd));
+
+/*
+      // Method 2: load from *.root calibration file
+      TProfile* htempTPC_ShiftN = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
+      htempTPC_ShiftN->SetName(Form("htempTPC_ShiftN%i_%i", ref9, region_vz));
+      tpc_shift_Nval = htempTPC_ShiftN->GetBinContent(nharm);
+
+      TProfile* htempTPC_ShiftP = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
+      htempTPC_ShiftP->SetName(Form("htempTPC_ShiftP%i_%i", ref9, region_vz));
+      tpc_shift_Pval = htempTPC_ShiftP->GetBinContent(nharm);
+
+      // perform 'shift' to TPC event plane angle
+      shift_delta_psi += (tpc_shift_Nval * cos(2*nharm*psi2_rcd) + tpc_shift_Pval * sin(2*nharm*psi2_rcd));
+
+      // delete temp histos
+      delete htempTPC_ShiftN;
+      delete htempTPC_ShiftP;
+*/
+    }
+  }
+
+  int ns = 0;
+  //=====shift_delta_psi (-pi, pi)
+  ns = int(fabs(shift_delta_psi) / pi);
+  if(shift_delta_psi > 0) shift_delta_psi -= ns*pi;
+  if(shift_delta_psi < 0) shift_delta_psi += ns*pi;
+  double shifted_psi2 = psi2_rcd + shift_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);
+  Psi2_final_raw->Fill(shifted_psi2);
+  //cout<<"delta psi2 = "<<shift_delta_psi<<endl;
+  Shift_delta_psi2->Fill(shift_delta_psi);
+
+  double shifted_psi2_raw;
+  if(shifted_psi2 < 0.)  shifted_psi2_raw = shifted_psi2 + pi;
+  if(shifted_psi2 >= pi) shifted_psi2_raw = shifted_psi2 - pi;
+  if(shifted_psi2 > 0. && shifted_psi2 < pi) shifted_psi2_raw = shifted_psi2;
+  Psi2_final_folded->Fill(shifted_psi2_raw);
+
+  // need to check these constraint shifts TODO
+  if(shifted_psi2 < -2*pi)  shifted_psi2 += 3*pi;
+  if(shifted_psi2 < -pi)  shifted_psi2 += 2*pi;
+  if(shifted_psi2 < 0.)  shifted_psi2 += pi;
+  if(shifted_psi2 >= pi) shifted_psi2 -= pi;
+  if(shifted_psi2 >= 2*pi) shifted_psi2 -= 2*pi;
+  if(shifted_psi2 >= 3*pi) shifted_psi2 -= 3*pi;
+  Psi2_final->Fill(shifted_psi2);
+
+  //PSI2= psi2_rcd;
+  //PSI2= psi2;
+  TPC_PSI2 = shifted_psi2;
+
+  return kStOk;
+}
+
+// this is a function for Qvector calculation for TPC event plane
+// ______________________________________________________________________________________________
+void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz) {
+  TVector2 mQtpcn, mQtpcp;
+  double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
+  int order = 2;
+  double phi, eta, pt;
+  double pi = 1.0*TMath::Pi();
+
+  // leading jet check and removal
+  Float_t excludeInEta = -999;
+  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
+    if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
+  }
+
+  // loop over tracks
+  int Qtrack = mPicoDst->numberOfTracks();
+  for(int i=0; i<Qtrack; i++){
+    StPicoTrack* track = (StPicoTrack*)mPicoDst->track(i);
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
+
+    // declare kinematic variables
+    if(doUsePrimTracks) {
+      // get primary track variables
+      StThreeVectorF mPMomentum = track->pMom();
+      phi = mPMomentum.phi();
+      eta = mPMomentum.pseudoRapidity();
+      pt = mPMomentum.perp();
+    } else {
+      // get global track variables
+      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
+      phi = mgMomentum.phi();
+      eta = mgMomentum.pseudoRapidity();
+      pt = mgMomentum.perp();
+    }
+
+    // should set a soft pt range (0.2 - 5.0?)
+    if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+//    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
+    if(phi < -2*pi) phi += 2*pi;
+    if(phi > 2*pi) phi -= 2*pi;
+
+    // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
+    if(fExcludeLeadingJetsFromFit > 0 &&
+      ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+       (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+
+    // Liang cuts
+    //if(pt >= 2.) continue;
+    //if(fabs(eta)<=0.75) continue; //method 1
+    //if(fabs(eta)>=0.25 || fabs(eta)<0.05) continue;   //method 2
+
+    // configure track weight when performing Q-vector summation
+    double trackweight;
+    if(fTrackWeight == kNoWeight) {
+      trackweight = 1.0;
+    } else if(fTrackWeight == kPtLinearWeight) {
+      trackweight = pt;
+    } else if(fTrackWeight == kPtLinear2Const5Weight) {
+      if(pt <= 2.0) trackweight = pt;
+      if(pt > 2.0) trackweight = 2.0;
+    } else {
+      // nothing choosen, so don't use weight
+      trackweight = 1.0;
+    }
+
+    // components (x and y)    (no segregation of minus and positive regions HERE - double check!)
+    //double x = pt*cos(2.*phi); // Liang used this
+    //double y = pt*sin(2.*phi); // Liang used this
+    double x = trackweight * cos(order*phi);
+    double y = trackweight * sin(order*phi);
+    Q2x_raw += x;
+    Q2y_raw += y;
+
+    // STEP1: calculate recentering for TPC event plane
+    if(tpc_recenter_read_switch){
+      if(eta>0.){
+        Q2_p[ref9][region_vz]->Fill(0.5, x);
+        Q2_p[ref9][region_vz]->Fill(1.5, y);
+      }
+      if(eta<0.){
+        Q2_m[ref9][region_vz]->Fill(0.5, x);
+        Q2_m[ref9][region_vz]->Fill(1.5, y);
+      }
+    }
+
+    //==================recentering procedure.
+    // STEP2: read in recentering for TPC event plane
+    if(!tpc_recenter_read_switch){  // FIXME
+      if(eta > 0){ // POSITIVE region
+        // Method 1: from function
+        //x -= center_Qpx[ref9][region_vz];
+        //y -= center_Qpy[ref9][region_vz];
+        x -= tpc_center_Qpx[ref9][region_vz];
+        y -= tpc_center_Qpy[ref9][region_vz];
+
+/*
+        // Method 2: from *.root calibration file
+        TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
+        hTPC_center_p->SetName("hTPC_center_p");
+        x -= hTPC_center_p->GetBinContent(1); // bin1 = x-vector
+        y -= hTPC_center_p->GetBinContent(2); // bin2 = y-vector
+
+        delete hTPC_center_p;
+*/
+      }
+      if(eta < 0){ // NEGATIVE region
+        // Method 1: from function
+        //x -= center_Qmx[ref9][region_vz];
+        //y -= center_Qmy[ref9][region_vz];
+        x -= tpc_center_Qnx[ref9][region_vz];
+        y -= tpc_center_Qny[ref9][region_vz];
+
+/*
+        // Method 2: from *.root calibration file
+        TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
+        hTPC_center_m->SetName("hTPC_center_m");
+        x -= hTPC_center_m->GetBinContent(1); // bin1 = x-vector
+        y -= hTPC_center_m->GetBinContent(2); // bin2 = y-vector
+
+        delete hTPC_center_m;
+*/
+      }
+
+    } // recenter tpc event plane
+
+    Q2x += x;
+    Q2y += y;
+
+    if(eta>0.){ // positive eta region
+      Q2x_p += x;
+      Q2y_p += y;
+    }
+    if(eta<0.){ // negative eta region
+      Q2x_m += x;
+      Q2y_m += y;
+    }
+
+  } // track loop
+}
