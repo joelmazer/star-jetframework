@@ -704,7 +704,7 @@ void StMyAnalysisMaker::WriteEventPlaneHistograms() {
     }
   }
 
-  for(int i=0; i<9; i++){ // centr
+  for(int i=0; i<9; i++){ // centrality
     for(int j=0; j<20; j++){ // vz (15)
       if(tpc_recenter_read_switch) Q2_p[i][j]->Write();
       if(tpc_recenter_read_switch) Q2_m[i][j]->Write();
