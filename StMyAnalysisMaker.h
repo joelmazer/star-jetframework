@@ -47,7 +47,16 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
       kDebugMixedEvents,
       kDebugEmcTrigger,
       kDebugGeneralEvt,
-      kDebugCentrality
+      kDebugCentrality,
+      kDeubgEventPlaneCalc
+    };
+
+    // enumerator for TPC event plane method
+    enum fTPCEPmethodEnum {
+      kRemoveNothing,
+      kRemoveEtaStrip,
+      kRemoveEtaPhiCone,
+      kRemoveLeadingJetConstituents // greater than 2 GeV
     };
 
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
@@ -91,6 +100,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
 
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
+    virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     
@@ -130,6 +140,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(Int_t weight)          {fTrackWeight = weight; }
     virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEventPlaneMaxTrackPtCut = m; }  
+    virtual void            SetTPCEventPlaneMethod(Int_t tm)                {fTPCEPmethod = tm; }
     virtual void            SetPhiShift(Bool_t ps)                          {phi_shift_switch = ps; }
     virtual void            SetTPCRecenterRead(Bool_t trc)                  {tpc_recenter_read_switch = trc; }
     virtual void            SetTPCShiftRead(Bool_t ts)                      {tpc_shift_read_switch = ts; }
@@ -142,6 +153,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetBBCApplyCorrections(Bool_t bac)              {bbc_apply_corr_switch = bac; }
     virtual void            SetHistBinLimitsCenZvert(Int_t cmin, Int_t cmax, Int_t zmin, Int_t zmax)   { fHistCentBinMin = cmin; fHistCentBinMax = cmax; fHistZvertBinMin = zmin; fHistZvertBinMax = zmax; }
     virtual void            SetdoEventPlaneRes(Bool_t depr)                 {doEventPlaneRes = depr; }
+    virtual void            SetdoEPTPCptAssocMethod(Bool_t ptbin)           {doTPCptassocBin = ptbin; }
 
     // Where to read calib object with EP calibration if not default
     void                   SetEPcalibFileName(const TString filename) {fEPcalibFileName = filename; } 
@@ -149,27 +161,28 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
-    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;       // relative jet track angle
+    Double_t               RelativePhi(Double_t mphi, Double_t vphi) const;      // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
     TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
     TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t               GetReactionPlane();                                   // get reaction plane angle
-    void                   GetEventPlane(Bool_t flattenEP);                      // get event plane / flatten and fill histos 
+    void                   GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Bool_t                 AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                 DoComparison(int myarr[], int elems);
     void                   SetSumw2(); // set errors weights 
     void                   SetEPSumw2(); // set errors weights for event plane histograms
     //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
-    void                   CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP);
+    void                   CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
+    static Double_t        CalculateEventPlaneChi(Double_t res);
 
     // Added from Liang
     void                   QvectorCal(int ref9, int region_vz, int n);
     Int_t                  EventPlaneCal(int ref9, int region_vz, int n);
     Int_t                  BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
     Int_t                  ZDC_EP_Cal(int ref9, int region_vz, int n);
-    Double_t                BBC_GetPhi(int e_w,int iTile); //east == 0
-    Double_t                ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
+    Double_t               BBC_GetPhi(int e_w,int iTile); //east == 0
+    Double_t               ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
     Int_t                  GetRunNo(int runid);
     Int_t                  GetVzRegion(double Vz);
 
@@ -182,9 +195,11 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t                  fDoEffCorr;              // efficiency correction to tracks
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Bool_t                 doEventPlaneRes;         // event plane resolution switch
+    Bool_t                 doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
+    Double_t               fJetConstituentCut;      // min jet constituent
     Double_t               fTrackBias;              // high pt track in jet bias
     Double_t               fJetRad;                 // jet radius
     Double_t               fEventZVtxMinCut;        // min event z-vertex cut
@@ -228,6 +243,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
     Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
+    Int_t          fTPCEPmethod;                // TPC event plane calculation method
     Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!
     Bool_t         tpc_recenter_read_switch;    // tpc recenter reader
     Bool_t         tpc_shift_read_switch;       // tpc shift reader
@@ -255,8 +271,20 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t       TPC_PSI2;
     Double_t       BBC_PSI2;
     Double_t       ZDC_PSI2;
+    Double_t       BBC_PSI1;
+    Double_t       ZDC_PSI1;
     Double_t       PSI2;
     Double_t       RES;
+    // temp (possibly)
+    Double_t       TPC_raw_comb;
+    Double_t       TPC_raw_neg;
+    Double_t       TPC_raw_pos;
+    Double_t       BBC_raw_comb;
+    Double_t       BBC_raw_east;
+    Double_t       BBC_raw_west;
+    Double_t       ZDC_raw_comb;
+    Double_t       ZDC_raw_east;
+    Double_t       ZDC_raw_west;
 
     // event pool
     TClonesArray          *CloneAndReduceTrackList();
@@ -283,6 +311,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t               fEPTPCResolution;
     Double_t               fEPTPCn;
     Double_t               fEPTPCp;
+    Double_t               fEPTPC;
     Double_t               fEPBBC;
     Double_t               fEPZDC;
 
@@ -290,7 +319,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
     StPicoEvent    *mPicoEvent;
-    StJetMakerTask   *JetMaker;
+    StJetMakerTask *JetMaker;
     StRho          *RhoMaker;
 
     // centrality objects
@@ -338,7 +367,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1F* hCentrality;//!
     TH1F* hMultiplicity;//!
     TH2F* hRhovsCent;//!
-    
+    TH1F* hTrackPhi[9];//!
+    TH1F* hTrackPt[9];//!
+
     // jet histos
     TH1F* hJetPt;//!
     TH1F* hJetCorrPt;//!
@@ -364,6 +395,10 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!
+
+    TH1  *hTPCepDebug;//!
+    TH1  *hBBCepDebug;//!
+    TH1  *hZDCepDebug;//!
 
     // event plane histograms for corrections and calculations
     TH2F *hZDCDis_W;//!
@@ -396,7 +431,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1F *bbc_psi_e;//!
     TH1F *bbc_psi_w;//!
     TH2F *bbc_psi_evw;//!
-    TH1F *bbc_psi_raw;//!
+    TH1F *bbc_psi1_raw;//! // 1st order
+    TH1F *bbc_psi_raw;//!  // 2nd order
     TH1F *bbc_psi_rcd;//!
     TH1F *bbc_psi_sft;//!
     TH1F *bbc_psi_fnl;//!
@@ -440,6 +476,10 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TProfile              *fProfV3Resolution[9];//! resolution parameters for v3
     TProfile              *fProfV4Resolution[9];//! resolution parameters for v4
     TProfile              *fProfV5Resolution[9];//! resolution parameters for v5
+//    TH1F                  *fDiffV2Resolution[9];//! difference of event plane angles for n=2
+//    TH1F                  *fDiffV3Resolution[9];//! difference of event plane angles for n=3
+//    TH1F                  *fDiffV4Resolution[9];//! difference of event plane angles for n=4
+//    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
 
     // THn Sparse's jet sparse
     THnSparse             *fhnJH;//!           // jet hadron events matrix
