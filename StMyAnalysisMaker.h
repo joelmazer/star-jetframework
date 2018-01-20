@@ -154,10 +154,12 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetHistBinLimitsCenZvert(Int_t cmin, Int_t cmax, Int_t zmin, Int_t zmax)   { fHistCentBinMin = cmin; fHistCentBinMax = cmax; fHistZvertBinMin = zmin; fHistZvertBinMax = zmax; }
     virtual void            SetdoEventPlaneRes(Bool_t depr)                 {doEventPlaneRes = depr; }
     virtual void            SetdoEPTPCptAssocMethod(Bool_t ptbin)           {doTPCptassocBin = ptbin; }
+    virtual void            SetEPTPCptAssocBin(Int_t pb)                    {fTPCptAssocBin = pb; }
 
     // Where to read calib object with EP calibration if not default
-    void                   SetEPcalibFileName(const TString filename) {fEPcalibFileName = filename; } 
-    void                   SetOutFileNameEP(const TString epout) {mOutNameEP = epout; }
+    void                    SetEPcalibFileName(const TString filename) {fEPcalibFileName = filename; } 
+    void                    SetOutFileNameEP(const TString epout) {mOutNameEP = epout; }
+    virtual void            SetdoReadCalibFile(Bool_t rc)                   {doReadCalibFile = rc; } 
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
@@ -177,8 +179,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     static Double_t        CalculateEventPlaneChi(Double_t res);
 
     // Added from Liang
-    void                   QvectorCal(int ref9, int region_vz, int n);
-    Int_t                  EventPlaneCal(int ref9, int region_vz, int n);
+    void                   QvectorCal(int ref9, int region_vz, int n, int ptbin);
+    Int_t                  EventPlaneCal(int ref9, int region_vz, int n, int ptbin);
     Int_t                  BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
     Int_t                  ZDC_EP_Cal(int ref9, int region_vz, int n);
     Double_t               BBC_GetPhi(int e_w,int iTile); //east == 0
@@ -196,6 +198,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Bool_t                 doEventPlaneRes;         // event plane resolution switch
     Bool_t                 doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
+    Int_t                  fTPCptAssocBin;          // pt associated bin to calculate event plane for
+    Bool_t                 doReadCalibFile;         // read calibration file switch
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
@@ -269,6 +273,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t       Q2x;
     Double_t       Q2y;
     Double_t       TPC_PSI2;
+    Double_t       TPCA_PSI2;
+    Double_t       TPCB_PSI2;
     Double_t       BBC_PSI2;
     Double_t       ZDC_PSI2;
     Double_t       BBC_PSI1;

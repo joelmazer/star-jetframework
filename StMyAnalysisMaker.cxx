@@ -116,6 +116,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   Q2x = 0.;
   Q2y = 0.;
   TPC_PSI2 = -999;
+  TPCA_PSI2 = -999; // subevent A
+  TPCB_PSI2 = -999; // subevent B
   BBC_PSI2 = -999;
   ZDC_PSI2 = -999;
   BBC_PSI1 = -999;
@@ -162,6 +164,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
   doTPCptassocBin = kFALSE;
+  fTPCptAssocBin = -99;
+  doReadCalibFile = kFALSE;
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -891,7 +895,6 @@ void StMyAnalysisMaker::WriteHistograms() {
   fhnJH->Write();
   fhnMixedEvents->Write();
   fhnCorr->Write();
-
   fhnEP->Write();
 
   // (perhaps temp - save resolution hists to main output file instead of event plane calibration file)
@@ -1000,16 +1003,6 @@ void StMyAnalysisMaker::WriteEventPlaneHistograms() {
   hTPCvsZDCep->Write();
   hBBCvsZDCep->Write();
 
-/*
-  if(doEventPlaneRes){
-    for(Int_t i=0; i<9; i++){
-      fProfV2Resolution[i]->Write();
-      fProfV3Resolution[i]->Write();
-      fProfV4Resolution[i]->Write();
-      fProfV5Resolution[i]->Write();
-    }
-  }
-*/
 }
 
 // OLD user code says: //  Called every event after Make(). 
@@ -1266,7 +1259,7 @@ return kStOK;  // for TESTS
   // get BBC, ZDC, TPC event planes
   BBC_EP_Cal(ref9, region_vz, 2);
   ZDC_EP_Cal(ref9, region_vz, 2);  // will probably want n=1 for ZDC
-  EventPlaneCal(ref9, region_vz, 2);
+  EventPlaneCal(ref9, region_vz, 2, fTPCptAssocBin);
 
   // compare BBC, ZDC, TPC event planes
   hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
@@ -1281,9 +1274,11 @@ return kStOK;  // for TESTS
   }
 
   // my original method for TPC (gets neg + pos)
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 2);  // last param not used (ptcut)
-  cout<<"bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+//  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 2);  // last param not used (ptcut)
+//  cout<<"bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+//  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPCA_PSI2, TPCB_PSI2, BBC_PSI1, ZDC_PSI1);
+
 
 return kStOK;
 
@@ -1891,11 +1886,6 @@ void StMyAnalysisMaker::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins,
 
    case 0:
       label = "centrality 5% bin";
-    /*
-      nbins = 10;
-      xmin = 0.;
-      xmax = 100.;
-    */ 
       // think about how I want to do this here TODO
       nbins = 20; //16;
       xmin = 0.;
@@ -2454,7 +2444,6 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
   // leading jet check and removal
   Double_t excludeInEta = -999;
-  //fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
@@ -2697,7 +2686,6 @@ physics
 460202	BHT2*BBC	15174041	15175041
 460203	BHT3	15174041	15187006
 460212	BHT2*ZDCE	15175042	15187006
-
 
 Run16: AuAu
 physics	
@@ -3006,7 +2994,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
   // leading jet check and removal
   double excludeInEta = -999., excludeInPhi = -999.;
-  //fLeadingJet = GetLeadingJet();  // FIXME: this may not be needed as code already aware of leading jet
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) {
       excludeInEta = fLeadingJet->Eta();
@@ -3015,9 +3002,9 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   }
 
   // loop over tracks
-  //TRandom3 *rand = new TRandom3();
+  TRandom3 *rand = new TRandom3();
   //TRandom *rand = new TRandom();
-  //int nTOT = 0, nA = 0, nB = 0;
+  int nTOT = 0, nA = 0, nB = 0;
   int nTrack = mPicoDst->numberOfTracks();
   for(int i=0; i<nTrack; i++) {
     // get tracks
@@ -3044,25 +3031,29 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    ////if(pt > ptcut) continue; // == TEST == //
-//    if(phi < 0) cout<<"Phi < 0, phi = "<<phi<<endl;
     if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
-
-    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0
-    if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
-    if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-    if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-    if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-    if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-
-    // FIXME - temp
+    // FIXME - temp - but fill before pt max cut
     //if(method == 1) {
       hTrackPhi[ref9]->Fill(phi);
       hTrackPt[ref9]->Fill(pt);
     //}
+    if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+    ////if(pt > ptcut) continue; // == TEST == //
+
+    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // when doing event plane calculation via pt assoc bin
+    if(doTPCptassocBin) {
+      if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+    }
 
     // remove strip only when we have a leading jet
     // Method1: kRemoveEtaStrip
@@ -3107,7 +3098,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // test - Jan15 for random subevents
     // generate random distribution from 0 -> 1
     // and split subevents for [0,0.5] and [0.5, 1]
-    //double randomNum = rand->Rndm();
+    double randomNum = rand->Rndm();
     ////double randomNum = gRandom->Rndm();  // > 0.5?
     ////if(randomNum < 0.5) nA++;
     ////if(randomNum >= 0.5) nB++;
@@ -3116,7 +3107,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // split up Q-vectors to +/- eta regions
     //if(eta < 0) {
     if(randomNum < 0.5) {
-      //nA++;
+      nA++;
       // sum up q-vectors on negative eta side
       mQtpcnx += trackweight * cos(phi * order);
       mQtpcny += trackweight * sin(phi * order);
@@ -3124,7 +3115,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     }
     //if(eta > 0) {
     if(randomNum >= 0.5) {
-      //nB++;
+      nB++;
       // sum up q-vectors on positive eta side
       mQtpcpx += trackweight * cos(phi * order);
       mQtpcpy += trackweight * sin(phi * order);
@@ -3182,17 +3173,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   //cout<<"mQtpcnx = "<<mQtpcnx<<"  mQtpcny = "<<mQtpcny<<endl;
   //cout<<"TPCnegEP = "<<n1<<"  TPCposEP = "<<p1<<endl;
   //cout<<"n2 = "<<n2<<"  p2 = "<<p2<<endl;
-
-/*
-  fEPTPCn  = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0",  fInputEvent)); 
-  if(fEPTPCn>TMath::Pi()) fEPTPCn-=TMath::Pi();
-  fEPTPCp  = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0",  fInputEvent)); 
-  if(fEPTPCp>TMath::Pi()) fEPTPCp-=TMath::Pi();
-  fEPBBC = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0A", fInputEvent)); 
-  if(fEPBBC>TMath::Pi()) fEPBBC-=TMath::Pi();
-  fEPZDC = TVector2::Phi_0_2pi(fEventPlane->GetEventplane("V0C", fInputEvent)); 
-  if(fEPZDC>TMath::Pi()) fEPZDC-=TMath::Pi();
-*/
 
   // standard event plane distributions as function of centrality
   //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
@@ -3326,7 +3306,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
     sumsin_W -= bbc_center_wy[RunId_Order];
 
 /*
-    if(fCalibFile){
+    if(fCalibFile && doReadCalibFile){
       // Method 2: reading values from *.root files
       TProfile* htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
       htempBBC_center_ex->SetName("htempBBC_center_ex");
@@ -3406,7 +3386,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
                         bbc_shift_B[ref9][region_vz][nharm-1] * sin(2*nharm*bPhi_rcd));
 
 /*
-      if(fCalibFile2){
+      if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
         TProfile* htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
         htempBBC_ShiftA->SetName(Form("htempBBC_ShiftA%i_%i", ref9, region_vz));
@@ -3636,8 +3616,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   // STEP3: read shift correction for BBC event plane (read in from file or header)
   double zdc_delta_psi = 0.;
   double zdc_shift_Aval = 0., zdc_shift_Bval = 0.;
-  //if(zdc_apply_corr_switch) { // need to have ran recentering + shift prior
-  if(zdc_apply_corr_switch) {
+  if(zdc_apply_corr_switch) { // need to have ran recentering + shift prior
     for(int nharm=1; nharm<21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to ZDC event plane angle
@@ -3645,7 +3624,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
                         zdc_shift_B[ref9][region_vz][nharm-1] * sin(2*nharm*zPhi_rcd));
 
 /*
-      if(fCalibFile2){
+      if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
         TProfile* htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
         htempZDC_ShiftA->SetName(Form("htempZDC_ShiftA%i_%i", ref9, region_vz));
@@ -3792,7 +3771,7 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
     mZDCSMDCenterwy = zdc_center_wy[id_order];
 
 /*
-    if(fCalibFile){
+    if(fCalibFile && doReadCalibFile){
       // get corrections from histograms of calibration .root file
       TProfile* htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
       htempZDC_center_ex->SetName("htempZDC_center_ex");
@@ -3869,7 +3848,7 @@ Int_t StMyAnalysisMaker::GetVzRegion(double Vz) // 0-14, 15          0-19, 20
 //
 // Calculate TPC event plane angle with correction
 // ___________________________________________________________________________________
-Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n) {
+Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin) {
   double res = 0.;
   double pi = 1.0*TMath::Pi();
 
@@ -3883,7 +3862,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n) {
   Q2y = 0.;
 
   // function to calculate Q-vectors
-  QvectorCal(ref9, region_vz, n);
+  QvectorCal(ref9, region_vz, n, ptbin);
 
   // TEST - debug TPC
   if(fabs(Q2x_m) < 1e-6) { cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; hTPCepDebug->Fill(1.); }
@@ -3949,41 +3928,45 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n) {
       times = double(1./s); //2/(order*2)
       Bn =   times*cos(2*s*tPhi_rcd);
       An = -(times*sin(2*s*tPhi_rcd));
-      hTPC_shift_N[ref9][region_vz]->Fill(s - 0.5, An);
-      hTPC_shift_P[ref9][region_vz]->Fill(s - 0.5, Bn);
+      hTPC_shift_N[ref9][region_vz]->Fill(s - 0.5, An); // shift_A
+      hTPC_shift_P[ref9][region_vz]->Fill(s - 0.5, Bn); // shift_B
     }  
   }
 
   //=================================shift correction
   // STEP3: read shift correction fo TPC event plane (read in from file)
   double tpc_delta_psi = 0.;
-  double tpc_shift_Nval = 0., tpc_shift_Pval = 0.;
+  double tpc_shift_Aval = 0., tpc_shift_Bval = 0.;
   if(tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
     // loop over harmonics
     for(int nharm=1; nharm<21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to TPC event plane angle
+      // KEEP in mind, the naming convent here means nothing for functions: tpc_shift_N and tpc_shift_P,
+      // they are corresponing to Bn and An components above!
+      // so hTPC_shft_N and hTPC_shift_P also have misleading names
       //shift_delta_psi += (shift_A[ref9][region_vz][z-1]*cos(2*z*psi2_rcd) + shift_B[ref9][region_vz][z-1]*sin(2*z*psi2_rcd));
       tpc_delta_psi += (tpc_shift_N[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                         tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
 
 /*
-      if(fCalibFile2){
+      // started correcting names..
+      if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempTPC_ShiftN = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
-        htempTPC_ShiftN->SetName(Form("htempTPC_ShiftN%i_%i", ref9, region_vz));
-        tpc_shift_Nval = htempTPC_ShiftN->GetBinContent(nharm);
+        TProfile* htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
+        htempTPC_ShiftA->SetName(Form("htempTPC_ShiftA%i_%i", ref9, region_vz));
+        tpc_shift_Aval = htempTPC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempTPC_ShiftP = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
-        htempTPC_ShiftP->SetName(Form("htempTPC_ShiftP%i_%i", ref9, region_vz));
-        tpc_shift_Pval = htempTPC_ShiftP->GetBinContent(nharm);
+        TProfile* htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
+        htempTPC_ShiftB->SetName(Form("htempTPC_ShiftB%i_%i", ref9, region_vz));
+        tpc_shift_Bval = htempTPC_ShiftB->GetBinContent(nharm);
 
         // perform 'shift' to TPC event plane angle
-        tpc_delta_psi += (tpc_shift_Nval * cos(2*nharm*tPhi_rcd) + tpc_shift_Pval * sin(2*nharm*tPhi_rcd));
+        tpc_delta_psi += (tpc_shift_Aval * cos(2*nharm*tPhi_rcd) + tpc_shift_Bval * sin(2*nharm*tPhi_rcd));
 
         // delete temp histos
-        delete htempTPC_ShiftN;
-        delete htempTPC_ShiftP;
+        delete htempTPC_ShiftA;
+        delete htempTPC_ShiftB;
       }
 */
     }
@@ -4027,19 +4010,26 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n) {
   //PSI2= tPhi_rcd;
   //PSI2= psi2;
   TPC_PSI2 = tPhi_fnl;
+  TPCA_PSI2 = psi2p;
+  TPCB_PSI2 = psi2m;
 
   return kStOk;
 }
 
 // this is a function for Qvector calculation for TPC event plane
 // ______________________________________________________________________________________________
-void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
+void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   TVector2 mQtpcn, mQtpcp;
   double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
   int order = n; //2;
   double phi, eta, pt;
   double pi = 1.0*TMath::Pi();
   int ntracksNEG = 0, ntracksPOS = 0;
+  int nTOT = 0, nA = 0, nB = 0; // counter for sub-event A & B
+
+  // get random function to select sub-events
+  TRandom3 *rand = new TRandom3();
+  //TRandom *rand = new TRandom();
 
   // leading jet check and removal
   Double_t excludeInEta = -999, excludeInPhi = -999;
@@ -4049,11 +4039,6 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
       excludeInPhi = fLeadingJet->Phi();
     }
   }
-
-  // get random function to select sub-events
-  TRandom3 *rand = new TRandom3();
-  //TRandom *rand = new TRandom();
-  int nTOT = 0, nA = 0, nB = 0; // counter for sub-event A & B
 
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
@@ -4084,6 +4069,19 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
     if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
+
+    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // when doing event plane calculation via pt assoc bin
+    if(doTPCptassocBin) {
+      if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+    }
 
     // remove strip only when we have a leading jet
     // Method1:
@@ -4138,68 +4136,87 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
     Q2x_raw += x;
     Q2y_raw += y;
 
-/*
     // test - Jan15 for random subevents
     // generate random distribution from 0 -> 1
     // and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     //double randomNum = gRandom->Rndm();  // > 0.5?
-    if(randomNum < 0.5) nA++;
-    if(randomNum >= 0.5) nB++;
+    if(randomNum >= 0.5) nA++;
+    if(randomNum < 0.5) nB++;
     nTOT++;
-*/
 
     // STEP1: calculate recentering for TPC event plane
     if(tpc_recenter_read_switch){
-      if(eta>0.){
-        Q2_p[ref9][region_vz]->Fill(0.5, x);
-        Q2_p[ref9][region_vz]->Fill(1.5, y);
-      }
-      if(eta<0.){
-        Q2_m[ref9][region_vz]->Fill(0.5, x);
-        Q2_m[ref9][region_vz]->Fill(1.5, y);
-      }
+      if(doTPCptassocBin) {
+        if(randomNum >= 0.5) { // subevent A
+          Q2_p[ref9][region_vz]->Fill(0.5, x);
+          Q2_p[ref9][region_vz]->Fill(1.5, y);
+        }
+        if(randomNum < 0.5) { // subevent B 
+          Q2_m[ref9][region_vz]->Fill(0.5, x);
+          Q2_m[ref9][region_vz]->Fill(1.5, y);
+        }
+      } else { // default: eta regions
+        if(eta>0.){ // positive eta TPC region
+          Q2_p[ref9][region_vz]->Fill(0.5, x);
+          Q2_p[ref9][region_vz]->Fill(1.5, y);
+        }
+        if(eta<0.){ // negative eta TPC region
+          Q2_m[ref9][region_vz]->Fill(0.5, x);
+          Q2_m[ref9][region_vz]->Fill(1.5, y);
+        }
+      } // eta regions
     }
 
     //==================recentering procedure.
     // STEP2: read in recentering for TPC event plane
     //if(!tpc_recenter_read_switch){  // FIXME
     if(tpc_shift_read_switch){ 
-      if(eta > 0){ // POSITIVE region
-        // Method 1: from function
-        x -= tpc_center_Qpx[ref9][region_vz];
-        y -= tpc_center_Qpy[ref9][region_vz];
+      if(doTPCptassocBin) {
+        if(randomNum >= 0.5) { // subevent A
+          x -= tpc_center_Qpx[ref9][region_vz];
+          y -= tpc_center_Qpy[ref9][region_vz];
+        }
+        if(randomNum < 0.5) { // subevent B             
+          x -= tpc_center_Qnx[ref9][region_vz];
+          y -= tpc_center_Qny[ref9][region_vz];
+        }
+      } else {
+        if(eta > 0){ // POSITIVE region
+          // Method 1: from function
+          x -= tpc_center_Qpx[ref9][region_vz];
+          y -= tpc_center_Qpy[ref9][region_vz];
 
 /*
-        if(fCalibFile){
-          // Method 2: from *.root calibration file
-          TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
-          hTPC_center_p->SetName("hTPC_center_p");
-          x -= hTPC_center_p->GetBinContent(1); // bin1 = x-vector
-          y -= hTPC_center_p->GetBinContent(2); // bin2 = y-vector
+          if(fCalibFile && doReadCalibFile){
+            // Method 2: from *.root calibration file
+            TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
+            hTPC_center_p->SetName("hTPC_center_p");
+            x -= hTPC_center_p->GetBinContent(1); // bin1 = x-vector
+            y -= hTPC_center_p->GetBinContent(2); // bin2 = y-vector
 
-          delete hTPC_center_p;
-        }
+            delete hTPC_center_p;
+          }
 */
-      }
-      if(eta < 0){ // NEGATIVE region
-        // Method 1: from function
-        x -= tpc_center_Qnx[ref9][region_vz];
-        y -= tpc_center_Qny[ref9][region_vz];
+        } // positive eta
+        if(eta < 0){ // NEGATIVE region
+          // Method 1: from function
+          x -= tpc_center_Qnx[ref9][region_vz];
+          y -= tpc_center_Qny[ref9][region_vz];
 
 /*
-        if(fCalibFile){
-          // Method 2: from *.root calibration file
-          TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
-          hTPC_center_m->SetName("hTPC_center_m");
-          x -= hTPC_center_m->GetBinContent(1); // bin1 = x-vector
-          y -= hTPC_center_m->GetBinContent(2); // bin2 = y-vector
+          if(fCalibFile && doReadCalibFile){
+            // Method 2: from *.root calibration file
+            TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
+            hTPC_center_m->SetName("hTPC_center_m");
+            x -= hTPC_center_m->GetBinContent(1); // bin1 = x-vector
+            y -= hTPC_center_m->GetBinContent(2); // bin2 = y-vector
 
-          delete hTPC_center_m;
-        }
+            delete hTPC_center_m;
+          }
 */
-      }
-
+        } // negative eta
+      } // eta regions
     } // recenter tpc event plane
 
     // full TPC q-vectors
@@ -4207,8 +4224,8 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
     Q2y += y;
 
     if(doTPCptassocBin) {
-      // fill TPC Q-vectors on a pt assoc bin basis
-      if(randomNum > 0.5) { // subevent A
+      // construct TPC Q-vectors on a pt assoc bin basis
+      if(randomNum >= 0.5) { // subevent A
         Q2x_p += x;
         Q2y_p += y;
         nA++;
@@ -4218,7 +4235,9 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
         Q2y_m += y;
         nB++;
       }
-    } else { // pt assoc bins
+
+      nTOT++;
+    } else {
       // Positive / Negative Eta Regions
       if(eta>0.){ // positive eta region
         Q2x_p += x;
@@ -4237,7 +4256,6 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n) {
   // test statements
   //cout<<"METHOD2... ntracksNEG = "<<ntracksNEG<<"  ntracksPOS = "<<ntracksPOS<<endl;
   //cout<<"Q2x_p = "<<Q2x_p<<"  Q2y_p = "<<Q2y_p<<"  Q2x_m = "<<Q2x_m<<"  Q2y_m = "<<Q2y_m<<endl;
-
   //cout<<"nA = "<<nA<<"  nB = "<<nB<<"  nTOT = "<<nTOT<<endl;
 }
 
@@ -4329,7 +4347,6 @@ void StMyAnalysisMaker::CalculateEventPlaneResolution(Double_t bbc, Double_t zdc
 
     // for the resolution of the combined vzero event plane, use two tpc halves as uncorrelated subdetectors
 } 
-
 
 //_____________________________________________________________________________
 Double_t StMyAnalysisMaker::CalculateEventPlaneChi(Double_t res)
