@@ -52,9 +52,19 @@
 #include "StCalibContainer.h"
 #include "runlistP16ij.h"
 #include "tpc_recenter_data.h"
+#include "corrections/tpc_recenter_data_bin0.h"
+#include "corrections/tpc_recenter_data_bin1.h"
+#include "corrections/tpc_recenter_data_bin2.h"
+#include "corrections/tpc_recenter_data_bin3.h"
+#include "corrections/tpc_recenter_data_bin4.h"
 #include "bbc_recenter_data.h"
 #include "zdc_recenter_data.h"
 #include "tpc_shift_data.h"
+#include "corrections/tpc_shift_data_bin0.h"
+#include "corrections/tpc_shift_data_bin1.h"
+#include "corrections/tpc_shift_data_bin2.h"
+#include "corrections/tpc_shift_data_bin3.h"
+#include "corrections/tpc_shift_data_bin4.h"
 #include "bbc_shift_data.h"
 #include "zdc_shift_data.h"
 
@@ -636,7 +646,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   bbc_psi_e = new TH1F("bbc_psi_e", "bbc psi2", 288, -0.5*pi, 1.5*pi); // TODO - check order
   bbc_psi_w = new TH1F("bbc_psi_w", "bbc psi2", 288, -0.5*pi, 1.5*pi); // TODO - check order
   bbc_psi_evw = new TH2F("bbc_psi_evw", "bbc psi2 east vs. bbc psi2 west", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
-  bbc_psi1_raw = new TH1F("bbc_psi2_raw", "bbc psi2 raw", 288, -0.5*pi, 1.5*pi);
+  bbc_psi1_raw = new TH1F("bbc_psi1_raw", "bbc psi1 raw", 288, -0.5*pi, 2.5*pi);
   bbc_psi_raw = new TH1F("bbc_psi_raw", "bbc psi2 raw", 288, -0.5*pi, 1.5*pi); 
   bbc_psi_rcd = new TH1F("bbc_psi_rcd", "bbc psi2 centered", 288, -0.5*pi, 1.5*pi);  // TODO - check order
   bbc_psi_sft = new TH1F("bbc_psi_sft", "bbc psi2 shifted", 288, -0.5*pi, 1.5*pi);   // TODO - check order
@@ -658,7 +668,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   tpc_psi_P = new TH1F("tpc_psi_P", "tpc psi2 positive", 288, -0.5*pi, 1.5*pi);
   tpc_psi_NvP = new TH2F("tpc_psi_NvP", "tpc psi2 negative vs. tpc psi2 positive", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
   tpc_psi_raw = new TH1F("tpc_psi_raw", "tpc psi2 raw", 288, -0.5*pi, 1.5*pi);
-  tpc_psi_rcd = new TH1F("tpc_psi_rcd", "tpc psi2 centered", 288, -0.5, 1.5*pi);
+  tpc_psi_rcd = new TH1F("tpc_psi_rcd", "tpc psi2 centered", 288, -0.5*pi, 1.5*pi);
   tpc_psi_sft = new TH1F("tpc_psi_sft", "tpc psi2 shifted", 288, -0.5*pi, 1.5*pi);
   tpc_psi_fnl = new TH1F("tpc_psi_fnl", "tpc psi2 corrected", 288, -0.5*pi, 1.5*pi);
 
@@ -1264,6 +1274,7 @@ return kStOK;  // for TESTS
   // compare BBC, ZDC, TPC event planes
   hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
   hTPCvsZDCep->Fill(ZDC_PSI2, TPC_PSI2);
+  hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
  
   // test statements (debug)
   if(fDebugLevel == kDeubgEventPlaneCalc) {
@@ -3946,8 +3957,33 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       // they are corresponing to Bn and An components above!
       // so hTPC_shft_N and hTPC_shift_P also have misleading names
       //shift_delta_psi += (shift_A[ref9][region_vz][z-1]*cos(2*z*psi2_rcd) + shift_B[ref9][region_vz][z-1]*sin(2*z*psi2_rcd));
-      tpc_delta_psi += (tpc_shift_N[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                        tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+      //tpc_delta_psi += (tpc_shift_N[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+      //                  tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+
+      if(doTPCptassocBin) {
+        if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+          tpc_delta_psi += (tpc_shift_N_bin0[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                            tpc_shift_P_bin0[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+        } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+          tpc_delta_psi += (tpc_shift_N_bin1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                            tpc_shift_P_bin1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+        } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+          tpc_delta_psi += (tpc_shift_N_bin2[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                            tpc_shift_P_bin2[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+        } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+          tpc_delta_psi += (tpc_shift_N_bin3[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                            tpc_shift_P_bin3[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+        } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+          tpc_delta_psi += (tpc_shift_N_bin4[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                            tpc_shift_P_bin4[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+        }
+        // add 3 additional pt bins here for later use
+
+      } else {
+        // standard default method (all pt bins combined for reaction plane calculation)
+        tpc_delta_psi += (tpc_shift_N[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                          tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+      }
 
 /*
       // started correcting names..
@@ -4174,12 +4210,40 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     if(tpc_shift_read_switch){ 
       if(doTPCptassocBin) {
         if(randomNum >= 0.5) { // subevent A
-          x -= tpc_center_Qpx[ref9][region_vz];
-          y -= tpc_center_Qpy[ref9][region_vz];
+          if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+            x -= tpc_center_Qpx_bin0[ref9][region_vz];
+            y -= tpc_center_Qpy_bin0[ref9][region_vz];
+          } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+            x -= tpc_center_Qpx_bin1[ref9][region_vz];
+            y -= tpc_center_Qpy_bin1[ref9][region_vz];
+          } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+            x -= tpc_center_Qpx_bin2[ref9][region_vz];
+            y -= tpc_center_Qpy_bin2[ref9][region_vz];
+          } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+            x -= tpc_center_Qpx_bin3[ref9][region_vz];
+            y -= tpc_center_Qpy_bin3[ref9][region_vz];
+          } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+            x -= tpc_center_Qpx_bin4[ref9][region_vz];
+            y -= tpc_center_Qpy_bin4[ref9][region_vz];
+          } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
         }
         if(randomNum < 0.5) { // subevent B             
-          x -= tpc_center_Qnx[ref9][region_vz];
-          y -= tpc_center_Qny[ref9][region_vz];
+          if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+            x -= tpc_center_Qnx_bin0[ref9][region_vz];
+            y -= tpc_center_Qny_bin0[ref9][region_vz];
+          } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+            x -= tpc_center_Qnx_bin1[ref9][region_vz];
+            y -= tpc_center_Qny_bin1[ref9][region_vz];
+          } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+            x -= tpc_center_Qnx_bin2[ref9][region_vz];
+            y -= tpc_center_Qny_bin2[ref9][region_vz];
+          } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+            x -= tpc_center_Qnx_bin3[ref9][region_vz];
+            y -= tpc_center_Qny_bin3[ref9][region_vz];
+          } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+            x -= tpc_center_Qnx_bin4[ref9][region_vz];
+            y -= tpc_center_Qny_bin4[ref9][region_vz];
+          } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
         }
       } else {
         if(eta > 0){ // POSITIVE region
