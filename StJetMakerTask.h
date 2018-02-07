@@ -113,7 +113,6 @@ class StJetMakerTask : public StMaker {
   virtual void         SetTurnOnCentSelection(Bool_t o) { fRequireCentSelection = o; }
   virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
 
-
   // event setters
   virtual void  SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
 

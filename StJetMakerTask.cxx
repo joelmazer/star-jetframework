@@ -2,7 +2,6 @@
 // Author:  Joel Mazer for the STAR Collaboration
 // Affiliation: Rutgers University
 //
-// This JetMakerTask gives access to the FastJetWrapper to give 
 // track and tower input to cluster over and create jets
 //      - leading jet tag
 //      - access to jet constituents
@@ -490,6 +489,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
       }
 
+      // test - this is only here to occassionally test track variables
+      //Short_t charge = trk->charge();         
+      //cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi<<"  nHitsFit = "<<trk->nHitsFit()<<endl;
+
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
       fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
@@ -536,7 +539,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // use StEmcDetector to get position information
       //StEmcDetector* detector;
       //detector=mEmcCol->detector(kBarrelEmcTowerId);
-      //if(!detector) cout<<"don't detector object"<<endl;
+      //if(!detector) cout<<"don't have detector object"<<endl;
 
       // cluster and tower ID
       clusID = cluster->bemcId();  // index in bemc point array

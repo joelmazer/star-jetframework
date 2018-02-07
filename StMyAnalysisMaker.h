@@ -56,7 +56,10 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
       kRemoveNothing,
       kRemoveEtaStrip,
       kRemoveEtaPhiCone,
-      kRemoveLeadingJetConstituents // greater than 2 GeV
+      kRemoveLeadingJetConstituents, // greater than 2 GeV
+      kRemoveEtaStripLeadSub,
+      kRemoveEtaPhiConeLeadSub,
+      kRemoveLeadingSubJetConstituents // greater than 2 GeV
     };
 
     StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
@@ -419,6 +422,10 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TProfile *hTPC_shift_P[9][20];//! // 15
     TProfile *hBBC_shift_A[9][20];//! // 15
     TProfile *hBBC_shift_B[9][20];//! // 15
+    TProfile *hBBC_shift_A_E[9][20];//!
+    TProfile *hBBC_shift_A_W[9][20];//!
+    TProfile *hBBC_shift_B_E[9][20];//!
+    TProfile *hBBC_shift_B_W[9][20];//!
     TProfile *hZDC_shift_A[9][20];//! // new
     TProfile *hZDC_shift_B[9][20];//! // new
     TProfile *res_cen;//!

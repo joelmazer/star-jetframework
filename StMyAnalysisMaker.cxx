@@ -57,6 +57,11 @@
 #include "corrections/tpc_recenter_data_bin2.h"
 #include "corrections/tpc_recenter_data_bin3.h"
 #include "corrections/tpc_recenter_data_bin4.h"
+#include "corrections/tpc_recenter_data_bin0_Method1.h"
+#include "corrections/tpc_recenter_data_bin1_Method1.h"
+#include "corrections/tpc_recenter_data_bin2_Method1.h"
+#include "corrections/tpc_recenter_data_bin3_Method1.h"
+#include "corrections/tpc_recenter_data_bin4_Method1.h"
 #include "bbc_recenter_data.h"
 #include "zdc_recenter_data.h"
 #include "tpc_shift_data.h"
@@ -65,6 +70,11 @@
 #include "corrections/tpc_shift_data_bin2.h"
 #include "corrections/tpc_shift_data_bin3.h"
 #include "corrections/tpc_shift_data_bin4.h"
+#include "corrections/tpc_shift_data_bin0_Method1.h"
+#include "corrections/tpc_shift_data_bin1_Method1.h"
+#include "corrections/tpc_shift_data_bin2_Method1.h"
+#include "corrections/tpc_shift_data_bin3_Method1.h"
+#include "corrections/tpc_shift_data_bin4_Method1.h"
 #include "bbc_shift_data.h"
 #include "zdc_shift_data.h"
 
@@ -298,6 +308,10 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
       if(bbc_shift_read_switch) { 
         if(hBBC_shift_A[i][j]) delete hBBC_shift_A[i][j];
         if(hBBC_shift_B[i][j]) delete hBBC_shift_B[i][j];
+        if(hBBC_shift_A_E[i][j]) delete hBBC_shift_A_E[i][j];
+        if(hBBC_shift_A_W[i][j]) delete hBBC_shift_A_W[i][j];
+        if(hBBC_shift_B_E[i][j]) delete hBBC_shift_B_E[i][j];
+        if(hBBC_shift_B_W[i][j]) delete hBBC_shift_B_W[i][j];
       }
 
       if(zdc_shift_read_switch) {
@@ -613,6 +627,10 @@ void StMyAnalysisMaker::DeclareHistograms() {
       for(int j=0; j<20; j++){ //vz (15)
         hBBC_shift_A[i][j] = new TProfile(Form("hBBC_shift_A%d_%d",i,j),"An",20,0,20,-100,100);
         hBBC_shift_B[i][j] = new TProfile(Form("hBBC_shift_B%d_%d",i,j),"Bn",20,0,20,-100,100);
+        hBBC_shift_A_E[i][j] = new TProfile(Form("hBBC_shift_A_E%d_%d",i,j),"An",20,0,20,-100,100);
+        hBBC_shift_A_W[i][j] = new TProfile(Form("hBBC_shift_A_W%d_%d",i,j),"Bn",20,0,20,-100,100);
+        hBBC_shift_B_E[i][j] = new TProfile(Form("hBBC_shift_B_E%d_%d",i,j),"An",20,0,20,-100,100);
+        hBBC_shift_B_W[i][j] = new TProfile(Form("hBBC_shift_B_W%d_%d",i,j),"Bn",20,0,20,-100,100);
       }
     }
   }
@@ -654,13 +672,13 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   zdc_res = new TProfile("zdc_res", "", 10, 0, 10, -100, 100);
   //zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
-  zdc_psi_e = new TH1F("zdc_psi_e", "zdc psi1", 288, -0.5*pi, 1.5*pi);
-  zdc_psi_w = new TH1F("zdc_psi_w", "zdc psi1", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_e = new TH1F("zdc_psi_e", "zdc psi2", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_w = new TH1F("zdc_psi_w", "zdc psi2", 288, -0.5*pi, 1.5*pi);
   zdc_psi_evw = new TH2F("zdc_psi_evw", "zdc psi2 east vs. zdc psi2 west", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
-  zdc_psi_raw = new TH1F("zdc_psi_raw", "zdc psi1 raw", 288, -0.5*pi, 1.5*pi);
-  zdc_psi_rcd = new TH1F("zdc_psi_rcd", "zdc psi1 centered", 288, -0.5*pi, 1.5*pi);
-  zdc_psi_sft = new TH1F("zdc_psi_sft", "zdc psi1 shifted", 288, -0.5*pi, 1.5*pi);
-  zdc_psi_fnl = new TH1F("zdc_psi_fnl", "zdc psi1 corrected", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_raw = new TH1F("zdc_psi_raw", "zdc psi2 raw", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_rcd = new TH1F("zdc_psi_rcd", "zdc psi2 centered", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_sft = new TH1F("zdc_psi_sft", "zdc psi2 shifted", 288, -0.5*pi, 1.5*pi);
+  zdc_psi_fnl = new TH1F("zdc_psi_fnl", "zdc psi2 corrected", 288, -0.5*pi, 1.5*pi);
 
   tpc_res = new TProfile("tpc_res", "", 10, 0, 10, -100, 100);
   tpc_psi = new TH1F("tpc_psi", "tpc psi2", 288, -0.5*pi, 1.5*pi);
@@ -947,6 +965,10 @@ void StMyAnalysisMaker::WriteEventPlaneHistograms() {
       
       if(bbc_shift_read_switch) hBBC_shift_A[i][j]->Write();
       if(bbc_shift_read_switch) hBBC_shift_B[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_A_E[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_A_W[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_B_E[i][j]->Write();
+      if(bbc_shift_read_switch) hBBC_shift_B_W[i][j]->Write();
 
       if(zdc_shift_read_switch) hZDC_shift_A[i][j]->Write();
       if(zdc_shift_read_switch) hZDC_shift_B[i][j]->Write();
@@ -1211,6 +1233,8 @@ Int_t StMyAnalysisMaker::Make() {
   // =========== Event Plane Angle ============= //
   // cache the leading jet within acceptance
   fLeadingJet = GetLeadingJet();
+  fSubLeadingJet = GetSubLeadingJet();
+
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
   hEventPlane2pi->Fill(rpAngle);
@@ -1290,23 +1314,46 @@ return kStOK;  // for TESTS
 //  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
   CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPCA_PSI2, TPCB_PSI2, BBC_PSI1, ZDC_PSI1);
 
+return kStOK;
+
+  //cout<<"Method: kRemoveEtaPhiCone, ptbin = "<<fTPCptAssocBin<<endl;
+  //GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, fTPCptAssocBin);  // last param not used (ptcut)
+  //cout<<"  bin = "<<fTPCptAssocBin<<"  TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  ////CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+
+/*
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 1);  // last param not used (ptcut)
+  cout<<"  bin = 1, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 2);  // last param not used (ptcut)
+  cout<<"  bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 3);  // last param not used (ptcut)
+  cout<<"  bin = 3, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 4);  // last param not used (ptcut)
+  cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+*/
+
+  //cout<<"Method: kRemoveEtaPhiConeLeadSub, ptbin = "<<fTPCptAssocBin<<endl;
+  //GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeLeadSub, 2.0, fTPCptAssocBin);  // last param not used (ptcut)
+  //cout<<"  bin = "<<fTPCptAssocBin<<"  TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+
+/*
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 1);  // last param not used (ptcut)
+  cout<<"  bin = 1, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 2);  // last param not used (ptcut)
+  cout<<"  bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 3);  // last param not used (ptcut)
+  cout<<"  bin = 3, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 4);  // last param not used (ptcut)
+  cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+*/
 
 return kStOK;
 
-/*
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 1);  // last param not used (ptcut)
-  cout<<"  bin = 1, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 2);  // last param not used (ptcut)
-  cout<<"  bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 3);  // last param not used (ptcut)
-  cout<<"  bin = 3, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 4);  // last param not used (ptcut)
-  cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-*/
+// ==========================================
 
   if(fDebugLevel == kDeubgEventPlaneCalc) {
     cout<<"kRemoveEtaPhiCone: "<<"TPC = "<<fEPTPC<<"  TPCn = "<<fEPTPCn<<"  TPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
@@ -2871,6 +2918,10 @@ void StMyAnalysisMaker::SetEPSumw2() {
       
       if(bbc_shift_read_switch) hBBC_shift_A[i][j]->Sumw2();
       if(bbc_shift_read_switch) hBBC_shift_B[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_A_E[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_A_W[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_B_E[i][j]->Sumw2();
+      if(bbc_shift_read_switch) hBBC_shift_B_W[i][j]->Sumw2();
 
       if(zdc_shift_read_switch) hZDC_shift_A[i][j]->Sumw2();
       if(zdc_shift_read_switch) hZDC_shift_B[i][j]->Sumw2();
@@ -3005,10 +3056,19 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
   // leading jet check and removal
   double excludeInEta = -999., excludeInPhi = -999.;
+  double excludeInEtaSub = -999., excludeInPhiSub = -999.;
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) {
       excludeInEta = fLeadingJet->Eta();
       excludeInPhi = fLeadingJet->Phi();
+      //cout<<"leading: pt = "<<fLeadingJet->Pt()<<"  eta = "<<fLeadingJet->Eta()<<"  phi = "<<fLeadingJet->Phi()<<endl;
+    }
+
+    // new Jan26
+    if(fSubLeadingJet) {
+      excludeInEtaSub = fSubLeadingJet->Eta();
+      excludeInPhiSub = fSubLeadingJet->Phi();
+      //cout<<"subleading: pt = "<<fSubLeadingJet->Pt()<<"  eta = "<<fSubLeadingJet->Eta()<<"  phi = "<<fSubLeadingJet->Phi()<<endl;
     }
   }
 
@@ -3068,26 +3128,58 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // remove strip only when we have a leading jet
     // Method1: kRemoveEtaStrip
-    if(fTPCEPmethod == 1){
-    //if(method == 1){
+    //if(fTPCEPmethod == 1){
+    if(method == 1){
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && 
         ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    } else if(fTPCEPmethod == 2){
-    //} else if(method == 2){
+    //} else if(fTPCEPmethod == 2){
+    } else if(method == 2){
       // remove cone (in eta and phi) around leading jet
       // Method2: kRemoveEtaPhiCone
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
          (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
          (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    } else if(fTPCEPmethod == 3){
-    //} else if(method == 3){ 
+    //} else if(fTPCEPmethod == 3){
+    } else if(method == 3){ 
       // remove tracks above 2 GeV in cone around leading jet
       // Method3: kRemoveLeadingJetConstituents
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
       (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+    //} else if(fTPCEPmethod == 4){
+    } else if(method == 4){
+      // remove strip only when we have a leading + subleading jet
+      // Method4: kRemoveEtaStripLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
+    //} else if(fTPCEPmethod == 5){
+    } else if(method == 5){
+      // remove cone (in eta and phi) around leading + subleading jet
+      // Method5: kRemoveEtaPhiConeLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(phi - excludeInPhiSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+    //} else if(fTPCEPmethod == 6){
+    } else if(method == 6){ 
+      // remove tracks above 2 GeV in cone around leading + subleading jet
+      // Method6: kRemoveLeadingSubJetConstituents
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInEtaSub));
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+      (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }
@@ -3277,12 +3369,24 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   }
 
   // TEST - debug BBC
-  if(fabs(sumcos_E) < 1e-6) { cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; hBBCepDebug->Fill(1.); }
-  if(fabs(sumsin_E) < 1e-6) { cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; hBBCepDebug->Fill(2.); }
-  if(fabs(sumcos_W) < 1e-6) { cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; hBBCepDebug->Fill(3.); }
-  if(fabs(sumsin_W) < 1e-6) { cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; hBBCepDebug->Fill(4.); }
-  if(fabs(sum_E) < 1e-6) { cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; hBBCepDebug->Fill(6.); }
-  if(fabs(sum_W) < 1e-6) { cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; hBBCepDebug->Fill(7.); }
+  if(fabs(sumcos_E) < 1e-6) { 
+    //cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; 
+    hBBCepDebug->Fill(1.); }
+  if(fabs(sumsin_E) < 1e-6) { 
+    //cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; 
+    hBBCepDebug->Fill(2.); }
+  if(fabs(sumcos_W) < 1e-6) { 
+    //cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; 
+    hBBCepDebug->Fill(3.); }
+  if(fabs(sumsin_W) < 1e-6) { 
+    //cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; 
+    hBBCepDebug->Fill(4.); }
+  if(fabs(sum_E) < 1e-6) { 
+    //cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; 
+    hBBCepDebug->Fill(6.); }
+  if(fabs(sum_W) < 1e-6) { 
+    //cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; 
+    hBBCepDebug->Fill(7.); }
 
   // create Q-vectors
   TVector2 bQE, bQW, bQ, bQ_raw, bQ_raw1; 
@@ -3377,6 +3481,8 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       bAn = -(btimes*sin(2*s*bPhi_rcd));
       hBBC_shift_A[ref9][region_vz]->Fill(s - 0.5, bAn);
       hBBC_shift_B[ref9][region_vz]->Fill(s - 0.5, bBn);
+
+      // add east/west shifts here... TODO
     }	
   }
 
@@ -3426,7 +3532,8 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   // shifted BBC event plane angle
   double bPhi_sft = bPhi_rcd + bbc_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);
-  double b_res = cos(2*(bPhi_East - bPhi_West - pi));
+  //double b_res = cos(2*(bPhi_East - bPhi_West - pi));
+  double b_res = cos(2*(bPhi_East - bPhi_West));
 
   // Corrected ANGLE: make shifted event plane from {0, pi}
   double bPhi_fnl = bPhi_rcd + bbc_delta_psi;
@@ -3922,7 +4029,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   Psi2_rcd->Fill(tPhi_rcd);      // recentered psi2
   Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2
 
-  double t_res = cos(2*(psi2m - psi2p - pi)); // added
+  double t_res = cos(2*(psi2m - psi2p)); // added
   res = 2.*(cos(2*(psi2m - psi2p)));
   RES = res;
 
@@ -3961,22 +4068,62 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       //                  tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
 
       if(doTPCptassocBin) {
-        if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-          tpc_delta_psi += (tpc_shift_N_bin0[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                            tpc_shift_P_bin0[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-        } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-          tpc_delta_psi += (tpc_shift_N_bin1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                            tpc_shift_P_bin1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-        } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-          tpc_delta_psi += (tpc_shift_N_bin2[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                            tpc_shift_P_bin2[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-        } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-          tpc_delta_psi += (tpc_shift_N_bin3[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                            tpc_shift_P_bin3[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-        } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-          tpc_delta_psi += (tpc_shift_N_bin4[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                            tpc_shift_P_bin4[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-        }
+        switch(fTPCEPmethod) {
+          case kRemoveEtaStrip:
+            if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+              tpc_delta_psi += (tpc_shift_N_bin0_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin0_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+              tpc_delta_psi += (tpc_shift_N_bin1_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin1_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+              tpc_delta_psi += (tpc_shift_N_bin2_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin2_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+              tpc_delta_psi += (tpc_shift_N_bin3_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin3_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+              tpc_delta_psi += (tpc_shift_N_bin4_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin4_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+            break;
+
+          case kRemoveEtaPhiCone:
+            if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+              tpc_delta_psi += (tpc_shift_N_bin0[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin0[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+              tpc_delta_psi += (tpc_shift_N_bin1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+              tpc_delta_psi += (tpc_shift_N_bin2[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin2[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+              tpc_delta_psi += (tpc_shift_N_bin3[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin3[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+              tpc_delta_psi += (tpc_shift_N_bin4[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                tpc_shift_P_bin4[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+            } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+            break;
+
+          case kRemoveLeadingJetConstituents:
+            // dothis
+            break;
+
+          case kRemoveEtaPhiConeLeadSub:
+            // dothis
+            break;
+
+          case kRemoveLeadingSubJetConstituents:
+            // dothis
+            break;
+
+          default:
+            // this is a default, but should never occur..
+            break;
+
+        } // METHOD switch
         // add 3 additional pt bins here for later use
 
       } else {
@@ -4005,8 +4152,8 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
         delete htempTPC_ShiftB;
       }
 */
-    }
-  }
+    } // nharm loop
+  } // correction switch
 
   int ns = 0;
   //=====tpc_delta_psi (-pi, pi)
@@ -4210,42 +4357,126 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     if(tpc_shift_read_switch){ 
       if(doTPCptassocBin) {
         if(randomNum >= 0.5) { // subevent A
-          if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-            x -= tpc_center_Qpx_bin0[ref9][region_vz];
-            y -= tpc_center_Qpy_bin0[ref9][region_vz];
-          } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-            x -= tpc_center_Qpx_bin1[ref9][region_vz];
-            y -= tpc_center_Qpy_bin1[ref9][region_vz];
-          } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-            x -= tpc_center_Qpx_bin2[ref9][region_vz];
-            y -= tpc_center_Qpy_bin2[ref9][region_vz];
-          } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-            x -= tpc_center_Qpx_bin3[ref9][region_vz];
-            y -= tpc_center_Qpy_bin3[ref9][region_vz];
-          } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-            x -= tpc_center_Qpx_bin4[ref9][region_vz];
-            y -= tpc_center_Qpy_bin4[ref9][region_vz];
-          } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
-        }
+          switch(fTPCEPmethod) {
+            case kRemoveEtaStrip:
+              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                x -= tpc_center_Qpx_bin0_Method1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin0_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                x -= tpc_center_Qpx_bin1_Method1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin1_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                x -= tpc_center_Qpx_bin2_Method1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin2_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                x -= tpc_center_Qpx_bin3_Method1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin3_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                x -= tpc_center_Qpx_bin4_Method1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin4_Method1[ref9][region_vz];
+              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              break;
+
+            case kRemoveEtaPhiCone:
+              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                x -= tpc_center_Qpx_bin0[ref9][region_vz];
+                y -= tpc_center_Qpy_bin0[ref9][region_vz];
+              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                x -= tpc_center_Qpx_bin1[ref9][region_vz];
+                y -= tpc_center_Qpy_bin1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                x -= tpc_center_Qpx_bin2[ref9][region_vz];
+                y -= tpc_center_Qpy_bin2[ref9][region_vz];
+              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                x -= tpc_center_Qpx_bin3[ref9][region_vz];
+                y -= tpc_center_Qpy_bin3[ref9][region_vz];
+              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                x -= tpc_center_Qpx_bin4[ref9][region_vz];
+                y -= tpc_center_Qpy_bin4[ref9][region_vz];
+              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              break;
+
+            case kRemoveLeadingJetConstituents:
+              // dothis
+              break;
+
+            case kRemoveEtaPhiConeLeadSub:
+              // dothis
+              break;
+
+            case kRemoveLeadingSubJetConstituents:
+              // dothis
+              break;
+
+            default:
+              // this is a default, but should never occur..
+              break;
+
+          } // METHOD switch
+
+        }  // rand >= 0.5
+
         if(randomNum < 0.5) { // subevent B             
-          if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-            x -= tpc_center_Qnx_bin0[ref9][region_vz];
-            y -= tpc_center_Qny_bin0[ref9][region_vz];
-          } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-            x -= tpc_center_Qnx_bin1[ref9][region_vz];
-            y -= tpc_center_Qny_bin1[ref9][region_vz];
-          } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-            x -= tpc_center_Qnx_bin2[ref9][region_vz];
-            y -= tpc_center_Qny_bin2[ref9][region_vz];
-          } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-            x -= tpc_center_Qnx_bin3[ref9][region_vz];
-            y -= tpc_center_Qny_bin3[ref9][region_vz];
-          } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-            x -= tpc_center_Qnx_bin4[ref9][region_vz];
-            y -= tpc_center_Qny_bin4[ref9][region_vz];
-          } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
-        }
-      } else {
+          switch(fTPCEPmethod) {
+            case kRemoveEtaStrip:
+              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                x -= tpc_center_Qnx_bin0_Method1[ref9][region_vz];
+                y -= tpc_center_Qny_bin0_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                x -= tpc_center_Qnx_bin1_Method1[ref9][region_vz];
+                y -= tpc_center_Qny_bin1_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                x -= tpc_center_Qnx_bin2_Method1[ref9][region_vz];
+                y -= tpc_center_Qny_bin2_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                x -= tpc_center_Qnx_bin3_Method1[ref9][region_vz];
+                y -= tpc_center_Qny_bin3_Method1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                x -= tpc_center_Qnx_bin4_Method1[ref9][region_vz];
+                y -= tpc_center_Qny_bin4_Method1[ref9][region_vz];
+              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              break;
+
+            case kRemoveEtaPhiCone:
+              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                x -= tpc_center_Qnx_bin0[ref9][region_vz];
+                y -= tpc_center_Qny_bin0[ref9][region_vz];
+              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                x -= tpc_center_Qnx_bin1[ref9][region_vz];
+                y -= tpc_center_Qny_bin1[ref9][region_vz];
+              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                x -= tpc_center_Qnx_bin2[ref9][region_vz];
+                y -= tpc_center_Qny_bin2[ref9][region_vz];
+              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                x -= tpc_center_Qnx_bin3[ref9][region_vz];
+                y -= tpc_center_Qny_bin3[ref9][region_vz];
+              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                x -= tpc_center_Qnx_bin4[ref9][region_vz];
+                y -= tpc_center_Qny_bin4[ref9][region_vz];
+              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              break;
+
+            case kRemoveLeadingJetConstituents:
+              // dothis
+              break;
+
+            case kRemoveEtaPhiConeLeadSub:
+              // dothis
+              break;
+
+            case kRemoveLeadingSubJetConstituents:
+              // dothis
+              break;
+
+            default:
+              // this is a default, but should never occur..
+              break;
+
+          }  // METHOD switch
+
+        } // pt < 0.5
+
+      } else { // end of pt bin switch
         if(eta > 0){ // POSITIVE region
           // Method 1: from function
           x -= tpc_center_Qpx[ref9][region_vz];
