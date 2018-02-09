@@ -1,10 +1,9 @@
-#ifndef STJETTASKNEW_H
-#define STJETTASKNEW_H
+#ifndef STJETMAKERTASK_H
+#define STJETMAKERTASK_H
 
 // $Id$
 
 #include "StMaker.h"
-
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
 // TEST for clusters TODO

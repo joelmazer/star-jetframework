@@ -87,12 +87,12 @@ class StJetFrameworkPicoBase : public StMaker {
     };
 
     // Centrality Interfaces:
-    //getRefMult3Corr() ; // For refmult3
-    //getTofTrayMultCorr() ; // For TOF tray multiplicity
-    //getgRefMultCorr()  ; // For grefmult //Run14 AuAu200GeV
-    //getgRefMultCorr_P16id()  ; // For grefmult //Run14 AuAu200GeV, P16id
-    //getgRefMultCorr_VpdMB30()  ; // for VPDMB-30; |vz| < 30
-    //getgRefMultCorr_VpdMBnoVtx()  ; //  for VPDMB-noVtx; |vz| < 100
+    //getRefMult3Corr();           // For refmult3
+    //getTofTrayMultCorr();        // For TOF tray multiplicity
+    //getgRefMultCorr();           // For grefmult //Run14 AuAu200GeV
+    //getgRefMultCorr_P16id();     // For grefmult //Run14 AuAu200GeV, P16id
+    //getgRefMultCorr_VpdMB30();   // for VPDMB-30; |vz| < 30
+    //getgRefMultCorr_VpdMBnoVtx();// for VPDMB-noVtx; |vz| < 100
     // centrality enum
     enum fCentralityDefEnum {
       krefmult, krefmult2, krefmult3,

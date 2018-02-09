@@ -81,7 +81,8 @@
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
-//#include "StRoot/StPicoEvent/StPicoBTOWHit.h"
+//#include "StRoot/StPicoEvent/StPicoBTOWHit.h" // OLD name
+#include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
 #include "StRoot/StPicoEvent/StPicoBTofHit.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoMtdTrigger.h"
@@ -544,6 +545,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", 20, 0, 100);
   hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", 20, 0, 100, 20, -40.0, 40.0);
 
+  // debugging histos for event plane calculations using ZDC, BBC, TPC
   hTPCepDebug = new TH1F("hTPCepDebug", "TPC event plane debugging", 10, 0.5, 10.5);
   hTPCepDebug->GetXaxis()->SetBinLabel(1, "Q2x_m <= 0");
   hTPCepDebug->GetXaxis()->SetBinLabel(2, "Q2y_m <= 0");
@@ -658,7 +660,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hBBC_center_wy = new TProfile("hBBC_center_wy", "", 1359, 0, 1359, -100, 100);
  
   bbc_res = new TProfile("bbc_res", "", 10, 0, 10, -100, 100);
-  zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
   checkbbc = new TH1F("checkbbc", "difference between psi2 and bbc ps2", 288, -0.5*pi, 1.5*pi);
   psi2_tpc_bbc = new TH2F("psi2_tpc_bbc", "tpc psi2 vs. bbc psi2", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
   bbc_psi_e = new TH1F("bbc_psi_e", "bbc psi2", 288, -0.5*pi, 1.5*pi); // TODO - check order
@@ -671,7 +672,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   bbc_psi_fnl = new TH1F("bbc_psi_fnl", "bbc psi2 corrected", 288, -0.5*pi, 1.5*pi); // TODO - check order
 
   zdc_res = new TProfile("zdc_res", "", 10, 0, 10, -100, 100);
-  //zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
+  zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
   zdc_psi_e = new TH1F("zdc_psi_e", "zdc psi2", 288, -0.5*pi, 1.5*pi);
   zdc_psi_w = new TH1F("zdc_psi_w", "zdc psi2", 288, -0.5*pi, 1.5*pi);
   zdc_psi_evw = new TH2F("zdc_psi_evw", "zdc psi2 east vs. zdc psi2 west", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
@@ -701,10 +702,10 @@ void StMyAnalysisMaker::DeclareHistograms() {
   Psi2_final_folded = new TH1F("Psi2_final_folded", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4*pi, 4*pi);
   Psi2_final_raw = new TH1F("Psi2_final_raw", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4*pi, 4*pi);
 
-  // 2-D event plane differences
-  hTPCvsBBCep = new TH2F("hTPCvsBBCep", "TPC vs BBC 2nd order event plane", 144, -1*pi, 1*pi, 144, -1*pi, 1*pi);
-  hTPCvsZDCep = new TH2F("hTPCvsZDCep", "TPC vs ZDC 2nd order event plane", 144, -1*pi, 1*pi, 144, -1*pi, 1*pi);
-  hBBCvsZDCep = new TH2F("hBBCvsZDCep", "BBC vs ZDC 2nd order event plane", 144, -1*pi, 1*pi, 144, -1*pi, 1*pi);
+  // 2-D event plane differences - updated ranges on Feb7
+  hTPCvsBBCep = new TH2F("hTPCvsBBCep", "TPC vs BBC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
+  hTPCvsZDCep = new TH2F("hTPCvsZDCep", "TPC vs ZDC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
+  hBBCvsZDCep = new TH2F("hBBCvsZDCep", "BBC vs ZDC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
 
   if(doEventPlaneRes){
     // Reaction Plane resolution as function of centrality - corrected for 2nd order event plane
@@ -858,9 +859,9 @@ void StMyAnalysisMaker::DeclareHistograms() {
   bitcodeEP = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7;
   fhnEP = NewTHnSparseF("fhnEP", bitcodeEP);
 
-  // Switch on Sumw2 for all histos
+  // Switch on Sumw2 for all histos - (except profiles)
   SetSumw2();
-  SetEPSumw2(); // TODO set up with a switch in future
+  SetEPSumw2();
 }
 
 // write histograms
@@ -1164,22 +1165,23 @@ Int_t StMyAnalysisMaker::Make() {
   FillEventTriggerQA(fHistEventSelectionQA);
 
   //static StPicoTrack* track(int i) { return (StPicoTrack*)picoArrays[picoTrack]->UncheckedAt(i); }
-/*
+
   // Event QA print-out
   // printing available information from the PicoDst objects
+/*
   StPicoTrack* t = mPicoDst->track(1);
   if(t) t->Print();
   StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(0);
   if(emcTrig) emcTrig->Print();
   StPicoMtdTrigger *mtdTrig = mPicoDst->mtdTrigger(0);
   if(mtdTrig) mtdTrig->Print();
-  StPicoBTOWHit *btowhit = mPicoDst->btowHit(0); // OLD NAME
+  StPicoBTowHit *btowhit = mPicoDst->btowHit(0); 
   if(btowhit) btowhit->Print();
   StPicoBTofHit *btofhit = mPicoDst->btofHit(0);
   if(btofhit) btofhit->Print();
   //StPicoMtdHit *mtdhit = mPicoDst->mtdHit(0);
   //mtdhit->Print();
-  StPicoEmcPidTraits *emcpid = mPicoDst->emcPidTraits(0); // OLD NAME now its StPicoBEmcPidTraits
+  StPicoBEmcPidTraits *emcpid = mPicoDst->bemcPidTraits(0); // OLD NAME (StPicoEmcPidTraits, emcPidTraits) now its StPicoBEmcPidTraits
   if(emcpid) emcpid->Print();
   StPicoBTofPidTraits *tofpid = mPicoDst->btofPidTraits(0);
   if(tofpid) tofpid->Print();

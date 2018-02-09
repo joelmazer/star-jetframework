@@ -547,7 +547,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   if(nHitsFit < fTracknHitsFit) return kFALSE;
   if(nHitsRatio < fTracknHitsRatio) return kFALSE;
 
-  // passed all above cuts - keep track and fill input vector to fastjet
+  // passed all above cuts - keep track
   return kTRUE;
 }
 

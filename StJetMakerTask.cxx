@@ -490,8 +490,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       }
 
       // test - this is only here to occassionally test track variables
-      //Short_t charge = trk->charge();         
-      //cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi<<"  nHitsFit = "<<trk->nHitsFit()<<endl;
+      Short_t charge = trk->charge();         
+      //cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi<<"  nHitsFit = "<<trk->nHitsFit()<<"BEmc Index = "<<trk->bemcPidTraitsIndex()<<endl;
 
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
@@ -521,20 +521,22 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // looping over clusters to add to jet - STAR: matching already done
     // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-    int towID, clusID;
+    int towID, towID2, towID3, clusID;
     StThreeVectorF  towPosition, clusPosition;
     StEmcPosition *mPosition = new StEmcPosition();
     StEmcPosition *mPosition2 = new StEmcPosition();
 
     // print EMCal cluster info
     if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
-    if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl; 
+    if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl;  
+
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus=0;iClus<nclus;iClus++){
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
 
-      if(fDebugLevel == 2) cout<<"iClus = "<<iClus<<"trackIndex = "<<cluster->trackIndex()<<endl;
+      // print index of associated track in the event (debug = 2)
+      if(fDebugLevel == 8) cout<<"iClus = "<<iClus<<"  trackIndex = "<<cluster->trackIndex()<<"  nclus = "<<nclus<<endl;
 
       // use StEmcDetector to get position information
       //StEmcDetector* detector;
@@ -542,17 +544,23 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       //if(!detector) cout<<"don't have detector object"<<endl;
 
       // cluster and tower ID
+      // ID's are calculated as such:
+      // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
+      // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
       clusID = cluster->bemcId();  // index in bemc point array
       towID = cluster->btowId();   // projected tower Id: 1 - 4800
+      towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       if(towID < 0) continue;
-      float towerEta, towerPhi;    // need to be floats
 
       // get tower location - from ID
+      float towerEta, towerPhi;    // need to be floats
       mGeom->getEtaPhi(towID,towerEta,towerPhi);
-      if(towerPhi < 0) towerPhi += 2*pi;
+      if(towerPhi < 0)    towerPhi += 2*pi;
       if(towerPhi > 2*pi) towerPhi -= 2*pi;
-      if(fDebugLevel == 8) { 
-        cout<<"towerID = "<<towID<<"  towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
+      if(fDebugLevel == 8) {
+        cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3;
+        cout<<"   towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
       }
 
       // cluster and tower position - from vertex and ID
@@ -575,11 +583,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         ok = mPosition->projTrack(&position,&momentum,trkMu,(Double_t) Bfield); 
       }
 
-      double z,eta,phi;
+      double z, eta, phi, theta;
       eta = position.pseudoRapidity(); 
       phi = position.phi();
       z   = position.z();
-      double theta = 2*TMath::ATan(exp(-1.0*eta));
+      theta = 2*TMath::ATan(exp(-1.0*eta));
 
       // TEST comparing track position with cluster and tower
       double towPhi = towPosition.phi();
@@ -604,10 +612,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       fHistJetNTowervsPhivsEta->Fill(towPhi, towEta);
 
       // print some tower / cluster / track debug info
-      if(fDebugLevel == 8) {
+      //if(fDebugLevel == 8) {
+      if(fDebugLevel == 8 && cluster->bemcE0() > 1.0) {
         cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
         cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
-        cout<<" MatTowE = "<<cluster->btowE()<<"  MatTowE2 = "<<cluster->btowE2()<<"  MatTowE3 = "<<cluster->btowE3()<<endl;
+        cout<<" mTowE = "<<cluster->btowE()<<"  mTowE2 = "<<cluster->btowE2()<<"  mTowE3 = "<<cluster->btowE3()<<endl;
         cout<<"Track: -> trkPhi = "<<gmatchPhi<<" trkEta = "<<gmatchEta<<"  trkP = "<<trk->gMom().mag()<<endl;
         cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
         cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
