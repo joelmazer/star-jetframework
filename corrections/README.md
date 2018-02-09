@@ -15,7 +15,7 @@ When using the TPC, various methods will be employed.  When examining the effect
 * removing ALL tracks from the event plane calculation in the eta-phi cone around the jet axis
 * removing the eta strip around the axis of the jet
 
-pt cuts will be made to the tracks using in reconstruction of
+pt cuts will be made to the tracks used in reconstruction of
 * 0.2 < pt < 2.0 GeV/c
 * 0.2 < pt < 5.0 GeV/c
 
@@ -25,4 +25,12 @@ The weight of such tracks is the pt of the corresponding track.  One can use a l
 **Joel Mazer**
 
 ## Notes
+up-to-date file usage
+for BBC and ZDC recentering corrections:
+* Method1: recenter_calib_file_bin0_STEP1_Feb1.root
+* Std: recenter_calib_file.root
+
+for BBC and ZDC shifting corrections:
+* Method1: shift_calib_file_bin0_STEP2_Feb5.root
+* Std: shift_calib_file.root
 
