@@ -11,12 +11,22 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
+#include "StMuDSTMaker/COMMON/StMuDstMaker.h"
+#include "StMuDSTMaker/COMMON/StMuDst.h"
+#include "StMuDSTMaker/COMMON/StMuEvent.h"
+
+// TEST for clusters TODO
+#include "StEmcUtil/geometry/StEmcGeom.h"
+#include "StEmcUtil/projection/StEmcPosition.h"
+
 // ROOT classes
 class TClonesArray;
 class TObjArray;
 class TList;
 class TH1;
 class TH2;
+class THnSparse;
+class TProfile;
 
 // STAR classes
 class StMaker;
@@ -26,20 +36,33 @@ class StPicoDstMaker;
 class StPicoEvent;
 
 class StEmcGeom;
+class StBemcTables; //v3.14
 class StEmcCluster;
 class StEmcCollection;
-class StBemcTables; //v3.14
 class StEmcPosition;
 
 // centrality class
 class StRefMultCorr;
 
-// TEST for clusters TODO
-#include "StEmcUtil/geometry/StEmcGeom.h"
-#include "StEmcUtil/projection/StEmcPosition.h"
-#include "StMuDSTMaker/COMMON/StMuDst.h"
-
 #include "StMyAnalysisMaker.h"
+
+/*  Used to store track & tower matching 
+ *  information between computation steps     
+ */
+struct BemcMatch {
+  Int_t globalId;
+  Int_t trackId;
+  Double_t trackEta;
+  Double_t trackPhi;
+  Double_t matchEta;
+  Double_t matchPhi;
+  
+  BemcMatch() : globalId(-1), trackId(-1), trackEta(0.0), trackPhi(0.0), matchEta(0.0), matchPhi(0.0) {};
+  BemcMatch(int id, int trkId, double trackEta, double trackPhi, double matchEta, double matchPhi) :
+  globalId(id), trackId(trkId), trackEta(trackEta), trackPhi(trackPhi), matchEta(matchEta), matchPhi(matchPhi) {};
+  
+};
+
 
 class StPicoTrackClusterQA : public StMaker {
 //class StPicoTrackClusterQA : public StJetFrameworkPicoBase {
@@ -52,6 +75,8 @@ class StPicoTrackClusterQA : public StMaker {
     kDebugGeneralEvt,
     kDebugCentrality,
   };
+
+  enum towerMode{AcceptAllTowers=0, RejectBadTowerStatus=1};
 
   StPicoTrackClusterQA();
   StPicoTrackClusterQA(const char *name, bool dohistos, const char* outName);
@@ -66,6 +91,12 @@ class StPicoTrackClusterQA : public StMaker {
   // booking of histograms (optional)
   void    DeclareHistograms();
   void    WriteHistograms();
+
+  // THnSparse Setup
+  virtual THnSparse*      NewTHnSparseFTracks(const char* name, UInt_t entries);
+  virtual void GetDimParamsTracks(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
+  virtual THnSparse*      NewTHnSparseFTowers(const char* name, UInt_t entries);
+  virtual void GetDimParamsTowers(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
   // switches
   virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
@@ -101,14 +132,24 @@ class StPicoTrackClusterQA : public StMaker {
 
   Double_t             GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
+  /* define if tower status should be used to reject towers, or if all
+   * towers should be accepted - default is to accept all towers, then
+   * generate a bad tower list for the entire data set.
+  */
+  void                 SetTowerAcceptMode(towerMode mode) { mTowerStatusMode = mode;}
+
+  /* set the minimum tower energy to be reconstructed (default = 0.15) */
+  void                 SetTowerEnergyMin(double mMin)     { mTowerEnergyMin = mMin;}
+
  protected:
-  void                   RunQA(TObjArray *tracks, TObjArray *clus);
+  void                   RunQA();
   Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
   TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
   Bool_t                 DoComparison(int myarr[], int elems);
+  void                   SetSumw2(); // set errors weights 
 
   // switches
   Bool_t                 doWriteHistos;           // write QA histos
@@ -157,14 +198,25 @@ class StPicoTrackClusterQA : public StMaker {
   UInt_t          fTriggerEventType;           // Physics selection of event used for signal
   Int_t           fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
 
-  StEmcGeom       *mGeom;
-  StEmcCollection *mEmcCol; 
- 
+  StEmcGeom             *mGeom;
+  StEmcCollection       *mEmcCol; 
+  StBemcTables          *mBemcTables; 
+  std::vector<BemcMatch> mBemcMatchedTracks;
+
+  towerMode              mTowerStatusMode;
+  Double_t               mTowerEnergyMin;
+
  private:
-  StMuDst         *mu; // muDst object
-  StPicoDstMaker  *mPicoDstMaker; // PicoDstMaker object
-  StPicoDst       *mPicoDst; // PicoDst object
-  StPicoEvent     *mPicoEvent; // PicoEvent object
+  Bool_t MuProcessBEMC();
+  Bool_t PicoProcessBEMC();
+  Int_t  MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID);
+
+  StMuDstMaker      *mMuDstMaker;   // MuDstMaker object
+  StMuDst           *mMuDst;        // muDst object
+  StMuEvent         *mMuInputEvent; // muDst event object
+  StPicoDstMaker    *mPicoDstMaker; // PicoDstMaker object
+  StPicoDst         *mPicoDst;      // PicoDst object
+  StPicoEvent       *mPicoEvent;    // PicoEvent object
 
   // centrality objects
   StRefMultCorr   *grefmultCorr;
@@ -180,11 +232,14 @@ class StPicoTrackClusterQA : public StMaker {
   TH2F           *fHistNTowervsPhivsEta;//!
 
   // QA histos
-  TH1  *fHistEventSelectionQA;//! 
-  TH1  *fHistEventSelectionQAafterCuts;//!
-  TH1  *hTriggerIds;//!
-  TH1  *hEmcTriggers;//!
+  TH1            *fHistEventSelectionQA;//! 
+  TH1            *fHistEventSelectionQAafterCuts;//!
+  TH1            *hTriggerIds;//!
+  TH1            *hEmcTriggers;//!
 
+  // THn Sparse's
+  THnSparse      *fhnTrackQA;//!      // sparse of track info
+  THnSparse      *fhnTowerQA;//!      // sparse of tower info
 
   StPicoTrackClusterQA(const StPicoTrackClusterQA&);            // not implemented
   StPicoTrackClusterQA &operator=(const StPicoTrackClusterQA&); // not implemented

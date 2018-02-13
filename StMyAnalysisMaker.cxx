@@ -1164,31 +1164,6 @@ Int_t StMyAnalysisMaker::Make() {
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
 
-  //static StPicoTrack* track(int i) { return (StPicoTrack*)picoArrays[picoTrack]->UncheckedAt(i); }
-
-  // Event QA print-out
-  // printing available information from the PicoDst objects
-/*
-  StPicoTrack* t = mPicoDst->track(1);
-  if(t) t->Print();
-  StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(0);
-  if(emcTrig) emcTrig->Print();
-  StPicoMtdTrigger *mtdTrig = mPicoDst->mtdTrigger(0);
-  if(mtdTrig) mtdTrig->Print();
-  StPicoBTowHit *btowhit = mPicoDst->btowHit(0); 
-  if(btowhit) btowhit->Print();
-  StPicoBTofHit *btofhit = mPicoDst->btofHit(0);
-  if(btofhit) btofhit->Print();
-  //StPicoMtdHit *mtdhit = mPicoDst->mtdHit(0);
-  //mtdhit->Print();
-  StPicoBEmcPidTraits *emcpid = mPicoDst->bemcPidTraits(0); // OLD NAME (StPicoEmcPidTraits, emcPidTraits) now its StPicoBEmcPidTraits
-  if(emcpid) emcpid->Print();
-  StPicoBTofPidTraits *tofpid = mPicoDst->btofPidTraits(0);
-  if(tofpid) tofpid->Print();
-  StPicoMtdPidTraits *mtdpid = mPicoDst->mtdPidTraits(0);
-  if(mtdpid) mtdpid->Print();
-*/
-
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
@@ -1233,7 +1208,7 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
   // =========== Event Plane Angle ============= //
-  // cache the leading jet within acceptance
+  // cache the leading + subleading jets within acceptance
   fLeadingJet = GetLeadingJet();
   fSubLeadingJet = GetSubLeadingJet();
 
@@ -1244,135 +1219,79 @@ Int_t StMyAnalysisMaker::Make() {
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
-  if(!fHaveEmcTrigger) return kStOK;
+  // set up switch to require specific trigger (for Event Plane corrections + Resolution)
+  //if(!fHaveEmcTrigger) return kStOK;
+  if(fHaveEmcTrigger) {
+
+    // ==================================================================
+    // 1) get z-vertex binning
+    // 2) call BBC_EP_Cal to calculate corrections for BBC event plane
+    // 3) call ZDC_EP_Cal to calculate corrections for ZDC event plane
+
+    //if(ref9 < 0) return kStOK;    // >80% centrality;
+    int region_vz = GetVzRegion(zVtx);
+    if(region_vz > 900) return kStOK;
+
+    // get BBC, ZDC, TPC event planes
+    BBC_EP_Cal(ref9, region_vz, 2);
+    ZDC_EP_Cal(ref9, region_vz, 2);  // will probably want n=1 for ZDC
+    EventPlaneCal(ref9, region_vz, 2, fTPCptAssocBin);
+
+    // compare BBC, ZDC, TPC event planes
+    // only truely relevant for STEP3 - when both recentering and shifting corrections are read in
+    hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
+    hTPCvsZDCep->Fill(ZDC_PSI2, TPC_PSI2);
+    hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
+ 
+    // test statements (debug)
+    if(fDebugLevel == kDeubgEventPlaneCalc) {
+      cout<<"BBC = "<<BBC_PSI2<<"  ZDC = "<<ZDC_PSI2<<"  TPC_PSI2 = "<<TPC_PSI2<<"  RP = "<<rpAngle<<"  TPCneg = "<<fEPTPCn<<"  TPCpos = "<<fEPTPCp<<"  Multiplicity = "<<refCorr2<<endl;
+      cout<<"BBCrawcomb = "<<BBC_raw_comb<<"  BBCrawE = "<<BBC_raw_east<<"  BBCrawW = "<<BBC_raw_west<<endl;
+      cout<<"TPCrawcomb = "<<TPC_raw_comb<<"  TPCrawN = "<<TPC_raw_neg<<"  TPCrawP = "<<TPC_raw_pos<<endl;
+      cout<<"ZDCrawcomb = "<<ZDC_raw_comb<<"  ZDCrawE = "<<ZDC_raw_east<<"  ZDCrawW = "<<ZDC_raw_west<<endl;
+    }
+
 
 /*
-  if(fLeadingJet){ 
-    cout<<"Leading Jet: pt = "<<fLeadingJet->Pt()<<"  phi = "<<fLeadingJet->Phi()<<"  eta = "<<fLeadingJet->Eta()<<endl;
-  } else { cout<<"No jets found... NJets = "<<fJets->GetEntries()<<endl; }
-
-  cout<<"Multiplicity = "<<refCorr2<<"  grefMult = "<<grefMult<<"  refMult = "<<refMult<<endl;
-
-  GetEventPlane(kFALSE, 2, kRemoveEtaStrip, 1.0, -99);
-  cout<<"kRemoveEtaStrip:              "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 1.0, -99);
-  cout<<"kRemoveEtaPhiCone:            "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveLeadingJetConstituents, 1.0, -99);
-  cout<<"kRemoveLeadingJetConstituents:"<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveNothing, 1.0, -99);
-  cout<<"kRemoveNothing:               "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-
-  GetEventPlane(kFALSE, 2, kRemoveEtaStrip, 2.0, -99);
-  cout<<"kRemoveEtaStrip:              "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, -99);
-  cout<<"kRemoveEtaPhiCone:            "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveLeadingJetConstituents, 2.0, -99);
-  cout<<"kRemoveLeadingJetConstituents:"<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveNothing, 2.0, -99);
-  cout<<"kRemoveNothing:               "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-
-  GetEventPlane(kFALSE, 2, kRemoveEtaStrip, 5.0, -99);
-  cout<<"kRemoveEtaStrip:              "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, -99);
-  cout<<"kRemoveEtaPhiCone:            "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveLeadingJetConstituents, 5.0, -99);
-  cout<<"kRemoveLeadingJetConstituents:"<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveNothing, 5.0, -99);
-  cout<<"kRemoveNothing:               "<<"  fEPTPC = "<<fEPTPC<<"  fEPTPCn = "<<fEPTPCn<<"  fEPTPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-
-cout<<endl;
-return kStOK;  // for TESTS
-*/
-
-  // ==================================================================
-  // 1) get z-vertex binning
-  // 2) call BBC_EP_Cal to calculate corrections for BBC event plane
-
-  //if(ref9 < 0) return kStOK;    // >80% centrality;
-  int region_vz = GetVzRegion(zVtx);
-  if(region_vz > 900) return kStOK;
-
-  // get BBC, ZDC, TPC event planes
-  BBC_EP_Cal(ref9, region_vz, 2);
-  ZDC_EP_Cal(ref9, region_vz, 2);  // will probably want n=1 for ZDC
-  EventPlaneCal(ref9, region_vz, 2, fTPCptAssocBin);
-
-  // compare BBC, ZDC, TPC event planes
-  hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
-  hTPCvsZDCep->Fill(ZDC_PSI2, TPC_PSI2);
-  hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
- 
-  // test statements (debug)
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
-    cout<<"BBC = "<<BBC_PSI2<<"  ZDC = "<<ZDC_PSI2<<"  TPC_PSI2 = "<<TPC_PSI2<<"  RP = "<<rpAngle<<"  TPCneg = "<<fEPTPCn<<"  TPCpos = "<<fEPTPCp<<"  Multiplicity = "<<refCorr2<<endl;
-    cout<<"BBCrawcomb = "<<BBC_raw_comb<<"  BBCrawE = "<<BBC_raw_east<<"  BBCrawW = "<<BBC_raw_west<<endl;
-    cout<<"TPCrawcomb = "<<TPC_raw_comb<<"  TPCrawN = "<<TPC_raw_neg<<"  TPCrawP = "<<TPC_raw_pos<<endl;
-    cout<<"ZDCrawcomb = "<<ZDC_raw_comb<<"  ZDCrawE = "<<ZDC_raw_east<<"  ZDCrawW = "<<ZDC_raw_west<<endl;
-  }
-
-  // my original method for TPC (gets neg + pos)
+    // my original method for TPC (gets neg + pos)
 //  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 5.0, 2);  // last param not used (ptcut)
 //  cout<<"bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
 //  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPCA_PSI2, TPCB_PSI2, BBC_PSI1, ZDC_PSI1);
-
-return kStOK;
-
-  //cout<<"Method: kRemoveEtaPhiCone, ptbin = "<<fTPCptAssocBin<<endl;
-  //GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, fTPCptAssocBin);  // last param not used (ptcut)
-  //cout<<"  bin = "<<fTPCptAssocBin<<"  TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  ////CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-
-/*
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 1);  // last param not used (ptcut)
-  cout<<"  bin = 1, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 2);  // last param not used (ptcut)
-  cout<<"  bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 3);  // last param not used (ptcut)
-  cout<<"  bin = 3, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 4);  // last param not used (ptcut)
-  cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
-*/
-
-  //cout<<"Method: kRemoveEtaPhiConeLeadSub, ptbin = "<<fTPCptAssocBin<<endl;
-  //GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeLeadSub, 2.0, fTPCptAssocBin);  // last param not used (ptcut)
-  //cout<<"  bin = "<<fTPCptAssocBin<<"  TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-
-/*
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 1);  // last param not used (ptcut)
-  cout<<"  bin = 1, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 2);  // last param not used (ptcut)
-  cout<<"  bin = 2, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 3);  // last param not used (ptcut)
-  cout<<"  bin = 3, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-  GetEventPlane(kFALSE, 2, kRemoveEtaPhiConeSub, 2.0, 4);  // last param not used (ptcut)
-  cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-*/
-
-return kStOK;
-
-// ==========================================
-
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
-    cout<<"kRemoveEtaPhiCone: "<<"TPC = "<<fEPTPC<<"  TPCn = "<<fEPTPCn<<"  TPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
-    cout<<"BBCtpcN Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCn))<<"   BBCtpcP Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCp))<<endl;
-    cout<<endl;
-  }
-
-  // calculate / fill event plane resolution histograms
-  if(doEventPlaneRes){
-    // this version uses my method for TPCn and TPCp with no corrections
+  
+    // TESTs.....
+    //cout<<"Method: kRemoveEtaPhiCone, ptbin = "<<fTPCptAssocBin<<endl;
+    //GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, fTPCptAssocBin);  // last param not used (ptcut)
+    //cout<<"  bin = "<<fTPCptAssocBin<<"  TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
     ////CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
 
-    // this version uses the current iteration with random subevent A and B
-    CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPC_raw_neg, TPC_raw_pos, BBC_PSI1, ZDC_PSI1);
-  }
+    GetEventPlane(kFALSE, 2, kRemoveEtaPhiCone, 2.0, 4);  // last param not used (ptcut)
+    cout<<"  bin = 4, TPCa = "<<fEPTPCn<<"  TPCb = "<<fEPTPCp<<"  RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+    //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+*/
 
-  return kStOK;
+    // calculate / fill event plane resolution histograms
+    if(doEventPlaneRes){
+      // this version uses my method for TPCn and TPCp with no corrections
+      ////CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, fEPTPCn, fEPTPCp, BBC_PSI1, ZDC_PSI1);
+
+      // this version uses the current iteration with random subevent A and B - TODO check this..
+      //CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPC_raw_neg, TPC_raw_pos, BBC_PSI1, ZDC_PSI1);
+
+      // corrected event planes used for Resolution
+      // MAKE sure for meaningful results to be in mode: STEP3
+      CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPCA_PSI2, TPCB_PSI2, BBC_PSI1, ZDC_PSI1);
+    }
+
+    // debug statement
+    if(fDebugLevel == kDeubgEventPlaneCalc) {
+      cout<<"kRemoveEtaPhiCone: "<<"TPC = "<<fEPTPC<<"  TPCn = "<<fEPTPCn<<"  TPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
+      cout<<"BBCtpcN Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCn))<<"   BBCtpcP Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCp))<<endl;
+      cout<<endl;
+    }
+
+  } // have Emc HT trigger - process event plane calculation/ corrections / resolutions
+
+  ////return kStOK;
 
   // ===================================================================================
 
@@ -1435,7 +1354,8 @@ return kStOK;
     jetEta = jet->Eta();
     jetPhi = jet->Phi();    
     jetNEF = jet->NEF();
-    dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+    //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+    dEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
 
     // some threshold cuts for tests
     if(fCorrJetPt) {
@@ -1632,7 +1552,8 @@ return kStOK;
         MixjetEta = jet->Eta();
         MixjetPhi = jet->Phi();
         MixjetNEF = jet->NEF();
-        dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+        //dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+        dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
 
         // some threshold cuts - do mixing only if we have a jet meeting out pt threshold and bias
         if(fCorrJetPt) {
@@ -3072,7 +2993,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       excludeInPhiSub = fSubLeadingJet->Phi();
       //cout<<"subleading: pt = "<<fSubLeadingJet->Pt()<<"  eta = "<<fSubLeadingJet->Eta()<<"  phi = "<<fSubLeadingJet->Phi()<<endl;
     }
-  }
+  } // leading jets
 
   // loop over tracks
   TRandom3 *rand = new TRandom3();
@@ -3205,31 +3126,44 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     ////double randomNum = gRandom->Rndm();  // > 0.5?
-    ////if(randomNum < 0.5) nA++;
-    ////if(randomNum >= 0.5) nB++;
-    // nTOT++;
 
+    // split up Q-vectors into 2 random TPC sub-events (A and B)
+    if(doTPCptassocBin) {
+      if(randomNum >= 0.5) {
+        // sum up q-vectors for random event A
+        mQtpcpx += trackweight * cos(phi * order);
+        mQtpcpy += trackweight * sin(phi * order);
+        nA++;
+      }
+      if(randomNum < 0.5) {
+        // sum up q-vectors for random event B
+        mQtpcnx += trackweight * cos(phi * order);
+        mQtpcny += trackweight * sin(phi * order);
+        nB++;
+      }
+    }  // pt-dependent mode
+
+    // non-pt dependent mode
     // split up Q-vectors to +/- eta regions
-    //if(eta < 0) {
-    if(randomNum < 0.5) {
-      nA++;
-      // sum up q-vectors on negative eta side
-      mQtpcnx += trackweight * cos(phi * order);
-      mQtpcny += trackweight * sin(phi * order);
-      ntracksNEG++;
-    }
-    //if(eta > 0) {
-    if(randomNum >= 0.5) {
-      nB++;
-      // sum up q-vectors on positive eta side
-      mQtpcpx += trackweight * cos(phi * order);
-      mQtpcpy += trackweight * sin(phi * order);
-      ntracksPOS++;
-    }
+    if(!doTPCptassocBin) {
+      if(eta < 0) {
+        // sum up q-vectors on negative eta side
+        mQtpcnx += trackweight * cos(phi * order);
+        mQtpcny += trackweight * sin(phi * order);
+        ntracksNEG++;
+      }
+      if(eta >= 0) {
+        // sum up q-vectors on positive eta side
+        mQtpcpx += trackweight * cos(phi * order);
+        mQtpcpy += trackweight * sin(phi * order);
+        ntracksPOS++;
+      }
+    }  
 
     // combined TPC event plane q-vectors
     mQtpcX += trackweight * cos(phi * order);
     mQtpcY += trackweight * sin(phi * order);
+    nTOT++;
 
   } // end of track loop
 
@@ -3263,7 +3197,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   Double_t tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // Method 1: used in ALICE
-  // Method 2:
   // TEST - TODO
   double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );
   if(n1 > pi) n1 -= pi;
@@ -3273,11 +3206,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   if(n2 > pi) n2 -= pi;
   double p2 = TVector2::Phi_0_2pi( tpcp2 ); // divided by order above
   if(p2 > pi) p2 -= pi;
-
-  // test print info
-  //cout<<"mQtpcnx = "<<mQtpcnx<<"  mQtpcny = "<<mQtpcny<<endl;
-  //cout<<"TPCnegEP = "<<n1<<"  TPCposEP = "<<p1<<endl;
-  //cout<<"n2 = "<<n2<<"  p2 = "<<p2<<endl;
 
   // standard event plane distributions as function of centrality
   //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
@@ -3414,7 +3342,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   BBC_raw_west /= n;
 
   // STEP2: correct angles: re-centering and then do shift below
-  if(bbc_shift_read_switch) { // TODO - double check (add in apply switch?)
+  if(bbc_shift_read_switch) {
     // Method 1: reading values from a function in a *.h file
     // recentering procedure
     sumcos_E -= bbc_center_ex[RunId_Order];
@@ -3640,36 +3568,28 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   // TEST - debug ZDC
   if(fabs(mQey) < 1e-6) { 
     //cout<<"ZDC mQey < 1e-6, "<<mQey<<endl; 
-    hZDCepDebug->Fill(1.); 
-  }
+    hZDCepDebug->Fill(1.); }
   if(fabs(mQex) < 1e-6) { 
     //cout<<"ZDC mQex < 1e-6, "<<mQex<<endl; 
-    hZDCepDebug->Fill(2.); 
-  }
+    hZDCepDebug->Fill(2.); }
   if(fabs(mQwy) < 1e-6) { 
     //cout<<"ZDC mQwy < 1e-6, "<<mQwy<<endl; 
-    hZDCepDebug->Fill(3.); 
-  }
+    hZDCepDebug->Fill(3.); }
   if(fabs(mQwx) < 1e-6) { 
     //cout<<"ZDC mQwx < 1e-6, "<<mQwx<<endl; 
-    hZDCepDebug->Fill(4.); 
-  }
+    hZDCepDebug->Fill(4.); }
   if(fabs(w_ev) < 1e-6) { 
     //cout<<"ZDC w_ev < 1e-6, "<<w_ev<<endl; 
-    hZDCepDebug->Fill(6.); 
-  }
+    hZDCepDebug->Fill(6.); }
   if(fabs(w_wv) < 1e-6) { 
     //cout<<"ZDC w_wv < 1e-6, "<<w_wv<<endl; 
-    hZDCepDebug->Fill(7.); 
-  }
+    hZDCepDebug->Fill(7.); }
   if(fabs(w_eh) < 1e-6) { 
     //cout<<"ZDC w_eh < 1e-6, "<<w_eh<<endl; 
-    hZDCepDebug->Fill(8.); 
-  }
+    hZDCepDebug->Fill(8.); }
   if(fabs(w_wh) < 1e-6) { 
     //cout<<"ZDC w_wh < 1e-6, "<<w_wh<<endl; 
-    hZDCepDebug->Fill(9.); 
-  }
+    hZDCepDebug->Fill(9.); }
 
   // initialize vectors
   TVector2 mQ1, mQw, mQe, mQtot, zQ_raw;
@@ -4217,13 +4137,20 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   //TRandom *rand = new TRandom();
 
   // leading jet check and removal
-  Double_t excludeInEta = -999, excludeInPhi = -999;
+  double excludeInEta = -999, excludeInPhi = -999;
+  double excludeInEtaSub = -999., excludeInPhiSub = -999.;
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     if(fLeadingJet) {
       excludeInEta = fLeadingJet->Eta();
       excludeInPhi = fLeadingJet->Phi();
     }
-  }
+
+    // new Feb9
+    if(fSubLeadingJet) {
+      excludeInEtaSub = fSubLeadingJet->Eta();
+      excludeInPhiSub = fSubLeadingJet->Phi();
+    }
+  } // get location of leading jets for removal
 
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
@@ -4269,7 +4196,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     }
 
     // remove strip only when we have a leading jet
-    // Method1:
+    // Method1: kRemoveEtaStrip
     if(fTPCEPmethod == 1){
     //if(method == 1){
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
@@ -4278,7 +4205,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     } else if(fTPCEPmethod == 2){
     //} else if(method == 2){
       // remove cone (in eta and phi) around leading jet
-      // Method2:
+      // Method2: kRemoveEtaPhiCone
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
          (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
@@ -4286,10 +4213,42 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     } else if(fTPCEPmethod == 3){
     //} else if(method == 3){
       // remove tracks above 2 GeV in cone around leading jet
-      // Method3:
+      // Method3: kRemoveLeadingJetConstituents
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
       (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+    } else if(fTPCEPmethod == 4){
+    //} else if(method == 4){
+      // remove strip only when we have a leading + subleading jet
+      // Method4: kRemoveEtaStripLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
+    } else if(fTPCEPmethod == 5){
+    //} else if(method == 5){
+      // remove cone (in eta and phi) around leading + subleading jet
+      // Method5: kRemoveEtaPhiConeLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(phi - excludeInPhiSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+    } else if(fTPCEPmethod == 6){
+    //} else if(method == 6){
+      // remove tracks above 2 GeV in cone around leading + subleading jet
+      // Method6: kRemoveLeadingSubJetConstituents
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInEtaSub));
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
+      (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }

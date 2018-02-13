@@ -16,6 +16,7 @@
 #include <TLorentzVector.h>
 #include <TParticle.h>
 #include "TFile.h"
+#include <THnSparse.h>
 
 // general StRoot classes
 #include "StThreeVectorF.hh"
@@ -31,13 +32,25 @@
 // test for clusters:
 #include "StMuDSTMaker/COMMON/StMuTrack.h"
 // StEmc:
+#include "StEmcADCtoEMaker/StBemcData.h"
+#include "StEmcADCtoEMaker/StEmcADCtoEMaker.h"
+#include "StEmcRawMaker/StBemcRaw.h"
+#include "StEmcRawMaker/StBemcTables.h"
+#include "StEmcRawMaker/StEmcRawMaker.h"
+#include "StEmcRawMaker/defines.h"
+#include "tables/St_emcStatus_Table.h"
+#include "tables/St_smdStatus_Table.h"
+#include "StMuDSTMaker/COMMON/StMuEmcCollection.h"
 #include "StEmcClusterCollection.h"
 #include "StEmcCollection.h"
 #include "StEmcCluster.h"
 #include "StEmcPoint.h"
-//#include "StEmcUtil/geometry/StEmcGeom.h"
+#include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/others/emcDetectorName.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
+#include "StEmcRawHit.h"
+#include "StEmcModule.h"
+#include "StEmcDetector.h"
 
 // extra includes
 #include "StPicoEvent/StPicoEmcTrigger.h"
@@ -86,11 +99,19 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fTriggerEventType(0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
-  mu(0x0),
+  mBemcTables(0x0),
+  mBemcMatchedTracks(),
+  mTowerStatusMode(AcceptAllTowers),
+  mTowerEnergyMin(0.2),
+  mMuDstMaker(0x0),
+  mMuDst(0x0),
+  mMuInputEvent(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
-  grefmultCorr(0x0)
+  grefmultCorr(0x0),
+  fhnTrackQA(0x0),
+  fhnTowerQA(0x0)
 {
   // Default constructor.
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
@@ -133,11 +154,19 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fTriggerEventType(0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
-  mu(0x0),
+  mBemcTables(0x0),
+  mBemcMatchedTracks(),
+  mTowerStatusMode(AcceptAllTowers),
+  mTowerEnergyMin(0.2),
+  mMuDstMaker(0x0),
+  mMuDst(0x0),
+  mMuInputEvent(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
-  grefmultCorr(0x0)
+  grefmultCorr(0x0),
+  fhnTrackQA(0x0),
+  fhnTowerQA(0x0)
 {
   // Standard constructor.
   if (!name) return;
@@ -163,11 +192,17 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   delete fHistEventSelectionQAafterCuts;
   delete hTriggerIds;
   delete hEmcTriggers;
+
+  delete fhnTrackQA;
+  delete fhnTowerQA;
 }
 
 //-----------------------------------------------------------------------------
 Int_t StPicoTrackClusterQA::Init() {
   DeclareHistograms();
+
+  // test placement
+  mBemcTables = new StBemcTables();
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
@@ -210,10 +245,14 @@ Int_t StPicoTrackClusterQA::Finish() {
 void StPicoTrackClusterQA::DeclareHistograms() {
     // declare histograms
     double pi = 1.0*TMath::Pi();
+
+    // track histograms
     fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 100, 0., 20.);
     fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "Ntracks vs #phi", 72, 0., 2*pi);
     fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "Ntracks vs #eta", 40, -1.0, 1.0);
     fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "Ntrackvs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+
+    // Tower histograms
     fHistNTowervsE = new TH1F("fHistNTowervsE", "Ntowers vs energy", 100, 0., 20.0);
     fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "Ntowers vs #phi", 144, 0., 2*pi);
     fHistNTowervsEta = new TH1F("fHistNTowervsEta", "Ntowers vs #eta", 40, -1.0, 1.0);
@@ -225,6 +264,18 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
     hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
 
+    // set up track and tower sparse
+    UInt_t bitcodeTrack = 0; // bit coded, see GetDimParams() below
+    bitcodeTrack = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4; 
+    fhnTrackQA = NewTHnSparseFTracks("fhnTrackQA", bitcodeTrack);
+
+    // set up track and tower sparse
+    UInt_t bitcodeTower = 0; // bit coded, see GetDimParams() below
+    bitcodeTower = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4;                      
+    fhnTowerQA = NewTHnSparseFTowers("fhnTowerQA", bitcodeTower);
+
+    // Switch on Sumw2 for all histos - (except profiles)
+    SetSumw2();
 }
 
 //________________________________________________________________________
@@ -245,6 +296,10 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fHistEventSelectionQAafterCuts->Write();
   hTriggerIds->Write();
   hEmcTriggers->Write();
+
+  fhnTrackQA->Write();
+  fhnTowerQA->Write();
+
 }
 
 //-----------------------------------------------------------------------------
@@ -257,18 +312,19 @@ int StPicoTrackClusterQA::Make()
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
 
-/*
+//===========================
   // get muDst 
-  mu = (StMuDst*) GetInputDS("MuDst");         
-  if(!mu) {
+  mMuDst = (StMuDst*) GetInputDS("MuDst");         
+  if(!mMuDst) {
     LOG_WARN << " No muDst! Skip! " << endm;
     return kStWarn;
   }
 
   // get EmcCollection
-  mEmcCol = (StEmcCollection*)mu->emcCollection();
+  mEmcCol = (StEmcCollection*)mMuDst->emcCollection();
   if(!mEmcCol) return kStWarn;
-*/
+
+//==========================
 
   // Get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -347,20 +403,41 @@ int StPicoTrackClusterQA::Make()
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
 
+
+  // Event / object PRINT INFO!!
 //  mPicoDst->printTriggers();
 //  mPicoDst->printBEmcPidTraits();
 //  mPicoDst->printBTOWHits();
+
+  // Event QA print-out
+  // printing available information from the PicoDst objects
+/*
+  StPicoTrack* t = mPicoDst->track(1);
+  if(t) t->Print();
+  StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(0);
+  if(emcTrig) emcTrig->Print();
+  StPicoMtdTrigger *mtdTrig = mPicoDst->mtdTrigger(0);
+  if(mtdTrig) mtdTrig->Print();
+  StPicoBTowHit *btowhit = mPicoDst->btowHit(0); 
+  if(btowhit) btowhit->Print();
+  StPicoBTofHit *btofhit = mPicoDst->btofHit(0);
+  if(btofhit) btofhit->Print();
+  //StPicoMtdHit *mtdhit = mPicoDst->mtdHit(0);
+  //mtdhit->Print();
+  StPicoBEmcPidTraits *emcpid = mPicoDst->bemcPidTraits(0); // OLD NAME (StPicoEmcPidTraits, emcPidTraits) now its StPicoBEmcPidTraits
+  if(emcpid) emcpid->Print();
+  StPicoBTofPidTraits *tofpid = mPicoDst->btofPidTraits(0);
+  if(tofpid) tofpid->Print();
+  StPicoMtdPidTraits *mtdpid = mPicoDst->mtdPidTraits(0);
+  if(mtdpid) mtdpid->Print();
+*/
 
   // Run - Trigger Selection to process jets from
   //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
   //if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
 
-  // TClonesArrays - not needed anymore
-  TClonesArray *tracks = 0;
-  TClonesArray *clus   = 0;
-
   // note that parameter are globally set, may not need to have params
-  RunQA(tracks, clus);
+  RunQA();
 
 
   // fill Event QA after cuts
@@ -370,7 +447,7 @@ int StPicoTrackClusterQA::Make()
 }
 
 //________________________________________________________________________
-void StPicoTrackClusterQA::RunQA(TObjArray *tracks, TObjArray *clus)
+void StPicoTrackClusterQA::RunQA()
 {
   // assume neutral pion mass
   double pi = 1.0*TMath::Pi();
@@ -415,6 +492,11 @@ void StPicoTrackClusterQA::RunQA(TObjArray *tracks, TObjArray *clus)
     fHistNTrackvsPhi->Fill(phi);
     fHistNTrackvsEta->Fill(eta);
     fHistNTrackvsPhivsEta->Fill(phi, eta);
+
+    // fill track sparse
+    Double_t trackEntries[5] = {fCentralityScaled, pt, eta, phi, zVtx};
+    Double_t trefficiency = 1.0;
+    fhnTrackQA->Fill(trackEntries, 1.0/trefficiency);
 
   } // track loop
 
@@ -524,9 +606,37 @@ void StPicoTrackClusterQA::RunQA(TObjArray *tracks, TObjArray *clus)
       cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
       cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
     } // debug statement
+
+    // fill tower sparse
+    Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
+    fhnTowerQA->Fill(towerEntries);
+
   } // cluster loop
 
 }  // track/cluster QA
+
+void StPicoTrackClusterQA::SetSumw2() {
+  // Set sum weights
+  fHistNTrackvsPt->Sumw2();
+  fHistNTrackvsPhi->Sumw2();
+  fHistNTrackvsEta->Sumw2();
+  fHistNTrackvsPhivsEta->Sumw2();
+
+  fHistNTowervsE->Sumw2();
+  fHistNTowervsPhi->Sumw2();
+  fHistNTowervsEta->Sumw2();
+  fHistNTowervsPhivsEta->Sumw2();
+
+  // QA histos
+  fHistEventSelectionQA->Sumw2();
+  fHistEventSelectionQAafterCuts->Sumw2();
+  hTriggerIds->Sumw2();
+  hEmcTriggers->Sumw2();
+
+
+  fhnTrackQA->Sumw2();
+  fhnTowerQA->Sumw2();
+}
 
 //________________________________________________________________________
 Int_t StPicoTrackClusterQA::GetCentBin(Int_t cent, Int_t nBin) const
@@ -879,3 +989,305 @@ Bool_t StPicoTrackClusterQA::DoComparison(int myarr[], int elems) {
   return match;
 }
 
+
+//______________________________________________________________________
+THnSparse* StPicoTrackClusterQA::NewTHnSparseFTracks(const char* name, UInt_t entries) {
+  // generate new THnSparseD, axes are defined in GetDimParamsD()
+  Int_t count = 0;
+  UInt_t tmp = entries;
+  while(tmp!=0){
+    count++;
+    tmp = tmp &~ -tmp;  // clear lowest bit
+  }
+
+  TString hnTitle(name);
+  const Int_t dim = count;
+  Int_t nbins[dim];
+  Double_t xmin[dim];
+  Double_t xmax[dim];
+
+  Int_t i=0;
+  Int_t c=0;
+  while(c<dim && i<32){
+    if(entries&(1<<i)){
+      TString label("");
+      GetDimParamsTracks(i, label, nbins[c], xmin[c], xmax[c]);
+      hnTitle += Form(";%s",label.Data());
+      c++;
+    }
+
+    i++;
+  }
+  hnTitle += ";";
+
+  return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
+} // end of NewTHnSparseF
+
+//______________________________________________________________________________________________
+void StPicoTrackClusterQA::GetDimParamsTracks(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
+{
+   //stores label and binning of axis for THnSparse
+   const Double_t pi = TMath::Pi();
+
+   switch(iEntry){
+
+    case 0:
+      label = "centrality 5% bin";
+      nbins = 20; //16;
+      xmin = 0.;
+      xmax = 100.; //16.;
+      break;
+
+    case 1:
+      label = "track p_{T}";
+      nbins = 200;
+      xmin = 0.;
+      xmax = 20.;
+      break;
+
+    case 2:
+      label = "track #eta";
+      nbins = 24;
+      xmin = -1.2;
+      xmax =  1.2;
+      break;
+
+    case 3:
+      label = "track #phi";
+      nbins = 144;
+      xmin = 0.0;
+      xmax = 2.0*pi;
+      break;
+
+    case 4:
+      label = "Z-vertex";
+      nbins = 20;
+      xmin = -40.;
+      xmax = 40.;
+      break;
+
+   }// end of switch
+} // end of track sparse
+
+//______________________________________________________________________
+THnSparse* StPicoTrackClusterQA::NewTHnSparseFTowers(const char* name, UInt_t entries) {
+  // generate new THnSparseD, axes are defined in GetDimParamsD()
+  Int_t count = 0;
+  UInt_t tmp = entries;
+  while(tmp!=0){
+    count++;
+    tmp = tmp &~ -tmp;  // clear lowest bit
+  }
+
+  TString hnTitle(name);
+  const Int_t dim = count;
+  Int_t nbins[dim];
+  Double_t xmin[dim];
+  Double_t xmax[dim];
+
+  Int_t i=0;
+  Int_t c=0;
+  while(c<dim && i<32){
+    if(entries&(1<<i)){
+      TString label("");
+      GetDimParamsTowers(i, label, nbins[c], xmin[c], xmax[c]);
+      hnTitle += Form(";%s",label.Data());
+      c++;
+    }
+
+    i++;
+  }
+  hnTitle += ";";
+
+  return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
+} // end of NewTHnSparseF
+
+//______________________________________________________________________________________________
+void StPicoTrackClusterQA::GetDimParamsTowers(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
+{
+   //stores label and binning of axis for THnSparse
+   const Double_t pi = TMath::Pi();
+
+   switch(iEntry){
+
+    case 0:
+      label = "centrality 5% bin";
+      nbins = 20; //16;
+      xmin = 0.;
+      xmax = 100.; //16.;
+      break;
+
+    case 1:
+      label = "tower p_{T}";
+      nbins = 200;
+      xmin = 0.;
+      xmax = 20.;
+      break;
+
+    case 2:
+      label = "tower #eta";
+      nbins = 24;
+      xmin = -1.2;
+      xmax =  1.2;
+      break;
+
+    case 3:
+      label = "tower #phi";
+      nbins = 144;
+      xmin = 0.0;
+      xmax = 2.0*pi;
+      break;
+
+    case 4:
+      label = "Z-vertex";
+      nbins = 20;
+      xmin = -40.;
+      xmax = 40.;
+      break;
+
+   }// end of switch
+} // end of tower sparse
+
+//============================================================================
+// 
+// this is for a test... for now.. Feb12, 2018
+//____________________________________________________________________________
+Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
+  /* this is reworked, but a simple reimplementation
+     of the old Maker code. It should be updated for
+     future use - currently a track is matched to the
+     first tower within dR of its BEMC projection
+     where it should be matched to the tower
+     with the minimum dR. This might require
+     a rework of MuProcessPrimaryTracks as well.
+   */
+  /* define the number of modules in the BEMC */
+  UInt_t   mBEMCModules         = 120;
+  UInt_t   mBEMCTowPerModule    = 20;
+  Int_t    mBEMCSubSections     = 2;
+  
+  /* and we will count the # of towers/tracks matched, as this
+     is saved in the event header. Not sure why 
+   */
+  Int_t nMatchedTowers = 0;
+  Int_t nMatchedTracks = 0;
+  
+  StEmcCollection* mEmcCollection = (StEmcCollection*) mMuDst->emcCollection();
+  StMuEmcCollection* mMuEmcCollection = (StMuEmcCollection*) mMuDst->muEmcCollection();
+  mBemcTables->loadTables((StMaker*)this);
+  
+  /* if no collections are found, exit assuming error */
+  if (!mEmcCollection || !mMuEmcCollection) return kFALSE;
+
+  StEmcDetector* mBEMC = mEmcCollection->detector(kBarrelEmcTowerId);
+  StSPtrVecEmcPoint& mEmcContainer =  mEmcCollection->barrelPoints();
+  
+  /* if we can't get the detector exit assuming error */
+  if (!mBEMC) return kFALSE;
+
+  /* if there are no hits, continue assuming everything
+     is working */
+  if(mEmcContainer.size() == 0) return kTRUE;
+
+  ////TStarJetPicoTower jetTower;
+  
+  /* loop over all modules */
+  for (UInt_t i = 1; i <= mBEMCModules; ++i) {
+    StSPtrVecEmcRawHit& mEmcTowerHits = mBEMC->module(i)->hits();
+    
+    /* loop over all hits in the module */
+    for (UInt_t j = 0; j < mEmcTowerHits.size(); ++j) {
+      StEmcRawHit* tow = mEmcTowerHits[j];
+      
+      if (abs(tow->module()) > mBEMCModules  || abs(tow->eta()) > mBEMCTowPerModule || tow->sub() >  mBEMCSubSections) continue;
+      
+      Int_t towerID, towerStatus;
+      mGeom->getId((int)tow->module(), (int)tow->eta(), (int)tow->sub(), towerID);
+      mBemcTables->getStatus(BTOW, towerID, towerStatus);
+      
+      if (mTowerStatusMode == RejectBadTowerStatus && towerStatus != 1) continue;
+      
+      Float_t towerEnergy = tow->energy();
+      Float_t towerADC = tow->adc();
+     
+      // mTowerEnergyMin = 0.2
+      if (towerEnergy < 0.2) continue;
+      
+      Float_t towerEta, towerPhi;
+      mGeom->getEtaPhi(towerID, towerEta, towerPhi);
+      
+      /* check for SMD hits in the tower */
+      Int_t ehits = MuFindSMDClusterHits(mEmcCollection, towerEta, towerPhi, 2);
+      Int_t phits = MuFindSMDClusterHits(mEmcCollection, towerEta, towerPhi, 3);
+      
+      /* correct eta for Vz position */
+      Float_t theta;
+      theta = 2 * atan(exp(-towerEta)); /* getting theta from eta */
+      Double_t z = 0;
+      if(towerEta != 0) z = 231.0 / tan(theta);  /* 231 cm = radius of SMD */
+      Double_t zNominal = z - mMuDst->event()->primaryVertexPosition().z(); /* shifted z */
+      Double_t thetaCorr = atan2(231.0, zNominal); /* theta with respect to primary vertex */
+      Float_t etaCorr =-log(tan(thetaCorr / 2.0)); /* eta with respect to primary vertex */
+      
+      /* now match tracks to towers */
+      for (unsigned k = 0; k < mBemcMatchedTracks.size(); ++k) {
+        BemcMatch match = mBemcMatchedTracks[k];
+        if (match.globalId == -1) continue;
+        
+        Double_t halfTowerWidth = 0.025;
+        Double_t dEta = match.matchEta - towerEta;
+        Double_t dPhi = match.matchPhi - towerPhi;
+        while (dPhi > TMath::Pi())  dPhi -= TMath::Pi();
+        while (dPhi < -TMath::Pi()) dPhi += TMath::Pi();
+        if (fabs(dEta) > halfTowerWidth || fabs(dPhi) > halfTowerWidth) continue;
+        nMatchedTracks++;
+        mBemcMatchedTracks[k].globalId = -1;
+        ////jetTower.AddMatchedTrack(match.trackId);
+        
+        /* set dEta & dPhi for the matched track */
+        ////TStarJetPicoPrimaryTrack* matchedTrack = (TStarJetPicoPrimaryTrack*) mEvent->GetPrimaryTracks()->At(match.trackId);
+        ////matchedTrack->SetEtaDiffHitProjected(dEta);
+        ////matchedTrack->SetPhiDiffHitProjected(dPhi);
+      }
+      
+      ////if (jetTower.GetNAssocTracks() > 0) nMatchedTowers++;
+      ////mEvent->AddTower(&jetTower);
+    }
+    
+  }
+  ////mEvent->GetHeader()->SetNOfMatchedTracks(nMatchedTracks);
+  ////mEvent->GetHeader()->SetNOfMatchedTowers(nMatchedTowers);
+  
+  return kTRUE;
+}
+
+//
+//
+//___________________________________________________________________________________________________
+Int_t StPicoTrackClusterQA::MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID) {
+  StEmcCluster* smdCluster = nullptr;
+  Float_t dRmin = 9999;
+  Float_t dRmin_cut = 0.05;
+  StDetectorId id = static_cast<StDetectorId>(detectorID + kBarrelEmcTowerId);
+  
+  StEmcDetector* detector = coll->detector(id);
+  if (!detector) return 0;
+  StEmcClusterCollection* clusters = detector->cluster();
+  if (!clusters) return 0;
+  StSPtrVecEmcCluster& cl=clusters->clusters();
+  
+  for (unsigned i = 0; i < cl.size(); ++i) {
+    Float_t clEta = cl[i]->eta();
+    Float_t clPhi = cl[i]->phi();
+    Float_t dR = sqrt((eta - clEta) * (eta - clEta) + (phi - clPhi) * (phi - clPhi));
+    
+    if (dR < dRmin && dR < dRmin_cut) {
+      dRmin = dR;
+      smdCluster = cl[i];
+    }
+    
+  }
+  
+  if (smdCluster) return smdCluster->nHits();
+  else return 0;
+}
