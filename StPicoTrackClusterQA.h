@@ -136,13 +136,17 @@ class StPicoTrackClusterQA : public StMaker {
    * towers should be accepted - default is to accept all towers, then
    * generate a bad tower list for the entire data set.
   */
-  void                 SetTowerAcceptMode(towerMode mode) { mTowerStatusMode = mode;}
+  void                 SetTowerAcceptMode(towerMode mode) { mTowerStatusMode = mode; }
 
   /* set the minimum tower energy to be reconstructed (default = 0.15) */
-  void                 SetTowerEnergyMin(double mMin)     { mTowerEnergyMin = mMin;}
+  void                 SetTowerEnergyMin(double mMin)     { mTowerEnergyMin = mMin; }
+
+  // set hadronic correction fraction for matched tracks to towers
+  void                 SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
 
  protected:
   void                   RunQA();
+  void                   RunTowerTest();
   Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
@@ -182,6 +186,7 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                  fTracknHitsFit;          // requirement for track hits
   Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
+  Int_t                  fGoodTrackCounter;       // good tracks - passed quality cuts
 
   // centrality    
   Double_t        fCentralityScaled;           // scaled by 5% centrality 
@@ -197,6 +202,9 @@ class StPicoTrackClusterQA : public StMaker {
   // event selection types
   UInt_t          fTriggerEventType;           // Physics selection of event used for signal
   Int_t           fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
+  Bool_t          fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+  Bool_t          fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+  Bool_t          fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
   StEmcGeom             *mGeom;
   StEmcCollection       *mEmcCol; 
@@ -205,6 +213,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   towerMode              mTowerStatusMode;
   Double_t               mTowerEnergyMin;
+  Float_t                mHadronicCorrFrac;
 
  private:
   Bool_t MuProcessBEMC();
@@ -217,6 +226,8 @@ class StPicoTrackClusterQA : public StMaker {
   StPicoDstMaker    *mPicoDstMaker; // PicoDstMaker object
   StPicoDst         *mPicoDst;      // PicoDst object
   StPicoEvent       *mPicoEvent;    // PicoEvent object
+
+  //bool              *mTowerStatusArr; // tower status array
 
   // centrality objects
   StRefMultCorr   *grefmultCorr;

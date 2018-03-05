@@ -121,12 +121,12 @@ class StJet : public StVParticle // FIXME
   Double_t          PtSubVect(Double_t rho, Bool_t save = kFALSE)      ;
   TLorentzVector    SubtractRhoVect(Double_t rho, Bool_t save = kFALSE);
 
-  // Jet constituents //FIXME
-////  AliVCluster      *Cluster(Int_t idx)                                             const;
-////  AliVCluster      *ClusterAt(Int_t idx, TClonesArray *ca)                         const;
+  // Jet constituents //FIXME  AliVCluster
+////  StVCluster      *Cluster(Int_t idx)                                             const;
+////  StVCluster      *ClusterAt(Int_t idx, TClonesArray *ca)                         const;
 ////  Int_t             ContainsCluster(AliVCluster* cluster, TClonesArray* clusters)  const;
 ////  Int_t             ContainsCluster(Int_t ic)                                      const;
-////  AliVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
+////  StVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
 ////  StVParticle     *Track(Int_t idx)                                               const;
 ////  StVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
   Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)         const;

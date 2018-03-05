@@ -42,7 +42,7 @@
 #include "StEmcCluster.h"
 #include "StEmcPoint.h"
 #include "StEmcUtil/geometry/StEmcGeom.h"
-#include "StEmcUtil/others/emcDetectorName.h"
+////#include "StEmcUtil/others/emcDetectorName.h" ?
 #include "StEmcUtil/projection/StEmcPosition.h"
 class StEmcPosition;
 class StEEmcCluster;
@@ -104,8 +104,9 @@ StJetMakerTask::StJetMakerTask() :
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
-  fJets(0),
+  fJets(0x0),
   fConstituents(0),
+  fJetsConstit(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
 //  fClusterContainerIndexMap(),
@@ -160,8 +161,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fTrackEfficiency(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
-  fJets(0),
+  fJets(0x0),
   fConstituents(0),
+  fJetsConstit(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
 //  fClusterContainerIndexMap(),
@@ -200,6 +202,10 @@ Int_t StJetMakerTask::Init() {
   // Create user objects.
   fJets = new TClonesArray("StJet");
   fJets->SetName(fJetsName);
+
+  // may need array (name hard-coded, Feb20, 2018)
+  fJetsConstit = new TClonesArray("StPicoTrack");
+  fJetsConstit->SetName("JetConstituents");
 
   // ============================ Do some jet stuff =======================
   // recombination schemes:
@@ -261,7 +267,8 @@ Int_t StJetMakerTask::Init() {
   return kStOK;
 }
 
-//-----------------------------------------------------------------------------
+//
+//_______________________________________________________________________________________
 Int_t StJetMakerTask::Finish() {
   //  Summarize the run.
 /*
@@ -623,8 +630,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
       }
 
-    }
-  }
+    } // 'cluster' loop
+  } // neutral/full jets
 
   // run jet finder
   fjw.Run();
@@ -666,7 +673,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
     fConstituents = fjw.GetJetConstituents(ij); 
     jet->SetJetConstituents(fConstituents);
+///////////////////////////////////////////////
 
+
+
+
+
+///////////////////////////////////////////////
     Double_t neutralE = 0, maxTrack = 0, maxCluster=0;
     jet->SetNumberOfTracks(constituents.size());
     jet->SetNumberOfClusters(constituents.size());

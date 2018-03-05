@@ -408,10 +408,11 @@ Int_t StMyAnalysisMaker::Init() {
   // initialize calibration file for event plane
   //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
   ////fCalibFile = new TFile(fEPcalibFileName.Data(), "READ");
-  fCalibFile = new TFile("StRoot/StMyAnalysisMaker/recenter_calib_file.root", "READ");
-  if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
-  fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/shift_calib_file.root", "READ");
-  if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
+
+    fCalibFile = new TFile("StRoot/StMyAnalysisMaker/recenter_calib_file.root", "READ");
+    if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
+    fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/shift_calib_file.root", "READ");
+    if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it

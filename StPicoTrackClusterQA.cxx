@@ -46,7 +46,7 @@
 #include "StEmcCluster.h"
 #include "StEmcPoint.h"
 #include "StEmcUtil/geometry/StEmcGeom.h"
-#include "StEmcUtil/others/emcDetectorName.h"
+//#include "StEmcUtil/others/emcDetectorName.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
 #include "StEmcRawHit.h"
 #include "StEmcModule.h"
@@ -54,12 +54,16 @@
 
 // extra includes
 #include "StPicoEvent/StPicoEmcTrigger.h"
+#include "StPicoEvent/StPicoBTowHit.h"
 #include "StPicoEvent/StPicoBEmcPidTraits.h"
 #include "StJetFrameworkPicoBase.h"
 
 // centrality
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
+
+// towers
+#include "StJetPicoTower.h"
 
 ClassImp(StPicoTrackClusterQA)
 
@@ -90,6 +94,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fTracknHitsFit(15),
   fTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  fGoodTrackCounter(0),
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
@@ -103,6 +108,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   mBemcMatchedTracks(),
   mTowerStatusMode(AcceptAllTowers),
   mTowerEnergyMin(0.2),
+  mHadronicCorrFrac(1.0),
   mMuDstMaker(0x0),
   mMuDst(0x0),
   mMuInputEvent(0x0),
@@ -115,7 +121,11 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
 {
   // Default constructor.
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
-
+  for(int i=0; i<4801; i++) { 
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE; 
+  }
 }
 
 //________________________________________________________________________
@@ -145,6 +155,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fTracknHitsFit(15),
   fTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  fGoodTrackCounter(0),
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
@@ -158,6 +169,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   mBemcMatchedTracks(),
   mTowerStatusMode(AcceptAllTowers),
   mTowerEnergyMin(0.2),
+  mHadronicCorrFrac(1.0),
   mMuDstMaker(0x0),
   mMuDst(0x0),
   mMuInputEvent(0x0),
@@ -173,11 +185,18 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   SetName(name);
 
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<4801; i++) { 
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
 }
 
 //________________________________________________________________________
 StPicoTrackClusterQA::~StPicoTrackClusterQA()
 {
+  // free up histogram objects if they exist
+
   // Destructor
   if(fHistNTrackvsPt)   delete fHistNTrackvsPt;
   if(fHistNTrackvsPhi)  delete fHistNTrackvsPhi;
@@ -220,23 +239,21 @@ Int_t StPicoTrackClusterQA::Init() {
 //-----------------------------------------------------------------------------
 Int_t StPicoTrackClusterQA::Finish() {
   //  Summarize the run.
-/*
-  cout<<"StPicoTrackClusterQA::Finish()\n";
-  //cout << "\tProcessed " << mEventCounter << " events." << endl;
-  //cout << "\tWithout PV cuts: "<< mAllPVEventCounter << " events"<<endl;
-  //cout << "\tInput events: "<<mInputEventCounter<<endl;
-*/
+  cout << "StPicoTrackClusterQA::Finish()\n";
 
   if(doWriteHistos && mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "RECREATE");
     fout->cd();
     fout->mkdir(GetName());
     fout->cd(GetName());
+
     WriteHistograms();
     fout->cd();
     fout->Write();
     fout->Close();
   }
+
+  cout<<"End of StPicoTrackClusterQA::Finish"<<endl;
 
   return kStOK;
 }
@@ -297,6 +314,7 @@ void StPicoTrackClusterQA::WriteHistograms() {
   hTriggerIds->Write();
   hEmcTriggers->Write();
 
+  // sparses
   fhnTrackQA->Write();
   fhnTowerQA->Write();
 
@@ -311,8 +329,16 @@ int StPicoTrackClusterQA::Make()
 {  // Main loop, called for each event.
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
+  fGoodTrackCounter = 0;
 
-//===========================
+  // ===========================================================================
+/*
+  mMuDstMaker = (StMuDstMaker*)GetMaker("muDst");
+  if(!mMuDstMaker) {
+    LOG_WARN << " No MuDstMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
   // get muDst 
   mMuDst = (StMuDst*) GetInputDS("MuDst");         
   if(!mMuDst) {
@@ -323,8 +349,8 @@ int StPicoTrackClusterQA::Make()
   // get EmcCollection
   mEmcCol = (StEmcCollection*)mMuDst->emcCollection();
   if(!mEmcCol) return kStWarn;
-
-//==========================
+*/
+  // ===========================================================================
 
   // Get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -373,10 +399,10 @@ int StPicoTrackClusterQA::Make()
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
 
+  // ========================= Trigger Info =============================== //
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
 
-  // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
@@ -391,7 +417,7 @@ int StPicoTrackClusterQA::Make()
 
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
-  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
+  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: n = "<<mytriggers.size()<<"  ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", ";
     if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }
@@ -432,13 +458,30 @@ int StPicoTrackClusterQA::Make()
   if(mtdpid) mtdpid->Print();
 */
 
+
   // Run - Trigger Selection to process jets from
-  //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
-  //if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
+  if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) return kStOK;
+  if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) return kStOK; //FIXME//
 
-  // note that parameter are globally set, may not need to have params
+  int nTracks = mPicoDst->numberOfTracks();
+  int nTrigs = mPicoDst->numberOfEmcTriggers();
+  int nBTowHits = mPicoDst->numberOfBTOWHits();
+  int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
+
+  cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
+  //cout<<"highTowerThreshold 0 = "<<mPicoEvent->highTowerThreshold(0)<<endl;
+  //cout<<"highTowerThreshold 1 = "<<mPicoEvent->highTowerThreshold(1)<<endl;
+  //cout<<"highTowerThreshold 2 = "<<mPicoEvent->highTowerThreshold(2)<<endl;
+  //cout<<"highTowerThreshold 3 = "<<mPicoEvent->highTowerThreshold(3)<<endl;
+
+  //mPicoDst->printTracks();
+  //mPicoDst->printTriggers();
+  ////mPicoDst->printBTOWHits();
+  ////mPicoDst->printBEmcPidTraits();
+
+  // function for track and tower QA
   RunQA();
-
+  RunTowerTest();
 
   // fill Event QA after cuts
   //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
@@ -457,11 +500,12 @@ void StPicoTrackClusterQA::RunQA()
   double phi, eta, p, pt, energy;
 
   // loop over ALL tracks in PicoDst 
-  for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
+  for(unsigned short iTracks=0; iTracks<ntracks; iTracks++){
     // get tracks
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
     if(!trk){ continue; }
 
+    // TODO - double check this, was commenting out for test before (Feb21, 2018)
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
@@ -472,20 +516,23 @@ void StPicoTrackClusterQA::RunQA()
       phi = mPMomentum.phi();
       eta = mPMomentum.pseudoRapidity();
       p = mPMomentum.mag();
-      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
     } else {
       StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
       pt = mGMomentum.perp();
       phi = mGMomentum.phi();
       eta = mGMomentum.pseudoRapidity();
       p = mGMomentum.mag();
-      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
     }
 
-    // test - this is only here to occassionally test track variables
+    // additional variables
+    energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
     Short_t charge = trk->charge();         
-    cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
-    cout<<"  nHitsFit = "<<trk->nHitsFit()<<"  BEmc Index = "<<trk->bemcPidTraitsIndex()<<endl;
+    int bemcIndex = trk->bemcPidTraitsIndex();
+    if(phi<0)    phi += 2*pi;
+    if(phi>2*pi) phi -= 2*pi;
+
+    if(fDebugLevel == 8) cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
+    if(fDebugLevel == 8) cout<<"  nHitsFit = "<<trk->nHitsFit()<<"  BEmc Index = "<<bemcIndex<<endl;
 
     // fill some QA histograms
     fHistNTrackvsPt->Fill(pt);
@@ -498,6 +545,7 @@ void StPicoTrackClusterQA::RunQA()
     Double_t trefficiency = 1.0;
     fhnTrackQA->Fill(trackEntries, 1.0/trefficiency);
 
+    fGoodTrackCounter++;
   } // track loop
 
   // looping over clusters - STAR: matching already done
@@ -510,20 +558,22 @@ void StPicoTrackClusterQA::RunQA()
 
   // print EMCal cluster info
   if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
-  if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl;  
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
-  for(unsigned short iClus=0;iClus<nclus;iClus++){
+  for(unsigned short iClus=0; iClus<nclus; iClus++){
     StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
     if(!cluster){ continue; }
 
     // print index of associated track in the event (debug = 2)
     if(fDebugLevel == 8) cout<<"iClus = "<<iClus<<"  trackIndex = "<<cluster->trackIndex()<<"  nclus = "<<nclus<<endl;
 
+    // ===========================================================================
     // use StEmcDetector to get position information
+    // need mMuDst in order to get mEmcCol which is an EMC collection
     //StEmcDetector* detector;
     //detector=mEmcCol->detector(kBarrelEmcTowerId);
     //if(!detector) cout<<"don't have detector object"<<endl;
+    // ===========================================================================
 
     // cluster and tower ID
     // ID's are calculated as such:
@@ -536,6 +586,7 @@ void StPicoTrackClusterQA::RunQA()
     if(towID < 0) continue;
 
 /*
+    // Feb21, 2018: this will work need to change object name - weird error conflicting with name in StJetMakerTask
     // get tower location - from ID
     float towerEta, towerPhi;    // need to be floats
     mGeom->getEtaPhi(towID,towerEta,towerPhi);
@@ -551,12 +602,17 @@ void StPicoTrackClusterQA::RunQA()
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
     clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
 
-    // matched track index
+    // index of associated track in the event
     int trackIndex = cluster->trackIndex();
+
+    // get track corresponding to EMC pidTraits in question from its index
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
     StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
     if(!trk) continue;
     //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
+
+    if(fDebugLevel == 8) cout<<"cluster bemcId = "<<cluster->bemcId()<<"  cluster btowId = "<<cluster->btowId();
+    if(fDebugLevel == 8) cout<<"  cluster trackIndex = "<<cluster->trackIndex()<<"  trkId = "<<trk->id()<<endl;
 
     StThreeVectorD position, momentum;
     double kilogauss = 1000;
@@ -564,9 +620,11 @@ void StPicoTrackClusterQA::RunQA()
     double magneticField = Bfield * kilogauss  / tesla; // in Tesla
     bool ok = kFALSE;
     if(mPosition) { 
-      ok = mPosition->projTrack(&position,&momentum,trkMu,(Double_t) Bfield); 
+      ok = mPosition->projTrack(&position, &momentum, trkMu, (Double_t)Bfield); 
     }
 
+    // get position vector from projection
+    // get eta, phi and z-vtx from position of track projection
     double z, eta, phi, theta;
     eta = position.pseudoRapidity(); 
     phi = position.phi();
@@ -589,12 +647,7 @@ void StPicoTrackClusterQA::RunQA()
     if(clusPhi < 0) clusPhi += 2*pi;
     if(clusPhi > 2*pi) clusPhi -= 2*pi;
 
-    // fill QA histos for towers
-    fHistNTowervsE->Fill(cluster->bemcE0());
-    fHistNTowervsPhi->Fill(towPhi);
-    fHistNTowervsEta->Fill(towEta);
-    fHistNTowervsPhivsEta->Fill(towPhi, towEta);
-
+/*
     // print some tower / cluster / track debug info
     //if(fDebugLevel == 8) {
     if(fDebugLevel == 8 && cluster->bemcE0() > 1.0) {
@@ -606,6 +659,13 @@ void StPicoTrackClusterQA::RunQA()
       cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
       cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
     } // debug statement
+*/
+
+    // fill QA histos for towers
+    fHistNTowervsE->Fill(cluster->bemcE0());
+    fHistNTowervsPhi->Fill(towPhi);
+    fHistNTowervsEta->Fill(towEta);
+    fHistNTowervsPhivsEta->Fill(towPhi, towEta);
 
     // fill tower sparse
     Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
@@ -632,7 +692,6 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistEventSelectionQAafterCuts->Sumw2();
   hTriggerIds->Sumw2();
   hEmcTriggers->Sumw2();
-
 
   fhnTrackQA->Sumw2();
   fhnTowerQA->Sumw2();
@@ -831,7 +890,7 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
 
 //_________________________________________________________________________
 TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
-  // number of Emcal Triggers
+  // zero out trigger array and get number of Emcal Triggers
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
@@ -839,17 +898,36 @@ TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
 
-  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
+  // tower - HT trigger types array
+  // zero these out - so they are refreshed for each event
+  for(int i = 0; i < 4801; i++) {
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
+
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
     StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
     if(!emcTrig) continue;
 
+    // emc trigger parameters
+    int emcTrigID = emcTrig->id();
+    //fTowerToTriggerType[i] = -1;
+
+    // check if i'th trigger fired HT triggers by meeting threshold
+    bool isHT0 = emcTrig->isHT0();
+    bool isHT1 = emcTrig->isHT1();
+    bool isHT2 = emcTrig->isHT2();
+    bool isHT3 = emcTrig->isHT3();
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+
     // print some EMCal Trigger info
     if(fDebugLevel == kDebugEmcTrigger) {
-      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
-      cout<<"  isHT0: "<<emcTrig->isHT0()<<"  isHT1: "<<emcTrig->isHT1();
-      cout<<"  isHT2: "<<emcTrig->isHT2()<<"  isHT3: "<<emcTrig->isHT3();
+      cout<<"i = "<<i<<"  id = "<<emcTrigID<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
+      cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
       cout<<"  isJP0: "<<emcTrig->isJP0()<<"  isJP1: "<<emcTrig->isJP1()<<"  isJP2: "<<emcTrig->isJP2()<<endl;
     }
 
@@ -1118,7 +1196,7 @@ void StPicoTrackClusterQA::GetDimParamsTowers(Int_t iEntry, TString &label, Int_
       break;
 
     case 1:
-      label = "tower p_{T}";
+      label = "tower E";
       nbins = 200;
       xmin = 0.;
       xmax = 20.;
@@ -1171,7 +1249,9 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
    */
   Int_t nMatchedTowers = 0;
   Int_t nMatchedTracks = 0;
-  
+ 
+  // are collections used in AuAu??? FIXME
+  // not according to: http://www.star.bnl.gov/public/comp/meet/RM200311/MuDstTutorial.pdf 
   StEmcCollection* mEmcCollection = (StEmcCollection*) mMuDst->emcCollection();
   StMuEmcCollection* mMuEmcCollection = (StMuEmcCollection*) mMuDst->muEmcCollection();
   mBemcTables->loadTables((StMaker*)this);
@@ -1225,7 +1305,8 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
       theta = 2 * atan(exp(-towerEta)); /* getting theta from eta */
       Double_t z = 0;
       if(towerEta != 0) z = 231.0 / tan(theta);  /* 231 cm = radius of SMD */
-      Double_t zNominal = z - mMuDst->event()->primaryVertexPosition().z(); /* shifted z */
+      //Double_t zNominal = z - mMuDst->event()->primaryVertexPosition().z(); /* shifted z */
+      Double_t zNominal = z - mVertex.z();       /* shifted z*/    // should be fixed
       Double_t thetaCorr = atan2(231.0, zNominal); /* theta with respect to primary vertex */
       Float_t etaCorr =-log(tan(thetaCorr / 2.0)); /* eta with respect to primary vertex */
       
@@ -1291,3 +1372,178 @@ Int_t StPicoTrackClusterQA::MuFindSMDClusterHits(StEmcCollection* coll, Double_t
   if (smdCluster) return smdCluster->nHits();
   else return 0;
 }
+
+//________________________________________________________________________
+void StPicoTrackClusterQA::RunTowerTest()
+{
+  // set / initialize some variables
+  double pi = 1.0*TMath::Pi();
+  double pi0mass = Pico::mMass[0]; // GeV
+  double towPhi, towEta;
+  int towID, towID2, towID3, clusID;
+  StThreeVectorF  towPosition, clusPosition;
+  StEmcPosition *mPosition = new StEmcPosition();
+
+  // towerStatus array
+  float mTowerMatchTrkIndex[4801] = { 0 };
+  bool mTowerStatusArr[4801] = { 0 };
+  int matchedTowerTrackCounter = 0;
+
+  // print
+  int nTracks = mPicoDst->numberOfTracks();
+  int nTrigs = mPicoDst->numberOfEmcTriggers();
+  int nBTowHits = mPicoDst->numberOfBTOWHits();
+  int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
+//  cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
+  
+  // loop over ALL clusters in PicoDst and add to jet //TODO
+  for(unsigned short iClus=0; iClus < nBEmcPidTraits; iClus++){
+    StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
+    if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
+
+    // cluster and tower ID
+    clusID = cluster->bemcId();  // index in bemc point array
+    towID = cluster->btowId();   // projected tower Id: 1 - 4800
+    towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    if(towID < 0) continue;
+
+    ////////
+    // get tower location - from ID: via this method, need to correct eta
+    float tEta, tPhi;    // need to be floats
+    StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
+    //cout<<"radius = "<<mGeom2->Radius()<<endl;
+    mGeom2->getEtaPhi(towID,tEta,tPhi);
+    if(tPhi < 0)    tPhi += 2*pi;
+    if(tPhi > 2*pi) tPhi -= 2*pi;
+    if(fDebugLevel == 8) {
+      cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3<<"   towerEta = "<<tEta<<"  towerPhi = "<<tPhi<<endl;
+    }
+    ///////
+
+    // cluster and tower position - from vertex and ID
+    towPosition = mPosition->getPosFromVertex(mVertex, towID);
+    towPhi = towPosition.phi();
+    towEta = towPosition.pseudoRapidity();
+
+    // correct eta for Vz position // 231
+    Float_t theta;
+    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
+    Double_t z = 0;
+    if(towEta != 0) z = 225.405 / tan(theta);      // 231 cm = radius of SMD
+    Double_t zNominal = z - mVertex.z();
+    Double_t thetaCorr = atan2(225.405, zNominal); // theta with respect to primary vertex
+    Float_t etaCorr =-log(tan(thetaCorr / 2.0));   // eta with respect to primary vertex
+
+    // correct eta for Vz position // 231
+    Float_t theta2;
+    theta2 = 2 * atan(exp(-tEta)); // getting theta from eta 
+    Double_t z2 = 0;
+    if(tEta != 0) z2 = 225.405 / tan(theta2);         // 231 cm = radius of SMD
+    Double_t zNominal2 = z2 - mVertex.z();
+    Double_t thetaCorr2 = atan2(225.405, zNominal2); // theta with respect to primary vertex
+    Float_t etaCorr2 =-log(tan(thetaCorr2 / 2.0));   // eta with respect to primary vertex
+
+    // matched track index
+    int trackIndex = cluster->trackIndex();
+    StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
+    //StMuTrack* mutrk = (StMuTrack*)mPicoDst->track(trackIndex);
+    if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+
+    // tower status set - towerID is matched to track passing quality cuts
+    mTowerMatchTrkIndex[towID] = trackIndex;
+    mTowerStatusArr[towID] = kTRUE;
+    matchedTowerTrackCounter++;
+
+    // get track variables to matched tower
+    double p, pt, phi, eta;
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) { mTrkMom = trk->pMom(); } 
+    else { mTrkMom = trk->gMom(mVertex, Bfield); }
+
+    // track properties
+    pt = mTrkMom.perp();
+    phi = mTrkMom.phi();
+    eta = mTrkMom.pseudoRapidity();
+    p = mTrkMom.mag();
+
+    // print tower and track info
+//    cout<<"towers: towPhi = "<<towPhi<<"  towEta = "<<towEta<<"  etaCorr = "<<etaCorr;  //<<endl;
+//    cout<<"  tPhi = "<<tPhi<<"  tEta = "<<tEta<<"  etaCorr2 = "<<etaCorr2<<endl;
+//    cout<<"tracks:  pt = "<<pt<<"  p = "<<p<<"  phi = "<<phi<<"  eta = "<<eta<<endl;
+  }
+
+  // print statment on matches
+  //cout<<"Matched Tracks passing cuts (with tower): "<<matchedTowerTrackCounter<<"  nBTowHits = ";
+  //cout<<mPicoDst->numberOfBTOWHits()<<"  unFiltered Tracks = "<<mPicoDst->numberOfTracks()<<"  Filtered Tracks = "<<fGoodTrackCounter<<endl;
+
+  // loop over towers
+  int nTowers = mPicoDst->numberOfBTOWHits();
+  for(int itow = 0; itow < nTowers; itow++) {
+    StPicoBTowHit *tower = mPicoDst->btowHit(itow);
+    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
+
+    // tower ID
+    int towerID = tower->id();
+    if(towerID < 0) continue; // double check these aren't still in the event list
+
+    // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+    double towerPhi = towerPosition.phi();
+    double towerEta = towerPosition.pseudoRapidity();
+    int towerADC = tower->adc();
+    double towerE = tower->energy();
+    double towerEunCorr = tower->energy();
+
+    // tower matched to firing trigger - TODO
+    //if(fTowerToTriggerTypeHT1[emcTrigID])
+    //if(fTowerToTriggerTypeHT2[emcTrigID])
+    //if(fTowerToTriggerTypeHT3[emcTrigID])
+
+    // perform tower cuts
+    // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
+    if(mTowerStatusArr[towerID]) {
+      //if(mTowerMatchTrkIndex[towerID] > 0) 
+      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track( mTowerMatchTrkIndex[towerID] );
+      ///if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // March5, 2018 commented back in TODO
+      //if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+
+      // get track variables to matched tower
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) { mTrkMom = trk->pMom(); }
+      else { mTrkMom = trk->gMom(mVertex, Bfield); }
+      double pt = mTrkMom.perp();
+      double phi = mTrkMom.phi();
+      double eta = mTrkMom.pseudoRapidity();
+      double p = mTrkMom.mag();
+      double pi0mass = Pico::mMass[0]; // GeV
+      double E = p*p + pi0mass*pi0mass;
+
+      // apply hadronic correction
+      towerE = towerE - (mHadronicCorrFrac * E);
+      if(towerE < 0) towerE = 0.0;
+      if(towerE < 0.2) continue;
+
+    } 
+    // else - no match so treat towers on their own
+
+/*
+    // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
+    // correct eta for Vz position 
+    Float_t theta;
+    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
+    Double_t z = 0;
+    if(towEta != 0) z = 231.0 / tan(theta);  // 231 cm = radius of SMD 
+    Double_t zNominal = z - mVertex.z();
+    Double_t thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
+    Float_t etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
+*/
+
+    // print
+//    cout<<"itow: "<<itow<<"  towerID = "<<towerID<<"  towerPhi = "<<towerPhi<<"  towerEta = "<<towerEta<<"  towerADC = "<<towerADC<<"  towerE = "<<towerE<<"  towerEunCorr = "<<towerEunCorr<<"  mIndex = "<<mTowerMatchTrkIndex[towerID]<<endl;
+
+  } // tower loop
+
+  //} // cluster loop
+} // cluster / tower QA

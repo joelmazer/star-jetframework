@@ -113,16 +113,16 @@ class StJetMakerTask : public StMaker {
   virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
 
   // event setters
-  virtual void  SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+  virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
 
   // common setters
-  void         SetClusName(const char *n)       { fCaloName      = n;  }
-  void         SetTracksName(const char *n)     { fTracksName    = n;  }
-  void         SetJetsName(const char *n)       { fJetsName      = n;  }
-  void         SetMinJetTrackPt(Double_t min)   { fMinJetTrackPt = min;}
-  void         SetMaxJetTrackPt(Double_t max)   { fMaxJetTrackPt = max;}
-  void         SetMinJetClusPt(Double_t min)    { fMinJetClusPt  = min;}
-  void         SetRadius(Double_t r)            { fRadius        = r;  }
+  void         SetClusName(const char *n)                 { fCaloName      = n;  }
+  void         SetTracksName(const char *n)               { fTracksName    = n;  }
+  void         SetJetsName(const char *n)                 { fJetsName      = n;  }
+  void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min;}
+  void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max;}
+  void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min;}
+  void         SetRadius(Double_t r)                      { fRadius        = r;  }
 
   void         SetMinJetClusE(Double_t min);
   void         SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
@@ -174,6 +174,7 @@ class StJetMakerTask : public StMaker {
 
   // jets
   TClonesArray* GetJets()                        { return fJets; }
+  TClonesArray* GetJetConstit()                  { return fJetsConstit; }
  
   // getters
   Double_t               GetGhostArea()                   { return fGhostArea         ; }
@@ -209,7 +210,7 @@ class StJetMakerTask : public StMaker {
 */
 
  protected:
-  void FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
+  void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   //Int_t FindJets();
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
@@ -252,7 +253,8 @@ class StJetMakerTask : public StMaker {
   void                   FillJetBranch();
   void                   InitUtilities();
   void                   PrepareUtilities();
-  void                   ExecuteUtilities(StJet* jet, Int_t ij); void                   TerminateUtilities();
+  void                   ExecuteUtilities(StJet* jet, Int_t ij); 
+  void                   TerminateUtilities();
 
   Bool_t                 GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const;
 
@@ -285,7 +287,8 @@ class StJetMakerTask : public StMaker {
 
   TClonesArray          *fJets;                   //!jet collection
   vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
-
+  TClonesArray          *fJetsConstit;            //!jet constituents ClonesArray
+  
   // TEST ---
   StEmcGeom       *mGeom;
   StEmcCollection *mEmcCol;
@@ -317,9 +320,6 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   TH1F           *fHistJetNTowervsEta;//!
   TH2F           *fHistJetNTowervsPhivsEta;//!
 
-  // output file name string
-  //TString         mOutName;
-     
   // maker names
   //TString         fJetMakerName;
 
