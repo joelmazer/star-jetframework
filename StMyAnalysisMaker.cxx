@@ -803,12 +803,12 @@ void StMyAnalysisMaker::DeclareHistograms() {
   // set up centrality bins for mixed events
   // for pp we need mult bins for event mixing. Create binning here, to also make a histogram from it
   // TODO needs updating for STAR multiplicities
-  Int_t nCentralityBinspp = 8;
-  Double_t centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
+  int nCentralityBinspp = 8;
+  double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
 
   // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
-  Int_t nCentralityBinsAuAu = 100;
-  Double_t mult = 1.0;
+  int nCentralityBinsAuAu = 100;
+  double mult = 1.0;
   if(fCentBinSize==1) { 
     nCentralityBinsAuAu = 100;
     mult = 1.0;  
@@ -1097,12 +1097,12 @@ Int_t StMyAnalysisMaker::Make() {
   hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
-  Int_t RunId = mPicoEvent->runId();
+  int RunId = mPicoEvent->runId();
   fRunNumber = mPicoEvent->runId();
-  Int_t fillId = mPicoEvent->fillId();
-  Int_t eventId = mPicoEvent->eventId();
-  Double_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Double_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  int fillId = mPicoEvent->fillId();
+  int eventId = mPicoEvent->eventId();
+  double fBBCCoincidenceRate = mPicoEvent->BBCx();
+  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?i
 
   // ================= Event Plane flattening container ==============
@@ -1128,8 +1128,8 @@ Int_t StMyAnalysisMaker::Make() {
 //  if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
 //  if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t cent9 = grefmultCorr->getCentralityBin9();
+  int cent16 = grefmultCorr->getCentralityBin16();
+  int cent9 = grefmultCorr->getCentralityBin9();
   ref9 = GetCentBin(cent9, 9);
   ref16 = GetCentBin(cent16, 16);  
   Int_t centbin = GetCentBin(cent16, 16);
@@ -1330,9 +1330,6 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ====================== Jet loop below ============================
   // loop over Jets in the event: initialize some parameter variables
-  double jetarea, jetpt, corrjetpt, jetptselected, jetE, jetEta, jetPhi, jetNEF, maxtrackpt, NtrackConstit;
-  double gpt, gp, phi, eta, px, py, pt, pz, charge;
-  double deta, dphijh, dEP;
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
 
@@ -1348,15 +1345,15 @@ Int_t StMyAnalysisMaker::Make() {
     if(!jet) continue;
 
     // get some jet parameters
-    jetarea = jet->Area();
-    jetpt = jet->Pt();
-    corrjetpt = jet->Pt() - jetarea*fRhoVal;
-    jetE = jet->E();
-    jetEta = jet->Eta();
-    jetPhi = jet->Phi();    
-    jetNEF = jet->NEF();
+    double jetarea = jet->Area();
+    double jetpt = jet->Pt();
+    double corrjetpt = jet->Pt() - jetarea*fRhoVal;
+    double jetE = jet->E();
+    double jetEta = jet->Eta();
+    double jetPhi = jet->Phi();    
+    double jetNEF = jet->NEF();
     //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
-    dEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
+    double dEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
 
     // some threshold cuts for tests
     if(fCorrJetPt) {
@@ -1380,8 +1377,8 @@ Int_t StMyAnalysisMaker::Make() {
     hJetPtvsArea->Fill(jetpt, jetarea);
 
     // get nTracks and maxTrackPt
-    maxtrackpt = jet->GetMaxTrackPt();
-    NtrackConstit = jet->GetNumberOfTracks();
+    double maxtrackpt = jet->GetMaxTrackPt();
+    int NtrackConstit = jet->GetNumberOfTracks();
     if(doComments) cout<<"Jet# = "<<ijet<<"  JetPt = "<<jetpt<<"  JetE = "<<jetE<<endl;
     if(doComments) cout<<"MaxtrackPt = "<<maxtrackpt<<"  NtrackConstit = "<<NtrackConstit<<endl;
 
@@ -1395,6 +1392,7 @@ Int_t StMyAnalysisMaker::Make() {
     //if ((jet->MaxTrackPt()>fTrkBias) || (jet->MaxClusterPt()>fClusBias)){
     // set up and fill Jet-Hadron trigger jets THnSparse
     // ====================================================================================
+    double jetptselected;
     if(fCorrJetPt) { jetptselected = corrjetpt; 
     } else { jetptselected = jetpt; }
 
@@ -1422,7 +1420,7 @@ Int_t StMyAnalysisMaker::Make() {
     //cout<<endl;
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
-    for(int itrack=0;itrack<ntracks;itrack++){
+    for(int itrack = 0; itrack < ntracks; itrack++){
       // get tracks
       StPicoTrack* trk = mPicoDst->track(itrack);
       if(!trk){ continue; }
@@ -1430,30 +1428,25 @@ Int_t StMyAnalysisMaker::Make() {
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // declare kinematic variables
-      //gpt = trk->gPt();
-      //gp = trk->gPtot();
+      // primary track switch
+      // get momentum vector of track - global or primary track
+      StThreeVectorF mTrkMom;
       if(doUsePrimTracks) {
-        // get primary track variables
-        StThreeVectorF mPMomentum = trk->pMom();
-        phi = mPMomentum.phi();
-        eta = mPMomentum.pseudoRapidity();
-        px = mPMomentum.x();
-        py = mPMomentum.y();
-        pt = mPMomentum.perp();
-        pz = mPMomentum.z();
+        // get primary track vector
+        mTrkMom = trk->pMom();
       } else {
-        // get global track variables
-        StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-        phi = mgMomentum.phi();
-        eta = mgMomentum.pseudoRapidity();
-        px = mgMomentum.x();
-        py = mgMomentum.y();
-        pt = mgMomentum.perp();
-        pz = mgMomentum.z();
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield);
       }
 
-      charge = trk->charge();
+      // track variables
+      double pt = mTrkMom.perp();
+      double phi = mTrkMom.phi();
+      double eta = mTrkMom.pseudoRapidity();
+      double px = mTrkMom.x();
+      double py = mTrkMom.y();
+      double pz = mTrkMom.z();
+      short charge = trk->charge();
 
 //      if(jet->ContainsTrack(itrack)) cout<<" track part of jet, pt = "<<pt<<endl;
 //      const std::vector<TLorentzVector> constit =  jet->GetConstits();
@@ -1461,12 +1454,12 @@ Int_t StMyAnalysisMaker::Make() {
 
       // get jet - track relations
       //deta = eta - jetEta;               // eta betweeen hadron and jet
-      deta = jetEta - eta;               // eta betweeen jet and hadron
-      dphijh = RelativePhi(jetPhi, phi); // angle between jet and hadron
+      double deta = jetEta - eta;               // eta betweeen jet and hadron
+      double dphijh = RelativePhi(jetPhi, phi); // angle between jet and hadron
 
       // fill jet sparse 
-      Double_t triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, charge};
-      Double_t trefficiency = 1.0;
+      double triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, (double)charge};
+      double trefficiency = 1.0;
       //if(fDoEventMixing) {
         if(fReduceStatsCent > 0) {
           if(cbin == fReduceStatsCent) fhnJH->Fill(triggerEntries, 1.0/trefficiency);    // fill Sparse Histo with trigger entries
@@ -1532,29 +1525,27 @@ Int_t StMyAnalysisMaker::Make() {
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
       // loop over Jets in the event
-      double Mixjetarea, Mixjetpt, Mixcorrjetpt, Mixjetptselected, MixjetE, MixjetEta, MixjetPhi, MixjetNEF, Mixmaxtrackpt, MixNtrackConstit;
-      double gMixpt, gMixp, Mixphi, Mixeta, Mixpx, Mixpy, Mixpt, Mixpz, Mixcharge;
-      double dMixeta, dMixphijh, dMixEP;
+      double Mixmaxtrackpt, MixNtrackConstit;
       // loop over jets (passing cuts - set by jet maker)
-      for (Int_t ijet = 0; ijet < njets; ijet++) {
+      for(int ijet = 0; ijet < njets; ijet++) {
         // leading jet
-        Double_t leadjet=0;
-        if (ijet==ijethi) leadjet=1; //FIXME for leading jet
+        Double_t leadjet = 0;
+        if(ijet == ijethi) leadjet = 1; //FIXME for leading jet
 
         // get jet object
         StJet *jet = static_cast<StJet*>(fJets->At(ijet));
         if (!jet) continue;
 
         // get some get parameters of jets for mixing
-        Mixjetarea = jet->Area();
-        Mixjetpt = jet->Pt();
-        Mixcorrjetpt = Mixjetpt - Mixjetarea*fRhoVal;
-        MixjetE = jet->E();
-        MixjetEta = jet->Eta();
-        MixjetPhi = jet->Phi();
-        MixjetNEF = jet->NEF();
-        //dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
-        dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
+        double Mixjetarea = jet->Area();
+        double Mixjetpt = jet->Pt();
+        double Mixcorrjetpt = Mixjetpt - Mixjetarea*fRhoVal;
+        double MixjetE = jet->E();
+        double MixjetEta = jet->Eta();
+        double MixjetPhi = jet->Phi();
+        double MixjetNEF = jet->NEF();
+        //double dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+        double dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
 
         // some threshold cuts - do mixing only if we have a jet meeting out pt threshold and bias
         if(fCorrJetPt) {
@@ -1565,14 +1556,14 @@ Int_t StMyAnalysisMaker::Make() {
    	//TODO if (!AcceptJet(jet)) continue;  // acceptance cuts done to jet in JetMaker
 
         // get number of current events in pool
-        Int_t nMix = pool->GetCurrentNEvents();
+        int nMix = pool->GetCurrentNEvents();
         //cout<<"nMix = "<<nMix<<endl;
 
         // Fill for biased jet triggers only
         //FIXME if ((jet->MaxTrackPt()>fTrkBias) || (jet->MaxClusterPt()>fClusBias)) {  // && jet->Pt() > fJetPtcut) {
         if(jet->GetMaxTrackPt() > fTrackBias) {
           // Fill mixed-event histos here: loop over nMix events
-          for (Int_t jMix=0; jMix<nMix; jMix++) {
+          for(int jMix = 0; jMix < nMix; jMix++) {
  
             // get jMix'th event
             bgTracks = pool->GetEvent(jMix);
@@ -1580,7 +1571,7 @@ Int_t StMyAnalysisMaker::Make() {
             const Int_t Nbgtrks = bgTracks->GetEntries();
 
             // loop over background (mixed event) tracks
-            for(Int_t ibg=0; ibg<Nbgtrks; ibg++) {
+            for(int ibg = 0; ibg < Nbgtrks; ibg++) {
               // get tracks
               //StPicoTrack* trk = mPicoDst->track(ibg);
 /*
@@ -1618,29 +1609,30 @@ Int_t StMyAnalysisMaker::Make() {
               short Mixcharge = trk->Charge();
 
               // shift angle (0, 2*pi) 
-              if(Mixphi < 0) Mixphi+= 2*pi;
+              if(Mixphi < 0)    Mixphi+= 2*pi;
               if(Mixphi > 2*pi) Mixphi-= 2*pi;
 
               //cout<<"itrack = "<<ibg<<"  phi = "<<Mixphi<<"  eta = "<<Mixeta<<"  pt = "<<Mixpt<<"  q = "<<Mixcharge<<endl;
 
               // get jet - track relations
-              //deta = eta - jetEta;               // eta betweeen hadron and jet
-              dMixeta = MixjetEta - Mixeta;               // eta betweeen jet and hadron
-              dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
+              //double deta = eta - jetEta;               // eta betweeen hadron and jet
+              double dMixeta = MixjetEta - Mixeta;               // eta betweeen jet and hadron
+              double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
 
               // print tracks outside of acceptance somehow
               if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
 
               // calculate single particle tracking efficiency of mixed events for correlations
-              Double_t mixefficiency = -999;
+              double mixefficiency = -999;
               //FIXME mixefficiency = EffCorrection(part->Eta(), part->Pt(), fDoEffCorr);                           
               mixefficiency = 1.0;
 
+              double Mixjetptselected;
               if(fCorrJetPt) { Mixjetptselected = Mixcorrjetpt;
               } else { Mixjetptselected = Mixjetpt; }
 
               // create / fill mixed event sparse
-              Double_t triggerEntries[8] = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, Mixcharge}; //array for ME sparse
+              double triggerEntries[8] = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge}; //array for ME sparse
               if(fReduceStatsCent > 0) {
                 if(cbin == fReduceStatsCent) fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
               } else fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
@@ -2124,13 +2116,13 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
 
-  // loop over tracks
-  Int_t nMixTracks = mPicoDst->numberOfTracks();
-  Int_t iterTrk = 0;
-  Double_t phi, eta, pt, charge; //, px, py, pz, p;
+  // construct variables, get # of tracks
+  int nMixTracks = mPicoDst->numberOfTracks();
+  int iterTrk = 0;
   const double pi = 1.0*TMath::Pi();
-  for (Int_t i=0; i<nMixTracks; i++) { 
-    // get tracks
+
+  // loop over tracks
+  for(int i = 0; i < nMixTracks; i++) { 
     StPicoTrack* trk = mPicoDst->track(i);
     if(!trk){ continue; }
 
@@ -2138,23 +2130,23 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
     // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
       if(!(trk->isPrimary())) continue; // check if primary
-
-      // get primary track variables
-      StThreeVectorF mPMomentum = trk->pMom();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      pt = mPMomentum.perp();
+      
+      // get primary track vector
+      mTrkMom = trk->pMom();
     } else {
-      // get global track variables
-      StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-      phi = mgMomentum.phi();
-      eta = mgMomentum.pseudoRapidity();
-      pt = mgMomentum.perp();
+      // get global track vector
+      mTrkMom = trk->gMom(mVertex, Bfield);
     }
 
-    charge = trk->charge();
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
+    short charge = trk->charge();
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
     //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
@@ -2173,47 +2165,37 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 
 //________________________________________________________________________
 Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
-  // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
-  int nHitsFit, nHitsMax;
-  double nHitsRatio;
-
   // constants: assume neutral pion mass
   double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
+  // get momentum vector of track - global or primary track
+  StThreeVectorF mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return kFALSE; // check if primary
 
-    // get primary track variables
-    StThreeVectorF mPMomentum = trk->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    px = mPMomentum.x();
-    py = mPMomentum.y();
-    pt = mPMomentum.perp();
-    pz = mPMomentum.z();
-    p = mPMomentum.mag();
+    // get primary track vector
+    mTrkMom = trk->pMom();
   } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    px = mgMomentum.x();
-    py = mgMomentum.y();
-    pt = mgMomentum.perp();
-    pz = mgMomentum.z();
-    p = mgMomentum.mag();
+    // get global track vector
+    mTrkMom = trk->gMom(Vert, B);
   }
 
-  // additional calculations
-  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  charge = trk->charge();
-  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  nHitsFit = trk->nHitsFit();
-  nHitsMax = trk->nHitsMax();
-  nHitsRatio = 1.0*nHitsFit/nHitsMax;
+  // track variables
+  double pt = mTrkMom.perp();
+  double phi = mTrkMom.phi();
+  double eta = mTrkMom.pseudoRapidity();
+  double px = mTrkMom.x();
+  double py = mTrkMom.y();
+  double pz = mTrkMom.z();
+  double p = mTrkMom.mag();
+  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  short charge = trk->charge();
+  double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  int nHitsFit = trk->nHitsFit();
+  int nHitsMax = trk->nHitsMax();
+  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
   // do pt cut here to accommadate either type of track
   if(doUsePrimTracks) { // primary  track
@@ -2258,32 +2240,36 @@ Bool_t StMyAnalysisMaker::AcceptJet(StJet *jet) { // for jets
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
-  Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+  for(int i = 0; i < 7; i++) { fEmcTriggerArr[i] = 0; }
+  int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
 
-  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
     StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
     if(!emcTrig) continue;
 
+    // check if i'th trigger fired HT triggers by meeting threshold
+    bool isHT0 = emcTrig->isHT0();
+    bool isHT1 = emcTrig->isHT1();
+    bool isHT2 = emcTrig->isHT2();
+    bool isHT3 = emcTrig->isHT3();
+
     // print some EMCal Trigger info
     if(fDebugLevel == kDebugEmcTrigger) {
       cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
-      cout<<"  isHT0: "<<emcTrig->isHT0()<<"  isHT1: "<<emcTrig->isHT1();
-      cout<<"  isHT2: "<<emcTrig->isHT2()<<"  isHT3: "<<emcTrig->isHT3();
+      cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
       cout<<"  isJP0: "<<emcTrig->isJP0()<<"  isJP1: "<<emcTrig->isJP1()<<"  isJP2: "<<emcTrig->isJP2()<<endl;
     }
 
     // fill for valid triggers
-    if(emcTrig->isHT0()) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
-    if(emcTrig->isHT1()) { h->Fill(2); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = 1; }
-    if(emcTrig->isHT2()) { h->Fill(3); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = 1; }
-    if(emcTrig->isHT3()) { h->Fill(4); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = 1; }
+    if(isHT0) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
+    if(isHT1) { h->Fill(2); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = 1; }
+    if(isHT2) { h->Fill(3); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = 1; }
+    if(isHT3) { h->Fill(4); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = 1; }
     if(emcTrig->isJP0()) { h->Fill(5); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP0] = 1; }
     if(emcTrig->isJP1()) { h->Fill(6); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP1] = 1; }
     if(emcTrig->isJP2()) { h->Fill(7); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP2] = 1; }
@@ -2406,7 +2392,7 @@ Bool_t StMyAnalysisMaker::DoComparison(int myarr[], int elems) {
   bool match = kFALSE;
 
   // loop over specific physics selection array and compare to specific event trigger
-  for(int i=0; i<elems; i++) {
+  for(int i = 0; i < elems; i++) {
     if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
     if(match) break;
   }
@@ -2421,7 +2407,6 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   TVector2 mQ;
   double mQx = 0., mQy = 0.;
   int order = 2;
-  double phi, eta, pt;
   double pi = 1.0*TMath::Pi();
 
   // leading jet check and removal
@@ -2432,7 +2417,7 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
 
   // loop over tracks
   int nTrack = mPicoDst->numberOfTracks();
-  for(int i=0; i<nTrack; i++) {
+  for(int i = 0; i < nTrack; i++) {
     // get tracks
     StPicoTrack* track = mPicoDst->track(i);
     if(!track) { continue; }
@@ -2441,25 +2426,26 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
     // may change this back in future
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // declare kinematic variables
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
-      // get primary track variables
-      StThreeVectorF mPMomentum = track->pMom();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      pt = mPMomentum.perp();
+      // get primary track vector
+      mTrkMom = track->pMom();
     } else {
-      // get global track variables
-      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-      phi = mgMomentum.phi();
-      eta = mgMomentum.pseudoRapidity();
-      pt = mgMomentum.perp();
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
     }
+
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0) phi += 2*pi;
+    if(phi < 0)    phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
@@ -2490,7 +2476,7 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   //return psi*180/pi;  // converted to degrees
 
   // fill info for q-vectors, etc..
-  Double_t EPentries[4] = {fCentralityScaled, mQx, mQy, psi};
+  double EPentries[4] = {fCentralityScaled, mQx, mQy, psi};
   fhnEP->Fill(EPentries);
 
   return psi;
@@ -2974,7 +2960,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   TVector2 mQtpcn, mQtpcp, mQtpc;
   double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0., mQtpcX = 0., mQtpcY = 0.;
   int order = n;
-  double phi, eta, pt;
   double pi = 1.0*TMath::Pi();
   int ntracksNEG = 0, ntracksPOS = 0;
 
@@ -3009,20 +2994,21 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // declare kinematic variables
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
-      // get primary track variables
-      StThreeVectorF mPMomentum = track->pMom();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      pt = mPMomentum.perp();
+      // get primary track vector
+      mTrkMom = track->pMom();
     } else {
-      // get global track variables
-      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-      phi = mgMomentum.phi();
-      eta = mgMomentum.pseudoRapidity();
-      pt = mgMomentum.perp();
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
     }
+
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
@@ -3193,9 +3179,9 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   if(fEPTPCp <  0) fEPTPCp += pi;
 
   // combine x-y vectors for neg and pos Eta ranges (cross-check)
-  Double_t tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
-  Double_t tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
-  Double_t tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
+  double tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
+  double tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
+  double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // Method 1: used in ALICE
   // TEST - TODO
@@ -3270,7 +3256,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 //  if(sum_E < 1e-6 || sum_W < 1e-6) { cout<<"BBC: sumE or sumW < 1e-6!!!!"<<endl; return kStOK; } // added test statement Jan5
 
   // loop over BBC tiles (are these weights?)
-  for(int i=0; i<N_B; i++){
+  for(int i = 0; i < N_B; i++){
     bbc_E[i] /= sum_E;
     bbc_W[i] /= sum_W;
   }
@@ -3282,7 +3268,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   double phi_pW = 0;
 
   // loop over BBC tiles
-  for(int i=0; i<N_B; i++){
+  for(int i = 0; i < N_B; i++){
     phi_pE = BBC_GetPhi(0, i);
     phi_pW = BBC_GetPhi(1, i);
     sumsin_E += bbc_E[i]*sin(n*phi_pE); 
@@ -3426,7 +3412,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   double bbc_delta_psi = 0.;	
   double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; 
   if(bbc_apply_corr_switch) { // need to have ran recentering + shift prior
-    for(int nharm=1; nharm<21; nharm++){
+    for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to BBC event plane angle
       ////bbc_delta_psi += (bbc_shift_A[ref9][region_vz][z-1]*cos(2*z*bPhi_rcd) + bbc_shift_B[ref9][region_vz][z-1]*sin(2*z*bPhi_rcd)); 
@@ -3510,13 +3496,13 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   double zdc_WV[7] = {0.};
 
   // loop over horizontal - read in the value of the adc deposition
-  for(int i=0; i<8; i++){
+  for(int i = 0; i < 8; i++){
     zdc_EH[i] = mPicoEvent->ZdcSmdEastHorizontal(i);
     zdc_WH[i] = mPicoEvent->ZdcSmdWestHorizontal(i);
   }
 	
   // loop over vertical - read in the value of the adc deposition
-  for(int i=0; i<7; i++){
+  for(int i = 0; i < 7; i++){
     zdc_EV[i] = mPicoEvent->ZdcSmdEastVertical(i);
     zdc_WV[i] = mPicoEvent->ZdcSmdWestVertical(i);
   }
@@ -3527,7 +3513,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // h: horizontal - X, v: vertical - Y
   // loop over horizontal tiles for ZDCSMD
-  for(int i=0; i<8; i++){
+  for(int i = 0; i < 8; i++){
     eh += zdc_EH[i]*ZDCSMD_GetPosition(RunId_Order, 0, 1, i); // east=0, west=1
     wh += zdc_WH[i]*ZDCSMD_GetPosition(RunId_Order, 1, 1, i); // vertical=0, horizontal=1
     w_eh += zdc_EH[i];
@@ -3535,7 +3521,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   }
 
   // loop over vertical tiles for ZDCSMD
-  for(int i=0; i<7; i++){
+  for(int i = 0; i < 7; i++){
     ev += zdc_EV[i]*ZDCSMD_GetPosition(RunId_Order, 0, 0, i); // east=0, west=1
     wv += zdc_WV[i]*ZDCSMD_GetPosition(RunId_Order, 1, 0, i); // vertical=0, horizontal=1
     w_ev += zdc_EV[i];
@@ -3645,7 +3631,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   // shift correction to ZDC event plane angle
   double btimes, zBn, zAn;
   if(zdc_shift_read_switch){
-    for(int s=1; s<21; s++) {
+    for(int s = 1; s < 21; s++) {
       btimes = double(1./s); //2/(order*2) - TODO check with LIANG
       zBn =   btimes*cos(2*s*zPhi_rcd);
       zAn = -(btimes*sin(2*s*zPhi_rcd));
@@ -3658,7 +3644,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   double zdc_delta_psi = 0.;
   double zdc_shift_Aval = 0., zdc_shift_Bval = 0.;
   if(zdc_apply_corr_switch) { // need to have ran recentering + shift prior
-    for(int nharm=1; nharm<21; nharm++){
+    for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to ZDC event plane angle
       zdc_delta_psi += (zdc_shift_A[ref9][region_vz][nharm-1] * cos(2*nharm*zPhi_rcd) +
@@ -3860,7 +3846,7 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 Int_t StMyAnalysisMaker::GetRunNo(int runid){ 
   //1287
   // 1359 for Run16
-  for(int i=0;i<1359;i++){
+  for(int i = 0; i < 1359; i++){
     if(RunIdNo[i]==runid) {
       return i;
     }
@@ -3906,27 +3892,43 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   QvectorCal(ref9, region_vz, n, ptbin);
 
   // TEST - debug TPC
-  if(fabs(Q2x_m) < 1e-6) { cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; hTPCepDebug->Fill(1.); }
-  if(fabs(Q2y_m) < 1e-6) { cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; hTPCepDebug->Fill(2.); }
-  if(fabs(Q2x_p) < 1e-6) { cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; hTPCepDebug->Fill(3.); }
-  if(fabs(Q2y_p) < 1e-6) { cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; hTPCepDebug->Fill(4.); }
-  if(fabs(Q2x) < 1e-6) { cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; hTPCepDebug->Fill(5.); }
-  if(fabs(Q2y) < 1e-6) { cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; hTPCepDebug->Fill(6.); }
+  if(fabs(Q2x_m) < 1e-6) { 
+    cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; 
+    hTPCepDebug->Fill(1.); 
+  }
+  if(fabs(Q2y_m) < 1e-6) { 
+    cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; 
+    hTPCepDebug->Fill(2.); 
+  }
+  if(fabs(Q2x_p) < 1e-6) { 
+    cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; 
+    hTPCepDebug->Fill(3.); 
+  }
+  if(fabs(Q2y_p) < 1e-6) { 
+    cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
+    hTPCepDebug->Fill(4.); 
+  }
+  if(fabs(Q2x) < 1e-6) { 
+    cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
+    hTPCepDebug->Fill(5.); 
+  }
+  if(fabs(Q2y) < 1e-6) { 
+    cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
+    hTPCepDebug->Fill(6.); 
+  }
 
-  // local variable
-  double psi2, psi2m, psi2p, tPhi_rcd;
   if(fabs(Q2x_raw == 0.) && fabs(Q2y_raw == 0.)) { cout<<"Q2x_raw or Q2y_raw == 0"<<endl;  return kStOK; }
 
   // calculate event plane angles - CHECK RANGES TODO
-  psi2 = atan2(Q2y_raw, Q2x_raw); // (-pi, pi]
-  psi2p = atan2(Q2y_p, Q2x_p);    // (-pi, pi]
-  psi2m = atan2(Q2y_m, Q2x_m);    // (-pi, pi]
-  tPhi_rcd = atan2(Q2y, Q2x);
+  double psi2 = atan2(Q2y_raw, Q2x_raw); // (-pi, pi]
+  double psi2p = atan2(Q2y_p, Q2x_p);    // (-pi, pi]
+  double psi2m = atan2(Q2y_m, Q2x_m);    // (-pi, pi]
+  double tPhi_rcd = atan2(Q2y, Q2x);
 
   // forces range {0, 2pi}
-  if(psi2 < 0.)   psi2 += 2*pi;   // (0, 2*pi]
-  if(psi2m < 0.)  psi2m += 2*pi;  // (0, 2*pi]
-  if(psi2p < 0.)  psi2p += 2*pi;  // (0, 2*pi]
+  if(psi2 < 0.)     psi2 += 2*pi;   // (0, 2*pi]
+  if(psi2m < 0.)    psi2m += 2*pi;  // (0, 2*pi]
+  if(psi2p < 0.)    psi2p += 2*pi;  // (0, 2*pi]
   if(tPhi_rcd < 0.) tPhi_rcd += 2*pi;
 
   // divide by 2 (order) b/c  2*theta = tan-1(y/x)
@@ -3965,7 +3967,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   double times, Bn, An;
   if(tpc_shift_read_switch){
     // loop over (s) harmonics
-    for(int s=1; s<21; s++) {
+    for(int s = 1; s < 21; s++) {
       times = double(1./s); //2/(order*2)
       Bn =   times*cos(2*s*tPhi_rcd);
       An = -(times*sin(2*s*tPhi_rcd));
@@ -3980,7 +3982,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   double tpc_shift_Aval = 0., tpc_shift_Bval = 0.;
   if(tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
     // loop over harmonics
-    for(int nharm=1; nharm<21; nharm++){
+    for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to TPC event plane angle
       // KEEP in mind, the naming convent here means nothing for functions: tpc_shift_N and tpc_shift_P,
@@ -4128,7 +4130,6 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   TVector2 mQtpcn, mQtpcp;
   double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
   int order = n; //2;
-  double phi, eta, pt;
   double pi = 1.0*TMath::Pi();
   int ntracksNEG = 0, ntracksPOS = 0;
   int nTOT = 0, nA = 0, nB = 0; // counter for sub-event A & B
@@ -4155,27 +4156,28 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
-  for(int i=0; i<Qtrack; i++){
+  for(int i = 0; i < Qtrack; i++){
     StPicoTrack* track = (StPicoTrack*)mPicoDst->track(i);
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // declare kinematic variables
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
-      // get primary track variables
-      StThreeVectorF mPMomentum = track->pMom();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      pt = mPMomentum.perp();
+      // get primary track vector
+      mTrkMom = track->pMom();
     } else {
-      // get global track variables
-      StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-      phi = mgMomentum.phi();
-      eta = mgMomentum.pseudoRapidity();
-      pt = mgMomentum.perp();
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
     }
+
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV

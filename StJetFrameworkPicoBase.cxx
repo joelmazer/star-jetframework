@@ -268,14 +268,14 @@ Int_t StJetFrameworkPicoBase::Make() {
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t cent9 = grefmultCorr->getCentralityBin9();
-  Int_t centbin = GetCentBin(cent16, 16);
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+  int cent16 = grefmultCorr->getCentralityBin16();
+  int cent9 = grefmultCorr->getCentralityBin9();
+  int centbin = GetCentBin(cent16, 16);
+  double refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
-  Int_t cbin = -1;
+  int cbin = -1;
   // need to figure out centrality first in STAR: TODO
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
@@ -486,47 +486,37 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
 
 //________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
-  // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
-  int nHitsFit, nHitsMax;
-  double nHitsRatio;
-
   // constants: assume neutral pion mass
   double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
+  // get momentum vector of track - global or primary track
+  StThreeVectorF mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return kFALSE; // check if primary
 
-    // get primary track variables
-    StThreeVectorF mPMomentum = trk->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    px = mPMomentum.x();
-    py = mPMomentum.y();
-    pt = mPMomentum.perp();
-    pz = mPMomentum.z();
-    p = mPMomentum.mag();
+    // get primary track vector
+    mTrkMom = trk->pMom();
   } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    px = mgMomentum.x();
-    py = mgMomentum.y();
-    pt = mgMomentum.perp();
-    pz = mgMomentum.z();
-    p = mgMomentum.mag();
+    // get global track vector
+    mTrkMom = trk->gMom(Vert, B);
   }
 
-  // additional calculations
-  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  charge = trk->charge();
-  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  nHitsFit = trk->nHitsFit();
-  nHitsMax = trk->nHitsMax();
-  nHitsRatio = 1.0*nHitsFit/nHitsMax;
+  // track variables
+  double pt = mTrkMom.perp();
+  double phi = mTrkMom.phi();
+  double eta = mTrkMom.pseudoRapidity();
+  double px = mTrkMom.x();
+  double py = mTrkMom.y();
+  double pz = mTrkMom.z();
+  double p = mTrkMom.mag();
+  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  short charge = trk->charge();
+  double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  int nHitsFit = trk->nHitsFit();
+  int nHitsMax = trk->nHitsMax();
+  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
   // do pt cut here to accommadate either type
   if(doUsePrimTracks) { // primary  track
@@ -553,90 +543,90 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
 
 //________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetReactionPlane() { 
- // get event B (magnetic) field
- Float_t Bfield = mPicoEvent->bField();
+  // get event B (magnetic) field
+  Float_t Bfield = mPicoEvent->bField();
 
- // get vertex 3-vector and declare variables
- StThreeVectorF mVertex = mPicoEvent->primaryVertex();
- double zVtx = mVertex.z();
+  // get vertex 3-vector and declare variables
+  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  double zVtx = mVertex.z();
 
- //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
- TVector2 mQ;
- double mQx = 0., mQy = 0.;
- int order = 2;
- int n,i;
- double phi, eta, pt;
- double pi = 1.0*TMath::Pi();
+  //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
+  TVector2 mQ;
+  double mQx = 0., mQy = 0.;
+  int order = 2;
+  int n = mPicoDst->numberOfTracks();
+  double pi = 1.0*TMath::Pi();
 
- // leading jet check and removal
- Float_t excludeInEta = -999;
- fLeadingJet = GetLeadingJet();
- if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
-   if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
- }
+  // leading jet check and removal
+  float excludeInEta = -999;
+  fLeadingJet = GetLeadingJet();
+  if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
+    if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
+  }
 
- n = mPicoDst->numberOfTracks();
- for (i=0; i<n; i++) {
-   StPicoTrack* track = mPicoDst->track(i);
-   if(!track) { continue; }
+  // loop over tracks
+  for(int i = 0; i < n; i++) {
+    StPicoTrack* track = mPicoDst->track(i);
+    if(!track) { continue; }
 
-   // declare kinematic variables
-   if(doUsePrimTracks) {
-     if(!(track->isPrimary())) continue; // check if primary
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) {
+      if(!(track->isPrimary())) return kFALSE; // check if primary
 
-     // get primary track variables
-     StThreeVectorF mPMomentum = track->pMom();
-     phi = mPMomentum.phi();
-     eta = mPMomentum.pseudoRapidity();
-     pt = mPMomentum.perp();
-   } else {
-     // get global track variables
-     StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-     phi = mgMomentum.phi();
-     eta = mgMomentum.pseudoRapidity();
-     pt = mgMomentum.perp();
-   }
+      // get primary track vector
+      mTrkMom = track->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
+    }
 
-   // do pt cut here to accommadate either type
-   if(doUsePrimTracks) { // primary  track
-     if(pt < fTrackPtMinCut) continue;
-   } else { // global track
-     if(pt < fTrackPtMinCut) continue;
-   }
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
 
-   // more acceptance cuts now - after getting 3vector - hardcoded for now
-   if(pt > 5.0) continue;   // 100.0
-   if((1.0*TMath::Abs(eta)) > 1.0) continue;
-   if(phi < 0) phi+= 2*pi;
-   if(phi > 2*pi) phi-= 2*pi;
-   if((phi < 0) || (phi > 2*pi)) continue;
+    // do pt cut here to accommadate either type
+    if(doUsePrimTracks) { // primary  track
+      if(pt < fTrackPtMinCut) continue;
+    } else { // global track
+      if(pt < fTrackPtMinCut) continue;
+    }
 
-   // check for leading jet removal
-   if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    // more acceptance cuts now - after getting 3vector - hardcoded for now
+    if(pt > 5.0) continue;   // 100.0
+    if((1.0*TMath::Abs(eta)) > 1.0) continue;
+    if(phi < 0) phi+= 2*pi;
+    if(phi > 2*pi) phi-= 2*pi;
+    if((phi < 0) || (phi > 2*pi)) continue;
 
-   // configure track weight when performing Q-vector summation
-   double trackweight;
-   if(fTrackWeight == kNoWeight) {
-     trackweight = 1.0;
-   } else if(fTrackWeight == kPtLinearWeight) {
-     trackweight = pt;
-   } else if(fTrackWeight == kPtLinear2Const5Weight) {
-     if(pt <= 2.0) trackweight = pt;
-     if(pt > 2.0) trackweight = 2.0;
-   } else {
-     // nothing choosen, so don't use weight
-     trackweight = 1.0;
-   }
+    // check for leading jet removal
+    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
-   // sum up q-vectors
-   mQx += trackweight * cos(phi * order);
-   mQy += trackweight * sin(phi * order);
- }
+    // configure track weight when performing Q-vector summation
+    double trackweight;
+    if(fTrackWeight == kNoWeight) {
+      trackweight = 1.0;
+    } else if(fTrackWeight == kPtLinearWeight) {
+      trackweight = pt;
+    } else if(fTrackWeight == kPtLinear2Const5Weight) {
+      if(pt <= 2.0) trackweight = pt;
+      if(pt > 2.0) trackweight = 2.0;
+    } else {
+      // nothing choosen, so don't use weight
+      trackweight = 1.0;
+    }
+
+    // sum up q-vectors
+    mQx += trackweight * cos(phi * order);
+    mQy += trackweight * sin(phi * order);
+  }
  
- mQ.Set(mQx, mQy);
- double psi= mQ.Phi() / order;
- //return psi*180/pi;  // converted to degrees
- return psi;
+  mQ.Set(mQx, mQy);
+  double psi= mQ.Phi() / order;
+  //return psi*180/pi;  // converted to degrees
+  return psi;
 }
 
 // _____________________________________________________________________________________________
@@ -698,8 +688,7 @@ Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t 
   //
   // other bins can be added if needed...
 
-  Bool_t doAnalysis;
-  doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
+  Bool_t doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
 
   // switch on bin selection
   switch(fCentralitySelectionCut) {

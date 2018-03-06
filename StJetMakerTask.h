@@ -229,9 +229,13 @@ class StJetMakerTask : public StMaker {
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
 
+  // tower to firing trigger type matched array
+  Bool_t                 fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+  Bool_t                 fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+  Bool_t                 fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+
   // output file name string
   TString                mOutName;
-
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection

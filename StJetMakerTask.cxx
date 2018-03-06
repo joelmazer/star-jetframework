@@ -119,6 +119,11 @@ StJetMakerTask::StJetMakerTask() :
 //  fJetMakerName("")
 {
   // Default constructor.
+  for(int i=0; i<4801; i++) { 
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE; 
+  }
 
 }
 
@@ -176,6 +181,12 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
 //  fJetMakerName("")
 {
   // Standard constructor.
+  for(int i=0; i<4801; i++) {
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
+
   if (!name) return;
   SetName(name);
 }
@@ -185,13 +196,13 @@ StJetMakerTask::~StJetMakerTask()
 {
   // Destructor
   //fJets->Clear(); delete fJets;
-  if(fHistJetNTrackvsPt)   delete fHistJetNTrackvsPt;
-  if(fHistJetNTrackvsPhi)  delete fHistJetNTrackvsPhi;
-  if(fHistJetNTrackvsEta)  delete fHistJetNTrackvsEta;
+  if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
+  if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
+  if(fHistJetNTrackvsEta)      delete fHistJetNTrackvsEta;
   if(fHistJetNTrackvsPhivsEta) delete fHistJetNTrackvsPhivsEta;
-  if(fHistJetNTowervsE)    delete fHistJetNTowervsE;
-  if(fHistJetNTowervsPhi)  delete fHistJetNTowervsPhi;
-  if(fHistJetNTowervsEta)  delete fHistJetNTowervsEta;
+  if(fHistJetNTowervsE)        delete fHistJetNTowervsE;
+  if(fHistJetNTowervsPhi)      delete fHistJetNTowervsPhi;
+  if(fHistJetNTowervsEta)      delete fHistJetNTowervsEta;
   if(fHistJetNTowervsPhivsEta) delete fHistJetNTowervsPhivsEta;
 }
 
@@ -342,6 +353,7 @@ void StJetMakerTask::WriteHistograms() {
 
 //-----------------------------------------------------------------------------
 void StJetMakerTask::Clear(Option_t *opt) {
+  // clear or delete objects after running
   fJets->Clear();
 }
 
@@ -397,19 +409,19 @@ int StJetMakerTask::Make()
 
   // ============================ CENTRALITY ============================== //
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t RunId = mPicoEvent->runId();
-  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
+  int RunId = mPicoEvent->runId();
+  float fBBCCoincidenceRate = mPicoEvent->BBCx();
   int grefMult = mPicoEvent->grefMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  Int_t centbin = GetCentBin(cent16, 16);
+  int cent16 = grefmultCorr->getCentralityBin16();
+  if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
+  int centbin = GetCentBin(cent16, 16);
 
   // cut on centrality for analysis before doing anything
   // TEST: kStOk -> kStErr // Error, drop this and go to the next event
-  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }  //kStErr; }
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
 
   // TClonesArrays - not needed anymore
   TClonesArray *tracks = 0;
@@ -419,7 +431,6 @@ int StJetMakerTask::Make()
 //  tracks = dynamic_cast<TClonesArray*>
 //  tracks = mPicoDst->picoArray(StPicoArrays::picoArrayNames("Tracks"));
 //  tracks = StPicoDst::picoArrays[StPicoArrays::Track];
-  //tracks = mPicoDst->picoArray(picoTrack); // COMMENTED OUT AUG 6th
   //tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
   if(!tracks) { return kStWarn; }
 */
@@ -457,47 +468,42 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   double zVtx = mVertex.z();
 
   // assume neutral pion mass
+  // additional parameters constructed
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
-
   unsigned int ntracks = mPicoDst->numberOfTracks();
-  double phi, eta, px, py, pz, p, pt, energy;
 
-  // loop over ALL tracks in PicoDst and add to jet 
+  // loop over ALL tracks in PicoDst and add to jet, after acceptance and quality cuts 
   if((fJetType == kFullJet) || (fJetType == kChargedJet)) {
-    for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
-      // get tracks
+    for(unsigned short iTracks=0; iTracks < ntracks; iTracks++){
       StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
       if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
-      // get momentum
-      if(doUsePrimTracks) {
-        StThreeVectorF mPMomentum = trk->pMom();
-        pt = mPMomentum.perp();
-        phi = mPMomentum.phi();
-        eta = mPMomentum.pseudoRapidity();
-        px = mPMomentum.x();
-        py = mPMomentum.y();
-        pz = mPMomentum.z();
-        p = mPMomentum.mag();
-        energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-      } else {
-        StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
-        pt = mGMomentum.perp();
-        phi = mGMomentum.phi();
-        eta = mGMomentum.pseudoRapidity();
-        px = mGMomentum.x();
-        py = mGMomentum.y();
-        pz = mGMomentum.z();
-        p = mGMomentum.mag();
-        energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+      // get momentum vector of track - global or primary track
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) { 
+        // get primary track vector
+        mTrkMom = trk->pMom(); 
+      } else { 
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield); 
       }
 
+      // track variables
+      double pt = mTrkMom.perp();
+      double phi = mTrkMom.phi();
+      double eta = mTrkMom.pseudoRapidity();
+      double px = mTrkMom.x();
+      double py = mTrkMom.y();
+      double pz = mTrkMom.z();
+      double p = mTrkMom.mag();
+      double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
       // test - this is only here to occassionally test track variables
-      Short_t charge = trk->charge();         
+      short charge = trk->charge();         
       //cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi<<"  nHitsFit = "<<trk->nHitsFit()<<"BEmc Index = "<<trk->bemcPidTraitsIndex()<<endl;
 
       // send track info to FJ wrapper
@@ -524,12 +530,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   }
 */
 
+  // full or neutral jets - get towers and apply hadronic correction
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
     // looping over clusters to add to jet - STAR: matching already done
     // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-    int towID, towID2, towID3, clusID;
-    StThreeVectorF  towPosition, clusPosition;
     StEmcPosition *mPosition = new StEmcPosition();
     StEmcPosition *mPosition2 = new StEmcPosition();
 
@@ -538,7 +543,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl;  
 
     // loop over ALL clusters in PicoDst and add to jet //TODO
-    for(unsigned short iClus=0;iClus<nclus;iClus++){
+    for(unsigned short iClus = 0; iClus < nclus; iClus++){
       StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
       if(!cluster){ continue; }
 
@@ -554,10 +559,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // ID's are calculated as such:
       // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
       // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-      clusID = cluster->bemcId();  // index in bemc point array
-      towID = cluster->btowId();   // projected tower Id: 1 - 4800
-      towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      int clusID = cluster->bemcId();  // index in bemc point array
+      int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+      int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       if(towID < 0) continue;
 
       // get tower location - from ID
@@ -566,13 +571,12 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towerPhi < 0)    towerPhi += 2*pi;
       if(towerPhi > 2*pi) towerPhi -= 2*pi;
       if(fDebugLevel == 8) {
-        cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3;
-        cout<<"   towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
+        cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3<<"   towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
       }
 
       // cluster and tower position - from vertex and ID
-      towPosition = mPosition->getPosFromVertex(mVertex, towID);
-      clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
+      StThreeVectorF  towPosition = mPosition->getPosFromVertex(mVertex, towID);
+      StThreeVectorF  clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
 
       // matched track index
       int trackIndex = cluster->trackIndex();
@@ -590,11 +594,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         ok = mPosition->projTrack(&position,&momentum,trkMu,(Double_t) Bfield); 
       }
 
-      double z, eta, phi, theta;
-      eta = position.pseudoRapidity(); 
-      phi = position.phi();
-      z   = position.z();
-      theta = 2*TMath::ATan(exp(-1.0*eta));
+      double eta = position.pseudoRapidity(); 
+      double phi = position.phi();
+      double z   = position.z();
+      double theta = 2*TMath::ATan(exp(-1.0*eta));
 
       // TEST comparing track position with cluster and tower
       double towPhi = towPosition.phi();
@@ -685,7 +688,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetNumberOfClusters(constituents.size());
     Int_t nt = 0; // track counter
     Int_t nc = 0; // cluster counter
-    Double_t pt, phi, eta;
   
     // loop over constituents for ij'th jet
     for(UInt_t ic=0; ic<constituents.size(); ++ic) {
@@ -699,18 +701,21 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         // acceptance and kinematic quality cuts
         if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
-        // get momentum
+        // primary track switch
+        // get momentum vector of track - global or primary track
+        StThreeVectorF mTrkMom;
         if(doUsePrimTracks) {
-          StThreeVectorF mPMomentum = trk->pMom();
-          pt = mPMomentum.perp();
-          phi = mPMomentum.phi();
-          eta = mPMomentum.pseudoRapidity();
+          // get primary track vector
+          mTrkMom = trk->pMom();
         } else {
-          StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
-          pt = mGMomentum.perp();
-          phi = mGMomentum.phi();
-          eta = mGMomentum.pseudoRapidity();
+          // get global track vector
+          mTrkMom = trk->gMom(mVertex, Bfield);
         }
+
+        // track variables
+        double pt = mTrkMom.perp();
+        double phi = mTrkMom.phi();
+        double eta = mTrkMom.pseudoRapidity();
 
         // adjust phi value:  0 < phi < 2pi
         if(phi < 0) phi+= 2*pi;
@@ -1078,47 +1083,36 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
 //________________________________________________________________________
 Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
-  // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
-  int nHitsFit, nHitsMax;
-  double nHitsRatio;
-
   // constants: assume neutral pion mass
   double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
-  // primary track switch
-  if(doUsePrimTracks) {
+  // get momentum vector of track - global or primary track
+  StThreeVectorF mTrkMom;
+  if(doUsePrimTracks) { 
     if(!(trk->isPrimary())) return kFALSE; // check if primary
 
-    // get primary track variables
-    StThreeVectorF mPMomentum = trk->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    px = mPMomentum.x();
-    py = mPMomentum.y();
-    pt = mPMomentum.perp();
-    pz = mPMomentum.z();
-    p = mPMomentum.mag();
-  } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    px = mgMomentum.x();
-    py = mgMomentum.y();
-    pt = mgMomentum.perp();
-    pz = mgMomentum.z();
-    p = mgMomentum.mag();
+    // get primary track vector
+    mTrkMom = trk->pMom(); 
+  } else { 
+    // get global track vector
+    mTrkMom = trk->gMom(Vert, B); 
   }
 
-  // additional calculations
-  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  charge = trk->charge();
-  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  nHitsFit = trk->nHitsFit();
-  nHitsMax = trk->nHitsMax();
-  nHitsRatio = 1.0*nHitsFit/nHitsMax;
+  // track variables
+  double pt = mTrkMom.perp();
+  double phi = mTrkMom.phi();
+  double eta = mTrkMom.pseudoRapidity();
+  double px = mTrkMom.x();
+  double py = mTrkMom.y();
+  double pz = mTrkMom.z();
+  double p = mTrkMom.mag();
+  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  short charge = trk->charge();
+  double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  int nHitsFit = trk->nHitsFit();
+  int nHitsMax = trk->nHitsMax();
+  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
   // do pt cut here to accommadate either type
   if(doUsePrimTracks) { // primary  track
@@ -1174,8 +1168,7 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
   //
   // other bins can be added if needed...
 
-  Bool_t doAnalysis;
-  doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
+  Bool_t doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
 
   // switch on bin selection
   switch(fCentralitySelectionCut) {

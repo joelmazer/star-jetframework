@@ -385,15 +385,15 @@ int StPicoTrackClusterQA::Make()
 
   // ============================ CENTRALITY ============================== //
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t RunId = mPicoEvent->runId();
-  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
+  int RunId = mPicoEvent->runId();
+  float fBBCCoincidenceRate = mPicoEvent->BBCx();
   int grefMult = mPicoEvent->grefMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
+  int cent16 = grefmultCorr->getCentralityBin16();
   if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  Int_t centbin = GetCentBin(cent16, 16);
+  int centbin = GetCentBin(cent16, 16);
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything
@@ -496,12 +496,11 @@ void StPicoTrackClusterQA::RunQA()
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
 
+  // track variables
   unsigned int ntracks = mPicoDst->numberOfTracks();
-  double phi, eta, p, pt, energy;
 
   // loop over ALL tracks in PicoDst 
-  for(unsigned short iTracks=0; iTracks<ntracks; iTracks++){
-    // get tracks
+  for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
     if(!trk){ continue; }
 
@@ -509,29 +508,31 @@ void StPicoTrackClusterQA::RunQA()
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    // get momentum
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
-      StThreeVectorF mPMomentum = trk->pMom();
-      pt = mPMomentum.perp();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      p = mPMomentum.mag();
+      // get primary track vector
+      mTrkMom = trk->pMom();
     } else {
-      StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
-      pt = mGMomentum.perp();
-      phi = mGMomentum.phi();
-      eta = mGMomentum.pseudoRapidity();
-      p = mGMomentum.mag();
+      // get global track vector
+      mTrkMom = trk->gMom(mVertex, Bfield);
     }
 
-    // additional variables
-    energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-    Short_t charge = trk->charge();         
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
+    double p = mTrkMom.mag();
+    double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+    short charge = trk->charge();         
     int bemcIndex = trk->bemcPidTraitsIndex();
+
+    // shift track phi (0, 2*pi)
     if(phi<0)    phi += 2*pi;
     if(phi>2*pi) phi -= 2*pi;
 
-    if(fDebugLevel == 8) cout<<"iTracks = "<<iTracks<<"  P = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
+    if(fDebugLevel == 8) cout<<"iTracks = "<<iTracks<<"  p = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
     if(fDebugLevel == 8) cout<<"  nHitsFit = "<<trk->nHitsFit()<<"  BEmc Index = "<<bemcIndex<<endl;
 
     // fill some QA histograms
@@ -551,7 +552,6 @@ void StPicoTrackClusterQA::RunQA()
   // looping over clusters - STAR: matching already done
   // get # of clusters and set variables
   unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-  int towID, towID2, towID3, clusID;
   StThreeVectorF  towPosition, clusPosition;
   StEmcPosition *mPosition = new StEmcPosition();
   StEmcPosition *mPosition2 = new StEmcPosition();
@@ -560,7 +560,7 @@ void StPicoTrackClusterQA::RunQA()
   if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
-  for(unsigned short iClus=0; iClus<nclus; iClus++){
+  for(unsigned short iClus = 0; iClus < nclus; iClus++){
     StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
     if(!cluster){ continue; }
 
@@ -579,10 +579,10 @@ void StPicoTrackClusterQA::RunQA()
     // ID's are calculated as such:
     // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
     // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-    clusID = cluster->bemcId();  // index in bemc point array
-    towID = cluster->btowId();   // projected tower Id: 1 - 4800
-    towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-    towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int clusID = cluster->bemcId();  // index in bemc point array
+    int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+    int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
 /*
@@ -625,11 +625,10 @@ void StPicoTrackClusterQA::RunQA()
 
     // get position vector from projection
     // get eta, phi and z-vtx from position of track projection
-    double z, eta, phi, theta;
-    eta = position.pseudoRapidity(); 
-    phi = position.phi();
-    z   = position.z();
-    theta = 2*TMath::ATan(exp(-1.0*eta));
+    double eta = position.pseudoRapidity(); 
+    double phi = position.phi();
+    double z   = position.z();
+    double theta = 2*TMath::ATan(exp(-1.0*eta));
 
     // TEST comparing track position with cluster and tower
     double towPhi = towPosition.phi();
@@ -728,7 +727,7 @@ Bool_t StPicoTrackClusterQA::SelectAnalysisCentralityBin(Int_t centbin, Int_t fC
   //
   // other bins can be added if needed...
 
-  Bool_t doAnalysis;
+  bool doAnalysis;
   doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
 
   // switch on bin selection
@@ -823,47 +822,37 @@ Bool_t StPicoTrackClusterQA::SelectAnalysisCentralityBin(Int_t centbin, Int_t fC
 
 //________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
-  // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
-  int nHitsFit, nHitsMax;
-  double nHitsRatio;
-
   // constants: assume neutral pion mass
   double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
+  // get momentum vector of track - global or primary track
+  StThreeVectorF mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return kFALSE; // check if primary
 
-    // get primary track variables
-    StThreeVectorF mPMomentum = trk->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    px = mPMomentum.x();
-    py = mPMomentum.y();
-    pt = mPMomentum.perp();
-    pz = mPMomentum.z();
-    p = mPMomentum.mag();
+    // get primary track vector
+    mTrkMom = trk->pMom();
   } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    px = mgMomentum.x();
-    py = mgMomentum.y();
-    pt = mgMomentum.perp();
-    pz = mgMomentum.z();
-    p = mgMomentum.mag();
+    // get global track vector
+    mTrkMom = trk->gMom(Vert, B);
   }
 
-  // additional calculations
-  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  charge = trk->charge();
-  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  nHitsFit = trk->nHitsFit();
-  nHitsMax = trk->nHitsMax();
-  nHitsRatio = 1.0*nHitsFit/nHitsMax;
+  // track variables
+  double pt = mTrkMom.perp();
+  double phi = mTrkMom.phi();
+  double eta = mTrkMom.pseudoRapidity();
+  double px = mTrkMom.x();
+  double py = mTrkMom.y();
+  double pz = mTrkMom.z();
+  double p = mTrkMom.mag();
+  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  short charge = trk->charge();
+  double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  int nHitsFit = trk->nHitsFit();
+  int nHitsMax = trk->nHitsMax();
+  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
   // do pt cut here to accommadate either type of track
   if(doUsePrimTracks) { // primary  track
@@ -891,8 +880,8 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
 //_________________________________________________________________________
 TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
   // zero out trigger array and get number of Emcal Triggers
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
-  Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+  for(int i = 0; i < 7; i++) { fEmcTriggerArr[i] = 0; }
+  int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
@@ -932,10 +921,10 @@ TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
     }
 
     // fill for valid triggers
-    if(emcTrig->isHT0()) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
-    if(emcTrig->isHT1()) { h->Fill(2); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = 1; }
-    if(emcTrig->isHT2()) { h->Fill(3); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = 1; }
-    if(emcTrig->isHT3()) { h->Fill(4); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = 1; }
+    if(isHT0) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
+    if(isHT1) { h->Fill(2); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = 1; }
+    if(isHT2) { h->Fill(3); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = 1; }
+    if(isHT3) { h->Fill(4); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = 1; }
     if(emcTrig->isJP0()) { h->Fill(5); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP0] = 1; }
     if(emcTrig->isJP1()) { h->Fill(6); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP1] = 1; }
     if(emcTrig->isJP2()) { h->Fill(7); fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP2] = 1; }
@@ -1379,9 +1368,6 @@ void StPicoTrackClusterQA::RunTowerTest()
   // set / initialize some variables
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
-  double towPhi, towEta;
-  int towID, towID2, towID3, clusID;
-  StThreeVectorF  towPosition, clusPosition;
   StEmcPosition *mPosition = new StEmcPosition();
 
   // towerStatus array
@@ -1397,15 +1383,15 @@ void StPicoTrackClusterQA::RunTowerTest()
 //  cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
   // loop over ALL clusters in PicoDst and add to jet //TODO
-  for(unsigned short iClus=0; iClus < nBEmcPidTraits; iClus++){
+  for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
     StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
     if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
     // cluster and tower ID
-    clusID = cluster->bemcId();  // index in bemc point array
-    towID = cluster->btowId();   // projected tower Id: 1 - 4800
-    towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-    towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int clusID = cluster->bemcId();  // index in bemc point array
+    int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+    int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
     ////////
@@ -1422,27 +1408,26 @@ void StPicoTrackClusterQA::RunTowerTest()
     ///////
 
     // cluster and tower position - from vertex and ID
+    StThreeVectorF  towPosition;
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
-    towPhi = towPosition.phi();
-    towEta = towPosition.pseudoRapidity();
+    double towPhi = towPosition.phi();
+    double towEta = towPosition.pseudoRapidity();
 
     // correct eta for Vz position // 231
-    Float_t theta;
-    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
-    Double_t z = 0;
+    float theta = 2 * atan(exp(-towEta)); // getting theta from eta 
+    double z = 0;
     if(towEta != 0) z = 225.405 / tan(theta);      // 231 cm = radius of SMD
-    Double_t zNominal = z - mVertex.z();
-    Double_t thetaCorr = atan2(225.405, zNominal); // theta with respect to primary vertex
-    Float_t etaCorr =-log(tan(thetaCorr / 2.0));   // eta with respect to primary vertex
+    double zNominal = z - mVertex.z();
+    double thetaCorr = atan2(225.405, zNominal); // theta with respect to primary vertex
+    float etaCorr =-log(tan(thetaCorr / 2.0));   // eta with respect to primary vertex
 
     // correct eta for Vz position // 231
-    Float_t theta2;
-    theta2 = 2 * atan(exp(-tEta)); // getting theta from eta 
-    Double_t z2 = 0;
+    float theta2 = 2 * atan(exp(-tEta)); // getting theta from eta 
+    double z2 = 0;
     if(tEta != 0) z2 = 225.405 / tan(theta2);         // 231 cm = radius of SMD
-    Double_t zNominal2 = z2 - mVertex.z();
-    Double_t thetaCorr2 = atan2(225.405, zNominal2); // theta with respect to primary vertex
-    Float_t etaCorr2 =-log(tan(thetaCorr2 / 2.0));   // eta with respect to primary vertex
+    double zNominal2 = z2 - mVertex.z();
+    double thetaCorr2 = atan2(225.405, zNominal2); // theta with respect to primary vertex
+    float etaCorr2 =-log(tan(thetaCorr2 / 2.0));   // eta with respect to primary vertex
 
     // matched track index
     int trackIndex = cluster->trackIndex();
@@ -1457,16 +1442,20 @@ void StPicoTrackClusterQA::RunTowerTest()
     matchedTowerTrackCounter++;
 
     // get track variables to matched tower
-    double p, pt, phi, eta;
     StThreeVectorF mTrkMom;
-    if(doUsePrimTracks) { mTrkMom = trk->pMom(); } 
-    else { mTrkMom = trk->gMom(mVertex, Bfield); }
+    if(doUsePrimTracks) { 
+      // get primary track vector
+      mTrkMom = trk->pMom();
+    } else { 
+      // get global track vector
+      mTrkMom = trk->gMom(mVertex, Bfield); 
+    }
 
     // track properties
-    pt = mTrkMom.perp();
-    phi = mTrkMom.phi();
-    eta = mTrkMom.pseudoRapidity();
-    p = mTrkMom.mag();
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
+    double p = mTrkMom.mag();
 
     // print tower and track info
 //    cout<<"towers: towPhi = "<<towPhi<<"  towEta = "<<towEta<<"  etaCorr = "<<etaCorr;  //<<endl;
@@ -1511,8 +1500,14 @@ void StPicoTrackClusterQA::RunTowerTest()
 
       // get track variables to matched tower
       StThreeVectorF mTrkMom;
-      if(doUsePrimTracks) { mTrkMom = trk->pMom(); }
-      else { mTrkMom = trk->gMom(mVertex, Bfield); }
+      if(doUsePrimTracks) { 
+        // get primary track vector
+        mTrkMom = trk->pMom(); 
+      } else { 
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield); 
+      }
+
       double pt = mTrkMom.perp();
       double phi = mTrkMom.phi();
       double eta = mTrkMom.pseudoRapidity();
@@ -1531,13 +1526,13 @@ void StPicoTrackClusterQA::RunTowerTest()
 /*
     // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
     // correct eta for Vz position 
-    Float_t theta;
+    float theta;
     theta = 2 * atan(exp(-towEta)); // getting theta from eta 
-    Double_t z = 0;
+    double z = 0;
     if(towEta != 0) z = 231.0 / tan(theta);  // 231 cm = radius of SMD 
-    Double_t zNominal = z - mVertex.z();
-    Double_t thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
-    Float_t etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
+    double zNominal = z - mVertex.z();
+    double thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
+    float etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
 */
 
     // print
