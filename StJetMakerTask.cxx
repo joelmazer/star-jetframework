@@ -31,6 +31,9 @@
 #include "StRoot/StPicoDstMaker/StPicoArrays.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
+#include "StPicoEvent/StPicoEmcTrigger.h"
+#include "StPicoEvent/StPicoBTowHit.h"
+#include "StPicoEvent/StPicoBEmcPidTraits.h"
 
 #include "StPicoConstants.h"
 
@@ -71,29 +74,34 @@ StJetMakerTask::StJetMakerTask() :
   doWriteHistos(kFALSE),
   doUsePrimTracks(kFALSE), 
   fDebugLevel(0),
-  fRunFlag(0),  // see StJetFrameworkPicoBase::fRunFlagEnum
+  fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
+  Bfield(0.0),
+  mVertex(0x0),
+  zVtx(0.0),
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
   fJetsName(""),
-  fRadius(0.4),
   fJetAlgo(1), 
   fJetType(0), 
   fRecombScheme(fastjet::BIpt_scheme),
   fjw("StJetMakerTask", "StJetMakerTask"),
+  fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
-  fJetPhiMin(-10.0),
-  fJetPhiMax(+10.0),
+  fJetPhiMin(-10.),
+  fJetPhiMax(+10.),
   fJetEtaMin(-0.6),
   fJetEtaMax(0.6),
   fGhostArea(0.005), 
   fMinJetTrackPt(0.2),
   fMaxJetTrackPt(20.0),
   fMinJetClusPt(0.15),
+  fMinJetClusE(0.2),
+  fMinJetTowerE(0.2),
   fJetTrackEtaMin(-1.0),
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
@@ -102,6 +110,8 @@ StJetMakerTask::StJetMakerTask() :
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  mTowerEnergyMin(0.2),
+  mHadronicCorrFrac(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0x0),
@@ -133,19 +143,22 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
   fDebugLevel(0),
-  fRunFlag(0),  // see StJetFrameworkPicoBase::fRunFlagEnum
+  fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
+  Bfield(0.0),
+  mVertex(0x0),
+  zVtx(0.0),
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fJetsName("Jets"),
-  fRadius(0.4),
   fJetAlgo(1), 
   fJetType(0),
   fRecombScheme(fastjet::BIpt_scheme),
   fjw(name, name),
+  fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
   fJetPhiMin(-10), 
@@ -156,6 +169,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fMinJetTrackPt(mintrackPt), //0.20
   fMaxJetTrackPt(20.0), 
   fMinJetClusPt(0.15),
+  fMinJetClusE(0.2),
+  fMinJetTowerE(0.2),
   fJetTrackEtaMin(-1.0), 
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
@@ -164,6 +179,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  mTowerEnergyMin(0.2),
+  mHadronicCorrFrac(1.),
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0x0),
@@ -204,6 +221,15 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTowervsPhi)      delete fHistJetNTowervsPhi;
   if(fHistJetNTowervsEta)      delete fHistJetNTowervsEta;
   if(fHistJetNTowervsPhivsEta) delete fHistJetNTowervsPhivsEta;
+
+  if(fHistNJetsvsPt)           delete fHistNJetsvsPt;
+  if(fHistNJetsvsPhi)          delete fHistNJetsvsPhi;
+  if(fHistNJetsvsEta)          delete fHistNJetsvsEta;
+  if(fHistNJetsvsPhivsEta)     delete fHistNJetsvsPhivsEta;
+  if(fHistNJetsvsArea)         delete fHistNJetsvsArea;
+  if(fHistNJetsvsNConstituents)delete fHistNJetsvsNConstituents;
+  if(fHistNJetsvsNTracks)      delete fHistNJetsvsNTracks;
+  if(fHistNJetsvsNTowers)      delete fHistNJetsvsNTowers;
 }
 
 //-----------------------------------------------------------------------------
@@ -335,6 +361,15 @@ void StJetMakerTask::DeclareHistograms() {
     fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2*pi);
     fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
     fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet tower constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+
+    fHistNJetsvsPt = new TH1F("fHistNJetsvsPt", "NJets vs p_{T}", 100, 0., 100.0);
+    fHistNJetsvsPhi = new TH1F("fHistNJetsvsPhi", "NJets vs #phi", 144, 0., 2*pi);
+    fHistNJetsvsEta = new TH1F("fHistNJetsvsEta", "NJets vs #eta", 40, -1.0, 1.0);
+    fHistNJetsvsPhivsEta = new TH2F("fHistNJetsvsPhivsEta", "NJets vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+    fHistNJetsvsArea = new TH1F("fHistNJetsvsArea", "NJets vs jet area", 100, 0.0, 1.0);
+    fHistNJetsvsNConstituents = new TH1F("fHistNJetsvsNConstituents", "NJets vs NConstit", 51, -0.5, 50.5);
+    fHistNJetsvsNTracks = new TH1F("fHistNJetsvsNTracks", "NJets vs NTracks", 50, -0.5, 50.5);
+    fHistNJetsvsNTowers = new TH1F("fHistNJetsvsNTowers", "NJets vs NTowers", 50, -0.5, 50.5);
 }
 
 //________________________________________________________________________
@@ -349,6 +384,15 @@ void StJetMakerTask::WriteHistograms() {
   fHistJetNTowervsPhi->Write();
   fHistJetNTowervsEta->Write();
   fHistJetNTowervsPhivsEta->Write();
+
+  fHistNJetsvsPt->Write();
+  fHistNJetsvsPhi->Write();
+  fHistNJetsvsEta->Write();
+  fHistNJetsvsPhivsEta->Write();
+  fHistNJetsvsArea->Write();
+  fHistNJetsvsNConstituents->Write();
+  fHistNJetsvsNTracks->Write();
+  fHistNJetsvsNTowers->Write();
 }
 
 //-----------------------------------------------------------------------------
@@ -398,9 +442,12 @@ int StJetMakerTask::Make()
     return kStWarn;
   }
 
-  // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
+  // get event B (magnetic) field
+  Bfield = mPicoEvent->bField();
+
+  // get vertex 3-vector and z-vertex component
+  mVertex = mPicoEvent->primaryVertex();
+  zVtx = mVertex.z();
 
   // Z-vertex cut
   // per the Aj analysis (-40, 40)
@@ -459,6 +506,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   // Find jets.
   // clear out existing wrapper object
   fjw.Clear();
+
+  // initialize Emc position objects
+  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition *mPosition2 = new StEmcPosition();
 
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField();
@@ -535,9 +586,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // looping over clusters to add to jet - STAR: matching already done
     // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-    StEmcPosition *mPosition = new StEmcPosition();
-    StEmcPosition *mPosition2 = new StEmcPosition();
 
+/*
     // print EMCal cluster info
     if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
     if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl;  
@@ -602,24 +652,28 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // TEST comparing track position with cluster and tower
       double towPhi = towPosition.phi();
       double towEta = towPosition.pseudoRapidity();
-      double pmatchPhi = trk->pMom().phi();
-      double gmatchPhi = trk->gMom().phi();
-      double pmatchEta = trk->pMom().pseudoRapidity();
-      double gmatchEta = trk->gMom().pseudoRapidity();
+
+      // get track variables to matched tower
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) {
+        // get primary track vector
+        mTrkMom = trk->pMom();
+      } else {
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield);
+      }
+ 
+      double matchPhi = mTrkMom.phi();
+      double matchEta = mTrkMom.pseudoRapidity();
+      double matchP = mTrkMom.mag();
       double clusPhi = clusPosition.phi();
       double clusEta = clusPosition.pseudoRapidity();
       if(towPhi < 0) towPhi += 2*pi;
       if(towPhi > 2*pi) towPhi -= 2*pi;
-      if(gmatchPhi < 0) gmatchPhi += 2*pi;
-      if(gmatchPhi > 2*pi) gmatchPhi -= 2*pi;
+      if(matchPhi < 0)    matchPhi += 2*pi;
+      if(matchPhi > 2*pi) matchPhi -= 2*pi;
       if(clusPhi < 0) clusPhi += 2*pi;
       if(clusPhi > 2*pi) clusPhi -= 2*pi;
-
-      // fill QA histos for towers
-      fHistJetNTowervsE->Fill(cluster->bemcE0());
-      fHistJetNTowervsPhi->Fill(towPhi);
-      fHistJetNTowervsEta->Fill(towEta);
-      fHistJetNTowervsPhivsEta->Fill(towPhi, towEta);
 
       // print some tower / cluster / track debug info
       //if(fDebugLevel == 8) {
@@ -627,13 +681,188 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
         cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
         cout<<" mTowE = "<<cluster->btowE()<<"  mTowE2 = "<<cluster->btowE2()<<"  mTowE3 = "<<cluster->btowE3()<<endl;
-        cout<<"Track: -> trkPhi = "<<gmatchPhi<<" trkEta = "<<gmatchEta<<"  trkP = "<<trk->gMom().mag()<<endl;
+        cout<<"Track: -> trkPhi = "<<matchPhi<<" trkEta = "<<matchEta<<"  trkP = "<<matchP<<endl;
         cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
         cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
         cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
       }
 
     } // 'cluster' loop
+*/
+
+// ==================== March 6th, 2018
+    // set / initialize some variables
+    double pi = 1.0*TMath::Pi();
+    double pi0mass = Pico::mMass[0]; // GeV
+
+    // towerStatus array
+    float mTowerMatchTrkIndex[4801] = { 0 };
+    bool mTowerStatusArr[4801] = { 0 };
+    int matchedTowerTrackCounter = 0;
+
+    // print
+    int nTracks = mPicoDst->numberOfTracks();
+    int nTrigs = mPicoDst->numberOfEmcTriggers();
+    int nBTowHits = mPicoDst->numberOfBTOWHits();
+    int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
+//    cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
+  
+    // loop over ALL clusters in PicoDst and add to jet //TODO
+    for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
+      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
+      if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
+
+      // cluster and tower ID
+      int clusID = cluster->bemcId();  // index in bemc point array
+      int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+      int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      if(towID < 0) continue;
+
+      ////////
+      // get tower location - from ID: via this method, need to correct eta (when using this method)
+      float tEta, tPhi;    // need to be floats
+      StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
+      //cout<<"radius = "<<mGeom2->Radius()<<endl;
+      mGeom2->getEtaPhi(towID,tEta,tPhi);
+      if(tPhi < 0)    tPhi += 2*pi;
+      if(tPhi > 2*pi) tPhi -= 2*pi;
+
+      // cluster and tower position - from vertex and ID - shouldn't need to correct via this method
+      StThreeVectorF towPosition = mPosition->getPosFromVertex(mVertex, towID);
+      double towPhi = towPosition.phi();
+      double towEta = towPosition.pseudoRapidity();
+
+      // matched track index
+      int trackIndex = cluster->trackIndex();
+      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
+      //StMuTrack* mutrk = (StMuTrack*)mPicoDst->track(trackIndex);
+      if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+      //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; } // FIXME - do I want to apply quality cuts to matched track?
+
+      // tower status set - towerID is matched to track passing quality cuts
+      mTowerMatchTrkIndex[towID] = trackIndex;
+      mTowerStatusArr[towID] = kTRUE;
+      matchedTowerTrackCounter++;
+
+      // get track variables to matched tower
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) { 
+        // get primary track vector
+        mTrkMom = trk->pMom();
+      } else { 
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield); 
+      }
+
+      // track properties
+      double pt = mTrkMom.perp();
+      double phi = mTrkMom.phi();
+      double eta = mTrkMom.pseudoRapidity();
+      double p = mTrkMom.mag();
+
+    }
+
+    // loop over towers
+    int nTowers = mPicoDst->numberOfBTOWHits();
+    for(int itow = 0; itow < nTowers; itow++) {
+      StPicoBTowHit *tower = mPicoDst->btowHit(itow);
+      if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
+
+      // tower ID
+      int towerID = tower->id();
+      if(towerID < 0) continue; // double check these aren't still in the event list
+
+      // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+      StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+      double towerPhi = towerPosition.phi();
+      if(towerPhi < 0)    towerPhi += 2.0*pi;
+      if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
+      double towerEta = towerPosition.pseudoRapidity();
+      double towX = towerPosition.x();
+      double towY = towerPosition.y();
+      double towZ = towerPosition.z();
+      double towMag = towerPosition.mag();
+      int towerADC = tower->adc();
+      double towerEunCorr = tower->energy();
+      double towerE = tower->energy();
+
+      // tower matched to firing trigger - TODO
+      //if(fTowerToTriggerTypeHT1[emcTrigID])
+      //if(fTowerToTriggerTypeHT2[emcTrigID])
+      //if(fTowerToTriggerTypeHT3[emcTrigID])
+
+      // perform tower cuts
+      // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
+      if(mTowerStatusArr[towerID]) {
+        //if(mTowerMatchTrkIndex[towerID] > 0) 
+        StPicoTrack* trk = (StPicoTrack*)mPicoDst->track( mTowerMatchTrkIndex[towerID] );
+        if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // March5, 2018 commented back in TODO
+        //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
+
+        // get track variables to matched tower
+        StThreeVectorF mTrkMom;
+        if(doUsePrimTracks) { 
+          // get primary track vector
+          mTrkMom = trk->pMom(); 
+        } else { 
+          // get global track vector
+          mTrkMom = trk->gMom(mVertex, Bfield); 
+        }
+
+        // track variables
+        double pt = mTrkMom.perp();
+        double phi = mTrkMom.phi();
+        double eta = mTrkMom.pseudoRapidity();
+        double p = mTrkMom.mag();
+        double pi0mass = Pico::mMass[0]; // GeV
+        double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
+        // apply hadronic correction to tower
+        towerE = towerEunCorr - (mHadronicCorrFrac * E);
+      } 
+      // else - no match so treat towers on their own
+
+/*
+    // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
+    // correct eta for Vz position 
+    float theta;
+    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
+    double z = 0;
+    if(towEta != 0) z = 231.0 / tan(theta);  // 231 cm = radius of SMD 
+    double zNominal = z - mVertex.z();
+    double thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
+    float etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
+*/
+
+      // cut on tower energy
+      if(towerE < 0) towerE = 0.0;
+      if(towerE < mTowerEnergyMin) continue;
+
+      // get components from Energy (p - momentum)
+      double towerPx = towerE * (towX / towMag);
+      double towerPy = towerE * (towY / towMag);
+      double towerPz = towerE * (towZ / towMag);
+      //cout<<"x = "<<towX<<" y = "<<towY<<" z = "<<towZ<<endl;
+      //cout<<"px = "<<towerPx<<"  py = "<<towerPy<<"  pz = "<<towerPz<<"  p = "<<endl;
+      //double angle = 1.0*TMath::ATan2(towPy, towPx);
+      //cout<<"angle = "<<angle<<"  towerPhi = "<<towerPhi<<endl;
+
+      // add towers to fastjet
+      // tower index - TODO check this!
+      int uidTow = -(itow + 2);  
+      //fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, itow); // includes E
+      fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, uidTow); // includes E
+
+      // fill QA histos for towers
+      fHistJetNTowervsE->Fill(towerE);
+      fHistJetNTowervsPhi->Fill(towerPhi);
+      fHistJetNTowervsEta->Fill(towerEta);
+      fHistJetNTowervsPhivsEta->Fill(towerPhi, towerEta);
+
+    } // tower loop
+
+// ====================
   } // neutral/full jets
 
   // run jet finder
@@ -665,13 +894,14 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
     jet->SetLabel(ij);
 
-    // area vector added July26
+    // area vector and components
     fastjet::PseudoJet area(fjw.GetJetAreaVector(ij));
     jet->SetArea(area.perp());  // same as fjw.GetJetArea(ij)
     jet->SetAreaEta(area.eta());
     jet->SetAreaPhi(area.phi());
     jet->SetAreaE(area.E());
 
+    // March 8, 2018 - probably don't need this anymore after coming up with method to pass and extract constituents via index!
     // get constituents of jets
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
     fConstituents = fjw.GetJetConstituents(ij); 
@@ -680,20 +910,21 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
 
 
-
-
 ///////////////////////////////////////////////
-    Double_t neutralE = 0, maxTrack = 0, maxCluster=0;
+    Double_t neutralE = 0, maxTrack = 0, maxTower = 0;
     jet->SetNumberOfTracks(constituents.size());
     jet->SetNumberOfClusters(constituents.size());
     Int_t nt = 0; // track counter
     Int_t nc = 0; // cluster counter
-  
+    Int_t ng = 0; // ghost counter  
+
     // loop over constituents for ij'th jet
-    for(UInt_t ic=0; ic<constituents.size(); ++ic) {
+    for(UInt_t ic = 0; ic < constituents.size(); ++ic) {
+      // get user defined index
       Int_t uid = constituents[ic].user_index();
 
-      if (uid>=0){
+      // CHARGED COMPONENT (tracks)
+      if(uid >= 0) {
 	jet->AddTrackAt(uid, nt);
         StPicoTrack* trk = mPicoDst->track(uid);
         if(!trk) continue;
@@ -718,11 +949,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         double eta = mTrkMom.pseudoRapidity();
 
         // adjust phi value:  0 < phi < 2pi
-        if(phi < 0) phi+= 2*pi;
+        if(phi < 0)    phi+= 2*pi;
         if(phi > 2*pi) phi-= 2*pi;
 
         // find max track pt
-        if(pt>maxTrack) maxTrack=pt;
+        if(pt > maxTrack) maxTrack = pt;
 
         // fill some QA histograms
         fHistJetNTrackvsPt->Fill(pt);
@@ -731,6 +962,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         fHistJetNTrackvsPhivsEta->Fill(phi, eta);
 
 	nt++;
+
 //============================
 /*
       // example usage for container index mapping
@@ -745,7 +977,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, tid), nt);
 */
 // ===========================
+
       } else { // uid < 0
+      // NEUTRAL componenet - TODO
 
 /*
 	// example usage
@@ -758,19 +992,63 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
           maxCluster=nP.P();
 	nc++;
 */
-      }
+
+        // TODO - finish this if we ever care to look at ghosts.. (not a priority)
+        // ghosts
+        if(uid == -1) {
+          //if(fFillGhost) jet->AddGhost(constituents[ic].px(), constituents[ic].py(), constituents[ic].pz(), constituents[ic].e());
+          ng++;
+        }
+
+        // neutral towers: start at (index = -2, ghosts are -1, and tracks 0+)
+        if(uid < -1) {
+          // convert uid to tower id (index of tower)
+          Int_t towid = -(uid + 2);
+          jet->AddClusterAt(towid, nc);
+          StPicoBTowHit *tower = mPicoDst->btowHit(towid);
+          if(!tower) continue;
+
+          // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+          StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towid);
+          double towerPhi = towerPosition.phi();
+          double towerEta = towerPosition.pseudoRapidity();
+          //int towerADC = tower->adc();
+          double towE = tower->energy();
+          neutralE += towE;
+        
+          // find max tower E
+          if(towE > maxTower) maxTower = towE;
+
+          nc++;
+        } // towers
+
+      } // uid < 0
+
     }  // end of constituent loop
 
+    // set some jet properties
     jet->SetNumberOfTracks(nt);
     jet->SetNumberOfClusters(nc);
     jet->SetMaxTrackPt(maxTrack);
-    jet->SetMaxClusterPt(maxCluster); // clusters not added yet
-    jet->SetNEF(neutralE/jet->E()); // FIXME : currently not set properly - neutralE = 0
+    jet->SetMaxClusterPt(maxTower);
+    jet->SetNEF(neutralE/jet->E());
     jetCount++;
 
+    // fill jets histograms
+    fHistNJetsvsPt->Fill(jet->Pt()); 
+    fHistNJetsvsPhi->Fill(jet->Phi());
+    fHistNJetsvsEta->Fill(jet->Eta());
+    fHistNJetsvsPhivsEta->Fill(jet->Phi(), jet->Eta());
+    fHistNJetsvsArea->Fill(jet->Area());  // same as fjw.GetJetArea(ij)
+    fHistNJetsvsNConstituents->Fill(nt + nc);
+    fHistNJetsvsNTracks->Fill(nt);
+    fHistNJetsvsNTowers->Fill(nc);
+
   }  // end of jet loop
+
 }
 
+// this function is not used anymore! - maybe more stuff 
 /**
  * This method fills the jet output branch (TClonesArray) with the jet found by the FastJet
  * wrapper. Before filling the jet branch, the utilities are prepared. Then the utilities are
@@ -1103,12 +1381,12 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   double pt = mTrkMom.perp();
   double phi = mTrkMom.phi();
   double eta = mTrkMom.pseudoRapidity();
-  double px = mTrkMom.x();
-  double py = mTrkMom.y();
-  double pz = mTrkMom.z();
-  double p = mTrkMom.mag();
-  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  short charge = trk->charge();
+  //double px = mTrkMom.x();
+  //double py = mTrkMom.y();
+  //double pz = mTrkMom.z();
+  //double p = mTrkMom.mag();
+  //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  //short charge = trk->charge();
   double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   int nHitsFit = trk->nHitsFit();
   int nHitsMax = trk->nHitsMax();

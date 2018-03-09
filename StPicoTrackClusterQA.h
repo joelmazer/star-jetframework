@@ -15,7 +15,6 @@
 #include "StMuDSTMaker/COMMON/StMuDst.h"
 #include "StMuDSTMaker/COMMON/StMuEvent.h"
 
-// TEST for clusters TODO
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
 
@@ -110,8 +109,8 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
 
   // track / cluster setters 
-  virtual void         SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
-  virtual void         SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
+  virtual void         SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;}   // min track cut
+  virtual void         SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;}   // max track cut
   virtual void         SetMinClusterPt(Double_t minpt)    { fClusterPtMinCut    = minpt;} // min cluster cut
   virtual void         SetMaxClusterPt(Double_t maxpt)    { fClusterPtMaxCut    = maxpt;} // max cluster cut
   virtual void         SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
@@ -206,6 +205,7 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t          fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
   Bool_t          fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
+  // Emc objects
   StEmcGeom             *mGeom;
   StEmcCollection       *mEmcCol; 
   StBemcTables          *mBemcTables; 

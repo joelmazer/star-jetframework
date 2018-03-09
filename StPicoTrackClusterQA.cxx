@@ -660,12 +660,6 @@ void StPicoTrackClusterQA::RunQA()
     } // debug statement
 */
 
-    // fill QA histos for towers
-    fHistNTowervsE->Fill(cluster->bemcE0());
-    fHistNTowervsPhi->Fill(towPhi);
-    fHistNTowervsEta->Fill(towEta);
-    fHistNTowervsPhivsEta->Fill(towPhi, towEta);
-
     // fill tower sparse
     Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
     fhnTowerQA->Fill(towerEntries);
@@ -843,12 +837,12 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
   double pt = mTrkMom.perp();
   double phi = mTrkMom.phi();
   double eta = mTrkMom.pseudoRapidity();
-  double px = mTrkMom.x();
-  double py = mTrkMom.y();
-  double pz = mTrkMom.z();
-  double p = mTrkMom.mag();
-  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  short charge = trk->charge();
+  //double px = mTrkMom.x();
+  //double py = mTrkMom.y();
+  //double pz = mTrkMom.z();
+  //double p = mTrkMom.mag();
+  //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  //short charge = trk->charge();
   double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   int nHitsFit = trk->nHitsFit();
   int nHitsMax = trk->nHitsMax();
@@ -1280,7 +1274,7 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
       Float_t towerADC = tow->adc();
      
       // mTowerEnergyMin = 0.2
-      if (towerEnergy < 0.2) continue;
+      if(towerEnergy < 0.2) continue;
       
       Float_t towerEta, towerPhi;
       mGeom->getEtaPhi(towerID, towerEta, towerPhi);
@@ -1394,24 +1388,22 @@ void StPicoTrackClusterQA::RunTowerTest()
     int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
-    ////////
     // get tower location - from ID: via this method, need to correct eta
     float tEta, tPhi;    // need to be floats
     StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
-    //cout<<"radius = "<<mGeom2->Radius()<<endl;
     mGeom2->getEtaPhi(towID,tEta,tPhi);
     if(tPhi < 0)    tPhi += 2*pi;
     if(tPhi > 2*pi) tPhi -= 2*pi;
     if(fDebugLevel == 8) {
       cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3<<"   towerEta = "<<tEta<<"  towerPhi = "<<tPhi<<endl;
     }
-    ///////
 
     // cluster and tower position - from vertex and ID
     StThreeVectorF  towPosition;
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.phi();
     double towEta = towPosition.pseudoRapidity();
+    double detectorRadius = mGeom2->Radius();  // use this below so you don't have to hardcode it TODO
 
     // correct eta for Vz position // 231
     float theta = 2 * atan(exp(-towEta)); // getting theta from eta 
@@ -1513,12 +1505,12 @@ void StPicoTrackClusterQA::RunTowerTest()
       double eta = mTrkMom.pseudoRapidity();
       double p = mTrkMom.mag();
       double pi0mass = Pico::mMass[0]; // GeV
-      double E = p*p + pi0mass*pi0mass;
+      double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
       // apply hadronic correction
       towerE = towerE - (mHadronicCorrFrac * E);
       if(towerE < 0) towerE = 0.0;
-      if(towerE < 0.2) continue;
+      if(towerE < mTowerEnergyMin) continue;
 
     } 
     // else - no match so treat towers on their own
@@ -1537,6 +1529,12 @@ void StPicoTrackClusterQA::RunTowerTest()
 
     // print
 //    cout<<"itow: "<<itow<<"  towerID = "<<towerID<<"  towerPhi = "<<towerPhi<<"  towerEta = "<<towerEta<<"  towerADC = "<<towerADC<<"  towerE = "<<towerE<<"  towerEunCorr = "<<towerEunCorr<<"  mIndex = "<<mTowerMatchTrkIndex[towerID]<<endl;
+
+    // fill QA histos for towers
+    fHistNTowervsE->Fill(towerE);
+    fHistNTowervsPhi->Fill(towerPhi);
+    fHistNTowervsEta->Fill(towerEta);
+    fHistNTowervsPhivsEta->Fill(towerPhi, towerEta);
 
   } // tower loop
 

@@ -51,6 +51,8 @@
 #include "StEPFlattener.h"
 #include "StCalibContainer.h"
 #include "runlistP16ij.h"
+#include "runlistP17id.h" // SL17i - Run14
+
 #include "corrections/tpc_recenter_data.h"
 #include "corrections/tpc_recenter_data_bin0.h"
 #include "corrections/tpc_recenter_data_bin1.h"
@@ -1220,9 +1222,11 @@ Int_t StMyAnalysisMaker::Make() {
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
+  // TODO THIS NEEDS WORK!!! TODO
   // set up switch to require specific trigger (for Event Plane corrections + Resolution)
   //if(!fHaveEmcTrigger) return kStOK;
-  if(fHaveEmcTrigger) {
+  if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (fEmcTriggerArr[fTriggerEventType])) { // Run14
+//  if(fHaveEmcTrigger) { // Run16 
 
     // ==================================================================
     // 1) get z-vertex binning
@@ -1338,7 +1342,7 @@ Int_t StMyAnalysisMaker::Make() {
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
     // Run - Trigger Selection to process jets from
     if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
+    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; // FIXME
 
     // get pointer to jets
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
@@ -1353,7 +1357,33 @@ Int_t StMyAnalysisMaker::Make() {
     double jetPhi = jet->Phi();    
     double jetNEF = jet->NEF();
     //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
-    double dEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
+    double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
+    //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<endl; // - test statement
+
+    // loop over constituent tracks
+    for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
+      int trackid = jet->TrackAt(itrk);      
+      StPicoTrack* trk = mPicoDst->track(trackid);
+      if(!trk){ continue; }
+
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) {
+        if(!(trk->isPrimary())) return kFALSE; // check if primary
+
+        // get primary track vector
+        mTrkMom = trk->pMom();
+      } else {
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield);
+      }
+    }
+
+    // loop over constituents towers
+    for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
+      int towerid = jet->TrackAt(itow);
+      StPicoBTowHit *tow = mPicoDst->btowHit(towerid);
+      if(!tow){ continue; }
+    }
 
     // some threshold cuts for tests
     if(fCorrJetPt) {
@@ -1443,9 +1473,9 @@ Int_t StMyAnalysisMaker::Make() {
       double pt = mTrkMom.perp();
       double phi = mTrkMom.phi();
       double eta = mTrkMom.pseudoRapidity();
-      double px = mTrkMom.x();
-      double py = mTrkMom.y();
-      double pz = mTrkMom.z();
+      //double px = mTrkMom.x();
+      //double py = mTrkMom.y();
+      //double pz = mTrkMom.z();
       short charge = trk->charge();
 
 //      if(jet->ContainsTrack(itrack)) cout<<" track part of jet, pt = "<<pt<<endl;
@@ -1617,7 +1647,8 @@ Int_t StMyAnalysisMaker::Make() {
               // get jet - track relations
               //double deta = eta - jetEta;               // eta betweeen hadron and jet
               double dMixeta = MixjetEta - Mixeta;               // eta betweeen jet and hadron
-              double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
+//              double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
+              double dMixphijh = StJetFrameworkPicoBase::RelativePhi(MixjetPhi, Mixphi);
 
               // print tracks outside of acceptance somehow
               if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
@@ -3842,16 +3873,28 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
   return kStOk;
 }
 
-// this is temp to test code from Liang
+//
+// this function checks for the bin number of the run from a runlist header 
+// in order to apply various corrections and fill run-dependent histograms
+// _________________________________________________________________________________
 Int_t StMyAnalysisMaker::GetRunNo(int runid){ 
-  //1287
-  // 1359 for Run16
-  for(int i = 0; i < 1359; i++){
-    if(RunIdNo[i]==runid) {
+  //1287 - Liang
+  
+  // 1654 for Run14 AuAu
+  for(int i = 0; i < 1654; i++){
+    if(Run14AuAu_IdNo[i] == runid) {
       return i;
     }
   }
 
+  // 1359 for Run16 AuAu
+  for(int i = 0; i < 1359; i++){
+    if(Run16AuAu_IdNo[i] == runid) {
+      return i;
+    }
+  }
+
+  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
 }
 

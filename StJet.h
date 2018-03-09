@@ -18,7 +18,6 @@
 
 #include "StPicoEvent/StPicoEmcTrigger.h"
 #include "StVParticle.h"
-//#include <AliVEvent.h>
 #include "StPicoEvent/StPicoBEmcPidTraits.h"
 
 #include "FJ_includes.h"
@@ -96,9 +95,9 @@ class StJet : public StVParticle // FIXME
   Double_t          AreaEta()                    const { return fAreaEta                 ; }
   Double_t          AreaPhi()                    const { return fAreaPhi                 ; }
   Double_t          AreaE()                      const { return fAreaE                   ; }
-  Int_t             ClusterAt(Int_t idx)         const { return fClusterIDs.At(idx)      ; }
-  UShort_t          GetNumberOfClusters()        const { return fClusterIDs.GetSize()    ; }
-  UShort_t          GetNumberOfTracks()          const { return fTrackIDs.GetSize()      ; }
+  Int_t             ClusterAt(Int_t idx)         const { return fClusterIDs.At(idx)      ; }  // this stores ID of tower constituents
+  UShort_t          GetNumberOfClusters()        const { return fClusterIDs.GetSize()    ; }  // # of tower constituents
+  UShort_t          GetNumberOfTracks()          const { return fTrackIDs.GetSize()      ; }  // # of track constituents
   UShort_t          GetNumberOfConstituents()    const { return GetNumberOfClusters()+GetNumberOfTracks(); }
   Bool_t            IsMC()                       const { return (Bool_t)(MCPt() > 0)     ; }
   Bool_t            IsSortable()                 const { return kTRUE                    ; }
@@ -114,7 +113,7 @@ class StJet : public StVParticle // FIXME
   Double_t          MaxPartPt()                  const { return fMaxCPt < fMaxNPt ? fMaxNPt : fMaxCPt; }
   Double_t          PtSub()                      const { return fPtSub                   ; }
   Double_t          PtSubVect()                  const { return fPtSubVect               ; }
-  Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; } //// FIXME
+  Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; }  // this stores ID of track constituents
 
   // Background subtraction
   Double_t          PtSub(Double_t rho, Bool_t save = kFALSE)          ;
@@ -173,7 +172,7 @@ class StJet : public StVParticle // FIXME
   std::vector<int>  GetPtSortedTrackConstituentIndexes(TClonesArray *tracks) const;
 
   // Trigger
-//  Bool_t            IsTriggerJet(UInt_t trigger=AliVEvent::kEMCEJE) const   { return (Bool_t)((fTriggers & trigger) != 0); }
+//  Bool_t            IsTriggerJet(UInt_t trigger=VEvent::kEMCEJE) const   { return (Bool_t)((fTriggers & trigger) != 0); }
 //  void              SetTrigger(UInt_t trigger)                              { fTriggers  = trigger;                        }
 //  void              AddTrigger(UInt_t trigger)                              { fTriggers |= trigger;                        }
 

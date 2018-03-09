@@ -122,9 +122,10 @@ class StJetMakerTask : public StMaker {
   void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min;}
   void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max;}
   void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min;}
+  void         SetMinJetClusE(Double_t min)               { fMinJetClusE   = min;}
+  void         SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min;}
   void         SetRadius(Double_t r)                      { fRadius        = r;  }
 
-  void         SetMinJetClusE(Double_t min);
   void         SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
   void         SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
   void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
@@ -209,12 +210,26 @@ class StJetMakerTask : public StMaker {
 #endif
 */
 
+
+  // set hadronic correction fraction for matched tracks to towers
+  void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
+
+
  protected:
   void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   //Int_t FindJets();
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+
+  // may not need any of these except fill jet branch if I want 2 different functions
+  void                   FillJetBranch();
+  void                   InitUtilities();
+  void                   PrepareUtilities();
+  void                   ExecuteUtilities(StJet* jet, Int_t ij);
+  void                   TerminateUtilities();
+
+  Bool_t                 GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const;
 
   // switches
   Bool_t                 doWriteHistos;           // write QA histos
@@ -229,6 +244,11 @@ class StJetMakerTask : public StMaker {
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
 
+  // event variables
+  Double_t               Bfield;                  // event Bfield
+  StThreeVectorF         mVertex;                 // event vertex 3-vector
+  Double_t               zVtx;                    // z-vertex component
+
   // tower to firing trigger type matched array
   Bool_t                 fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
   Bool_t                 fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
@@ -239,7 +259,6 @@ class StJetMakerTask : public StMaker {
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection
-  Double_t               fRadius;                 // jet radius
 
   // need to tweak type of next 3
 /*
@@ -253,15 +272,8 @@ class StJetMakerTask : public StMaker {
 
   StFJWrapper            fjw; //!fastjet wrapper
 
-  // may not need any of these except fill jet branch if I want 2 different functions
-  void                   FillJetBranch();
-  void                   InitUtilities();
-  void                   PrepareUtilities();
-  void                   ExecuteUtilities(StJet* jet, Int_t ij); 
-  void                   TerminateUtilities();
-
-  Bool_t                 GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const;
-
+  // jet attributes
+  Double_t               fRadius;                 // jet radius
   TString                fJetsTag;                // tag of jet collection (usually = "Jets")
   Double_t               fMinJetArea;             // min area to keep jet in output
   Double_t               fMinJetPt;               // min jet pt to keep jet in output
@@ -270,9 +282,13 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetEtaMin;              // minimum eta to keep jet in output
   Double_t               fJetEtaMax;              // maximum eta to keep jet in output
   Double_t               fGhostArea;              // ghost area
+
+  // track attributes
   Double_t               fMinJetTrackPt;          // min jet track transverse momentum
   Double_t               fMaxJetTrackPt;          // max jet track transverse momentum
   Double_t               fMinJetClusPt;           // min jet cluster transverse momentum
+  Double_t               fMinJetClusE;            // min jet cluster energy
+  Double_t               fMinJetTowerE;           // min jet tower energy - not used (use mTowerEnergyMin)
   Double_t               fJetTrackEtaMin;         // min jet track eta
   Double_t               fJetTrackEtaMax;         // max jet track eta
   Double_t               fJetTrackPhiMin;         // min jet track phi
@@ -282,6 +298,10 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
+  // tower attributes
+  Double_t               mTowerEnergyMin;
+  Float_t                mHadronicCorrFrac;
+
   // may not need some of next bools
   TObjArray             *fUtilities;              // jet utilities (gen subtractor, constituent subtractor etc.)
   Bool_t                 fLocked;                 // true if lock is set
@@ -289,6 +309,7 @@ class StJetMakerTask : public StMaker {
   Bool_t                 fLegacyMode;             //!=true to enable FJ 2.x behavior
   Bool_t                 fFillGhost;              //!=true ghost particles will be filled in StJet obj
 
+  // jet and jet constituent objects
   TClonesArray          *fJets;                   //!jet collection
   vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
   TClonesArray          *fJetsConstit;            //!jet constituents ClonesArray
@@ -323,6 +344,15 @@ StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping
   TH1F           *fHistJetNTowervsPhi;//!
   TH1F           *fHistJetNTowervsEta;//!
   TH2F           *fHistJetNTowervsPhivsEta;//!
+
+  TH1F           *fHistNJetsvsPt;//!
+  TH1F           *fHistNJetsvsPhi;//!
+  TH1F           *fHistNJetsvsEta;//!
+  TH2F           *fHistNJetsvsPhivsEta;//!
+  TH1F           *fHistNJetsvsArea;//!
+  TH1F           *fHistNJetsvsNConstituents;//!
+  TH1F           *fHistNJetsvsNTracks;//!
+  TH1F           *fHistNJetsvsNTowers;//!
 
   // maker names
   //TString         fJetMakerName;
