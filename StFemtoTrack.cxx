@@ -80,27 +80,27 @@ StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t cha
 
 StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, StThreeVectorF mVertex, bool prim)
 {
-
-  double pt, eta, phi;
   // primary track switch
-  if(prim){
-    // get primary track variables
-    StThreeVectorF mPMomentum = track->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    pt = mPMomentum.perp();
+  // get momentum vector of track - global or primary track
+  StThreeVectorF mTrkMom;
+  if(prim) {
+    // get primary track vector
+    mTrkMom = track->pMom();
   } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = track->gMom(mVertex, Bfield);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    pt = mgMomentum.perp();
+    // get global track vector
+    mTrkMom = track->gMom(mVertex, Bfield);
   }
+
+  // track variables
+  double pt = mTrkMom.perp();
+  double phi = mTrkMom.phi();
+  double eta = mTrkMom.pseudoRapidity();
+  short charge = track->charge();
 
   fPt = pt;
   fEta = eta;
   fPhi = phi;
-  fCharge = track->charge();
+  fCharge = charge;
 }
 
 /**

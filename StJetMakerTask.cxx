@@ -188,8 +188,6 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetsConstit(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
-//  fClusterContainerIndexMap(),
-  fParticleContainerIndexMap(),
   mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -232,7 +230,8 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNJetsvsNTowers)      delete fHistNJetsvsNTowers;
 }
 
-//-----------------------------------------------------------------------------
+//
+//________________________________________________________________________
 Int_t StJetMakerTask::Init() {
   DeclareHistograms();
 
@@ -277,19 +276,12 @@ Int_t StJetMakerTask::Init() {
   fjw.SetStrategy(strategy);
   fjw.SetGhostArea(fGhostArea);
   fjw.SetR(fRadius);
-  fjw.SetAlgorithm(algorithm); //fJetAlgo);
+  fjw.SetAlgorithm(algorithm);        //fJetAlgo);
   fjw.SetRecombScheme(recombScheme);  //fRecombScheme);
   fjw.SetMaxRap(1);
 
   // setting legacy mode
-  //if(fLegacyMode) {
-  //  fjw.SetLegacyMode(kTRUE);
-  //}
-
-  // Setup container utils. Must be called after Init() so that the
-  // containers' arrays are setup.
-  //fClusterContainerIndexMap.CopyMappingFrom(StClusterContainer::GetEmcalContainerIndexMap(), fClusterCollArray);
-  //fParticleContainerIndexMap.CopyMappingFrom(StParticleContainer::GetEmcalContainerIndexMap(), fParticleCollArray);
+  //if(fLegacyMode) { fjw.SetLegacyMode(kTRUE); }
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
@@ -475,14 +467,6 @@ int StJetMakerTask::Make()
   TClonesArray *clus   = 0;
 
 /*
-//  tracks = dynamic_cast<TClonesArray*>
-//  tracks = mPicoDst->picoArray(StPicoArrays::picoArrayNames("Tracks"));
-//  tracks = StPicoDst::picoArrays[StPicoArrays::Track];
-  //tracks = mPicoDst->picoArray(StPicoArrays::Tracks);  // Track -> Tracks Aug17
-  if(!tracks) { return kStWarn; }
-*/
-
-/*
   // TRACKS: for FULL or Charged jets
   if ((fJetType==0)||(fJetType==1)) { }
 
@@ -560,26 +544,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
       fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
-
     } // track loop
   } // if full/charged jets
-
-/*
-  // looping over cluster to add to jet - Example
-  if (clus) {
-    Double_t vertex[3] = {0, 0, 0};
-    const Int_t Nclus = clus->GetEntries();
-    for (Int_t iClus = 0; iClus < Nclus; ++iClus) {
-      AliVCluster *c = dynamic_cast<AliVCluster*>(clus->At(iClus)); //FIXME
-      if (!c->IsEMCAL()) continue;
-      TLorentzVector nPart;
-      c->GetMomentum(nPart, vertex);
-      Double_t energy = nPart.P();
-      if (energy<fMinJetClusPt) continue;
-      fjw.AddInputVector(nPart.Px(), nPart.Py(), nPart.Pz(), energy, -iClus-1);
-    }
-  }
-*/
 
   // full or neutral jets - get towers and apply hadronic correction
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
@@ -853,13 +819,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       int uidTow = -(itow + 2);  
       //fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, itow); // includes E
       fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, uidTow); // includes E
-
-      // fill QA histos for towers
-      fHistJetNTowervsE->Fill(towerE);
-      fHistJetNTowervsPhi->Fill(towerPhi);
-      fHistJetNTowervsEta->Fill(towerEta);
-      fHistJetNTowervsPhivsEta->Fill(towerPhi, towerEta);
-
     } // tower loop
 
 // ====================
@@ -869,12 +828,12 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   fjw.Run();
 
   // ======= The below can be a filljetbranch function =======
-  // loop over FastJet jets  
   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
   // sort jets according to jet pt
   static Int_t indexes[9999] = {-1};
   GetSortedArray(indexes, jets_incl);
 
+  // loop over FastJet jets
   for(UInt_t ij=0, jetCount=0; ij<jets_incl.size(); ++ij) {
     // PERFORM CUTS ON JETS before saving
     // cut on min jet pt
@@ -906,11 +865,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
     fConstituents = fjw.GetJetConstituents(ij); 
     jet->SetJetConstituents(fConstituents);
-///////////////////////////////////////////////
 
-
-
-///////////////////////////////////////////////
+    // initialize some variables/counters
     Double_t neutralE = 0, maxTrack = 0, maxTower = 0;
     jet->SetNumberOfTracks(constituents.size());
     jet->SetNumberOfClusters(constituents.size());
@@ -961,37 +917,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         fHistJetNTrackvsEta->Fill(eta);
         fHistJetNTrackvsPhivsEta->Fill(phi, eta);
 
+        // increase track counter
 	nt++;
-
-//============================
-/*
-      // example usage for container index mapping
-      else if (uid >= fgkConstIndexShift) { // track constituent
-      Int_t iColl = uid / fgkConstIndexShift;
-      Int_t tid = uid - iColl * fgkConstIndexShift;
-      iColl--;
-      StParticleContainer* partCont = GetParticleContainer(iColl); // FIXME
-      if (!partCont) { continue; }
-      StVParticle *t = partCont->GetParticle(tid); //FIXME
-      if (!t) { continue; }
-      jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, tid), nt);
-*/
-// ===========================
-
       } else { // uid < 0
-      // NEUTRAL componenet - TODO
-
-/*
-	// example usage
-        jet->AddClusterAt(-(uid+1),nc);
-        AliVCluster *c = dynamic_cast<AliVCluster*>(clus->At(-(uid+1)));
-        TLorentzVector nP;
-        c->GetMomentum(nP, vertex);
-        neutralE += nP.P();
-        if (nP.P()>maxCluster)
-          maxCluster=nP.P();
-	nc++;
-*/
 
         // TODO - finish this if we ever care to look at ghosts.. (not a priority)
         // ghosts
@@ -1019,6 +947,13 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
           // find max tower E
           if(towE > maxTower) maxTower = towE;
 
+          // fill QA histos for jet towers
+          fHistJetNTowervsE->Fill(towE);
+          fHistJetNTowervsPhi->Fill(towerPhi);
+          fHistJetNTowervsEta->Fill(towerEta);
+          fHistJetNTowervsPhivsEta->Fill(towerPhi, towerEta);
+
+          // increase tower counter
           nc++;
         } // towers
 
@@ -1032,6 +967,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     jet->SetMaxTrackPt(maxTrack);
     jet->SetMaxClusterPt(maxTower);
     jet->SetNEF(neutralE/jet->E());
+    //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
     jetCount++;
 
     // fill jets histograms
@@ -1195,167 +1131,6 @@ fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t
     ::Error("StJetMakerTask::ConvertToFJRecoScheme", "Recombination scheme %d not recognized!!!", reco);
     return fastjet::external_scheme;
   }
-}
-*/
-
-// The below is only useful if I eventually figure out the container mapping indexes to work between the initial
-// TClonesArray / Container(Class) to the index created by FastJet and then back later on after jet-finding
-
-/**
- * This method is called for each jet. It loops over the jet constituents and
- * adds them to the jet object.
- * @param jet Pointer to the AliEmcalJet object where the jet constituents will be added
- * @param constituents List of the jet constituents returned by the FastJet wrapper
- * @param constituents_unsub List of jet constituents before background subtraction
- * @param flag If kTRUE it means that the argument "constituents" is a list of subtracted constituents
- * @param particles_sub Array containing subtracted constituents
- */
-/*
-// this might not be even worth implementing
-void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
-    std::vector<fastjet::PseudoJet>& constituents_unsub, Int_t flag, TString particlesSubName)
-{
-  Int_t nt            = 0;
-  Int_t nc            = 0;
-  Double_t neutralE   = 0.;
-  Double_t maxCh      = 0.;
-  Double_t maxNe      = 0.;
-  Int_t ncharged      = 0;
-  Int_t nneutral      = 0;
-  Double_t mcpt       = 0.;
-  TClonesArray * particles_sub = 0;
-
-  Int_t uid   = -1;
-
-  jet->SetNumberOfTracks(constituents.size());
-  jet->SetNumberOfClusters(constituents.size());
-
-  for (UInt_t ic = 0; ic < constituents.size(); ++ic) {
-    if (flag == 0) {
-      uid = constituents[ic].user_index();
-    } else {
-      if (constituents[ic].perp()<1.e-10) {
-        uid=-1;
-      } else {
-        uid = constituents[ic].user_index();
-      }
-      if (uid==0) {
-        //Form("correspondence between un/subtracted constituent not found");
-        continue;
-      }
-    }
-
-    Form("Processing constituent %d", uid); //FIXME
-    if (uid == -1) { //ghost particle
-
-      if (fFillGhost) jet->AddGhost(constituents[ic].px(),
-          constituents[ic].py(),
-          constituents[ic].pz(),
-          constituents[ic].e());
-    }	
-    else if (uid >= fgkConstIndexShift) { // track constituent
-      Int_t iColl = uid / fgkConstIndexShift;
-      Int_t tid = uid - iColl * fgkConstIndexShift;
-      iColl--;
-      //Form("Constituent %d is a track from collection %d and with ID %d", uid, iColl, tid);
-      AliParticleContainer* partCont = GetParticleContainer(iColl); // FIXME
-      if (!partCont) {
-        //Form("Could not find particle container %d",iColl);
-        continue;
-      }
-      StVParticle *t = partCont->GetParticle(tid); //FIXME
-      if (!t) {
-        //Form("Could not find track %d",tid);
-        continue;
-      }
-
-      Double_t cEta = t->Eta();
-      Double_t cPhi = t->Phi();
-      Double_t cPt  = t->Pt();
-      Double_t cP   = t->P();
-      if (t->Charge() == 0) {
-        neutralE += cP;
-        ++nneutral;
-        if (cPt > maxNe) maxNe = cPt;
-      } else {
-        ++ncharged;
-        if (cPt > maxCh) maxCh = cPt;
-      }
-
-      // check if MC particle
-      if (TMath::Abs(t->GetLabel()) > fMinMCLabel) mcpt += cPt;
-
-      if (flag == 0 || particlesSubName == "") {
-        jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, tid), nt);
-      }
-      else {
-        // Get the particle container and array corresponding to the subtracted particles
-        partCont = GetParticleContainer(particlesSubName);
-        particles_sub = partCont->GetArray();
-        // Create the new particle in the particles_sub array and add it to the jet
-        Int_t part_sub_id = particles_sub->GetEntriesFast();
-        AliEmcalParticle* part_sub = new ((*particles_sub)[part_sub_id]) AliEmcalParticle(dynamic_cast<AliVTrack*>(t));   // SA: probably need to be fixed!!
-        part_sub->SetPtEtaPhiM(constituents[ic].perp(),constituents[ic].eta(),constituents[ic].phi(),constituents[ic].m());
-        jet->AddTrackAt(fParticleContainerIndexMap.GlobalIndexFromLocalIndex(partCont, part_sub_id), nt);
-      }
-
-      ++nt;
-    } 
-    else if (uid <= -fgkConstIndexShift) { // cluster constituent
-      Int_t iColl = -uid / fgkConstIndexShift;
-      Int_t cid = -uid - iColl * fgkConstIndexShift;
-      iColl--;
-      //sprintf(3,Form("Constituent %d is a cluster from collection %d and with ID %d", uid, iColl, cid));
-      StClusterContainer* clusCont = GetClusterContainer(iColl);
-      AliVCluster *c = clusCont->GetCluster(cid);
-      if (!c) continue;
-
-      AliTLorentzVector nP;
-      clusCont->GetMomentum(nP, cid);
-
-      Double_t cEta = nP.Eta();
-      Double_t cPhi = nP.Phi_0_2pi();
-      Double_t cPt  = nP.Pt();
-      Double_t cP   = nP.P();
-
-      neutralE += cP;
-      if (cPt > maxNe) maxNe = cPt;
-
-      // MC particle
-      if (TMath::Abs(c->GetLabel()) > fMinMCLabel) mcpt += c->GetMCEnergyFraction() > 1e-6 ? cPt * c->GetMCEnergyFraction() : cPt;
-
-      if (flag == 0 || particlesSubName == "") {
-        jet->AddClusterAt(fClusterContainerIndexMap.GlobalIndexFromLocalIndex(clusCont, cid), nc);
-      }
-      else {
-        // Get the cluster container and array corresponding to the subtracted particles
-        clusCont = GetClusterContainer(particlesSubName);
-        particles_sub = clusCont->GetArray();
-        // Create the new particle in the particles_sub array and add it to the jet
-        Int_t part_sub_id = particles_sub->GetEntriesFast();
-        AliEmcalParticle* part_sub = new ((*particles_sub)[part_sub_id]) AliEmcalParticle(c);
-        part_sub->SetPtEtaPhiM(constituents[ic].perp(),constituents[ic].eta(),constituents[ic].phi(),constituents[ic].m());
-        jet->AddClusterAt(fClusterContainerIndexMap.GlobalIndexFromLocalIndex(clusCont, part_sub_id), nc);
-      }
-
-      ++nc;
-      ++nneutral;
-    } 
-    else {
-      //Form("%s: No logical way to end up here (uid = %d).", GetName(), uid);
-      continue;
-    }
-  }
-
-  jet->SetNumberOfTracks(nt);
-  jet->SetNumberOfClusters(nc);
-  jet->SetNEF(neutralE / jet->E());
-  jet->SetMaxChargedPt(maxCh);
-  jet->SetMaxNeutralPt(maxNe);
-  jet->SetNumberOfCharged(ncharged);
-  jet->SetNumberOfNeutrals(nneutral);
-  jet->SetMCPt(mcpt);
-  jet->SortConstituents();
 }
 */
 

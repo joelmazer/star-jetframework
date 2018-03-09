@@ -481,7 +481,7 @@ StVParticle* StJet::GetLeadingTrack(TClonesArray* tracks) const //FIXME
   for (Int_t i = 0; i < GetNumberOfTracks(); i++) {
     StVParticle* track = TrackAt(i, tracks); // FIXME
     if (!track) {
-      AliError(Form("Unable to find jet track %d in collection %s (pos in collection %d, max %d)",
+      cout<<(Form("Unable to find jet track %d in collection %s (pos in collection %d, max %d)",
           i, tracks->GetName(), TrackAt(i), tracks->GetEntriesFast()));
       continue;
     }
@@ -556,27 +556,6 @@ std::ostream &StJet::Print(std::ostream &in) const {
   in << toString().Data();
   return in;
 }
-
-/**
- * Prints the list of constituents in the standard output
- * @param tracks Array containing the pointers to tracks
- * @param clusters Array containing the pointers to the clusters
- */
-
-/*
-void StJet::PrintConstituents(TClonesArray* tracks, TClonesArray* clusters) const
-{
-  if (tracks) {
-    for (Int_t i = 0; i < GetNumberOfTracks(); i++) {
-      StVParticle* part = TrackAt(i, tracks); // FIXME
-      if (part) {
-        Printf("Track %d (index = %d) pT = %.2f, eta = %.2f, phi = %.2f, PDG code = %d", i, TrackAt(i), part->Pt(), part->Eta(), part->Phi(), part->PdgCode());
-      }
-    }
-  }
-}
-*/
-
 
 /**
  * Implementation of the output stream operator for StJet. Printing

@@ -204,7 +204,6 @@ class StJet : public StVParticle // FIXME
 
   // Debug printouts
   void Print(Option_t* /*opt*/ = "") const;
-  void PrintConstituents(TClonesArray* tracks, TClonesArray* clusters) const;
 
   // Jet shape
   StJetShapeProperties* GetShapeProperties() const{ return fJetShapeProperties; }

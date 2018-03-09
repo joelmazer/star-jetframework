@@ -1647,8 +1647,8 @@ Int_t StMyAnalysisMaker::Make() {
               // get jet - track relations
               //double deta = eta - jetEta;               // eta betweeen hadron and jet
               double dMixeta = MixjetEta - Mixeta;               // eta betweeen jet and hadron
-//              double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
-              double dMixphijh = StJetFrameworkPicoBase::RelativePhi(MixjetPhi, Mixphi);
+              double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
+              //double dMixphijh = StJetFrameworkPicoBase::RelativePhi(MixjetPhi, Mixphi);
 
               // print tracks outside of acceptance somehow
               if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
