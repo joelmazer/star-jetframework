@@ -354,7 +354,6 @@ void StAnMaker::RunJets()
 
   // ====================== Jet loop below ============================
   // loop over Jets in the event: initialize some parameter variables
-  double jetarea, jetpt, corrjetpt, jetptselected, jetE, jetEta, jetPhi, jetNEF, maxtrackpt, NtrackConstit;
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
   Int_t njets = fJets->GetEntries();
@@ -365,17 +364,17 @@ void StAnMaker::RunJets()
     if(!jet) continue;
 
     // get some jet parameters
-    jetarea = jet->Area();
-    jetpt = jet->Pt();
-    corrjetpt = jet->Pt() - jetarea*fRhoVal;
-    jetE = jet->E();
-    jetEta = jet->Eta();
-    jetPhi = jet->Phi();
-    jetNEF = jet->NEF();
+    double jetarea = jet->Area();
+    double jetpt = jet->Pt();
+    double corrjetpt = jet->Pt() - jetarea*fRhoVal;
+    double jetE = jet->E();
+    double jetEta = jet->Eta();
+    double jetPhi = jet->Phi();
+    double jetNEF = jet->NEF();
 
     // get nTracks and maxTrackPt
-    maxtrackpt = jet->GetMaxTrackPt();
-    NtrackConstit = jet->GetNumberOfTracks();
+    double maxtrackpt = jet->GetMaxTrackPt();
+    double NtrackConstit = jet->GetNumberOfTracks();
 
     // get highest Pt jet in event (leading jet)
     if(highestjetpt<jetpt){
@@ -384,15 +383,44 @@ void StAnMaker::RunJets()
     }
 
     // get jet constituents
-    //std::vector<fastjet::PseudoJet>  GetJetConstituents(ijet)
-    //const std::vector<TLorentzVector> aGhosts = jet->GetGhosts();
-    const std::vector<fastjet::PseudoJet> myConstituents = jet->GetMyJets();
-    for (UInt_t i=0; i<myConstituents.size(); i++) {
-      // cut on ghost particles - NEED to do this to avoid looping over them
-      if(myConstituents[i].perp() < 0.1) continue;
+    // loop over constituent tracks
+    for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
+      int trackid = jet->TrackAt(itrk);      
+      StPicoTrack* trk = mPicoDst->track(trackid);
+      if(!trk){ continue; }
+
+      StThreeVectorF mTrkMom;
+      if(doUsePrimTracks) {
+        if(!(trk->isPrimary())) continue; // check if primary
+
+        // get primary track vector
+        mTrkMom = trk->pMom();
+      } else {
+        // get global track vector
+        mTrkMom = trk->gMom(mVertex, Bfield);
+      }
+
+      // track variables
+      double pt = mTrkMom.perp();
+      double phi = mTrkMom.phi();
+      double eta = mTrkMom.pseudoRapidity();
+      double px = mTrkMom.x();
+      double py = mTrkMom.y();
+      double pz = mTrkMom.z();
+      short charge = trk->charge();
 
 
-    } // constituent loop
+    } // track constit loop
+
+    // loop over constituents towers
+    for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
+      int towerid = jet->TrackAt(itow);
+      StPicoBTowHit *tow = mPicoDst->btowHit(towerid);
+      if(!tow){ continue; }
+
+      int towID = tow->id();
+    
+    } // tower constit loop
 
   } // jet loop
 
@@ -406,8 +434,6 @@ void StAnMaker::RunTracks()
   double pi0mass = Pico::mMass[0]; // GeV
 
   unsigned int ntracks = mPicoDst->numberOfTracks();
-  double phi, eta, p, pt, energy;
-
   // loop over ALL tracks in PicoDst 
   for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
@@ -416,27 +442,25 @@ void StAnMaker::RunTracks()
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    // get momentum
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
-      StThreeVectorF mPMomentum = trk->pMom();
-      pt = mPMomentum.perp();
-      phi = mPMomentum.phi();
-      eta = mPMomentum.pseudoRapidity();
-      p = mPMomentum.mag();
-      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+      // get primary track vector
+      mTrkMom = trk->pMom();
     } else {
-      StThreeVectorF mGMomentum = trk->gMom(mVertex, Bfield);
-      pt = mGMomentum.perp();
-      phi = mGMomentum.phi();
-      eta = mGMomentum.pseudoRapidity();
-      p = mGMomentum.mag();
-      energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+      // get global track vector
+      mTrkMom = trk->gMom(mVertex, Bfield);
     }
 
-    // other variables (add more)
-    Short_t charge = trk->charge();         
-
-
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
+    double px = mTrkMom.x();
+    double py = mTrkMom.y();
+    double pz = mTrkMom.z();
+    short charge = trk->charge();
 
 
   } // track loop
@@ -453,88 +477,61 @@ void StAnMaker::RunTowers()
 
   // looping over clusters - STAR: matching already done
   // get # of clusters and set variables
-  unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-  int towID, towID2, towID3, clusID;
-  StThreeVectorF  towPosition, clusPosition;
+  unsigned int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
   StEmcPosition *mPosition = new StEmcPosition();
-  StEmcPosition *mPosition2 = new StEmcPosition();
 
-  // loop over ALL towers (clusters) in PicoDst
-  for(unsigned short iClus=0;iClus<nclus;iClus++){
+  // loop over ALL clusters in PicoDst and add to jet //TODO
+  for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
     StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
-    if(!cluster){ continue; }
+    if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
     // cluster and tower ID
-    // ID's are calculated as such:
-    // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
-    // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-    clusID = cluster->bemcId();  // index in bemc point array
-    towID = cluster->btowId();   // projected tower Id: 1 - 4800
-    towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-    towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int clusID = cluster->bemcId();  // index in bemc point array
+    int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+    int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+    int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
-/*
-    // get tower location - from ID
-    float towerEta, towerPhi;    // need to be floats
-    mGeom->getEtaPhi(towID,towerEta,towerPhi);
-    if(towerPhi < 0)    towerPhi += 2*pi;
-    if(towerPhi > 2*pi) towerPhi -= 2*pi;
-*/
+    // get tower location - from ID: via this method, need to correct eta
+    float tEta, tPhi;    // need to be floats
+    StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
+    mGeom2->getEtaPhi(towID,tEta,tPhi);
+    if(tPhi < 0)    tPhi += 2*pi;
+    if(tPhi > 2*pi) tPhi -= 2*pi;
 
     // cluster and tower position - from vertex and ID
+    StThreeVectorF  towPosition;
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
-    clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
+    double towPhi = towPosition.phi();
+    double towEta = towPosition.pseudoRapidity();
+    double detectorRadius = mGeom2->Radius();  // use this below so you don't have to hardcode it TODO
 
     // matched track index
     int trackIndex = cluster->trackIndex();
     StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
-    StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
-    if(!trk) continue;
-    //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
+    if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    StThreeVectorD position, momentum;
-    double kilogauss = 1000;
-    double tesla = 0.00001;
-    double magneticField = Bfield * kilogauss  / tesla; // in Tesla
-    bool ok = kFALSE;
-    if(mPosition) { 
-      ok = mPosition->projTrack(&position, &momentum, trkMu,(Double_t)Bfield); 
-    }
+  } // BEmc loop
 
-    double z, eta, phi, theta;
-    eta = position.pseudoRapidity(); 
-    phi = position.phi();
-    z   = position.z();
-    theta = 2*TMath::ATan(exp(-1.0*eta));
+  // loop over towers
+  int nTowers = mPicoDst->numberOfBTOWHits();
+  for(int itow = 0; itow < nTowers; itow++) {
+    StPicoBTowHit *tower = mPicoDst->btowHit(itow);
+    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
-    // TEST comparing track position with cluster and tower
-    double towPhi = towPosition.phi();
-    double towEta = towPosition.pseudoRapidity();
-    double pmatchPhi = trk->pMom().phi();
-    double gmatchPhi = trk->gMom().phi();
-    double pmatchEta = trk->pMom().pseudoRapidity();
-    double gmatchEta = trk->gMom().pseudoRapidity();
-    double clusPhi = clusPosition.phi();
-    double clusEta = clusPosition.pseudoRapidity();
-    if(towPhi < 0) towPhi += 2*pi;
-    if(towPhi > 2*pi) towPhi -= 2*pi;
-    if(gmatchPhi < 0) gmatchPhi += 2*pi;
-    if(gmatchPhi > 2*pi) gmatchPhi -= 2*pi;
-    if(clusPhi < 0) clusPhi += 2*pi;
-    if(clusPhi > 2*pi) clusPhi -= 2*pi;
+    // tower ID
+    int towerID = tower->id();
+    if(towerID < 0) continue; // double check these aren't still in the event list
 
-    // print some tower / cluster / track debug info
-    /* 
-      cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
-      cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
-      cout<<" mTowE = "<<cluster->btowE()<<"  mTowE2 = "<<cluster->btowE2()<<"  mTowE3 = "<<cluster->btowE3()<<endl;
-      cout<<"Track: -> trkPhi = "<<gmatchPhi<<" trkEta = "<<gmatchEta<<"  trkP = "<<trk->gMom().mag()<<endl;
-      cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
-      cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
-      cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
-    */
-  } // cluster loop
+    // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+    double towerPhi = towerPosition.phi();
+    double towerEta = towerPosition.pseudoRapidity();
+    int towerADC = tower->adc();
+    double towerE = tower->energy();
+
+  } // tower loop
 
 }  // run towers function
 

@@ -634,11 +634,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       double matchP = mTrkMom.mag();
       double clusPhi = clusPosition.phi();
       double clusEta = clusPosition.pseudoRapidity();
-      if(towPhi < 0) towPhi += 2*pi;
+      if(towPhi < 0)    towPhi += 2*pi;
       if(towPhi > 2*pi) towPhi -= 2*pi;
       if(matchPhi < 0)    matchPhi += 2*pi;
       if(matchPhi > 2*pi) matchPhi -= 2*pi;
-      if(clusPhi < 0) clusPhi += 2*pi;
+      if(clusPhi < 0)    clusPhi += 2*pi;
       if(clusPhi > 2*pi) clusPhi -= 2*pi;
 
       // print some tower / cluster / track debug info
@@ -657,10 +657,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 */
 
 // ==================== March 6th, 2018
-    // set / initialize some variables
-    double pi = 1.0*TMath::Pi();
-    double pi0mass = Pico::mMass[0]; // GeV
-
     // towerStatus array
     float mTowerMatchTrkIndex[4801] = { 0 };
     bool mTowerStatusArr[4801] = { 0 };
@@ -711,6 +707,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       mTowerStatusArr[towID] = kTRUE;
       matchedTowerTrackCounter++;
 
+/*    // may not need this chunk anymore - March 14, 2018
+ *
       // get track variables to matched tower
       StThreeVectorF mTrkMom;
       if(doUsePrimTracks) { 
@@ -726,6 +724,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       double phi = mTrkMom.phi();
       double eta = mTrkMom.pseudoRapidity();
       double p = mTrkMom.mag();
+*/
 
     }
 
@@ -778,10 +777,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
         // track variables
         double pt = mTrkMom.perp();
-        double phi = mTrkMom.phi();
-        double eta = mTrkMom.pseudoRapidity();
+        //double phi = mTrkMom.phi();
+        //double eta = mTrkMom.pseudoRapidity();
         double p = mTrkMom.mag();
-        double pi0mass = Pico::mMass[0]; // GeV
         double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
         // apply hadronic correction to tower
@@ -817,7 +815,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // add towers to fastjet
       // tower index - TODO check this!
       int uidTow = -(itow + 2);  
-      //fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, itow); // includes E
       fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, uidTow); // includes E
     } // tower loop
 
@@ -834,7 +831,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   GetSortedArray(indexes, jets_incl);
 
   // loop over FastJet jets
-  for(UInt_t ij=0, jetCount=0; ij<jets_incl.size(); ++ij) {
+  for(UInt_t ij = 0, jetCount = 0; ij < jets_incl.size(); ++ij) {
     // PERFORM CUTS ON JETS before saving
     // cut on min jet pt
     if(jets_incl[ij].perp() < fMinJetPt) continue;
@@ -905,8 +902,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         double eta = mTrkMom.pseudoRapidity();
 
         // adjust phi value:  0 < phi < 2pi
-        if(phi < 0)    phi+= 2*pi;
-        if(phi > 2*pi) phi-= 2*pi;
+        if(phi < 0)    phi += 2*pi;
+        if(phi > 2*pi) phi -= 2*pi;
 
         // find max track pt
         if(pt > maxTrack) maxTrack = pt;
@@ -940,7 +937,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
           StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towid);
           double towerPhi = towerPosition.phi();
           double towerEta = towerPosition.pseudoRapidity();
-          //int towerADC = tower->adc();
           double towE = tower->energy();
           neutralE += towE;
         

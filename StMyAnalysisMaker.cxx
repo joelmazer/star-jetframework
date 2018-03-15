@@ -805,8 +805,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
   // set up centrality bins for mixed events
   // for pp we need mult bins for event mixing. Create binning here, to also make a histogram from it
   // TODO needs updating for STAR multiplicities
-  int nCentralityBinspp = 8;
-  double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
+  //int nCentralityBinspp = 8;
+  //double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
 
   // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
   int nCentralityBinsAuAu = 100;
@@ -827,8 +827,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   // not used right now
   Double_t centralityBinsAuAu[nCentralityBinsAuAu]; // nCentralityBinsAuAu
-  for(Int_t ic=0; ic<nCentralityBinsAuAu; ic++){
-   centralityBinsAuAu[ic]=mult*ic;
+  for(Int_t ic = 0; ic < nCentralityBinsAuAu; ic++){
+   centralityBinsAuAu[ic] = mult*ic;
   }
 
   // temp FIXME:  Currently 5% centrality bins 0-80%, 4cm z-vtx bins
@@ -1053,8 +1053,7 @@ void StMyAnalysisMaker::Clear(Option_t *opt) {
 //_____________________________________________________________________________
 Int_t StMyAnalysisMaker::Make() {
   const double pi = 1.0*TMath::Pi();
-  bool printInfo = kFALSE;
-  bool firstEvent = kFALSE;
+  //bool printInfo = kFALSE, firstEvent = kFALSE;
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
 
@@ -1104,11 +1103,11 @@ Int_t StMyAnalysisMaker::Make() {
   int fillId = mPicoEvent->fillId();
   int eventId = mPicoEvent->eventId();
   double fBBCCoincidenceRate = mPicoEvent->BBCx();
-  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  //double fZDCCoincidenceRate = mPicoEvent->ZDCx();
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?i
 
   // ================= Event Plane flattening container ==============
-  // set up event plane flattening container 
+  // set up event plane flattening container - not currently used 
   TObjArray *maps = (TObjArray*)fFlatContainer->GetObject(fRunNumber,"eventplaneFlat");
   if(maps) {
     fTPCnFlat = (StEPFlattener*)maps->At(0);
@@ -1136,8 +1135,8 @@ Int_t StMyAnalysisMaker::Make() {
   ref16 = GetCentBin(cent16, 16);  
   Int_t centbin = GetCentBin(cent16, 16);
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-  Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+  //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
+  //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
@@ -1414,8 +1413,8 @@ Int_t StMyAnalysisMaker::Make() {
 
     // get highest Pt jet in event (leading jet)
     if(highestjetpt<jetpt){
-      ijethi=ijet;
-      highestjetpt=jetpt;
+      ijethi = ijet;
+      highestjetpt = jetpt;
     }
 
     // the below track and cluster cut is already done (FOR TRACK only as still looking at CHARGED only)
@@ -1555,7 +1554,7 @@ Int_t StMyAnalysisMaker::Make() {
     if (pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
       // loop over Jets in the event
-      double Mixmaxtrackpt, MixNtrackConstit;
+      //double Mixmaxtrackpt, MixNtrackConstit;
       // loop over jets (passing cuts - set by jet maker)
       for(int ijet = 0; ijet < njets; ijet++) {
         // leading jet
@@ -1570,10 +1569,9 @@ Int_t StMyAnalysisMaker::Make() {
         double Mixjetarea = jet->Area();
         double Mixjetpt = jet->Pt();
         double Mixcorrjetpt = Mixjetpt - Mixjetarea*fRhoVal;
-        double MixjetE = jet->E();
+        //double MixjetE = jet->E();
         double MixjetEta = jet->Eta();
         double MixjetPhi = jet->Phi();
-        double MixjetNEF = jet->NEF();
         //double dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
         double dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
 
@@ -1602,33 +1600,6 @@ Int_t StMyAnalysisMaker::Make() {
 
             // loop over background (mixed event) tracks
             for(int ibg = 0; ibg < Nbgtrks; ibg++) {
-              // get tracks
-              //StPicoTrack* trk = mPicoDst->track(ibg);
-/*
-              StPicoTrack* trk = static_cast<StPicoTrack*>(bgTracks->At(ibg));
-              if(!trk){ continue; }
-
-              // acceptance and kinematic quality cuts
-              if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
-              
-              // declare kinematic variables
-              if(doUsePrimTracks) {
-                // get primary track variables
-                StThreeVectorF mPMomentum = trk->pMom();
-                Mixphi = mPMomentum.phi();
-                Mixeta = mPMomentum.pseudoRapidity();
-                Mixpt = mPMomentum.perp();
-              } else {
-                // get global track variables
-                StThreeVectorF mgMomentum = trk->gMom(mVertex, Bfield);
-                Mixphi = mgMomentum.phi();
-                Mixeta = mgMomentum.pseudoRapidity();
-                Mixpt = mgMomentum.perp();
-              }
-           
-              Mixcharge = trk->charge();
-*/
-
               // trying new slimmed PicoTrack class
               //StPicoTrk* trk = (StPicoTrk*)bgTracks->At(ibg);
               StFemtoTrack* trk = (StFemtoTrack*)bgTracks->At(ibg);
@@ -1639,8 +1610,8 @@ Int_t StMyAnalysisMaker::Make() {
               short Mixcharge = trk->Charge();
 
               // shift angle (0, 2*pi) 
-              if(Mixphi < 0)    Mixphi+= 2*pi;
-              if(Mixphi > 2*pi) Mixphi-= 2*pi;
+              if(Mixphi < 0)    Mixphi += 2*pi;
+              if(Mixphi > 2*pi) Mixphi -= 2*pi;
 
               //cout<<"itrack = "<<ibg<<"  phi = "<<Mixphi<<"  eta = "<<Mixeta<<"  pt = "<<Mixpt<<"  q = "<<Mixcharge<<endl;
 
@@ -2150,7 +2121,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
   // construct variables, get # of tracks
   int nMixTracks = mPicoDst->numberOfTracks();
   int iterTrk = 0;
-  const double pi = 1.0*TMath::Pi();
+  //const double pi = 1.0*TMath::Pi();
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
@@ -2173,11 +2144,11 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
       mTrkMom = trk->gMom(mVertex, Bfield);
     }
 
-    // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
-    short charge = trk->charge();
+    // track variables - used with alt method below
+    //double pt = mTrkMom.perp();
+    //double phi = mTrkMom.phi();
+    //double eta = mTrkMom.pseudoRapidity();
+    //short charge = trk->charge();
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
     //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
@@ -2197,7 +2168,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 //________________________________________________________________________
 Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
+  //double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
@@ -2217,12 +2188,12 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
   double pt = mTrkMom.perp();
   double phi = mTrkMom.phi();
   double eta = mTrkMom.pseudoRapidity();
-  double px = mTrkMom.x();
-  double py = mTrkMom.y();
-  double pz = mTrkMom.z();
-  double p = mTrkMom.mag();
-  double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  short charge = trk->charge();
+  //double px = mTrkMom.x();
+  //double py = mTrkMom.y();
+  //double pz = mTrkMom.z();
+  //double p = mTrkMom.mag();
+  //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+  //short charge = trk->charge();
   double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   int nHitsFit = trk->nHitsFit();
   int nHitsMax = trk->nHitsMax();
@@ -3441,7 +3412,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   // STEP3: read shift correction for BBC event plane (read in from file)
   double bbc_delta_psi = 0.;	
-  double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; 
+  //double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; // comment in with code chunk below
   if(bbc_apply_corr_switch) { // need to have ran recentering + shift prior
     for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
@@ -3673,7 +3644,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // STEP3: read shift correction for BBC event plane (read in from file or header)
   double zdc_delta_psi = 0.;
-  double zdc_shift_Aval = 0., zdc_shift_Bval = 0.;
+  //double zdc_shift_Aval = 0., zdc_shift_Bval = 0.; // comment in with below code chunk
   if(zdc_apply_corr_switch) { // need to have ran recentering + shift prior
     for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
@@ -4022,7 +3993,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   //=================================shift correction
   // STEP3: read shift correction fo TPC event plane (read in from file)
   double tpc_delta_psi = 0.;
-  double tpc_shift_Aval = 0., tpc_shift_Bval = 0.;
+  //double tpc_shift_Aval = 0., tpc_shift_Bval = 0.; // comment in with code chunk below
   if(tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
     // loop over harmonics
     for(int nharm = 1; nharm < 21; nharm++){
@@ -4171,7 +4142,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 // ______________________________________________________________________________________________
 void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   TVector2 mQtpcn, mQtpcp;
-  double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
+  //double mQtpcnx = 0., mQtpcny = 0., mQtpcpx = 0., mQtpcpy = 0.;
   int order = n; //2;
   double pi = 1.0*TMath::Pi();
   int ntracksNEG = 0, ntracksPOS = 0;

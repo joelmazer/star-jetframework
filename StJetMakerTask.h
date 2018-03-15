@@ -147,28 +147,6 @@ class StJetMakerTask : public StMaker {
   void         SetLegacyMode(Bool_t mode)                 { fLegacyMode       = mode  ; }
   void         SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
 
-// ========
-/*
-  void                   SetGhostArea(Double_t gharea)              { if (IsLocked()) return; fGhostArea        = gharea; }
-  void                   SetJetsName(const char *n)                 { if (IsLocked()) return; fJetsTag          = n     ; }
-  void                   SetJetsTag(const char *n)                  { if (IsLocked()) return; fJetsTag          = n     ; }
-  void                   SetJetEtaRange(Double_t emi, Double_t ema) { if (IsLocked()) return; fJetEtaMin        = emi   ; fJetEtaMax = ema; }
-  void                   SetJetPhiRange(Double_t pmi, Double_t pma) { if (IsLocked()) return; fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
-  void                   SetJetTrackEtaRange(Double_t etmi, Double_t etma) { if (IsLocked()) return; fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
-  void                   SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { if (IsLocked()) return; fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
-  void                   SetJetAlgo(EJetAlgo_t a)                   { if (IsLocked()) return; fJetAlgo          = a     ; }
-  void                   SetJetType(EJetType_t t)                   { if (IsLocked()) return; fJetType          = t     ; }
-  void                   SetLocked()                                { fLocked = kTRUE;}
-  void                   SetMinJetArea(Double_t a)                  { if (IsLocked()) return; fMinJetArea       = a     ; }
-  void                   SetMinJetPt(Double_t j)                    { if (IsLocked()) return; fMinJetPt         = j     ; }
-  void                   SetRecombScheme(ERecoScheme_t scheme)      { if (IsLocked()) return; fRecombScheme     = scheme; }
-  void                   SetTrackEfficiency(Double_t t)             { if (IsLocked()) return; fTrackEfficiency  = t     ; }
-  void                   SetLegacyMode(Bool_t mode)                 { if (IsLocked()) return; fLegacyMode       = mode  ; }
-  void                   SetFillGhost(Bool_t b=kTRUE)               { if (IsLocked()) return; fFillGhost        = b     ; }
-//  void                   SetRadius(Double_t r)                      { if (IsLocked()) return; fRadius           = r     ; }
-*/
-// =======
-
   // for jet substructure routines
   StJetUtility* AddUtility(StJetUtility* utility);
   TObjArray* GetUtilities() { return fUtilities ; }

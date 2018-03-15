@@ -429,12 +429,6 @@ int StPicoTrackClusterQA::Make()
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
 
-
-  // Event / object PRINT INFO!!
-//  mPicoDst->printTriggers();
-//  mPicoDst->printBEmcPidTraits();
-//  mPicoDst->printBTOWHits();
-
   // Event QA print-out
   // printing available information from the PicoDst objects
 /*
@@ -458,7 +452,6 @@ int StPicoTrackClusterQA::Make()
   if(mtdpid) mtdpid->Print();
 */
 
-
   // Run - Trigger Selection to process jets from
   if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) return kStOK;
   if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) return kStOK; //FIXME//
@@ -474,6 +467,7 @@ int StPicoTrackClusterQA::Make()
   //cout<<"highTowerThreshold 2 = "<<mPicoEvent->highTowerThreshold(2)<<endl;
   //cout<<"highTowerThreshold 3 = "<<mPicoEvent->highTowerThreshold(3)<<endl;
 
+  // Event / object PRINT INFO!!
   //mPicoDst->printTracks();
   //mPicoDst->printTriggers();
   ////mPicoDst->printBTOWHits();
@@ -639,11 +633,11 @@ void StPicoTrackClusterQA::RunQA()
     double gmatchEta = trk->gMom().pseudoRapidity();
     double clusPhi = clusPosition.phi();
     double clusEta = clusPosition.pseudoRapidity();
-    if(towPhi < 0) towPhi += 2*pi;
+    if(towPhi < 0)    towPhi += 2*pi;
     if(towPhi > 2*pi) towPhi -= 2*pi;
-    if(gmatchPhi < 0) gmatchPhi += 2*pi;
+    if(gmatchPhi < 0)    gmatchPhi += 2*pi;
     if(gmatchPhi > 2*pi) gmatchPhi -= 2*pi;
-    if(clusPhi < 0) clusPhi += 2*pi;
+    if(clusPhi < 0)    clusPhi += 2*pi;
     if(clusPhi > 2*pi) clusPhi -= 2*pi;
 
 /*
@@ -858,8 +852,8 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
   // track pt, eta, phi cuts
   if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
-  if(phi < 0) phi+= 2*pi;
-  if(phi > 2*pi) phi-= 2*pi;
+  if(phi < 0)    phi += 2*pi;
+  if(phi > 2*pi) phi -= 2*pi;
   if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
 
   // additional quality cuts for tracks
@@ -1433,6 +1427,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     mTowerStatusArr[towID] = kTRUE;
     matchedTowerTrackCounter++;
 
+/*  // probably don't need this chunk.. March 14, 2018
+ *
     // get track variables to matched tower
     StThreeVectorF mTrkMom;
     if(doUsePrimTracks) { 
@@ -1448,11 +1444,13 @@ void StPicoTrackClusterQA::RunTowerTest()
     double phi = mTrkMom.phi();
     double eta = mTrkMom.pseudoRapidity();
     double p = mTrkMom.mag();
+*/
 
     // print tower and track info
 //    cout<<"towers: towPhi = "<<towPhi<<"  towEta = "<<towEta<<"  etaCorr = "<<etaCorr;  //<<endl;
 //    cout<<"  tPhi = "<<tPhi<<"  tEta = "<<tEta<<"  etaCorr2 = "<<etaCorr2<<endl;
 //    cout<<"tracks:  pt = "<<pt<<"  p = "<<p<<"  phi = "<<phi<<"  eta = "<<eta<<endl;
+
   }
 
   // print statment on matches

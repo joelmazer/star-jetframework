@@ -528,8 +528,8 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
-  if(phi < 0) phi+= 2*pi;
-  if(phi > 2*pi) phi-= 2*pi;
+  if(phi < 0)    phi += 2*pi;
+  if(phi > 2*pi) phi -= 2*pi;
   if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
     
   // additional quality cuts for tracks
@@ -631,9 +631,9 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetLeadingJet(StRhoParameter* eventRho) {
-    // return pointer to the highest pt jet (before background subtraction) within acceptance
-    // only rudimentary cuts are applied on this level, hence the implementation outside of
-    // the framework
+  // return pointer to the highest pt jet (before background subtraction) within acceptance
+  // only rudimentary cuts are applied on this level, hence the implementation outside of
+  // the framework
   if(fJets) {
     Int_t iJets(fJets->GetEntriesFast());
     Double_t pt(0);

@@ -145,7 +145,7 @@ void StRho::Clear(Option_t *opt) {
 //________________________________________________________________________
 Int_t StRho::Make() 
 {
-  // Run the analysis - ran for each event
+  // Run the analysis - for each event
 
   // get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
@@ -174,7 +174,7 @@ Int_t StRho::Make()
 
   // z-vertex cut
   // per the Aj analysis (-40, 40) for reference
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;  // kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // get JetMaker
   JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
@@ -194,7 +194,6 @@ Int_t StRho::Make()
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
@@ -205,17 +204,6 @@ Int_t StRho::Make()
   Int_t cent16 = grefmultCorr->getCentralityBin16();
   Int_t centbin = GetCentBin(cent16, 16);
   if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-
-  // to limit filling unused entries in sparse, only fill for certain centrality ranges
-  // ranges can be different than functional cent bin setter
-  Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
-  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
-  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
-  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
-  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
-  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
-  else cbin = -99;
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
@@ -246,9 +234,6 @@ Int_t StRho::Make()
       //if (!AcceptJet(jet)) continue;
       // get some jet parameters
       double jetPt = jet->Pt();
-      double jetEta = jet->Eta();
-      double jetPhi = jet->Phi();
-      double jetArea = jet->Area();
       // some threshold cuts for tests
       if(jetPt < 0) continue;
 
@@ -263,6 +248,7 @@ Int_t StRho::Make()
 	maxJetIds[1] = ij;
       }
     }
+
     // only set to remove leading jet 
     if(fNExclLeadJets < 2) {
       maxJetIds[1] = -1;
@@ -288,8 +274,6 @@ Int_t StRho::Make()
     //if(!AcceptJet(jet)) continue; //FIXME
     // get some get parameters
     double jetPt = jet->Pt();
-    double jetEta = jet->Eta();
-    double jetPhi = jet->Phi();
     double jetArea = jet->Area();
     // some threshold cuts for tests
     if(jetPt < 0) continue;
