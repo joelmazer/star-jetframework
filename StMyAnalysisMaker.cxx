@@ -1379,7 +1379,7 @@ Int_t StMyAnalysisMaker::Make() {
 
     // loop over constituents towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-      int towerid = jet->TrackAt(itow);
+      int towerid = jet->ClusterAt(itow);
       StPicoBTowHit *tow = mPicoDst->btowHit(towerid);
       if(!tow){ continue; }
     }
