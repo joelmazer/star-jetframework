@@ -1,4 +1,4 @@
-double tpc_center_Qnx_bin1[9][20]=
+static double tpc_center_Qnx_bin1[9][20]=
 {
 0,
 0,
@@ -181,7 +181,7 @@ double tpc_center_Qnx_bin1[9][20]=
 0,
 0 
 };
-double tpc_center_Qny_bin1[9][20]=
+static double tpc_center_Qny_bin1[9][20]=
 {
 0,
 0,
@@ -364,7 +364,7 @@ double tpc_center_Qny_bin1[9][20]=
 0,
 0 
 };
-double tpc_center_Qpx_bin1[9][20]=
+static double tpc_center_Qpx_bin1[9][20]=
 {
 0,
 0,
@@ -547,7 +547,7 @@ double tpc_center_Qpx_bin1[9][20]=
 0,
 0 
 };
-double tpc_center_Qpy_bin1[9][20]=
+static double tpc_center_Qpy_bin1[9][20]=
 {
 0,
 0,

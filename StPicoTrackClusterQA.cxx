@@ -1472,8 +1472,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     double towerPhi = towerPosition.phi();
     double towerEta = towerPosition.pseudoRapidity();
     int towerADC = tower->adc();
-    double towerE = tower->energy();
     double towerEunCorr = tower->energy();
+    double towerE = tower->energy();
 
     // tower matched to firing trigger - TODO
     //if(fTowerToTriggerTypeHT1[emcTrigID])
@@ -1507,11 +1507,12 @@ void StPicoTrackClusterQA::RunTowerTest()
 
       // apply hadronic correction
       towerE = towerE - (mHadronicCorrFrac * E);
-      if(towerE < 0) towerE = 0.0;
-      if(towerE < mTowerEnergyMin) continue;
-
     } 
     // else - no match so treat towers on their own
+
+    // cut on tower energy - corrected or not
+    if(towerE < 0) towerE = 0.0;
+    if(towerE < mTowerEnergyMin) continue;
 
 /*
     // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)

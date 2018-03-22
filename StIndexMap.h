@@ -112,9 +112,10 @@ class StIndexMap {
   const TClonesArray * GetObject(const TClonesArray * inputObject) const;
   bool IsUnderlyingInputObjectTypeCompatible(const U * inputObject) const;
 
+  int fOffset;                         ///< Offset between each TClonesArray
+
   std::map <int, U *> fGlobalIndexMap; //!<! Map between index and input object
 
-  int fOffset;                         ///< Offset between each TClonesArray
   TClass* fClass;                      ///< Used to compare the type of V against the underlying input object type
 };
 

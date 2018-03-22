@@ -116,7 +116,7 @@ class StJetFrameworkPicoBase : public StMaker {
    
     // class required functions
     virtual Int_t Init();
-    virtual Int_t Make();
+    //virtual Int_t Make();
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
 
@@ -134,6 +134,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
+    virtual void            SetCorrectJetPt(Bool_t cpt)        { fCorrJetPt = cpt; }
     
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
@@ -147,11 +148,10 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
-    // use rho to correct jet pt in correlation sparses
-    virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
-
     // leading jet
-    StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
+    StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
+    StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
+ 
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
 
@@ -174,6 +174,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Double_t               GetReactionPlane(); // get reaction plane angle
     Int_t                  EventCounter();     // when called, provides Event #
+    Double_t               GetRhoValue(TString fRhoMakerNametemp);
+    Bool_t                 DoComparison(int myarr[], int elems);
+
     
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
@@ -183,9 +186,21 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fRequireCentSelection;   // require particular centrality bin
 
+    // centrality    
+    Double_t               fCentralityScaled;       // scaled by 5% centrality 
+    Int_t                  ref16;                   // multiplicity bin (16)
+    Int_t                  ref9;                    // multiplicity bin (9)
+
+    // event
+    Double_t               Bfield;                  // event Bfield
+    StThreeVectorF         mVertex;                 // event vertex 3-vector
+    Double_t               zVtx;                    // z-vertex component
+
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
     Double_t               fTrackBias;              // high pt track in jet bias
+    Double_t               fTowerBias;              // high E tower in jet bias
+
     Double_t               fJetRad;                 // jet radius
     Double_t               fEventZVtxMinCut;        // min event z-vertex cut
     Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
@@ -202,6 +217,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
+    StJet*         fSubLeadingJet;//! sub-leading jet
     Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t          fTrackWeight; // track weight for Q-vector summation
 
@@ -209,7 +225,9 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // clonesarray collections of tracks and jets
     TClonesArray   *fTracksME;//! track collection to slim down for mixed events
-    TClonesArray   *fJets;//! jet collection
+    TClonesArray   *fJets;//!  jet array
+    TClonesArray   *fBGJets;//! background jets array
+
 
     // PicoDstMaker and PicoDst object pointer
     StPicoDstMaker *mPicoDstMaker;
@@ -253,6 +271,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t GetInputEventCounter() {return mInputEventCounter;}
                 
   private:
+
     ClassDef(StJetFrameworkPicoBase, 1)
 };
 

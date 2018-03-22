@@ -1,4 +1,4 @@
-double bbc_shift_A[9][20][20]=
+static double bbc_shift_A[9][20][20]=
 {
 0,
 0,
@@ -3601,7 +3601,7 @@ double bbc_shift_A[9][20][20]=
 0,
 0 
 };
-double bbc_shift_B[9][20][20]=
+static double bbc_shift_B[9][20][20]=
 {
 0,
 0,

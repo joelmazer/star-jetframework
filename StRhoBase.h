@@ -60,7 +60,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TF1*                   LoadRhoFunction(const char* path, const char* name);
   void                   SetInEventSigmaRho(Double_t s)                        { fInEventSigmaRho      = s       ;                   }
   void                   SetAttachToEvent(Bool_t a)                            { fAttachToEvent        = a       ;                   }
-  void                   SetSmallSystem(Bool_t setter = kTRUE)                 { fIsPbPb               = !setter ;                   }
+  void                   SetSmallSystem(Bool_t setter = kTRUE)                 { fIsAuAu               = !setter ;                   }
 
   const char*            GetOutRhoName() const                                 { return fOutRhoName.Data()       ;                   }
   const char*            GetOutRhoScaledName() const                           { return fOutRhoScaledName.Data() ;                   }
@@ -84,15 +84,12 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TF1                   *fScaleFunction;                 // pre-computed scale factor as a function of centrality
   Double_t               fInEventSigmaRho;               // in-event sigma rho
   Bool_t                 fAttachToEvent;                 // whether or not attach rho to the event objects list
-  Bool_t                 fIsPbPb;                        // different histogram ranges for pp/pPb and PbPb
+  Bool_t                 fIsAuAu;                        // different histogram ranges for pp/pAu and AuAu
   
   StRhoParameter        *fOutRho;                        //!output rho object
   StRhoParameter        *fOutRhoScaled;                  //!output scaled rho object
   StRhoParameter        *fCompareRho;                    //!rho object to compare
   StRhoParameter        *fCompareRhoScaled;              //!scaled rho object to compare
-
-  Double_t               fEventZVtxMinCut;               // min event z-vertex cut
-  Double_t               fEventZVtxMaxCut;               // max event z-vertex cut
 
   TH2F                  *fHistJetPtvsCent;               //!jet pt vs. centrality
   TH2F                  *fHistJetAreavsCent;             //!jet area vs. centrality
@@ -116,9 +113,6 @@ class StRhoBase : public StJetFrameworkPicoBase {
  
   TH2F                  *fHistRhovsNcluster;             //!rho vs. no. of clusters
   TH2F                  *fHistRhoScaledvsNcluster;       //!rhoscaled vs. no. of clusters
-
-  TClonesArray          *fJets;//! jets array
-  TClonesArray          *fBGJets;//! background jets array
 
   // maker names
   TString                mOutName;

@@ -1,7 +1,7 @@
 #ifndef runlistP17id_h
 #define runlistP17id_h
 
-int Run14AuAu_IdNo[1654]={
+static int Run14AuAu_IdNo[1654]={
 15075007,
 15075065,
 15075073,

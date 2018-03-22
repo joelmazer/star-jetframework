@@ -23,7 +23,6 @@
 // STAR includes
 #include "StRhoParameter.h"
 #include "StJet.h"
-//#include "StRhoBase.h"
 #include "StJetMakerTask.h"
 #include "StMyAnalysisMaker.h"
 #include "StMaker.h"
@@ -49,13 +48,11 @@ StRhoBase::StRhoBase() :
   fScaleFunction(0),
   fInEventSigmaRho(35.83),
   fAttachToEvent(kTRUE),
-  fIsPbPb(kTRUE),
+  fIsAuAu(kTRUE),
   fOutRho(0),
   fOutRhoScaled(0),
   fCompareRho(0),
   fCompareRhoScaled(0),
-  fEventZVtxMinCut(-40.),
-  fEventZVtxMaxCut(40.),
   fHistJetPtvsCent(0),
   fHistJetAreavsCent(0),
   fHistJetRhovsCent(0),
@@ -73,8 +70,6 @@ StRhoBase::StRhoBase() :
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0),
-  fJets(0),
-  fBGJets(0),
   mOutName(""),
   fJetMakerName(""),
   fRhoMakerName("")
@@ -100,13 +95,11 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fScaleFunction(0),
   fInEventSigmaRho(35.83),
   fAttachToEvent(kTRUE),
-  fIsPbPb(kTRUE),
+  fIsAuAu(kTRUE),
   fOutRho(0),
   fOutRhoScaled(0),
   fCompareRho(0),
   fCompareRhoScaled(0),
-  fEventZVtxMinCut(-40.),
-  fEventZVtxMaxCut(40.),
   fHistJetPtvsCent(0),
   fHistJetAreavsCent(0),
   fHistJetRhovsCent(0),
@@ -124,8 +117,6 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0),
-  fJets(0),
-  fBGJets(0),
   mOutName(outName),
   fJetMakerName(jetMakerName),
   fRhoMakerName(name)
@@ -286,10 +277,10 @@ void StRhoBase::DeclareHistograms()
   // User create output objects, called at the beginning of the analysis.
   //if (!fCreateHisto) return; //FIXME
 
-  // ranges for PbPb, change for AuAug -FIXME
+  // ranges for AuAu - TODO update range
   Float_t Ntrackrange[2] = {0, 6000};
   Float_t V0Mult[2] = {0.,25000.};
-  if(!fIsPbPb){
+  if(!fIsAuAu){
      //set multiplicity related axes to a smaller max value
      Ntrackrange[1] = 200.;
      V0Mult[1] = 2000.;
@@ -471,7 +462,7 @@ Int_t StRhoBase::Make()
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  //Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning

@@ -105,6 +105,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
+    virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     
     // event setters
@@ -160,9 +161,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetEPTPCptAssocBin(Int_t pb)                    {fTPCptAssocBin = pb; }
 
     // Where to read calib object with EP calibration if not default
-    void                    SetEPcalibFileName(const TString filename) {fEPcalibFileName = filename; } 
-    void                    SetOutFileNameEP(const TString epout) {mOutNameEP = epout; }
-    virtual void            SetdoReadCalibFile(Bool_t rc)                   {doReadCalibFile = rc; } 
+    void                    SetEPcalibFileName(TString filename)      {fEPcalibFileName = filename; } 
+    void                    SetOutFileNameEP(TString epout)           {mOutNameEP = epout; }
+    virtual void            SetdoReadCalibFilei(Bool_t rc)                   {doReadCalibFile = rc; } 
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
@@ -208,6 +209,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
     Double_t               fJetConstituentCut;      // min jet constituent
     Double_t               fTrackBias;              // high pt track in jet bias
+    Double_t               fTowerBias;              // high E tower in jet bias
     Double_t               fJetRad;                 // jet radius
     Double_t               fEventZVtxMinCut;        // min event z-vertex cut
     Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
@@ -301,7 +303,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
 
     // clonesarray collections of tracks and jets
     TClonesArray          *fTracksME;//! track collection to slim down for mixed events
-    TClonesArray          *fJets;//! jet collection
+//    TClonesArray          *fJets;//! jet collection
 
   private:
     //void                   GetVZEROEventPlane(Bool_t isFlatten);
@@ -391,6 +393,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1F* hJetTracksPt;//!
     TH1F* hJetTracksPhi;//!
     TH1F* hJetTracksEta;//!
+    TH1F* hJetTracksZ;//!
     TH2F* hJetPtvsArea;//!
 
     // correlation histo
@@ -414,14 +417,14 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH2F *hZDCDis_E;//!
     TH2F *hBBCDis_W;//!
     TH2F *hBBCDis_E;//!
-    TProfile *Q2_p[9][20];//!  // 15
-    TProfile *Q2_m[9][20];//!  // 15
+    TProfile *Q2_p[9][20];//!
+    TProfile *Q2_m[9][20];//!
     TProfile *phishiftA[2][2][9];
     TProfile *phishiftB[2][2][9];
-    TProfile *hTPC_shift_N[9][20];//! // 15
-    TProfile *hTPC_shift_P[9][20];//! // 15
-    TProfile *hBBC_shift_A[9][20];//! // 15
-    TProfile *hBBC_shift_B[9][20];//! // 15
+    TProfile *hTPC_shift_N[9][20];//!
+    TProfile *hTPC_shift_P[9][20];//!
+    TProfile *hBBC_shift_A[9][20];//!
+    TProfile *hBBC_shift_B[9][20];//!
     TProfile *hBBC_shift_A_E[9][20];//!
     TProfile *hBBC_shift_A_W[9][20];//!
     TProfile *hBBC_shift_B_E[9][20];//!

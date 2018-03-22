@@ -2,7 +2,7 @@
 #define runlistP16ij_h
 
 // changed double to int on March 7, 2018
-int Run16AuAu_IdNo[1359]={
+static int Run16AuAu_IdNo[1359]={
 17062047,
 17062049,
 17062051,

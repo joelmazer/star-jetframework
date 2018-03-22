@@ -1,4 +1,4 @@
-double bbc_center_ex[1359]=
+static double bbc_center_ex[1359]=
 {
 0.104383,
 0.0984767,
@@ -1360,7 +1360,7 @@ double bbc_center_ex[1359]=
 0.104358,
 0.101279 
 };
-double bbc_center_ey[1359]=
+static double bbc_center_ey[1359]=
 {
 -0.0022769,
 -0.00415927,
@@ -2722,7 +2722,7 @@ double bbc_center_ey[1359]=
 -0.00269722,
 -0.00435078 
 };
-double bbc_center_wx[1359]=
+static double bbc_center_wx[1359]=
 {
 0.0622894,
 0.059485,
@@ -4084,7 +4084,7 @@ double bbc_center_wx[1359]=
 0.0606266,
 0.058995 
 };
-double bbc_center_wy[1359]=
+static double bbc_center_wy[1359]=
 {
 -0.00226853,
 0.00834668,

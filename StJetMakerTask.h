@@ -188,10 +188,8 @@ class StJetMakerTask : public StMaker {
 #endif
 */
 
-
   // set hadronic correction fraction for matched tracks to towers
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
-
 
  protected:
   void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);

@@ -1,7 +1,7 @@
 #ifndef StAnMaker_h
 #define StAnMaker_h
 
-#include "StMaker.h"
+#include "StChain/StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;

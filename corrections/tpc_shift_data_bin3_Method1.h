@@ -1,4 +1,4 @@
-double tpc_shift_N_bin3_Method1[9][20][20]=
+static double tpc_shift_N_bin3_Method1[9][20][20]=
 {
 0,
 0,
@@ -3601,7 +3601,7 @@ double tpc_shift_N_bin3_Method1[9][20][20]=
 0,
 0 
 };
-double tpc_shift_P_bin3_Method1[9][20][20]=
+static double tpc_shift_P_bin3_Method1[9][20][20]=
 {
 0,
 0,

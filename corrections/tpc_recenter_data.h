@@ -1,4 +1,4 @@
-double tpc_center_Qnx[9][20]=
+static double tpc_center_Qnx[9][20]=
 {
 0,
 0,
@@ -181,7 +181,7 @@ double tpc_center_Qnx[9][20]=
 0,
 0 
 };
-double tpc_center_Qny[9][20]=
+static double tpc_center_Qny[9][20]=
 {
 0,
 0,
@@ -364,7 +364,7 @@ double tpc_center_Qny[9][20]=
 0,
 0 
 };
-double tpc_center_Qpx[9][20]=
+static double tpc_center_Qpx[9][20]=
 {
 0,
 0,
@@ -547,7 +547,7 @@ double tpc_center_Qpx[9][20]=
 0,
 0 
 };
-double tpc_center_Qpy[9][20]=
+static double tpc_center_Qpy[9][20]=
 {
 0,
 0,

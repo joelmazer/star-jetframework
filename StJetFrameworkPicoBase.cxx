@@ -54,10 +54,16 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fDebugLevel(0),
   fRunFlag(0),
   fCorrJetPt(kFALSE),
-  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
+  fCentralityScaled(0.),
+  ref16(-99), ref9(-99),
+  Bfield(0.0),
+  mVertex(0x0),
+  zVtx(0.0),
   fMinPtJet(0.0),
-  fTrackBias(0.0),
+  fTrackBias(0.2),
+  fTowerBias(0.2),
   fJetRad(0.4),
   fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -66,9 +72,12 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
   fTrackDCAcut(3.0),
   fTracknHitsFit(15), fTracknHitsRatio(0.52),
-  fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
+  fLeadingJet(0), 
+  fSubLeadingJet(0),
+  fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
   fTracksME(0x0),
   fJets(0x0),
+  fBGJets(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
@@ -103,7 +112,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
   fMinPtJet(0.0),
-  fTrackBias(0.0),
+  fTrackBias(0.2),
+  fTowerBias(0.2),
   fJetRad(0.4),
   fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -112,9 +122,12 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
   fTrackDCAcut(3.0),
   fTracknHitsFit(15), fTracknHitsRatio(0.52), 
-  fLeadingJet(0), fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
+  fLeadingJet(0), 
+  fSubLeadingJet(0),
+  fExcludeLeadingJetsFromFit(1.0), fTrackWeight(1),
   fTracksME(0x0),
   fJets(0x0),
+  fBGJets(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
@@ -180,13 +193,10 @@ void StJetFrameworkPicoBase::Clear(Option_t *opt) {
 
 }
 
+/*
 //----------------------------------------------------------------------------- 
 //  This method is called every event.
 Int_t StJetFrameworkPicoBase::Make() {
-  const double pi = 1.0*TMath::Pi();
-  bool printInfo = kFALSE;
-  bool firstEvent = kFALSE;
-
   // update counter
   mEventCounter++;
 
@@ -273,25 +283,22 @@ Int_t StJetFrameworkPicoBase::Make() {
   int centbin = GetCentBin(cent16, 16);
   double refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
 
-  // to limit filling unused entries in sparse, only fill for certain centrality ranges
-  // ranges can be different than functional cent bin setter
-  int cbin = -1;
-  // need to figure out centrality first in STAR: TODO
-  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
-  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
-  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
-  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
-  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
-  else cbin = -99;
-
   // ============================ end of CENTRALITY ============================== //
+  // event counter at end of maker
+  mInputEventCounter++;
 
-  // reaction plane angle
-  double rpAngle = GetReactionPlane();
+  return kStOK;
+}
+*/
 
+// 
+//  Get the event-wise rho value
+//_________________________________________________________________________________________
+double StJetFrameworkPicoBase::GetRhoValue(TString fRhoMakerNametemp)
+{
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = (StRho*)GetMaker(fRhoMakerName);
-  const char *fRhoMakerNameCh = fRhoMakerName;
+  RhoMaker = (StRho*)GetMaker(fRhoMakerNametemp);
+  const char *fRhoMakerNameCh = fRhoMakerNametemp;
   if(!RhoMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
     return kStWarn;
@@ -301,16 +308,13 @@ Int_t StJetFrameworkPicoBase::Make() {
   fRho = (StRhoParameter*)RhoMaker->GetRho();
   if(!fRho) {
     LOG_WARN << Form("Couldn't get fRho object! ") << endm;
-    return kStWarn;    
-  } 
-  
+    return kStWarn;
+  }
+
   // get rho/area       fRho->ls("");
   fRhoVal = fRho->GetVal();
 
-  // event counter at end of maker
-  mInputEventCounter++;
-
-  return kStOK;
+  return fRhoVal;
 }
 
 //________________________________________________________________________
@@ -487,7 +491,7 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
 //________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
+  //double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
@@ -548,7 +552,6 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
   // get vertex 3-vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
 
   //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
   TVector2 mQ;
@@ -559,7 +562,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
   // leading jet check and removal
   float excludeInEta = -999;
-  fLeadingJet = GetLeadingJet();
+  ///fLeadingJet = GetLeadingJet();
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
@@ -630,40 +633,144 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 }
 
 // _____________________________________________________________________________________________
-StJet* StJetFrameworkPicoBase::GetLeadingJet(StRhoParameter* eventRho) {
+StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
   // return pointer to the highest pt jet (before background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of
   // the framework
+
+  // ================= JetMaker ================ //
+  // get JetMaker
+  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerNametemp);
+  const char *fJetMakerNameCh = fJetMakerNametemp;
+  if(!JetMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
+    return 0x0;
+  }
+
+  // if we have JetMaker, get jet collection associated with it
+  fJets = JetMaker->GetJets();
+  if(!fJets) {
+    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
+    return 0x0;
+  }
+
   if(fJets) {
+    // get number of jets, initialize pt and leading jet pointer
     Int_t iJets(fJets->GetEntriesFast());
     Double_t pt(0);
     StJet* leadingJet(0x0);
-    if(!eventRho) {
-        for(Int_t i(0); i < iJets; i++) {
-            StJet* jet = static_cast<StJet*>(fJets->At(i));
-            if(jet->Pt() > pt) {
-               leadingJet = jet;
-               pt = leadingJet->Pt();
-            }
+
+    if(!eventRho) { // no rho parameter provided
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        //if(!AcceptJet(jet)) continue;
+        if(jet->Pt() > pt) {
+          leadingJet = jet;
+          pt = leadingJet->Pt();
         }
-        return leadingJet;
-    } else {
-        // return leading jet after background subtraction
-        Double_t rho(0);
-        for(Int_t i(0); i < iJets; i++) {
-            StJet* jet = static_cast<StJet*>(fJets->At(i));
-            //if(!AcceptMyJet(jet)) continue;
-            if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-               leadingJet = jet;
-               pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-            }
+      }
+      return leadingJet;
+    } else { // rho parameter provided
+      // return leading jet after background subtraction
+      Double_t rho(0);
+      double fRhoValtemp = eventRho->GetVal(); // test
+
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        //if(!AcceptJet(jet)) continue;
+        if((jet->Pt() - jet->Area()*fRhoValtemp) > pt) {
+          leadingJet = jet;
+          pt = (leadingJet->Pt()-jet->Area()*fRhoValtemp);
         }
-        return leadingJet;
+      }
+      return leadingJet;
     }
   }
 
   return 0x0;
 }
+
+// _____________________________________________________________________________________________
+StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
+  // return pointer to the second highest pt jet (before background subtraction) within acceptance
+  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
+
+  // ================= JetMaker ================ //
+  // get JetMaker
+  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerNametemp);
+  const char *fJetMakerNameCh = fJetMakerNametemp;
+  if(!JetMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
+    return 0x0;
+  }
+
+  // if we have JetMaker, get jet collection associated with it
+  fJets = JetMaker->GetJets();
+  if(!fJets) {
+    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
+    return 0x0;
+  }
+
+  if(fJets) {
+    // get number of jets 
+    Int_t iJets(fJets->GetEntriesFast());
+
+    // initialize pt's
+    Double_t pt(0);
+    Double_t pt2(0);
+
+    // leading and subleading jet pointers
+    StJet* leadingJet(0x0);
+    StJet* subleadingJet(0x0);
+
+    if(!eventRho) { // no rho parameter provided
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // leading jet
+        if(jet->Pt() > pt) {
+          leadingJet = jet;
+          pt = leadingJet->Pt();
+        }
+
+        // subleading jet
+        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
+          subleadingJet = jet;
+          pt2 = subleadingJet->Pt();
+        }
+
+      }
+      return subleadingJet;
+
+    } else { // rho parameter provided
+      // return leading jet after background subtraction
+      Double_t rho(0);
+      double fRhoValtemp = eventRho->GetVal(); // test
+
+      // loop over jets
+      for(Int_t i(0); i < iJets; i++) {
+        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // leading jet
+        if((jet->Pt() - jet->Area()*fRhoValtemp) > pt) {
+          leadingJet = jet;
+          pt = (leadingJet->Pt()-jet->Area()*fRhoValtemp);
+        }
+
+        // subleading jet
+        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
+          subleadingJet = jet;
+          pt2 = subleadingJet->Pt();
+        }
+      }
+      return leadingJet;
+    }
+  }
+
+  return 0x0;
+}
+
 
 //__________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::EventCounter() {
@@ -778,4 +885,21 @@ Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t 
   }
 
   return doAnalysis;
+}
+
+// elems: sizeof(myarr)/sizeof(*myarr) prior to passing to function
+// upon passing the array collapses to a pointer and can not get size anymore
+//________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::DoComparison(int myarr[], int elems) {
+  //std::cout << "Length of array = " << (sizeof(myarr)/sizeof(*myarr)) << std::endl;
+  bool match = kFALSE;
+
+  // loop over specific physics selection array and compare to specific event trigger
+  for(int i = 0; i < elems; i++) {
+    if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
+    if(match) break;
+  }
+  //cout<<"elems: "<<elems<<"  match: "<<match<<endl;
+
+  return match;
 }

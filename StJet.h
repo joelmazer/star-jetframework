@@ -46,7 +46,7 @@ namespace fastjet {
  * - jet constituents (cluster, tracks, particles);
  * - flavor tagging;
  * - jet shape properties;
- * - matching with other reconstructed jets (e.g. detector level with particole level).
+ * - matching with other reconstructed jets (e.g. detector level with particle level).
  * The class implements also a number of service function to calculate other observable,
  * such as fragmentation functions, subtracted jet momentum, etc.
  */
@@ -124,7 +124,7 @@ class StJet : public StVParticle // FIXME
 ////  StVCluster      *Cluster(Int_t idx)                                             const;
 ////  StVCluster      *ClusterAt(Int_t idx, TClonesArray *ca)                         const;
 ////  Int_t             ContainsCluster(AliVCluster* cluster, TClonesArray* clusters)  const;
-////  Int_t             ContainsCluster(Int_t ic)                                      const;
+  Int_t             ContainsCluster(Int_t ic)                                      const;
 ////  StVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
 ////  StVParticle     *Track(Int_t idx)                                               const;
 ////  StVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
@@ -162,10 +162,13 @@ class StJet : public StVParticle // FIXME
   void              AddTrackAt(Int_t track, Int_t idx) { fTrackIDs.AddAt(track, idx);      }
   void              Clear(Option_t* /*option*/="");
 
+  // March 19, 2018 - DOUBLE CHECK and fix these 
   void              SetMaxTrackPt(Double32_t t)          { fMaxTrackPt = t;                  }
   Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;         } // ;
   void              SetMaxClusterPt(Double32_t t)        { fMaxClusterPt = t;                }
   Double_t          GetMaxClusterPt()                    const { return fMaxClusterPt;       } // ;
+  void              SetMaxTowerE(Double32_t t)           { fMaxTowerE = t;                   }
+  Double_t          GetMaxTowerE()                       const { return fMaxTowerE;          } // ;
 
   // Sorting methods
   void              SortConstituents();
@@ -238,6 +241,7 @@ class StJet : public StVParticle // FIXME
   Double32_t        fMaxNPt;              //[0,0,12]
   Double32_t        fMaxTrackPt;          // Max track pt
   Double32_t        fMaxClusterPt;        // Max cluster pt
+  Double32_t        fMaxTowerE;           // Max tower E
   Double32_t        fMCPt;                ///<  Pt from MC particles contributing to the jet
   Int_t             fNn;                  ///<  Number of neutral constituents
   Int_t             fNch;                 ///<  Number of charged constituents

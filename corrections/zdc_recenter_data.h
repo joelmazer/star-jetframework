@@ -1,4 +1,4 @@
-double zdc_center_ex[1359]=
+static double zdc_center_ex[1359]=
 {
 4.79338,
 4.83223,
@@ -1360,7 +1360,7 @@ double zdc_center_ex[1359]=
 4.78529,
 4.80837 
 };
-double zdc_center_ey[1359]=
+static double zdc_center_ey[1359]=
 {
 6.38981,
 6.27857,
@@ -2722,7 +2722,7 @@ double zdc_center_ey[1359]=
 6.32007,
 6.31332 
 };
-double zdc_center_wx[1359]=
+static double zdc_center_wx[1359]=
 {
 -4.70566,
 -4.67748,
@@ -4084,7 +4084,7 @@ double zdc_center_wx[1359]=
 -4.71439,
 -4.70224 
 };
-double zdc_center_wy[1359]=
+static double zdc_center_wy[1359]=
 {
 5.66258,
 5.68491,

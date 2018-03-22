@@ -6,7 +6,7 @@
 #include <Rtypes.h>
 #include <TObjArray.h>
 #include "StVParticle.h"
-#include "StMaker.h"
+#include "StChain/StMaker.h"
 
 // Adapated from ALICE class AliEventPoolManager.h
 //

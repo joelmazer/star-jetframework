@@ -47,6 +47,7 @@ StJet::StJet() :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
+  fMaxTowerE(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -91,6 +92,7 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
+  fMaxTowerE(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -140,6 +142,7 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
+  fMaxTowerE(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -183,6 +186,7 @@ StJet::StJet(const StJet& jet) :
   fMaxCPt(jet.fMaxCPt),
   fMaxNPt(jet.fMaxNPt),
   fMaxTrackPt(jet.fMaxTrackPt),
+  fMaxTowerE(jet.fMaxTowerE),
   fMCPt(jet.fMCPt),
   fNn(jet.fNn),
   fNch(jet.fNch),
@@ -240,6 +244,7 @@ StJet& StJet::operator=(const StJet& jet)
     fMaxCPt             = jet.fMaxCPt;
     fMaxNPt             = jet.fMaxNPt;
     fMaxTrackPt         = jet.fMaxTrackPt;
+    fMaxTowerE          = jet.fMaxTowerE;
     fMCPt               = jet.fMCPt;
     fNn                 = jet.fNn;
     fNch                = jet.fNch;
@@ -254,9 +259,9 @@ StJet& StJet::operator=(const StJet& jet)
     fPtSubVect          = jet.fPtSubVect;
     fTriggers           = jet.fTriggers;
     fLabel              = jet.fLabel;
-    fHasGhost = jet.fHasGhost;
-    fGhosts   = jet.fGhosts;
-    fJetConstit = jet.fJetConstit;
+    fHasGhost           = jet.fHasGhost;
+    fGhosts             = jet.fGhosts;
+    fJetConstit         = jet.fJetConstit;
     if (jet.fJetShapeProperties) {
       fJetShapeProperties = new StJetShapeProperties(*(jet.fJetShapeProperties));
     }
@@ -510,6 +515,7 @@ void StJet::ResetMatching()
  * @param Index of the track to search
  * @return The position of the track in the jet constituent array, if the track is found; -1 if the track is not a jet constituent
  */
+// this returns 1 less than the track ID since it returns the place in the Array
 Int_t StJet::ContainsTrack(Int_t it) const
 {
   for (Int_t i = 0; i < fTrackIDs.GetSize(); i++) {
@@ -530,6 +536,7 @@ Int_t StJet::ContainsTrack(Int_t it) const
  * - Neutral energy fraction
  * @return String representation of the jet
  */
+// TODO update 
 TString StJet::toString() const {
   return TString::Format("Jet pT = %.2f, eta = %.2f, phi = %.2f, max charged pT = %.2f, max neutral pT = %.2f, N tracks = %d, N clusters = %d, Area = %.2f, NEF = %.2f",
          Pt(), Eta(), Phi(), MaxChargedPt(), MaxNeutralPt(), GetNumberOfTracks(), GetNumberOfClusters(), Area(), NEF());
@@ -651,6 +658,20 @@ Int_t StJet::ContainsTrack(StVParticle* track, TClonesArray* tracks) const // FI
 {
   if (!tracks || !track) return 0;
   return ContainsTrack(tracks->IndexOf(track));
+}
+
+/**
+ * Checks whether a certain cluster is among the jet constituents by looking for its index
+ * @param ic Index of the cluster to search
+ * @return The position of the cluster in the jet constituent array, if the cluster is found; -1 if the cluster is not a jet constituent
+ */
+// this returns 1 less than the cluster/towers ID since it returns the place in the Array
+Int_t StJet::ContainsCluster(Int_t ic) const
+{
+  for (Int_t i = 0; i < fClusterIDs.GetSize(); i++) {
+    if (ic == fClusterIDs[i]) return i;
+  }
+  return -1;
 }
 
 
