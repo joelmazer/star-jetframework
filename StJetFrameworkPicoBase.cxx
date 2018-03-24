@@ -28,6 +28,7 @@
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
+#include "StEventPlaneMaker.h" // new
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -81,9 +82,10 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
-  JetMaker(0),
-  JetMakerBG(0),
-  RhoMaker(0),
+  JetMaker(0x0),
+  JetMakerBG(0x0),
+  RhoMaker(0x0),
+  EventPlaneMaker(0x0),
   grefmultCorr(0),
   refmultCorr(0),
   refmult2Corr(0),
@@ -92,6 +94,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fJetBGMakerName(""),
   fRhoMakerName(""),
   fRhoSparseMakerName(""),
+  fEventPlaneMakerName(""),
   fRho(0x0),
   fRhoVal(0),
   fAddToHistogramsName(""),
@@ -131,9 +134,10 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
-  JetMaker(0),
-  JetMakerBG(0),
-  RhoMaker(0),
+  JetMaker(0x0),
+  JetMakerBG(0x0),
+  RhoMaker(0x0),
+  EventPlaneMaker(0x0),
   grefmultCorr(0),
   refmultCorr(0),
   refmult2Corr(0),
@@ -142,6 +146,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fJetBGMakerName(""),
   fRhoMakerName(""),
   fRhoSparseMakerName(""),
+  fEventPlaneMakerName(""),
   fRho(0x0),
   fRhoVal(0),
   fAddToHistogramsName(""),
@@ -416,7 +421,7 @@ Double_t StJetFrameworkPicoBase::RelativePhi(Double_t mphi,Double_t vphi) const
   double dphi = mphi-vphi;
 
   // set dphi to operate on adjusted scale
-  if(dphi<-0.5*TMath::Pi()) dphi+=2.*TMath::Pi();
+  if(dphi<-0.5*TMath::Pi())  dphi+=2.*TMath::Pi();
   if(dphi>3./2.*TMath::Pi()) dphi-=2.*TMath::Pi();
 
   // test

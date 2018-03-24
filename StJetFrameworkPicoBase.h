@@ -29,6 +29,7 @@ class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPoolManager;
+class StEventPlaneMaker;
 
 class StJetFrameworkPicoBase : public StMaker {
   public:
@@ -161,6 +162,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetJetBGMakerName(const char *bjn)        { fJetBGMakerName = bjn; }
     virtual void            SetRhoMakerName(const char *rn)           { fRhoMakerName = rn; }
     virtual void            SetRhoSparseMakerName(const char *rpn)    { fRhoSparseMakerName = rpn; }
+    virtual void            SetEventPlaneMakerName(const char *epn)   { fEventPlaneMakerName = epn; }
 
     // add-to histogram name
     virtual void           AddToHistogramsName(TString add)           { fAddToHistogramsName = add  ; }
@@ -177,7 +179,6 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               GetRhoValue(TString fRhoMakerNametemp);
     Bool_t                 DoComparison(int myarr[], int elems);
 
-    
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
@@ -236,6 +237,7 @@ class StJetFrameworkPicoBase : public StMaker {
     StJetMakerTask *JetMaker;
     StJetMakerTask *JetMakerBG;
     StRho          *RhoMaker;
+    StEventPlaneMaker *EventPlaneMaker;
 
     // centrality objects
     StRefMultCorr* grefmultCorr;
@@ -250,6 +252,7 @@ class StJetFrameworkPicoBase : public StMaker {
     TString        fJetBGMakerName;
     TString        fRhoMakerName;
     TString        fRhoSparseMakerName;
+    TString        fEventPlaneMakerName;
 
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
