@@ -119,8 +119,6 @@ StJetMakerTask::StJetMakerTask() :
   fJetsConstit(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
-//  fClusterContainerIndexMap(),
-  fParticleContainerIndexMap(),
   mu(0x0),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -243,7 +241,7 @@ Int_t StJetMakerTask::Init() {
   fJetsConstit = new TClonesArray("StPicoTrack");
   fJetsConstit->SetName("JetConstituents");
 
-  // ============================ Do some jet stuff =======================
+  // ============================ set jet parameters for fastjet wrapper  =======================
   // recombination schemes:
   // E_scheme, pt_scheme, pt2_scheme, Et_scheme, Et2_scheme, BIpt_scheme, BIpt2_scheme, WTA_pt_scheme, WTA_modp_scheme
   fastjet::RecombinationScheme    recombScheme;
@@ -285,12 +283,32 @@ Int_t StJetMakerTask::Init() {
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
 
   return kStOK;
@@ -302,10 +320,6 @@ Int_t StJetMakerTask::Finish() {
   //  Summarize the run.
 /*
   cout<<"StJetMakerTask::Finish()\n";
-  //cout << "\tProcessed " << mEventCounter << " events." << endl;
-  //cout << "\tWithout PV cuts: "<< mAllPVEventCounter << " events"<<endl;
-  //cout << "\tInput events: "<<mInputEventCounter<<endl;
-
   cout<<"##### Jet parameters overview #####"<<endl;
   cout<<"type = "<<"   algorithm = "<<"  recombination scheme = "<<endl;
   cout<<"R = "<<fRadius<<"   ghostArea = "<<fGhostArea<<"  minJetArea = "<<fMinJetArea<<endl;
@@ -774,6 +788,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 */
 
       // get components from Energy (p - momentum) - TODO double check: do these need eta corrections?
+      // the below lines 'converts' the tower energy to momentum, may want this - double check!
+//      double towerPx = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towX / towMag);
+//      double towerPy = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towY / towMag);
+//      double towerPz = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towZ / towMag);
       double towerPx = towerE * (towX / towMag);
       double towerPy = towerE * (towY / towMag);
       double towerPz = towerE * (towZ / towMag);

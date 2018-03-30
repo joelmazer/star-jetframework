@@ -137,46 +137,27 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
   fHistZvertBinMin = 0;
   fHistZvertBinMax = 20;             // (-40, 40) 4cm bins
-  Q2x_raw = 0.;
-  Q2y_raw = 0.;
-  Q2x_p = 0.;
-  Q2x_m = 0.;
-  Q2y_p = 0.;
-  Q2y_m = 0.;
-  Q2x = 0.;
-  Q2y = 0.;
+  Q2x_raw = 0.; Q2y_raw = 0.;
+  Q2x_p = 0.; Q2x_m = 0.;
+  Q2y_p = 0.; Q2y_m = 0.;
+  Q2x = 0.; Q2y = 0.;
   TPC_PSI2 = -999;
   TPCA_PSI2 = -999; // subevent A
   TPCB_PSI2 = -999; // subevent B
-  BBC_PSI2 = -999;
-  ZDC_PSI2 = -999;
-  BBC_PSI1 = -999;
-  ZDC_PSI1 = -999;
+  BBC_PSI2 = -999; ZDC_PSI2 = -999;
+  BBC_PSI1 = -999; ZDC_PSI1 = -999;
   PSI2 = -999;
   RES = -999;
-  TPC_raw_comb = 0.;
-  TPC_raw_neg = 0.;
-  TPC_raw_pos = 0.;
-  BBC_raw_comb = 0.;
-  BBC_raw_east = 0.;
-  BBC_raw_west = 0.;
-  ZDC_raw_comb = 0.;
-  ZDC_raw_east = 0.;
-  ZDC_raw_west = 0.;
+  TPC_raw_comb = 0.; TPC_raw_neg = 0.; TPC_raw_pos = 0.;
+  BBC_raw_comb = 0.; BBC_raw_east = 0.; BBC_raw_west = 0.;
+  ZDC_raw_comb = 0.; ZDC_raw_east = 0.; ZDC_raw_west = 0.;
   fPoolMgr = 0x0;
   fJets = 0x0;
   fRunNumber = 0;
   fEPcalibFileName = "$STROOT_CALIB/eventplaneFlat.root"; 
   fFlatContainer = 0x0;
-  fTPCnFlat = 0x0;
-  fTPCpFlat = 0x0;
-  fBBCFlat = 0x0;
-  fZDCFlat = 0x0;
-  fEPTPCn = 0.;
-  fEPTPCp = 0.;
-  fEPTPC = 0.;
-  fEPBBC = 0.;
-  fEPZDC = 0.;
+  fTPCnFlat = 0x0; fTPCpFlat = 0x0; fBBCFlat = 0x0; fZDCFlat = 0x0;
+  fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
@@ -410,7 +391,7 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 
 //-----------------------------------------------------------------------------
 Int_t StMyAnalysisMaker::Init() {
-  StJetFrameworkPicoBase::Init();
+  //StJetFrameworkPicoBase::Init();
 
   // initialize the histograms
   DeclareHistograms();
@@ -432,13 +413,33 @@ Int_t StMyAnalysisMaker::Init() {
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
-  } 
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  }
 
   return kStOK;
 }
@@ -1292,7 +1293,7 @@ Int_t StMyAnalysisMaker::Make() {
     hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
  
     // test statements (debug)
-    if(fDebugLevel == kDeubgEventPlaneCalc) {
+    if(fDebugLevel == kDebugEventPlaneCalc) {
       cout<<"BBC = "<<BBC_PSI2<<"  ZDC = "<<ZDC_PSI2<<"  TPC_PSI2 = "<<TPC_PSI2<<"  RP = "<<rpAngle<<"  TPCneg = "<<fEPTPCn<<"  TPCpos = "<<fEPTPCp<<"  Multiplicity = "<<refCorr2<<endl;
       cout<<"BBCrawcomb = "<<BBC_raw_comb<<"  BBCrawE = "<<BBC_raw_east<<"  BBCrawW = "<<BBC_raw_west<<endl;
       cout<<"TPCrawcomb = "<<TPC_raw_comb<<"  TPCrawN = "<<TPC_raw_neg<<"  TPCrawP = "<<TPC_raw_pos<<endl;
@@ -1330,7 +1331,7 @@ Int_t StMyAnalysisMaker::Make() {
     }
 
     // debug statement
-    if(fDebugLevel == kDeubgEventPlaneCalc) {
+    if(fDebugLevel == kDebugEventPlaneCalc) {
       cout<<"kRemoveEtaPhiCone: "<<"TPC = "<<fEPTPC<<"  TPCn = "<<fEPTPCn<<"  TPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
       cout<<"BBCtpcN Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCn))<<"   BBCtpcP Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCp))<<endl;
       cout<<endl;
@@ -1401,6 +1402,15 @@ Int_t StMyAnalysisMaker::Make() {
     double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
     //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<endl; // - test statement
 
+    // some threshold cuts
+    if(fCorrJetPt) {  // background subtracted jet pt
+      if(corrjetpt < fMinPtJet) continue;
+    } else { if(jetpt < fMinPtJet) continue; }
+    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
+
+    // test QA stuff...
+    //cout<<"ijet = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
+
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
@@ -1445,16 +1455,6 @@ Int_t StMyAnalysisMaker::Make() {
       //cout<<">= 0: "<<containsCluster<<"  itow = "<<itow<<"  id = "<<clusID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
 
     }
-
-    // some threshold cuts
-    if(fCorrJetPt) {  // background subtracted jet pt
-      if(corrjetpt < fMinPtJet) continue;
-    } else { if(jetpt < fMinPtJet) continue; }
-    //if((jet->GetMaxTrackPt() < fTrackBias)) continue;
-    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
-
-    // test QA stuff...
-    //cout<<"ijet = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
 
     // fill some histos
     hJetPt->Fill(jetpt);
@@ -1684,22 +1684,14 @@ Int_t StMyAnalysisMaker::Make() {
     } // end of check for pool being ready
   } // end EMC triggered loop
 
-    // use only tracks from MB and Semi-Central events
+    // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
     if(fHaveMBevent) { // kMB
       if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 
-      TClonesArray* tracksClone2 = 0x0;
-      //cout<<"tracks in clone before reduce: "<<tracksClone2->GetEntriesFast();
       // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
-      // NOTE: not actually doing anything with fTracksME - get info from tracks tree
-      // NOTE: might just eliminate TClonesArray and do:
-      // pool->UpdatePool(CloneAndReduceTrackList());
-      tracksClone2 = CloneAndReduceTrackList();
-      //cout<<"   entries after reduced = "<<tracksClone2->GetEntriesFast()<<endl;
-
       // update pool if jet in event or not
-      pool->UpdatePool(tracksClone2);
+      pool->UpdatePool(CloneAndReduceTrackList());
 
       // fill QA histo's
       hMixEvtStatZVtx->Fill(zVtx);
@@ -3351,7 +3343,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   bQ_raw.Set((sumcos_E + sumcos_W), (sumsin_E + sumsin_W));  // raw Q vector (2nd order event plane)
 
   // test statement:
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"BBC 1st order = "<<bQ_raw1.Phi()<<"  2nd order = "<<bQ_raw.Phi() / n<<endl;
   }
   BBC_PSI1 = bQ_raw1.Phi();
@@ -3443,7 +3435,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   }
 
   // test statements (debug) east and west
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"bPhi_East = "<<bPhi_East<<"  bPhi_West = "<<bPhi_West<<endl;
   }
 
@@ -3627,7 +3619,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   ZDC_PSI1 = mQ1.Phi(); // set global 1st order ZDC event plane
   mQtot.Set((mQex + mQwx), (mQey + mQwy));   // 2nd order - Jan9 found bug!
   zQ_raw.Set((mQex + mQwx), (mQey + mQwy));  // 2nd order
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"ZDC 1st order: "<<mQ1.Phi()<<"  ZDC 2nd order = "<<mQtot.Phi() / n<<endl;
   }
 
@@ -3645,10 +3637,8 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   double zPhi_East = -999; // added
   double zPhi_West = -999; // added
-  double zPhi_rcd = -999;  // added
-  double zPhi_raw = -999;  // added
-  zPhi_raw = zQ_raw.Phi(); // 2nd order
-  zPhi_rcd = mQtot.Phi();  // 2nd order - TODO check that a '-999' doesn't get filled and affect average
+  double zPhi_rcd = mQtot.Phi();  // 2nd order - TODO check that a '-999' doesn't get filled and affect average
+  double zPhi_raw = zQ_raw.Phi(); // 2nd order
 
   // get east and west ZDC phi - if weights are valid
   if(w_ev > 1e-6 && w_eh > 1e-6) zPhi_East = mQe.Phi();

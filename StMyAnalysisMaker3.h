@@ -1,5 +1,5 @@
-#ifndef StEventPlaneMaker_h
-#define StEventPlaneMaker_h
+#ifndef StMyAnalysisMaker3_h
+#define StMyAnalysisMaker3_h
 
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -30,11 +30,11 @@ class StJetMakerTask;
 class StJet;
 class StRho;
 class StRhoParameter;
-class StCalibContainer;
-class StEPFlattener;
+class StEventPoolManager;
+//class StEventPlaneMaker;
 
-//class StEventPlaneMaker : public StMaker {
-class StEventPlaneMaker : public StJetFrameworkPicoBase {
+//class StMyAnalysisMaker3 : public StMaker {
+class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
   public:
 
     // debug flags for specifics
@@ -58,16 +58,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
       kRemoveLeadingSubJetConstituents // greater than 2 GeV
     };
 
-    // detector enum
-    enum fDetectorType {
-      kNoDetector = 0,
-      kBBC = 1,
-      kZDC = 2, 
-      kTPC = 3
-    };
-
-    StEventPlaneMaker(const char *name, StPicoDstMaker *picoMaker, const char *jetMakerName, const char *rhoMakerName);
-    virtual ~StEventPlaneMaker();
+    StMyAnalysisMaker3(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
+    virtual ~StMyAnalysisMaker3();
    
     // class required functions
     virtual Int_t Init();
@@ -77,29 +69,32 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     
     // booking of histograms (optional)
     void    DeclareHistograms();
-    void    WriteEventPlaneHistograms();
+    void    WriteHistograms();
 
-    // ep stuff - Nov15
-    void    InitParameters();
-   
     // THnSparse Setup
-    virtual THnSparse*      NewTHnSparseEP(const char* name, UInt_t entries);
-    virtual void            GetDimParamsEP(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
+    virtual THnSparse*      NewTHnSparseF(const char* name, UInt_t entries);
+    virtual void            GetDimParams(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
+    virtual THnSparse*      NewTHnSparseFCorr(const char* name, UInt_t entries);
+    virtual void            GetDimParamsCorr(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
+    virtual void            SetPrintEventCounter(Bool_t c)     { doPrintEventCounter = c; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
-    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
-    virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+    virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
-    // jet switches
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
+    virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     
+    // event setters
+    virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
     virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
@@ -109,8 +104,18 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
+    // event mixing - setters
+    virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
+    virtual void            SetMixingTracks(Int_t tracks)      { fMixingTracks = tracks; }
+    virtual void            SetNMixedTr(Int_t nmt)             { fNMIXtracks = nmt; }
+    virtual void            SetNMixedEvt(Int_t nme)            { fNMIXevents = nme; }
+
     // mixed selection - setters
     virtual void            SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
+    virtual void            SetMixedEventType(UInt_t me)         { fMixingEventType = me; }
+    virtual void            SetCentBinSize(Int_t centbins)       { fCentBinSize = centbins; }
+    virtual void            SetReduceStatsCent(Int_t red)        { fReduceStatsCent = red; }
+    virtual void            SetDoFilterPtMixEvents(Int_t fil)    { fDoFilterPtMixEvents = fil; }
 
     // efficiency correction setter
     virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
@@ -139,46 +144,61 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetEPTPCptAssocBin(Int_t pb)                    {fTPCptAssocBin = pb; }
 
     // Where to read calib object with EP calibration if not default
-    void                    SetEPcalibFileName(TString filename) {fEPcalibFileName = filename; } 
-    void                    SetOutFileNameEP(TString epout) {mOutNameEP = epout; }
-    virtual void            SetdoReadCalibFile(Bool_t rc)                   {doReadCalibFile = rc; } 
+    void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
+    void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
 
-    // get functions:
-    Double_t                GetTPCEP()                { return TPC_PSI2; }
+    virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
   protected:
-    TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
-    void                   GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
-    Bool_t                 AcceptJet(StJet *jet);           // jets accept cuts function
-    void                   SetEPSumw2(); // set errors weights for event plane histograms
-    //Double_t               EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
-    void                   CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
-    static Double_t        CalculateEventPlaneChi(Double_t res);
-    Double_t               GetEventPlaneAngle(TString det, Int_t order, Int_t correctin, TString subevt);
+    TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1*                    FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    Double_t                GetReactionPlane();                                   // get reaction plane angle
+    void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
+    Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
+    void                    SetSumw2(); // set errors weights 
+    void                    SetEPSumw2(); // set errors weights for event plane histograms
+    //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
+    void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
+    static Double_t         CalculateEventPlaneChi(Double_t res);
 
     // Added from Liang
-    void                   QvectorCal(int ref9, int region_vz, int n, int ptbin);
-    Int_t                  EventPlaneCal(int ref9, int region_vz, int n, int ptbin);
-    Int_t                  BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
-    Int_t                  ZDC_EP_Cal(int ref9, int region_vz, int n);
-    Double_t               BBC_GetPhi(int e_w,int iTile); //east == 0
-    Double_t               ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
-    Int_t                  GetRunNo(int runid);
-    Int_t                  GetVzRegion(double Vz);
+    void                    QvectorCal(int ref9, int region_vz, int n, int ptbin);
+    Int_t                   EventPlaneCal(int ref9, int region_vz, int n, int ptbin);
+    Int_t                   BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
+    Int_t                   ZDC_EP_Cal(int ref9, int region_vz, int n);
+    Double_t                BBC_GetPhi(int e_w,int iTile); //east == 0
+    Double_t                ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
+    Int_t                   GetRunNo(int runid);
+    Int_t                   GetVzRegion(double Vz);
 
     // switches
-    Int_t                  fDoEffCorr;              // efficiency correction to tracks
-    Bool_t                 doEventPlaneRes;         // event plane resolution switch
-    Bool_t                 doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
-    Int_t                  fTPCptAssocBin;          // pt associated bin to calculate event plane for
-    Bool_t                 doReadCalibFile;         // read calibration file switch
+    Bool_t                  doPrintEventCounter;     // print event # switch
+    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  doEventPlaneRes;         // event plane resolution switch
+    Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
+    Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
+
+    // cuts
+    Double_t                fMinPtJet;               // min jet pt to keep jet in output
+    Double_t                fJetConstituentCut;      // min jet constituent
+
+    // event mixing
+    Int_t          fDoEventMixing;              // switch ON/off event mixing
+    Int_t          fMixingTracks;               // MAX # of mixing tracks to keep in pool, before removing old to add new
+    Int_t          fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
+    Int_t          fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
+    Int_t          fCentBinSize;                // centrality bin size of mixed event pools
+    Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
+    Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
 
     // event selection types
     UInt_t         fTriggerEventType;           // Physics selection of event used for signal
+    UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
     Int_t          fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
+    Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
+    Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
     Int_t          fTPCEPmethod;                // TPC event plane calculation method
     Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!
@@ -197,14 +217,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Int_t          fHistZvertBinMax;            // min z-vertex bin for histogram loop
 
     // global variables used with TPC event plane corrections
-    Double_t       Q2x_raw;
-    Double_t       Q2y_raw;
-    Double_t       Q2x_p;
-    Double_t       Q2x_m;
-    Double_t       Q2y_p;
-    Double_t       Q2y_m;
-    Double_t       Q2x;
-    Double_t       Q2y;
     Double_t       TPC_PSI2;
     Double_t       TPCA_PSI2;
     Double_t       TPCB_PSI2;
@@ -225,19 +237,13 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Double_t       ZDC_raw_east;
     Double_t       ZDC_raw_west;
 
-  private:
-    Double_t               ApplyFlatteningTPCn(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningTPCp(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningBBC(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningZDC(Double_t phi, Double_t c);
+    // event pool
+    TClonesArray          *CloneAndReduceTrackList();
+    StEventPoolManager    *fPoolMgr;//!  // event pool Manager object
 
+  private:
     Int_t                  fRunNumber;
     TString                fEPcalibFileName; 
-    StCalibContainer      *fFlatContainer;
-    StEPFlattener         *fTPCnFlat;
-    StEPFlattener         *fTPCpFlat;
-    StEPFlattener         *fBBCFlat;
-    StEPFlattener         *fZDCFlat;
     Double_t               fEPTPCResolution;
     Double_t               fEPTPCn;
     Double_t               fEPTPCp;
@@ -245,101 +251,49 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Double_t               fEPBBC;
     Double_t               fEPZDC;
 
-    TFile        *fCalibFile;
-    TFile        *fCalibFile2;
-    TFile        *fBBCcalibFile;
-    TFile        *fZDCcalibFile;
+    // switches
+    bool         doComments;
 
     // histograms
     TH1F* hEventPlane;//!   
-    TH1F* hEventPlane2pi;//!
     TH1F* hEventPlaneWeighted;//!
-    TH2F* fHistEPTPCnAlt;//!
-    TH2F* fHistEPTPCpAlt;//!
     TH2F* fHistEPTPCn;//!
     TH2F* fHistEPTPCp;//!
     TH2F* fHistEPBBC;//!
     TH2F* fHistEPZDC;//!
-    TH2F* fHistEPTPCnFlatten;//!
-    TH2F* fHistEPTPCpFlatten;//!
-    TH2F* fHistEPBBCFlatten;//!
-    TH2F* fHistEPZDCFlatten;//!
+    TH1F* hEventZVertex;//!
+    TH1F* hCentrality;//!
+    TH1F* hMultiplicity;//!
+    TH2F* hRhovsCent;//!
     TH1F* hTrackPhi[9];//!
     TH1F* hTrackPt[9];//!
+
+    // jet histos
+    TH1F* hJetPt;//!
+    TH1F* hJetCorrPt;//!
+    TH1F* hJetPt2;//!
+    TH1F* hJetE;//!
+    TH1F* hJetEta;//!
+    TH1F* hJetPhi;//!
+    TH1F* hJetNEF;//!
+    TH1F* hJetArea;//!
+    TH1F* hJetTracksPt;//!
+    TH1F* hJetTracksPhi;//!
+    TH1F* hJetTracksEta;//!
+    TH1F* hJetTracksZ;//!
+    TH2F* hJetPtvsArea;//!
+
+    // correlation histo
+    TH2  *fHistJetHEtaPhi;//!
 
     // QA histos
     TH1  *fHistEventSelectionQA;//! 
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
-    TH1  *hTPCepDebug;//!
-    TH1  *hBBCepDebug;//!
-    TH1  *hZDCepDebug;//!
-
-    // event plane histograms for corrections and calculations
-    TH2F *hZDCDis_W;//!
-    TH2F *hZDCDis_E;//!
-    TH2F *hBBCDis_W;//!
-    TH2F *hBBCDis_E;//!
-    TProfile *Q2_p[9][20];//!  // 15
-    TProfile *Q2_m[9][20];//!  // 15
-    TProfile *hTPC_shift_N[9][20];//! // 15
-    TProfile *hTPC_shift_P[9][20];//! // 15
-    TProfile *hBBC_shift_A[9][20];//! // 15
-    TProfile *hBBC_shift_B[9][20];//! // 15
-    TProfile *hZDC_shift_A[9][20];//! // new
-    TProfile *hZDC_shift_B[9][20];//! // new
-    TProfile *res_cen;//!
-    TProfile *hZDC_center_ex;//!
-    TProfile *hZDC_center_ey;//!
-    TProfile *hZDC_center_wx;//!
-    TProfile *hZDC_center_wy;//!
-    TProfile *hBBC_center_ex;//!
-    TProfile *hBBC_center_ey;//!
-    TProfile *hBBC_center_wx;//!
-    TProfile *hBBC_center_wy;//!
-    TProfile *bbc_res;
-    TH1F *zdc_psi;//!
-    TH1F *checkbbc;//!
-    TH2F *psi2_tpc_bbc;//!
-    TH1F *bbc_psi_e;//!
-    TH1F *bbc_psi_w;//!
-    TH2F *bbc_psi_evw;//!
-    TH1F *bbc_psi1_raw;//! // 1st order
-    TH1F *bbc_psi_raw;//!  // 2nd order
-    TH1F *bbc_psi_rcd;//!
-    TH1F *bbc_psi_sft;//!
-    TH1F *bbc_psi_fnl;//!
-
-    //TH1F *zdc_psi;//! // declared already
-    TProfile *zdc_res;//!
-    TH1F *zdc_psi_e;//!
-    TH1F *zdc_psi_w;//!
-    TH2F *zdc_psi_evw;//!
-    TH1F *zdc_psi_raw;//!
-    TH1F *zdc_psi_rcd;//!
-    TH1F *zdc_psi_sft;//!
-    TH1F *zdc_psi_fnl;//!
-
-    TProfile *tpc_res;//!
-    TH1F *tpc_psi;//!
-    TH1F *tpc_psi_N;//!
-    TH1F *tpc_psi_P;//!
-    TH2F *tpc_psi_NvP;//!
-    TH1F *tpc_psi_raw;//!
-    TH1F *tpc_psi_rcd;//!
-    TH1F *tpc_psi_sft;//!
-    TH1F *tpc_psi_fnl;//!
-
-    TH1F *Psi2;//!
-    TH1F *Psi2m;//!
-    TH1F *Psi2p;//!
-    TH1F *Delta_Psi2;//!
-    TH1F *Shift_delta_psi2;//!
-    TH1F *Psi2_rcd;//!
-    TH1F *Psi2_final;//!
-    TH1F *Psi2_final_raw;//!
-    TH1F *Psi2_final_folded;//!
+    TH1  *hMixEvtStatZVtx;//!
+    TH1  *hMixEvtStatCent;//!
+    TH2  *hMixEvtStatZvsCent;//!
 
     TH2F *hTPCvsBBCep;//!
     TH2F *hTPCvsZDCep;//!
@@ -355,11 +309,15 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 //    TH1F                  *fDiffV4Resolution[9];//! difference of event plane angles for n=4
 //    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
 
+    // THn Sparse's jet sparse
+    THnSparse             *fhnJH;//!           // jet hadron events matrix
+    THnSparse             *fhnMixedEvents;//!  // mixed events matrix
+    THnSparse             *fhnCorr;//!         // sparse to get # jet triggers
+
     // maker names
     TString                fAnalysisMakerName;
-//    TString                fJetMakerName;
-//    TString                fRhoMakerName;
-                
-    ClassDef(StEventPlaneMaker, 1)
+    TString                fEventMixerMakerName;
+
+    ClassDef(StMyAnalysisMaker3, 1)
 };
 #endif

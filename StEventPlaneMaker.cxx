@@ -73,7 +73,7 @@ ClassImp(StEventPlaneMaker)
 StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)
 {
-  fExcludeLeadingJetsFromFit = 1.0; 
+  fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
   fTPCEPmethod = 1;
@@ -105,27 +105,50 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   TPC_raw_comb = 0.; TPC_raw_neg = 0.; TPC_raw_pos = 0.;
   BBC_raw_comb = 0.; BBC_raw_east = 0.; BBC_raw_west = 0.;
   ZDC_raw_comb = 0.; ZDC_raw_east = 0.; ZDC_raw_west = 0.;
+  fJets = 0x0;
   fRunNumber = 0;
-  fEPcalibFileName = "$STROOT_CALIB/eventplaneFlat.root"; 
+  fEPcalibFileName = "$STROOT_CALIB/eventplaneFlat.root";
   fFlatContainer = 0x0;
   fTPCnFlat = 0x0; fTPCpFlat = 0x0; fBBCFlat = 0x0; fZDCFlat = 0x0;
-  fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.;
-  fEPBBC = 0.; fEPZDC = 0.;
+  fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
+  mPicoDstMaker = 0x0;
+  mPicoDst = 0x0;
+  mPicoEvent = 0x0;
+  JetMaker = 0;
+  RhoMaker = 0;
+  grefmultCorr = 0;
   mOutNameEP = "";
+  doUsePrimTracks = kFALSE;
+  fDebugLevel = 0;
+  fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
+  fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr = kFALSE;
+  fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
   fJetConstituentCut = 2.0;
+  fTrackBias = 0.2;
+  fTowerBias = 0.2;
+  fJetRad = 0.4;
+  fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
+  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
+  fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
+  fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
+  fTrackDCAcut = 3.0;
+  fTracknHitsFit = 15; fTracknHitsRatio = 0.52;
+  fCentralityScaled = 0.;
+  ref16 = -99; ref9 = -99;
+  Bfield = 0.0;
+  mVertex = 0x0;
+  zVtx = 0.0;
   for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
 
-  //if(doEventPlaneCorrections) 
   InitParameters();
-
 }
 
 //----------------------------------------------------------------------------- 
@@ -256,7 +279,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
 
 //-----------------------------------------------------------------------------
 Int_t StEventPlaneMaker::Init() {
-  StJetFrameworkPicoBase::Init();
+  //StJetFrameworkPicoBase::Init();
 
   // initialize the histograms
   DeclareHistograms();
@@ -274,13 +297,33 @@ Int_t StEventPlaneMaker::Init() {
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
-  } 
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  }
 
   return kStOK;
 }
@@ -295,8 +338,8 @@ Int_t StEventPlaneMaker::Finish() {
   if(mOutNameEP!="") {
     TFile *foutEP = new TFile(mOutNameEP.Data(), "RECREATE");
     foutEP->cd();
-    //foutEP->mkdir(fAnalysisMakerName);
-    //foutEP->cd(fAnalysisMakerName);
+    //foutEP->mkdir(GetName());
+    //foutEP->cd(GetName());
     WriteEventPlaneHistograms();
 
     //foutEP->cd();
@@ -696,7 +739,6 @@ void StEventPlaneMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPlaneMaker::Make() {
-  const double pi = 1.0*TMath::Pi();
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
 
@@ -827,7 +869,7 @@ Int_t StEventPlaneMaker::Make() {
     return kStWarn;
   }
 
-  // if we have JetMaker, get jet collection associated with it
+  // get jet collection associated with JetMaker
   fJets = JetMaker->GetJets();
   if(!fJets) {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
@@ -894,7 +936,7 @@ Int_t StEventPlaneMaker::Make() {
   hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
  
   // test statements (debug)
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"BBC = "<<BBC_PSI2<<"  ZDC = "<<ZDC_PSI2<<"  TPC_PSI2 = "<<TPC_PSI2<<"  TPCneg = "<<fEPTPCn<<"  TPCpos = "<<fEPTPCp<<"  Multiplicity = "<<refCorr2<<endl;
     cout<<"BBCrawcomb = "<<BBC_raw_comb<<"  BBCrawE = "<<BBC_raw_east<<"  BBCrawW = "<<BBC_raw_west<<endl;
     cout<<"TPCrawcomb = "<<TPC_raw_comb<<"  TPCrawN = "<<TPC_raw_neg<<"  TPCrawP = "<<TPC_raw_pos<<endl;
@@ -934,7 +976,7 @@ Int_t StEventPlaneMaker::Make() {
     }
 
     // debug statement
-    if(fDebugLevel == kDeubgEventPlaneCalc) {
+    if(fDebugLevel == kDebugEventPlaneCalc) {
       cout<<"kRemoveEtaPhiCone: "<<"TPC = "<<fEPTPC<<"  TPCn = "<<fEPTPCn<<"  TPCp = "<<fEPTPCp<<" RES = "<<TMath::Cos(2.*(fEPTPCn - fEPTPCp))<<endl;
       cout<<"BBCtpcN Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCn))<<"   BBCtpcP Res = "<<1.0*TMath::Cos(2.*(BBC_PSI2 - fEPTPCp))<<endl;
       cout<<endl;
@@ -1619,7 +1661,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   bQ_raw.Set((sumcos_E + sumcos_W), (sumsin_E + sumsin_W));  // raw Q vector (2nd order event plane)
 
   // test statement:
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"BBC 1st order = "<<bQ_raw1.Phi()<<"  2nd order = "<<bQ_raw.Phi() / n<<endl;
   }
   BBC_PSI1 = bQ_raw1.Phi();
@@ -1706,7 +1748,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   }
 
   // test statements (debug) east and west
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"bPhi_East = "<<bPhi_East<<"  bPhi_West = "<<bPhi_West<<endl;
   }
 
@@ -1887,7 +1929,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   ZDC_PSI1 = mQ1.Phi(); // set global 1st order ZDC event plane
   mQtot.Set((mQex + mQwx), (mQey + mQwy));   // 2nd order - Jan9 found bug!
   zQ_raw.Set((mQex + mQwx), (mQey + mQwy));  // 2nd order
-  if(fDebugLevel == kDeubgEventPlaneCalc) {
+  if(fDebugLevel == kDebugEventPlaneCalc) {
     cout<<"ZDC 1st order: "<<mQ1.Phi()<<"  ZDC 2nd order = "<<mQtot.Phi() / n<<endl;
   }
 
@@ -1905,10 +1947,8 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   double zPhi_East = -999; // added
   double zPhi_West = -999; // added
-  double zPhi_rcd = -999;  // added
-  double zPhi_raw = -999;  // added
-  zPhi_raw = zQ_raw.Phi(); // 2nd order
-  zPhi_rcd = mQtot.Phi();  // 2nd order - TODO check that a '-999' doesn't get filled and affect average
+  double zPhi_rcd = mQtot.Phi();  // 2nd order - TODO check that a '-999' doesn't get filled and affect average
+  double zPhi_raw = zQ_raw.Phi(); // 2nd order
 
   // get east and west ZDC phi - if weights are valid
   if(w_ev > 1e-6 && w_eh > 1e-6) zPhi_East = mQe.Phi();

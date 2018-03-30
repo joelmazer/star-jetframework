@@ -100,7 +100,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TH2F                  *fHistNjetvsNtrack;              //!no. of jets vs. no. of tracks
   TH2F                  *fHistNjUEoverNjVsNj[12];        //!ratio no. of jets below rho*A+sigma_rho over. no. of jets vs. no. of jets
   TH2F                  *fHistJetNconstVsPt[4];          //!jet no. of constituents vs. pt
-  TH2F                  *fHistJetRhovsEta[4];               //!rho vs. eta
+  TH2F                  *fHistJetRhovsEta[4];            //!rho vs. eta
   TH2F                  *fHistRhovsCent;                 //!rho vs. centrality
   TH2F                  *fHistRhoScaledvsCent;           //!rhoscaled vs. centrality
   TH2F                  *fHistDeltaRhovsCent;            //!delta rho vs. centrality
@@ -119,7 +119,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TString                fJetMakerName;
   TString                fJetBGMakerName;
   TString                fRhoMakerName;
-
+  
   StRhoBase(const StRhoBase&);             // not implemented
   StRhoBase& operator=(const StRhoBase&);  // not implemented
   

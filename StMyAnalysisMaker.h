@@ -48,7 +48,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
       kDebugEmcTrigger,
       kDebugGeneralEvt,
       kDebugCentrality,
-      kDeubgEventPlaneCalc
+      kDebugEventPlaneCalc
     };
 
     // enumerator for TPC event plane method
@@ -100,7 +100,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetPrintEventCounter(Bool_t c)     { doPrintEventCounter = c; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+    virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
@@ -161,9 +163,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetEPTPCptAssocBin(Int_t pb)                    {fTPCptAssocBin = pb; }
 
     // Where to read calib object with EP calibration if not default
-    void                    SetEPcalibFileName(TString filename)      {fEPcalibFileName = filename; } 
-    void                    SetOutFileNameEP(TString epout)           {mOutNameEP = epout; }
-    virtual void            SetdoReadCalibFilei(Bool_t rc)                   {doReadCalibFile = rc; } 
+    void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
+    void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
+    virtual void            SetdoReadCalibFilei(Bool_t rc)                  {doReadCalibFile = rc; } 
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
@@ -193,35 +195,12 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t                  GetVzRegion(double Vz);
 
     // switches
-    Bool_t                 doUsePrimTracks;         // primary track switch
-    Int_t                  fDebugLevel;             // debug printout level
     Bool_t                 doPrintEventCounter;     // print event # switch
-    Int_t                  fRunFlag;                // Run Flag numerator value
-    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Int_t                  fDoEffCorr;              // efficiency correction to tracks
-    Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Bool_t                 doEventPlaneRes;         // event plane resolution switch
     Bool_t                 doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                  fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                 doReadCalibFile;         // read calibration file switch
-
-    // cuts
-    Double_t               fMinPtJet;               // min jet pt to keep jet in output
-    Double_t               fJetConstituentCut;      // min jet constituent
-    Double_t               fTrackBias;              // high pt track in jet bias
-    Double_t               fTowerBias;              // high E tower in jet bias
-    Double_t               fJetRad;                 // jet radius
-    Double_t               fEventZVtxMinCut;        // min event z-vertex cut
-    Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
-    Double_t               fTrackPtMinCut;          // min track pt cut
-    Double_t               fTrackPtMaxCut;          // max track pt cut
-    Double_t               fTrackPhiMinCut;         // min track phi cut
-    Double_t               fTrackPhiMaxCut;         // max track phi cut
-    Double_t               fTrackEtaMinCut;         // min track eta cut
-    Double_t               fTrackEtaMaxCut;         // max track eta cut
-    Double_t               fTrackDCAcut;            // max track dca cut
-    Int_t                  fTracknHitsFit;          // requirement for track hits
-    Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 
     // event mixing
     Int_t          fDoEventMixing;              // switch ON/off event mixing
@@ -231,26 +210,12 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t          fCentBinSize;                // centrality bin size of mixed event pools
     Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
 
-    // centrality    
-    Double_t       fCentralityScaled;           // scaled by 5% centrality 
-    Int_t          ref16;                       // multiplicity bin (16)
-    Int_t          ref9;                        // multiplicity bin (9)
-
-    // event
-    Double_t        Bfield;                      // event Bfield
-    StThreeVectorF  mVertex;                     // event vertex 3-vector
-    Double_t        zVtx;                        // z-vertex component
-
     // event selection types
     UInt_t         fTriggerEventType;           // Physics selection of event used for signal
     UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
     Int_t          fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
-    StJet*         fLeadingJet;//! leading jet
-    StJet*         fSubLeadingJet;//! subleading jet
-    Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
-    Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
     Int_t          fTPCEPmethod;                // TPC event plane calculation method
     Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!
@@ -301,10 +266,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TClonesArray          *CloneAndReduceTrackList();
     StEventPoolManager    *fPoolMgr;//!  // event pool Manager object
 
-    // clonesarray collections of tracks and jets
-    TClonesArray          *fTracksME;//! track collection to slim down for mixed events
-//    TClonesArray          *fJets;//! jet collection
-
   private:
     //void                   GetVZEROEventPlane(Bool_t isFlatten);
     Double_t               ApplyFlatteningTPCn(Double_t phi, Double_t c);
@@ -326,26 +287,12 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t               fEPBBC;
     Double_t               fEPZDC;
 
-    // PicoDstMaker and PicoDst object pointer
-    StPicoDstMaker *mPicoDstMaker;
-    StPicoDst      *mPicoDst;
-    StPicoEvent    *mPicoEvent;
-    StJetMakerTask *JetMaker;
-    StRho          *RhoMaker;
-
-    // centrality objects
-    StRefMultCorr* grefmultCorr;
-
     // TCloneArray of analysis objects
     TClonesArray   *mJets;
     TClonesArray   *mTracks;
     TClonesArray   *mTowers;
     TClonesArray   *mParticles;
    
-    // output file name string 
-    TString      mOutName;
-    TString      mOutNameEP;
-
     TFile        *fCalibFile;
     TFile        *fCalibFile2;
     TFile        *fBBCcalibFile;
@@ -506,14 +453,10 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
 
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
-    StRhoParameter        *fRho;//!<!          // event rho
-    Double_t               fRhoVal;//!<!       // event rho value, same for local rho
     TString                fRhoName;///<       // rho name
 
     // maker names
     TString                fAnalysisMakerName;
-    TString                fJetMakerName;
-    TString                fRhoMakerName;
     TString                fEventMixerMakerName;
 
 /*

@@ -26,6 +26,7 @@
 #include "zdc_shift_data.h"
 */
 
+/*
 double tpc_center_Qnx_bin0[9][20];
 double tpc_center_Qnx_bin1[9][20];
 double tpc_center_Qnx_bin2[9][20];
@@ -72,6 +73,6 @@ double tpc_center_Qnx[9][20];
 double tpc_center_Qny[9][20];
 double tpc_center_Qpx[9][20];
 double tpc_center_Qpy[9][20];
-
+*/
 
 #endif /* CORRECTIONS_H_ */

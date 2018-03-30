@@ -200,14 +200,35 @@ Int_t StRhoBase::Init()
   }
 */
 
-  // initialize centrality correction
-  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == Run16_AuAu200) {
-    if(fCentralityDef == kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
-  } 
+  // may not need, used for old RUNS
+  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  }
 
   return kStOk;
 }

@@ -79,6 +79,8 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fDoEffCorr(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
+  fCentralitySelectionCut(-99),
+  fRequireCentSelection(kFALSE),
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
@@ -141,6 +143,8 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   mOutName(outName),
+  fCentralitySelectionCut(-99),
+  fRequireCentSelection(kFALSE),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fTrackPtMinCut(0.2), //0.20
@@ -225,12 +229,32 @@ Int_t StPicoTrackClusterQA::Init() {
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == StJetFrameworkPicoBase::kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
 
   return kStOK;
@@ -331,27 +355,6 @@ int StPicoTrackClusterQA::Make()
   bool fHaveMBevent = kFALSE;
   fGoodTrackCounter = 0;
 
-  // ===========================================================================
-/*
-  mMuDstMaker = (StMuDstMaker*)GetMaker("muDst");
-  if(!mMuDstMaker) {
-    LOG_WARN << " No MuDstMaker! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // get muDst 
-  mMuDst = (StMuDst*) GetInputDS("MuDst");         
-  if(!mMuDst) {
-    LOG_WARN << " No muDst! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // get EmcCollection
-  mEmcCol = (StEmcCollection*)mMuDst->emcCollection();
-  if(!mEmcCol) return kStWarn;
-*/
-  // ===========================================================================
-
   // Get PicoDstMaker
   mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
   if(!mPicoDstMaker) {
@@ -407,6 +410,14 @@ int StPicoTrackClusterQA::Make()
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
+  // Run14 triggers:
+  int arrBHT1_R14[] = {450201, 450211, 460201};
+  int arrBHT2_R14[] = {450202, 450212};
+  int arrBHT3_R14[] = {460203, 6, 10, 14, 31, 450213};
+  int arrMB_R14[] = {450014};
+  int arrMB30_R14[] = {20, 450010, 450020};
+  int arrMB5_R14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+
   // Run16 triggers:
   int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
   int arrBHT2[] = {4, 16, 17, 530202, 540203};
@@ -417,11 +428,13 @@ int StPicoTrackClusterQA::Make()
 
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
-  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: n = "<<mytriggers.size()<<"  ";
+  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", ";
-    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }
-    // FIXME Hard-coded for now
+    //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
+    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (DoComparison(arrMB5_R14, sizeof(arrMB5_R14)/sizeof(*arrMB5_R14)))) { fHaveMBevent = kTRUE; }
+
+    // FIXME Hard-coded for now - Run 16 only has HT1 (not HT2 or HT3)
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
     if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
   }
@@ -452,9 +465,20 @@ int StPicoTrackClusterQA::Make()
   if(mtdpid) mtdpid->Print();
 */
 
-  // Run - Trigger Selection to process jets from
-  if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) return kStOK;
-  if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) return kStOK; //FIXME//
+  // switches for Jet and Event Plane analysis
+  Bool_t doQAAnalysis = kFALSE; // set false by default
+
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+      if(fEmcTriggerArr[fTriggerEventType]) { doQAAnalysis = kTRUE; }
+      break;
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+      if(fHaveEmcTrigger) { doQAAnalysis = kTRUE; }
+      break;
+  }
+
+  if(!doQAAnalysis) return kStOK;
 
   int nTracks = mPicoDst->numberOfTracks();
   int nTrigs = mPicoDst->numberOfEmcTriggers();

@@ -39,10 +39,6 @@ class StRefMultCorr;
 #include "StJet.h"
 #include "StMyAnalysisMaker.h"
 
-#if !(defined(__CINT__) || defined(__MAKECINT__))
-#include "StIndexMap.h"
-#endif
-
 namespace fastjet {
   class PseudoJet;
 }
@@ -295,12 +291,6 @@ class StJetMakerTask : public StMaker {
   StEmcCollection *mEmcCol;
   
   static const Int_t     fgkConstIndexShift;      //!contituent index shift
-
-#if !(defined(__CINT__) || defined(__MAKECINT__))
-// Handle mapping between index and containers
-//StIndexMap <TClonesArray, StVCluster> fClusterContainerIndexMap;    //!<! Mapping between index and cluster containers  // FIXME
-StIndexMap <TClonesArray, StVParticle> fParticleContainerIndexMap; //!<! Mapping between index and particle containers
-#endif
 
  private:
   StMuDst        *mu; // muDst object

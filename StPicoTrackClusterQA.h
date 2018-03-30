@@ -160,13 +160,14 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                  fDebugLevel;             // debug printout level
   Int_t                  fRunFlag;                // Run Flag numerator value
   Int_t                  fCentralityDef;          // Centrality Definition enumerator value
-  Bool_t                 fRequireCentSelection;   // require particular centrality bin
   Bool_t                 fDoEffCorr;              // efficiency correction to tracks
 
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
+  Bool_t                 fRequireCentSelection;   // require particular centrality bin
+
 
   // names
   TString                mOutName;                // name of output file

@@ -158,6 +158,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // set names of makers for global use
     virtual void            SetOutputFileName(const char *on)         { mOutName = on; }
+    void                    SetOutFileNameEP(TString epout)           { mOutNameEP = epout; }
     virtual void            SetJetMakerName(const char *jn)           { fJetMakerName = jn; }
     virtual void            SetJetBGMakerName(const char *bjn)        { fJetBGMakerName = bjn; }
     virtual void            SetRhoMakerName(const char *rn)           { fRhoMakerName = rn; }
@@ -199,9 +200,9 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // cuts
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
+    Double_t               fJetConstituentCut;      // min jet constituent
     Double_t               fTrackBias;              // high pt track in jet bias
     Double_t               fTowerBias;              // high E tower in jet bias
-
     Double_t               fJetRad;                 // jet radius
     Double_t               fEventZVtxMinCut;        // min event z-vertex cut
     Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
@@ -215,6 +216,8 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fTrackDCAcut;            // max track dca cut
     Int_t                  fTracknHitsFit;          // requirement for track hits
     Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
+
+
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
@@ -246,6 +249,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // output file name string 
     TString        mOutName;
+    TString        mOutNameEP;
 
     // maker names
     TString        fJetMakerName;

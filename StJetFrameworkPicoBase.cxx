@@ -171,13 +171,33 @@ Int_t StJetFrameworkPicoBase::Init() {
   //fJets->SetName(fJetsName);
 
   // initialize centrality correction
-  if(fRunFlag == Run14_AuAu200) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-  if(fRunFlag == Run16_AuAu200) {
-    if(fCentralityDef == kgrefmult) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr(); }
-    if(fCentralityDef == kgrefmult_P16id) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id(); }
-    if(fCentralityDef == kgrefmult_VpdMBnoVtx) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx(); }
-    if(fCentralityDef == kgrefmult_VpdMB30) { grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30(); }
-  } 
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        // this is the default for Run14
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(fCentralityDef) {      
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              break;
+          default:
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+        }
+    default :
+        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+  }
 
   refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
   refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
@@ -197,104 +217,6 @@ Int_t StJetFrameworkPicoBase::Finish() {
 void StJetFrameworkPicoBase::Clear(Option_t *opt) {
 
 }
-
-/*
-//----------------------------------------------------------------------------- 
-//  This method is called every event.
-Int_t StJetFrameworkPicoBase::Make() {
-  // update counter
-  mEventCounter++;
-
-  // get PicoDstMaker 
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
-  if(!mPicoDstMaker) {
-    LOG_WARN << " No PicoDstMaker! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
-  if(!mPicoDst) {
-    LOG_WARN << " No PicoDst! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // create pointer to PicoEvent 
-  mPicoEvent = mPicoDst->event();
-  if(!mPicoEvent) {
-    LOG_WARN << " No PicoEvent! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField(); 
-
-  // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
-  
-  // Z-vertex cut 
-  // per the Aj analysis (-40, 40)
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
-
-  // let me know the Run #, fill, and event ID
-  Int_t RunId = mPicoEvent->runId();
-  Int_t fillId = mPicoEvent->fillId();
-  Int_t eventId = mPicoEvent->eventId();
-  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
-
-  // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
-  const char *fJetMakerNameCh = fJetMakerName;
-  if(!JetMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
-    return kStWarn;
-  }
-
-  // if we have JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
-  if(!fJets) {     
-    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
-    return kStWarn; 
-  }
-
-  // get number of jets, tracks, and global tracks in events
-  Int_t njets = fJets->GetEntries();
-  const Int_t ntracks = mPicoDst->numberOfTracks();
-  Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
-
-  // ========================= Trigger Info =============================== //
-  // get trigger IDs from PicoEvent class and loop over them
-  Int_t trId[20]={-999,-999,-999,-999,-999,-999,-999,-999,-999,-999, -999,-999,-999,-999,-999,-999,-999,-999,-999,-999};
-  vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
-  for(unsigned int i=0; i<mytriggers.size(); i++) {
-    // fill trigger array with trigger IDs
-    trId[i] = mytriggers[i];
-  }
-  cout<<endl;
-
-  // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
-  int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int cent16 = grefmultCorr->getCentralityBin16();
-  int cent9 = grefmultCorr->getCentralityBin9();
-  int centbin = GetCentBin(cent16, 16);
-  double refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-
-  // ============================ end of CENTRALITY ============================== //
-  // event counter at end of maker
-  mInputEventCounter++;
-
-  return kStOK;
-}
-*/
 
 // 
 //  Get the event-wise rho value
@@ -605,7 +527,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
     // more acceptance cuts now - after getting 3vector - hardcoded for now
     if(pt > 5.0) continue;   // 100.0
     if((1.0*TMath::Abs(eta)) > 1.0) continue;
-    if(phi < 0) phi+= 2*pi;
+    if(phi < 0)    phi+= 2*pi;
     if(phi > 2*pi) phi-= 2*pi;
     if((phi < 0) || (phi > 2*pi)) continue;
 
@@ -620,7 +542,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0) trackweight = 2.0;
+      if(pt > 2.0)  trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
