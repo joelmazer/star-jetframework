@@ -196,7 +196,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   mVertex = 0x0;
   zVtx = 0.0;
   fTriggerEventType = 0; fMixingEventType = 0;
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
   fhnJH = 0x0;
   fhnMixedEvents = 0x0;
@@ -664,7 +664,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
   // set binning for run based corrections - run dependent
   Int_t nRunBins = 1; // - just a default
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) nRunBins = 1654;
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) nRunBins = 830;  // 1654;
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) nRunBins = 1359;
   Double_t nRunBinsMax = (Double_t)nRunBins;
 
@@ -1083,21 +1083,21 @@ Int_t StMyAnalysisMaker::Make() {
   if(doPrintEventCounter) cout<<"StMyAnMaker event# = "<<EventCounter()<<endl;
 
   // get PicoDstMaker 
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent 
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -1126,12 +1126,12 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ================= Event Plane flattening container ==============
   // set up event plane flattening container - not currently used 
-  TObjArray *maps = (TObjArray*)fFlatContainer->GetObject(fRunNumber,"eventplaneFlat");
+  TObjArray *maps = static_cast<TObjArray*>(fFlatContainer->GetObject(fRunNumber,"eventplaneFlat"));
   if(maps) {
-    fTPCnFlat = (StEPFlattener*)maps->At(0);
-    fTPCpFlat = (StEPFlattener*)maps->At(1);
-    fBBCFlat = (StEPFlattener*)maps->At(2);
-    fZDCFlat = (StEPFlattener*)maps->At(3);
+    fTPCnFlat = static_cast<StEPFlattener*>(maps->At(0));
+    fTPCpFlat = static_cast<StEPFlattener*>(maps->At(1));
+    fBBCFlat = static_cast<StEPFlattener*>(maps->At(2));
+    fZDCFlat = static_cast<StEPFlattener*>(maps->At(3));
   }
 
   // ============================ CENTRALITY ============================== //
@@ -1189,41 +1189,44 @@ Int_t StMyAnalysisMaker::Make() {
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
-  // Run14 triggers:
-  int arrBHT1_R14[] = {450201, 450211, 460201};
-  int arrBHT2_R14[] = {450202, 450212};
-  int arrBHT3_R14[] = {460203, 6, 10, 14, 31, 450213};
-  int arrMB_R14[] = {450014};
-  int arrMB30_R14[] = {20, 450010, 450020};
-  int arrMB5_R14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-
-  // Run16 triggers:
-  int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrBHT2[] = {4, 16, 17, 530202, 540203};
-  int arrBHT3[] = {17, 520203, 530213};
-  int arrMB[] = {520021};
-  int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
-    //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
-    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (DoComparison(arrMB5_R14, sizeof(arrMB5_R14)/sizeof(*arrMB5_R14)))) { fHaveMBevent = kTRUE; }
+  }
+  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
 
-    // FIXME Hard-coded for now - Run 16 only has HT1 (not HT2 or HT3)
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
+  // check for MB/HT event
+  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+
+  // switches for Jet and Event Plane analysis
+  Bool_t doJetAnalysis = kFALSE; // set false by default
+  Bool_t doEPAnalysis = kFALSE;  // set false by default
+
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+      if(fEmcTriggerArr[fTriggerEventType]) {
+        doJetAnalysis = kTRUE;
+        doEPAnalysis = kTRUE;
+      }
+      break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+      if(fHaveEmcTrigger) {
+        doJetAnalysis = kTRUE;
+        doEPAnalysis = kTRUE;
+      }
+      break;
   }
 
-  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
@@ -1231,7 +1234,7 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
   // if we have JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
   if(!fJets) {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
     return kStWarn;
@@ -1248,27 +1251,6 @@ Int_t StMyAnalysisMaker::Make() {
 
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
-
-  // switches for Jet and Event Plane analysis
-  Bool_t doJetAnalysis = kFALSE; // set false by default
-  Bool_t doEPAnalysis = kFALSE;  // set false by default
-
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fTriggerEventType]) { 
-        doJetAnalysis = kTRUE; 
-        doEPAnalysis = kTRUE;
-      }
-      break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-      if(fHaveEmcTrigger) { 
-        doJetAnalysis = kTRUE; 
-        doEPAnalysis = kTRUE;
-      }
-      break;
-  }
 
   // switch to require specific trigger (for Event Plane corrections + Resolution)
   if(doEPAnalysis) { 
@@ -1343,7 +1325,7 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ============== RhoMaker =============== //
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = (StRho*)GetMaker(fRhoMakerName);
+  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerName));
   const char *fRhoMakerNameCh = fRhoMakerName;
   if(!RhoMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
@@ -1351,7 +1333,7 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
   // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
-  fRho = (StRhoParameter*)RhoMaker->GetRho();
+  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
   if(!fRho) {
     LOG_WARN << Form("Couldn't get fRho object! ") << endm;
     return kStWarn;    
@@ -1377,8 +1359,6 @@ Int_t StMyAnalysisMaker::Make() {
   // loop over Jets in the event: initialize some parameter variables
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
-
-  //if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
     // Run - Trigger Selection to process jets from
     if(!doJetAnalysis) continue;
@@ -1414,7 +1394,7 @@ Int_t StMyAnalysisMaker::Make() {
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
-      StPicoTrack* trk = mPicoDst->track(trackid);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
       StThreeVectorF mTrkMom;
@@ -1447,7 +1427,7 @@ Int_t StMyAnalysisMaker::Make() {
     // loop over constituent towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int ArrayIndex = jet->ClusterAt(itow);
-      StPicoBTowHit *tow = mPicoDst->btowHit(ArrayIndex);
+      StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
       int clusID = tow->id(); // clusID = towerid -1 because of array element numbering different than ids which start at 1
@@ -1496,7 +1476,7 @@ Int_t StMyAnalysisMaker::Make() {
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(int itrack = 0; itrack < ntracks; itrack++){
       // get tracks
-      StPicoTrack* trk = mPicoDst->track(itrack);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
@@ -1640,7 +1620,7 @@ Int_t StMyAnalysisMaker::Make() {
             for(int ibg = 0; ibg < Nbgtrks; ibg++) {
               // trying new slimmed PicoTrack class
               //StPicoTrk* trk = (StPicoTrk*)bgTracks->At(ibg);
-              StFemtoTrack* trk = (StFemtoTrack*)bgTracks->At(ibg);
+              StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
               if(!trk){ continue; }
               double Mixphi = trk->Phi();
               double Mixeta = trk->Eta();
@@ -1663,9 +1643,8 @@ Int_t StMyAnalysisMaker::Make() {
               if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
 
               // calculate single particle tracking efficiency of mixed events for correlations
-              double mixefficiency = -999;
+              double mixefficiency = 1.0;
               //FIXME mixefficiency = EffCorrection(part->Eta(), part->Pt(), fDoEffCorr);                           
-              mixefficiency = 1.0;
 
               double Mixjetptselected;
               if(fCorrJetPt) { Mixjetptselected = Mixcorrjetpt;
@@ -2153,7 +2132,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
-    StPicoTrack* trk = mPicoDst->track(i);
+    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
@@ -2270,7 +2249,7 @@ Bool_t StMyAnalysisMaker::AcceptJet(StJet *jet) { // for jets
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
-  for(int i = 0; i < 7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
@@ -2333,20 +2312,19 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212};
-    int arrBHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrHT1[] = {450201, 450211, 460201};
+    int arrHT2[] = {450202, 450212};
+    int arrHT3[] = {460203, 6, 10, 14, 31, 450213};
     int arrMB[] = {450014};
     int arrMB30[] = {20, 450010, 450020};
     int arrCentral5[] = {20, 450010, 450020};
     int arrCentral[] = {15, 460101, 460111};
     int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
     //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
@@ -2369,15 +2347,13 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // get vector of triggers
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {4, 16, 17, 530202, 540203};
-    int arrBHT3[] = {17, 520203, 530213};
+    int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    int arrHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrHT2[] = {4, 16, 17, 530202, 540203};
+    int arrHT3[] = {17, 520203, 530213};
     int arrMB[] = {520021};
     int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
     int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
@@ -2387,9 +2363,9 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
     bin = 1; h->Fill(bin);
 
     // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
     //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
@@ -3022,7 +2998,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   int nTrack = mPicoDst->numberOfTracks();
   for(int i=0; i<nTrack; i++) {
     // get tracks
-    StPicoTrack* track = mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -3881,7 +3857,9 @@ Int_t StMyAnalysisMaker::GetRunNo(int runid){
   // Run14 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {  
     // 1654 for Run14 AuAu
-    for(int i = 0; i < 1654; i++){
+    //for(int i = 0; i < 1654; i++){
+    // new picoDst production is 830
+    for(int i = 0; i < 830; i++) {
       if(Run14AuAu_IdNo[i] == runid) {
         return i;
       }
@@ -4203,7 +4181,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < Qtrack; i++){
-    StPicoTrack* track = (StPicoTrack*)mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)

@@ -175,21 +175,21 @@ Int_t StRhoSparse::Make()
   if(fDebugLevel == 1) cout<<"fJetMakerName = "<<fJetMakerName<<"  fJetBGMakerName = "<<fJetBGMakerName<<endl;
 
   // get PicoDstMaker
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -204,19 +204,19 @@ Int_t StRhoSparse::Make()
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // get JetMaker of background jets ("JetMakerBG")
-  JetMakerBG = (StJetMakerTask*)GetMaker(fJetBGMakerName);
+  JetMakerBG = static_cast<StJetMakerTask*>(GetMaker(fJetBGMakerName));
   if(!JetMakerBG) { return kStWarn; }
 
   // if we have background JetMaker, get jet collection associated with it
-  fBGJets =  JetMakerBG->GetJets();
+  fBGJets =  static_cast<TClonesArray*>(JetMakerBG->GetJets());
   if(!fBGJets) { return kStWarn; }
 
   // get Signal JetMaker  - ("JetMaker")
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
   if(!JetMaker) { return kStWarn; }
 
   // if we have signal JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
   if(!fJets) { return kStWarn; }
 
   // # of jets

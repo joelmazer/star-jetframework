@@ -152,7 +152,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
   fTriggerEventType = 0; fMixingEventType = 0;
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
   fhnJH = 0x0;
   fhnMixedEvents = 0x0;
@@ -617,7 +617,6 @@ Int_t StMyAnalysisMaker3::Make() {
   const double pi = 1.0*TMath::Pi();
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
-
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
   // update counter
@@ -626,21 +625,21 @@ Int_t StMyAnalysisMaker3::Make() {
   if(doPrintEventCounter) cout<<"StMyAnMaker event# = "<<EventCounter()<<endl;
 
   // get PicoDstMaker 
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent 
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -721,41 +720,44 @@ Int_t StMyAnalysisMaker3::Make() {
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   FillEmcTriggersHist(hEmcTriggers);
 
-  // Run14 triggers:
-  int arrBHT1_R14[] = {450201, 450211, 460201};
-  int arrBHT2_R14[] = {450202, 450212};
-  int arrBHT3_R14[] = {460203, 6, 10, 14, 31, 450213};
-  int arrMB_R14[] = {450014};   // main MB trigger for Run14
-  int arrMB30_R14[] = {20, 450010, 450020};
-  int arrMB5_R14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-
-  // Run16 triggers:
-  int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrBHT2[] = {4, 16, 17, 530202, 540203};
-  int arrBHT3[] = {17, 520203, 530213};
-  int arrMB[] = {520021};
-  int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
-    //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
-    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (DoComparison(arrMB5_R14, sizeof(arrMB5_R14)/sizeof(*arrMB5_R14)))) { fHaveMBevent = kTRUE; }
+  }
+  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
 
-    // FIXME Hard-coded for now - Run 16 only has HT1 (not HT2 or HT3)
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
+  // check for MB/HT event
+  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+
+  // switches for Jet and Event Plane analysis
+  Bool_t doJetAnalysis = kFALSE; // set false by default
+  Bool_t doEPAnalysis = kFALSE;  // set false by default
+
+  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+      if(fEmcTriggerArr[fTriggerEventType]) {
+        doJetAnalysis = kTRUE;
+        doEPAnalysis = kTRUE;
+      }
+      break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+      if(fHaveEmcTrigger) {
+        doJetAnalysis = kTRUE;
+        doEPAnalysis = kTRUE;
+      }
+      break;
   }
 
-  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
@@ -763,7 +765,7 @@ Int_t StMyAnalysisMaker3::Make() {
   }
 
   // get JetMaker collection of jets
-  fJets = JetMaker->GetJets();
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
   if(!fJets) {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
     return kStWarn;
@@ -771,7 +773,7 @@ Int_t StMyAnalysisMaker3::Make() {
 
   // ============== RhoMaker =============== //
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = (StRho*)GetMaker(fRhoMakerName);
+  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerName));
   const char *fRhoMakerNameCh = fRhoMakerName;
   if(!RhoMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
@@ -779,7 +781,7 @@ Int_t StMyAnalysisMaker3::Make() {
   }
 
   // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
-  fRho = (StRhoParameter*)RhoMaker->GetRho();
+  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
   if(!fRho) {
     LOG_WARN << Form("Couldn't get fRho object! ") << endm;
     return kStWarn;
@@ -789,7 +791,7 @@ Int_t StMyAnalysisMaker3::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
+  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.4*0.4*fRhoVal<<endl;
 
   // =========== Event Plane Angle ============= //
   // cache the leading + subleading jets within acceptance
@@ -802,27 +804,6 @@ Int_t StMyAnalysisMaker3::Make() {
 
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
-
-  // switches for Jet and Event Plane analysis
-  Bool_t doJetAnalysis = kFALSE; // set false by default
-  Bool_t doEPAnalysis = kFALSE;  // set false by default
-
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fTriggerEventType]) { 
-        doJetAnalysis = kTRUE; 
-        doEPAnalysis = kTRUE;
-      }
-      break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-      if(fHaveEmcTrigger) { 
-        doJetAnalysis = kTRUE; 
-        doEPAnalysis = kTRUE;
-      }
-      break;
-  }
 
   // set up event plane maker here..
   // ============== EventPlaneMaker =============== //
@@ -837,10 +818,11 @@ Int_t StMyAnalysisMaker3::Make() {
 */
 
   // get event plane maker 
-  StEventPlaneMaker *EventPlaneMaker0, *EventPlaneMaker1, *EventPlaneMaker2, *EventPlaneMaker3, *EventPlaneMaker4;
-  double tpc2EP, tpc2EP_bin0, tpc2EP_bin1, tpc2EP_bin2, tpc2EP_bin3, tpc2EP_bin4;
+  //StEventPlaneMaker *EventPlaneMaker0, *EventPlaneMaker1, *EventPlaneMaker2, *EventPlaneMaker3, *EventPlaneMaker4;
+  double tpc2EP_bin0, tpc2EP_bin1, tpc2EP_bin2, tpc2EP_bin3, tpc2EP_bin4;
+  //double tpc2EP;
   if(!doTPCptassocBin) {
-    EventPlaneMaker = (StEventPlaneMaker*)GetMaker(fEventPlaneMakerName);
+    EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
     const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
     if(!EventPlaneMaker) {
       LOG_WARN << Form(" No %s! Skip! ", fEventPlaneMakerNameCh) << endm;
@@ -848,17 +830,17 @@ Int_t StMyAnalysisMaker3::Make() {
     }
 
     // set event plane
-    tpc2EP = (double)EventPlaneMaker->GetTPCEP();
+    double tpc2EP = (double)EventPlaneMaker->GetTPCEP();
     TPC_PSI2 = tpc2EP;
 
   } else { // pt-dependent bin mode
     // TODO - add pt dependent check - because may want 1 bin but not ALL
     const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
-    EventPlaneMaker0 = (StEventPlaneMaker*)GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 0));
-    EventPlaneMaker1 = (StEventPlaneMaker*)GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 1));
-    EventPlaneMaker2 = (StEventPlaneMaker*)GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 2));
-    EventPlaneMaker3 = (StEventPlaneMaker*)GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 3));
-    EventPlaneMaker4 = (StEventPlaneMaker*)GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4));
+    StEventPlaneMaker *EventPlaneMaker0 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 0)));
+    StEventPlaneMaker *EventPlaneMaker1 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 1)));
+    StEventPlaneMaker *EventPlaneMaker2 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 2)));
+    StEventPlaneMaker *EventPlaneMaker3 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 3)));
+    StEventPlaneMaker *EventPlaneMaker4 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4)));
     if((!EventPlaneMaker0) || (!EventPlaneMaker1) || (!EventPlaneMaker2) || (!EventPlaneMaker3) || (!EventPlaneMaker4)) {
       LOG_WARN << "Missing one of the pt-dependent event plane maker pointers... check things!" << endm;
       return kStWarn;
@@ -939,13 +921,13 @@ Int_t StMyAnalysisMaker3::Make() {
     double jetNEF = jet->NEF();
     //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
     double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
-    double dEP0, dEP1, dEP2, dEP3, dEP4;
+    //double dEP0, dEP1, dEP2, dEP3, dEP4;
     if(doTPCptassocBin) {
-      dEP0 = RelativeEPJET(jetPhi, tpc2EP_bin0);
-      dEP1 = RelativeEPJET(jetPhi, tpc2EP_bin1);
-      dEP2 = RelativeEPJET(jetPhi, tpc2EP_bin2);
-      dEP3 = RelativeEPJET(jetPhi, tpc2EP_bin3);
-      dEP4 = RelativeEPJET(jetPhi, tpc2EP_bin4);
+      double dEP0 = RelativeEPJET(jetPhi, tpc2EP_bin0);
+      double dEP1 = RelativeEPJET(jetPhi, tpc2EP_bin1);
+      double dEP2 = RelativeEPJET(jetPhi, tpc2EP_bin2);
+      double dEP3 = RelativeEPJET(jetPhi, tpc2EP_bin3);
+      double dEP4 = RelativeEPJET(jetPhi, tpc2EP_bin4);
       if(fTPCptAssocBin == 0) dEP = dEP0;
       if(fTPCptAssocBin == 1) dEP = dEP1;
       if(fTPCptAssocBin == 2) dEP = dEP2;
@@ -966,7 +948,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
-      StPicoTrack* trk = mPicoDst->track(trackid);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
       StThreeVectorF mTrkMom;
@@ -1003,7 +985,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // loop over constituent towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int ArrayIndex = jet->ClusterAt(itow);
-      StPicoBTowHit *tow = mPicoDst->btowHit(ArrayIndex);
+      StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
       int clusID = tow->id(); // clusID = towerid -1 because of array element numbering different than ids which start at 1
@@ -1053,7 +1035,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(int itrack = 0; itrack < ntracks; itrack++){
       // get tracks
-      StPicoTrack* trk = mPicoDst->track(itrack);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
@@ -1178,13 +1160,13 @@ Int_t StMyAnalysisMaker3::Make() {
         double MixjetPhi = jet->Phi();
         //double dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
         double dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
-        double dMixEP0, dMixEP1, dMixEP2, dMixEP3, dMixEP4;
+        //double dMixEP0, dMixEP1, dMixEP2, dMixEP3, dMixEP4;
         if(doTPCptassocBin) {
-          dMixEP0 = RelativeEPJET(MixjetPhi, tpc2EP_bin0);
-          dMixEP1 = RelativeEPJET(MixjetPhi, tpc2EP_bin1);
-          dMixEP2 = RelativeEPJET(MixjetPhi, tpc2EP_bin2);
-          dMixEP3 = RelativeEPJET(MixjetPhi, tpc2EP_bin3);
-          dMixEP4 = RelativeEPJET(MixjetPhi, tpc2EP_bin4);
+          double dMixEP0 = RelativeEPJET(MixjetPhi, tpc2EP_bin0);
+          double dMixEP1 = RelativeEPJET(MixjetPhi, tpc2EP_bin1);
+          double dMixEP2 = RelativeEPJET(MixjetPhi, tpc2EP_bin2);
+          double dMixEP3 = RelativeEPJET(MixjetPhi, tpc2EP_bin3);
+          double dMixEP4 = RelativeEPJET(MixjetPhi, tpc2EP_bin4);
           if(fTPCptAssocBin == 0) dMixEP = dMixEP0;
           if(fTPCptAssocBin == 1) dMixEP = dMixEP1;
           if(fTPCptAssocBin == 2) dMixEP = dMixEP2;
@@ -1215,7 +1197,7 @@ Int_t StMyAnalysisMaker3::Make() {
             // loop over background (mixed event) tracks
             for(int ibg = 0; ibg < Nbgtrks; ibg++) {
               // trying new slimmed PicoTrack class
-              StFemtoTrack* trk = (StFemtoTrack*)bgTracks->At(ibg);
+              StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
               if(!trk) continue;
               double Mixphi = trk->Phi();
               double Mixeta = trk->Eta();
@@ -1528,7 +1510,7 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
-    StPicoTrack* trk = mPicoDst->track(i);
+    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
@@ -1602,7 +1584,7 @@ Bool_t StMyAnalysisMaker3::AcceptJet(StJet *jet) { // for jets
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
-  for(int i = 0; i < 7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
@@ -1611,7 +1593,7 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
-    StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
+    StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
     // check if i'th trigger fired HT triggers by meeting threshold
@@ -1674,7 +1656,6 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {15, 460101, 460111};
     int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
     if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
@@ -1701,8 +1682,6 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // get vector of triggers
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
 
     // hard-coded trigger Ids for run16
@@ -1767,7 +1746,7 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
   int nTrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < nTrack; i++) {
     // get tracks
-    StPicoTrack* track = mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -2083,7 +2062,7 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   int nTrack = mPicoDst->numberOfTracks();
   for(int i=0; i<nTrack; i++) {
     // get tracks
-    StPicoTrack* track = mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)

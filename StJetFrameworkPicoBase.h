@@ -22,6 +22,7 @@ class StPicoDstMaker;
 class StPicoEvent;
 class StPicoTrack;
 class StRefMultCorr;
+class StPicoBTowHit;
 
 // my STAR classes
 class StJetMakerTask;
@@ -85,6 +86,15 @@ class StJetFrameworkPicoBase : public StMaker {
       kAny,
       kIsHT0, kIsHT1, kIsHT2, kIsHT3,
       kIsJP0, kIsJP1, kIsJP2
+    };
+
+    // MB flags
+    enum fMBFlagEnum {
+      kRun14main = 0,
+      kRun16main = 1,
+      kVPDMB5    = 2,
+      kVPDMB10   = 3,
+      kVPDMB30   = 4
     };
 
     // Centrality Interfaces:
@@ -179,6 +189,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                  EventCounter();     // when called, provides Event #
     Double_t               GetRhoValue(TString fRhoMakerNametemp);
     Bool_t                 DoComparison(int myarr[], int elems);
+    Bool_t                 CheckForMB(int RunFlag, int type);
+    Bool_t                 CheckForHT(int RunFlag, int type);
+    Bool_t                 GetMomentum(StThreeVectorF &mom, StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch

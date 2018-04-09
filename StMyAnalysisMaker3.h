@@ -179,8 +179,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
 
     // cuts
-    Double_t                fMinPtJet;               // min jet pt to keep jet in output
-    Double_t                fJetConstituentCut;      // min jet constituent
+    //Double_t                fMinPtJet;               // min jet pt to keep jet in output
+    //Double_t                fJetConstituentCut;      // min jet constituent
 
     // event mixing
     Int_t          fDoEventMixing;              // switch ON/off event mixing
@@ -194,11 +194,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // event selection types
     UInt_t         fTriggerEventType;           // Physics selection of event used for signal
     UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
-    Int_t          fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
+    Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
-    Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
-    Int_t          fTrackWeight;                // track weight for Q-vector summation
+    //Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
+    //Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
     Int_t          fTPCEPmethod;                // TPC event plane calculation method
     Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!

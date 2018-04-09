@@ -47,11 +47,6 @@ class StRho : public StRhoBase {
  private:
   TH2F             *fHistMultvsRho;//!
 
-  // maker names
-  TString           mOutName;
-  TString           fJetMakerName;
-  TString           fRhoMakerName;
-
   StRho(const StRho&);             // not implemented
   StRho& operator=(const StRho&);  // not implemented
   

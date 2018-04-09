@@ -6,6 +6,8 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
+#include <set>
+
 // TEST for clusters TODO
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
@@ -100,6 +102,12 @@ class StJetMakerTask : public StMaker {
   void    DeclareHistograms();
   void    WriteHistograms();
 
+  // KK: Use one set to reject bad towers
+  void ResetBadTowerList( );
+  void ResetDeadTowerList( );
+  Bool_t AddBadTowers(TString csvfile);
+  Bool_t AddDeadTowers(TString csvfile);
+
   // switches
   virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
   virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
@@ -193,6 +201,7 @@ class StJetMakerTask : public StMaker {
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+  Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const;
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
@@ -306,6 +315,7 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
   TH2F           *fHistJetNTrackvsPhivsEta;//!
+  TH1F           *fHistJetNTowervsID;//!
   TH1F           *fHistJetNTowervsE;//!
   TH1F           *fHistJetNTowervsPhi;//!
   TH1F           *fHistJetNTowervsEta;//!
@@ -319,6 +329,14 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistNJetsvsNConstituents;//!
   TH1F           *fHistNJetsvsNTracks;//!
   TH1F           *fHistNJetsvsNTowers;//!
+
+  TH2F           *fHistQATowIDvsEta;//!
+  TH2F           *fHistQATowIDvsPhi;//!
+
+  Bool_t IsTowerOK( Int_t mTowId );
+  Bool_t IsTowerDead( Int_t mTowId );
+  std::set<Int_t> badTowers; 
+  std::set<Int_t> deadTowers;
 
   // maker names
   //TString         fJetMakerName;

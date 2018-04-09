@@ -120,6 +120,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
   virtual void         SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
+  virtual void         SetDoTowerQAforHT(Bool_t m)          { fDoTowerQAforHT = m; }
 
   // efficiency correction setter
   virtual void         SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
@@ -146,12 +147,16 @@ class StPicoTrackClusterQA : public StMaker {
  protected:
   void                   RunQA();
   void                   RunTowerTest();
+  void                   RunFiredTriggerQA();  
   Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
   TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
   Bool_t                 DoComparison(int myarr[], int elems);
+  Bool_t                 CheckForMB(int RunFlag, int type);
+  Bool_t                 CheckForHT(int RunFlag, int type);
+
   void                   SetSumw2(); // set errors weights 
 
   // switches
@@ -161,6 +166,7 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                  fRunFlag;                // Run Flag numerator value
   Int_t                  fCentralityDef;          // Centrality Definition enumerator value
   Bool_t                 fDoEffCorr;              // efficiency correction to tracks
+  Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
 
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
@@ -168,9 +174,9 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Bool_t                 fRequireCentSelection;   // require particular centrality bin
 
-
   // names
   TString                mOutName;                // name of output file
+  TString                fAnalysisMakerName;      // name of this analysis maker
   TString                fTracksName;             // name of track collection
   TString                fCaloName;               // name of calo cluster collection
 
@@ -201,7 +207,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event selection types
   UInt_t          fTriggerEventType;           // Physics selection of event used for signal
-  Int_t           fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
+  Int_t           fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
   Bool_t          fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
   Bool_t          fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
   Bool_t          fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
@@ -248,6 +254,20 @@ class StPicoTrackClusterQA : public StMaker {
   TH1            *fHistEventSelectionQAafterCuts;//!
   TH1            *hTriggerIds;//!
   TH1            *hEmcTriggers;//!
+
+  // trigger histos - firing towers QA
+  TH1F           *fHistNFiredHT0vsID;//!
+  TH1F           *fHistNFiredHT1vsID;//!
+  TH1F           *fHistNFiredHT2vsID;//!
+  TH1F           *fHistNFiredHT3vsID;//!
+  TH1F           *fHistHT0FiredEtvsID;//!
+  TH1F           *fHistHT1FiredEtvsID;//!
+  TH1F           *fHistHT2FiredEtvsID;//!
+  TH1F           *fHistHT3FiredEtvsID;//!
+  TH2F           *fHistHT0IDvsFiredEt;//!
+  TH2F           *fHistHT1IDvsFiredEt;//!
+  TH2F           *fHistHT2IDvsFiredEt;//!
+  TH2F           *fHistHT3IDvsFiredEt;//!
 
   // THn Sparse's
   THnSparse      *fhnTrackQA;//!      // sparse of track info

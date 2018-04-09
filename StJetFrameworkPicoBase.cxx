@@ -34,6 +34,7 @@
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
+#include "StRoot/StPicoEvent/StPicoBTowHit.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
 
 // old file, kept for useful constants
@@ -42,6 +43,10 @@
 // centrality
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
+
+
+#include "StEmcUtil/projection/StEmcPosition.h"
+class StEmcPosition;
 
 // classes
 class StJetMakerTask;
@@ -224,7 +229,7 @@ void StJetFrameworkPicoBase::Clear(Option_t *opt) {
 double StJetFrameworkPicoBase::GetRhoValue(TString fRhoMakerNametemp)
 {
   // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = (StRho*)GetMaker(fRhoMakerNametemp);
+  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerNametemp));
   const char *fRhoMakerNameCh = fRhoMakerNametemp;
   if(!RhoMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
@@ -232,7 +237,7 @@ double StJetFrameworkPicoBase::GetRhoValue(TString fRhoMakerNametemp)
   }
 
   // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
-  fRho = (StRhoParameter*)RhoMaker->GetRho();
+  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
   if(!fRho) {
     LOG_WARN << Form("Couldn't get fRho object! ") << endm;
     return kStWarn;
@@ -567,7 +572,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
 
   // ================= JetMaker ================ //
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerNametemp);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerNametemp));
   const char *fJetMakerNameCh = fJetMakerNametemp;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
@@ -575,7 +580,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
   }
 
   // if we have JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
   if(!fJets) {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
     return 0x0;
@@ -626,7 +631,7 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
   // ================= JetMaker ================ //
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerNametemp);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerNametemp));
   const char *fJetMakerNameCh = fJetMakerNametemp;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
@@ -634,7 +639,7 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
   }
 
   // if we have JetMaker, get jet collection associated with it
-  fJets = JetMaker->GetJets();
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
   if(!fJets) {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
     return 0x0;
@@ -830,3 +835,150 @@ Bool_t StJetFrameworkPicoBase::DoComparison(int myarr[], int elems) {
 
   return match;
 }
+
+//_________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
+  // Run14 triggers:
+  int arrMB_Run14[] = {450014};
+  int arrMB30_Run14[] = {20, 450010, 450020};
+  int arrMB5_Run14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+  // additional 30: 4, 5, 450201, 450202, 450211, 450212
+
+  // Run16 triggers:
+  int arrMB_Run16[] = {520021};
+  int arrMB5_Run16[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+  int arrMB10_Run16[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+
+  // run flag selection to check for MB firing
+  switch(RunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        switch(type) { 
+          case kRun14main :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+              break;
+          case kVPDMB5 :
+              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
+              break;
+          case kVPDMB30 :
+              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+        }
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(type) {
+          case kRun16main :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+              break;
+          case kVPDMB5 :
+              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
+              break;
+          case kVPDMB10 :
+              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+        }
+  } // RunFlag switch
+
+  // return status
+  return kFALSE;
+} // MB function
+
+//
+// check to see if the event was EMC triggered for High Towers
+//____________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
+
+  // Run14 triggers:
+  int arrHT1_Run14[] = {450201, 450211, 460201};
+  int arrHT2_Run14[] = {450202, 450212};
+  int arrHT3_Run14[] = {460203, 6, 10, 14, 31, 450213};
+
+  // Run16 triggers:
+  int arrHT1_Run16[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrHT2_Run16[] = {4, 16, 17, 530202, 540203};
+  int arrHT3_Run16[] = {17, 520203, 530213};
+
+  // run flag selection to check for MB firing
+  switch(RunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run14, sizeof(arrHT3_Run14)/sizeof(*arrHT3_Run14)))) { return kTRUE; }
+              break;
+          default :  // default to HT2
+              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
+        }
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run16, sizeof(arrHT2_Run16)/sizeof(*arrHT2_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run16)/sizeof(*arrHT3_Run16)))) { return kTRUE; }
+              break;
+          default :  // Run16 only has HT1's
+              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
+        }
+  } // RunFlag switch
+
+  return kFALSE;
+}
+
+//________________________________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const {
+  double pi = 1.0*TMath::Pi();
+
+  // initialize Emc position objects
+  StEmcPosition *Position = new StEmcPosition();
+
+  // vertex
+  StThreeVectorF fVertex = PicoEvent->primaryVertex();
+  double xVtx = fVertex.x();
+  double yVtx = fVertex.y();
+  double zVtx = fVertex.z();
+
+  if(mass < 0) mass = 0;
+  Double_t energy = tower->energy();
+  Double_t p = TMath::Sqrt(energy*energy - mass*mass);
+  int towerID = tower->id();
+
+  StThreeVectorF towerPosition = Position->getPosFromVertex(fVertex, towerID);
+  double towX = towerPosition.x();
+  double towY = towerPosition.y();
+  double towZ = towerPosition.z();
+  double towmag = towerPosition.mag();
+  double towerPhi = towerPosition.phi();
+  if(towerPhi < 0)    towerPhi += 2.0*pi;
+  if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
+  double towerEta = towerPosition.pseudoRapidity();
+
+  Float_t pos[3];
+  pos[0]-=xVtx;
+  pos[1]-=yVtx;
+  pos[2]-=zVtx;
+  Double_t r = TMath::Sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]) ;
+
+  cout<<"r = "<<r<<"  towmag = "<<towmag<<endl;
+
+  if(r > 1e-12) {
+    mom.setX( p*pos[0]/r );
+    mom.setY( p*pos[1]/r ); 
+    mom.setZ( p*pos[2]/r ); 
+    // energy) ;
+  } else { return kFALSE; }
+  return kTRUE;
+}
+

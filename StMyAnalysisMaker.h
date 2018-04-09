@@ -213,7 +213,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     // event selection types
     UInt_t         fTriggerEventType;           // Physics selection of event used for signal
     UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
-    Int_t          fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
+    Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
@@ -453,7 +453,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
 
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
-    TString                fRhoName;///<       // rho name
 
     // maker names
     TString                fAnalysisMakerName;

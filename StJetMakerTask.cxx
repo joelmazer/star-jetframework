@@ -22,6 +22,9 @@
 #include <TParticle.h>
 #include "TFile.h"
 
+#include <sstream>
+#include <fstream>
+
 // general StRoot classes
 #include "StThreeVectorF.hh"
 
@@ -213,6 +216,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
   if(fHistJetNTrackvsEta)      delete fHistJetNTrackvsEta;
   if(fHistJetNTrackvsPhivsEta) delete fHistJetNTrackvsPhivsEta;
+  if(fHistJetNTowervsID)       delete fHistJetNTowervsID;
   if(fHistJetNTowervsE)        delete fHistJetNTowervsE;
   if(fHistJetNTowervsPhi)      delete fHistJetNTowervsPhi;
   if(fHistJetNTowervsEta)      delete fHistJetNTowervsEta;
@@ -226,12 +230,36 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNJetsvsNConstituents)delete fHistNJetsvsNConstituents;
   if(fHistNJetsvsNTracks)      delete fHistNJetsvsNTracks;
   if(fHistNJetsvsNTowers)      delete fHistNJetsvsNTowers;
+
+  if(fHistQATowIDvsEta)        delete fHistQATowIDvsEta;
+  if(fHistQATowIDvsPhi)        delete fHistQATowIDvsPhi;
 }
 
 //
 //________________________________________________________________________
 Int_t StJetMakerTask::Init() {
   DeclareHistograms();
+
+  //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
+  //AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
+  //AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+
+  // Add dead + bad tower lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+        break;
+
+    default :
+      AddBadTowers("StRoot/StMyAnalysisMaker/Empty_BadTowers.txt");
+      AddDeadTowers("StRoot/StMyAnalysisMaker/Empty_DeadTowers.txt");
+  }
 
   // Create user objects.
   fJets = new TClonesArray("StJet");
@@ -253,7 +281,7 @@ Int_t StJetMakerTask::Init() {
   if (fRecombScheme == 5)     recombScheme = fastjet::BIpt_scheme;
   if (fRecombScheme == 6)     recombScheme = fastjet::BIpt2_scheme;
   if (fRecombScheme == 7)     recombScheme = fastjet::WTA_pt_scheme;
-  if (fRecombScheme == 7)     recombScheme = fastjet::WTA_modp_scheme;
+  if (fRecombScheme == 8)     recombScheme = fastjet::WTA_modp_scheme;
   if (fRecombScheme == 99)    recombScheme = fastjet::external_scheme;
 
   // jet algorithm
@@ -363,6 +391,7 @@ void StJetMakerTask::DeclareHistograms() {
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
     fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+    fHistJetNTowervsID = new TH1F("fHistJetNTowervsID", "Jet tower vs tower id", 4800, 0.5, 4800.5);
     fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
     fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2*pi);
     fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
@@ -376,6 +405,9 @@ void StJetMakerTask::DeclareHistograms() {
     fHistNJetsvsNConstituents = new TH1F("fHistNJetsvsNConstituents", "NJets vs NConstit", 51, -0.5, 50.5);
     fHistNJetsvsNTracks = new TH1F("fHistNJetsvsNTracks", "NJets vs NTracks", 50, -0.5, 50.5);
     fHistNJetsvsNTowers = new TH1F("fHistNJetsvsNTowers", "NJets vs NTowers", 50, -0.5, 50.5);
+
+    fHistQATowIDvsEta = new TH2F("fHistQATowIDvsEta", "Tower ID vs #eta", 4800, 0.5, 4800.5, 40, -1.0, 1.0);
+    fHistQATowIDvsPhi = new TH2F("fHistQATowIDvsPhi", "Tower ID vs #phi", 4800, 0.5, 4800.5, 144, 0.0, 2.*pi);
 }
 
 //________________________________________________________________________
@@ -386,6 +418,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistJetNTrackvsPhi->Write();
   fHistJetNTrackvsEta->Write();
   fHistJetNTrackvsPhivsEta->Write();
+  fHistJetNTowervsID->Write();
   fHistJetNTowervsE->Write();
   fHistJetNTowervsPhi->Write();
   fHistJetNTowervsEta->Write();
@@ -399,6 +432,9 @@ void StJetMakerTask::WriteHistograms() {
   fHistNJetsvsNConstituents->Write();
   fHistNJetsvsNTracks->Write();
   fHistNJetsvsNTowers->Write();
+
+  fHistQATowIDvsEta->Write();
+  fHistQATowIDvsPhi->Write();
 }
 
 //-----------------------------------------------------------------------------
@@ -427,22 +463,22 @@ int StJetMakerTask::Make()
   if(!mEmcCol) return kStWarn;
 */
 
-  // Get PicoDstMaker
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  // get PicoDstMaker 
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
-  // create pointer to PicoEvent
-  mPicoEvent = mPicoDst->event();
+  // create pointer to PicoEvent 
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -524,7 +560,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   // loop over ALL tracks in PicoDst and add to jet, after acceptance and quality cuts 
   if((fJetType == kFullJet) || (fJetType == kChargedJet)) {
     for(unsigned short iTracks=0; iTracks < ntracks; iTracks++){
-      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(iTracks);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
@@ -674,7 +710,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
   
     // loop over ALL clusters in PicoDst and add to jet //TODO
     for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
-      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus);
+      StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
       if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
       // cluster and tower ID
@@ -700,7 +736,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
       // matched track index
       int trackIndex = cluster->trackIndex();
-      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
       //StMuTrack* mutrk = (StMuTrack*)mPicoDst->track(trackIndex);
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
       //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; } // FIXME - do I want to apply quality cuts to matched track?
@@ -715,7 +751,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // loop over towers
     int nTowers = mPicoDst->numberOfBTOWHits();
     for(int itow = 0; itow < nTowers; itow++) {
-      StPicoBTowHit *tower = mPicoDst->btowHit(itow);
+      StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
       if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
       // tower ID
@@ -745,7 +781,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
       if(mTowerStatusArr[towerID]) {
         //if(mTowerMatchTrkIndex[towerID] > 0) 
-        StPicoTrack* trk = (StPicoTrack*)mPicoDst->track( mTowerMatchTrkIndex[towerID] );
+        StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
         //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
@@ -775,6 +811,16 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towerE < 0) towerE = 0.0;
       if(towerE < mTowerEnergyMin) continue;
 
+      bool TowerOK = IsTowerOK(towerID);
+      bool TowerDead = IsTowerDead(towerID);
+      if(!TowerOK) {
+        //cout<<"towerID bad = "<<towerID<<endl;
+        continue;
+      }
+      //if(TowerDead) continue;
+
+      if(towerID == 796) cout<<"towerID == 796, how the hell is this happening?"<<endl;
+
 /*
     // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
     // correct eta for Vz position 
@@ -792,13 +838,11 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 //      double towerPx = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towX / towMag);
 //      double towerPy = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towY / towMag);
 //      double towerPz = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towZ / towMag);
-      double towerPx = towerE * (towX / towMag);
-      double towerPy = towerE * (towY / towMag);
-      double towerPz = towerE * (towZ / towMag);
-      //cout<<"x = "<<towX<<" y = "<<towY<<" z = "<<towZ<<endl;
-      //cout<<"px = "<<towerPx<<"  py = "<<towerPy<<"  pz = "<<towerPz<<"  p = "<<endl;
-      //double angle = 1.0*TMath::ATan2(towPy, towPx);
-      //cout<<"angle = "<<angle<<"  towerPhi = "<<towerPhi<<endl;
+      StThreeVectorF mom;
+      GetMomentum(mom, tower, pi0mass);
+      double towerPx = mom.x();
+      double towerPy = mom.y();
+      double towerPz = mom.z();
 
       // add towers to fastjet
       // shift tower index
@@ -908,8 +952,8 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
     // CHARGED COMPONENT (tracks)
     if(uid >= 0) {
-    jet->AddTrackAt(uid, nt);
-    StPicoTrack* trk = mPicoDst->track(uid);
+      jet->AddTrackAt(uid, nt);
+      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(uid));
       if(!trk) continue;
 
       // acceptance and kinematic quality cuts
@@ -944,6 +988,15 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       fHistJetNTrackvsEta->Fill(eta);
       fHistJetNTrackvsPhivsEta->Fill(phi, eta);
 
+      double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+      int nHitsFit = trk->nHitsFit();
+      int nHitsMax = trk->nHitsMax();
+      double nHitsRatio = 1.0*nHitsFit/nHitsMax;
+      short charge = trk->charge();
+      if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
+           "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
+           "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
+
       // increase track counter
       nt++;
     } else { // uid < 0
@@ -960,11 +1013,12 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         // convert uid to tower id (index of tower)
         Int_t towid = -(uid + 2);
         jet->AddClusterAt(towid, nc);
-        StPicoBTowHit *tower = mPicoDst->btowHit(towid);
+        StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towid));
         if(!tower) continue;
 
         // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
         StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towid);
+        int towerID = tower->id();
         double towerPhi = towerPosition.phi();
         double towerEta = towerPosition.pseudoRapidity();
         double towE = tower->energy();
@@ -978,10 +1032,13 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         if(towE > maxTower) maxTower = towE;
 
         // fill QA histos for jet towers
+        fHistJetNTowervsID->Fill(towerID);
         fHistJetNTowervsE->Fill(towE);
         fHistJetNTowervsPhi->Fill(towerPhi);
         fHistJetNTowervsEta->Fill(towerEta);
         fHistJetNTowervsPhivsEta->Fill(towerPhi, towerEta);
+        fHistQATowIDvsEta->Fill(towerID, towerEta);
+        fHistQATowIDvsPhi->Fill(towerID, towerPhi);
 
         // increase tower counter
         nc++;
@@ -1150,12 +1207,8 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   int nHitsMax = trk->nHitsMax();
   double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
-  // do pt cut here to accommadate either type
-  if(doUsePrimTracks) { // primary  track
-    if(pt < fMinJetTrackPt) return kFALSE;
-  } else { // global track
-    if(pt < fMinJetTrackPt) return kFALSE;
-  }
+  // pt cut
+  if(pt < fMinJetTrackPt) return kFALSE;
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
@@ -1165,8 +1218,8 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   if((phi < fJetTrackPhiMin) || (phi > fJetTrackPhiMax)) return kFALSE;
       
   // additional quality cuts for tracks
-  if(dca > fJetTrackDCAcut) return kFALSE;
-  if(nHitsFit < fJetTracknHitsFit) return kFALSE;
+  if(dca > fJetTrackDCAcut)            return kFALSE;
+  if(nHitsFit < fJetTracknHitsFit)     return kFALSE;
   if(nHitsRatio < fJetTracknHitsRatio) return kFALSE;
 
   // passed all above cuts - keep track and fill input vector to fastjet
@@ -1296,3 +1349,152 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
   return doAnalysis;
 }
 
+//________________________________________________________________________________________________________
+Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const {
+  double pi = 1.0*TMath::Pi();
+
+  // initialize Emc position objects
+  StEmcPosition *Position = new StEmcPosition();
+
+  // vertex components
+  double xVtx = mVertex.x();
+  double yVtx = mVertex.y();
+  double zVtx = mVertex.z();
+
+  // get mass, E, P, ID
+  if(mass < 0) mass = 0;
+  Double_t energy = tower->energy();
+  Double_t p = TMath::Sqrt(energy*energy - mass*mass);
+  int towerID = tower->id();
+
+  // get tower position
+  StThreeVectorF towerPosition = Position->getPosFromVertex(mVertex, towerID);
+  double posX = towerPosition.x();
+  double posY = towerPosition.y();
+  double posZ = towerPosition.z();
+
+  // shouldn't need correction with above method
+//  posX-=xVtx;
+//  posY-=yVtx;
+//  posZ-=zVtx;
+
+  // get r, set position components
+  Double_t r = TMath::Sqrt(posX*posX + posY*posY + posZ*posZ) ;
+  if(r > 1e-12) {
+    mom.setX( p*posX/r );
+    mom.setY( p*posY/r );
+    mom.setZ( p*posZ/r );
+    // energy) ;
+  } else { return kFALSE; }
+  return kTRUE;
+}
+
+//____________________________________________________________________________________________
+Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
+  if ( badTowers.size()==0 ){
+    //__ERROR("TStarJetPicoTowerCuts::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if ( badTowers.count( mTowId )>0 ){
+    //__DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    //__DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }    
+}
+
+//____________________________________________________________________________________________
+Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
+  if ( deadTowers.size()==0 ){
+    //__ERROR("TStarJetPicoTowerCuts::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if ( deadTowers.count( mTowId )>0 ){
+    //__DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    //__DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
+}
+
+//____________________________________________________________________________
+void StJetMakerTask::ResetBadTowerList( ){
+  badTowers.clear();
+}
+
+// KK: Add bad towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+Bool_t StJetMakerTask::AddBadTowers(TString csvfile){  
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  //__DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+	  
+  if ( !inFile.good() ) {
+    //__WARNING(Form("Can't open %s", csvfile.Data()) );
+    cout<<"can't open bad tower list"<<endl;
+    return kFALSE;
+  }
+  
+  while (std::getline (inFile, line) ){
+    if ( line.size()==0 ) continue; // skip empty lines
+    if ( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if (ientry) {
+	badTowers.insert( ientry );
+	//__DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+  
+  return kTRUE;
+}
+
+// Add dead towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  //__DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+
+  if ( !inFile.good() ) {
+    //__WARNING(Form("Can't open %s", csvfile.Data()) );
+    cout<<"can't open bad tower list"<<endl;
+    return kFALSE;
+  }
+
+  while (std::getline (inFile, line) ){
+    if ( line.size()==0 ) continue; // skip empty lines
+    if ( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if (ientry) {
+        deadTowers.insert( ientry );
+        //__DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+
+//____________________________________________________________________________
+void StJetMakerTask::ResetDeadTowerList( ){
+  deadTowers.clear();
+}

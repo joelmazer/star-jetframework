@@ -143,7 +143,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   Bfield = 0.0;
   mVertex = 0x0;
   zVtx = 0.0;
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
@@ -455,18 +455,24 @@ void StEventPlaneMaker::DeclareHistograms() {
     }
   }
 
+  // set binning for run based corrections - run dependent
+  Int_t nRunBins = 1; // - just a default
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) nRunBins = 830; //1654;
+  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) nRunBins = 1359;
+  Double_t nRunBinsMax = (Double_t)nRunBins;
+
+  // ZDC centering
+  hZDC_center_ex = new TProfile("hZDC_center_ex", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hZDC_center_ey = new TProfile("hZDC_center_ey", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hZDC_center_wx = new TProfile("hZDC_center_wx", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hZDC_center_wy = new TProfile("hZDC_center_wy", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  // BBC centering
+  hBBC_center_ex = new TProfile("hBBC_center_ex", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hBBC_center_ey = new TProfile("hBBC_center_ey", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hBBC_center_wx = new TProfile("hBBC_center_wx", "", nRunBins, 0, nRunBinsMax, -100, 100);
+  hBBC_center_wy = new TProfile("hBBC_center_wy", "", nRunBins, 0, nRunBinsMax, -100, 100);
+
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
-  // ZDC centering (Run16 binning)
-  hZDC_center_ex = new TProfile("hZDC_center_ex", "", 1359, 0, 1359, -100, 100);
-  hZDC_center_ey = new TProfile("hZDC_center_ey", "", 1359, 0, 1359, -100, 100);
-  hZDC_center_wx = new TProfile("hZDC_center_wx", "", 1359, 0, 1359, -100, 100);
-  hZDC_center_wy = new TProfile("hZDC_center_wy", "", 1359, 0, 1359, -100, 100);
-  // BBC centering (Run16 binning)
-  hBBC_center_ex = new TProfile("hBBC_center_ex", "", 1359, 0, 1359, -100, 100);
-  hBBC_center_ey = new TProfile("hBBC_center_ey", "", 1359, 0, 1359, -100, 100);
-  hBBC_center_wx = new TProfile("hBBC_center_wx", "", 1359, 0, 1359, -100, 100);
-  hBBC_center_wy = new TProfile("hBBC_center_wy", "", 1359, 0, 1359, -100, 100);
- 
   bbc_res = new TProfile("bbc_res", "", 10, 0, 10, -100, 100);
   zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
   checkbbc = new TH1F("checkbbc", "difference between psi2 and bbc ps2", 288, -0.5*pi, 1.5*pi);
@@ -743,21 +749,21 @@ Int_t StEventPlaneMaker::Make() {
   bool fHaveMBevent = kFALSE;
 
   // get PicoDstMaker 
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent 
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -783,13 +789,13 @@ Int_t StEventPlaneMaker::Make() {
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ================= Event Plane flattening container ==============
-  // set up event plane flattening container 
-  TObjArray *maps = (TObjArray*)fFlatContainer->GetObject(fRunNumber,"eventplaneFlat");
+  // set up event plane flattening container  - not used
+  TObjArray *maps = static_cast<TObjArray*>(fFlatContainer->GetObject(fRunNumber,"eventplaneFlat"));
   if(maps) {
-    fTPCnFlat = (StEPFlattener*)maps->At(0);
-    fTPCpFlat = (StEPFlattener*)maps->At(1);
-    fBBCFlat = (StEPFlattener*)maps->At(2);
-    fZDCFlat = (StEPFlattener*)maps->At(3);
+    fTPCnFlat = static_cast<StEPFlattener*>(maps->At(0));
+    fTPCpFlat = static_cast<StEPFlattener*>(maps->At(1));
+    fBBCFlat = static_cast<StEPFlattener*>(maps->At(2));
+    fZDCFlat = static_cast<StEPFlattener*>(maps->At(3));
   }
 
   // ============================ CENTRALITY ============================== //
@@ -820,82 +826,17 @@ Int_t StEventPlaneMaker::Make() {
 
   // ============================ end of CENTRALITY ============================== //
 
-  // fill Event Trigger QA
-  FillEventTriggerQA(fHistEventSelectionQA);
-
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
+  // fill Event Trigger QA
+  FillEventTriggerQA(fHistEventSelectionQA);
+
   FillEmcTriggersHist(hEmcTriggers);
  
-  // Run14 triggers:
-  int arrBHT1_R14[] = {450201, 450211, 460201};
-  int arrBHT2_R14[] = {450202, 450212};
-  int arrBHT3_R14[] = {460203, 6, 10, 14, 31, 450213};
-  int arrMB_R14[] = {450014};
-  int arrMB30_R14[] = {20, 450010, 450020};
-  int arrMB5_R14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-
-  // Run16 triggers:
-  int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrBHT2[] = {4, 16, 17, 530202, 540203};
-  int arrBHT3[] = {17, 520203, 530213};
-  int arrMB[] = {520021};
-  int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
-  // get trigger IDs from PicoEvent class and loop over them
-  vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
-  if(fDebugLevel == kDebugEmcTrigger) cout<<"EventTriggers: ";
-  for(unsigned int i=0; i<mytriggers.size(); i++) {
-    if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", ";
-    //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
-    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (DoComparison(arrMB5_R14, sizeof(arrMB5_R14)/sizeof(*arrMB5_R14)))) { fHaveMBevent = kTRUE; }
-
-    // FIXME Hard-coded for now - Run 16 only has HT1 (not HT2 or HT3)
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
-  }
-
-  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
-  // ======================== end of Triggers ============================= //
-
-  // ================= JetMaker ================ //
-  // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
-  const char *fJetMakerNameCh = fJetMakerName;
-  if(!JetMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
-    return kStWarn;
-  }
-
-  // get jet collection associated with JetMaker
-  fJets = JetMaker->GetJets();
-  if(!fJets) {
-    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
-    return kStWarn;
-  }
-
-  // ============== RhoMaker =============== //
-  // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = (StRho*)GetMaker(fRhoMakerName);
-  const char *fRhoMakerNameCh = fRhoMakerName;
-  if(!RhoMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
-    return kStWarn;
-  }
-
-  // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
-  fRho = (StRhoParameter*)RhoMaker->GetRho();
-  if(!fRho) {
-    LOG_WARN << Form("Couldn't get fRho object! ") << endm;
-    return kStWarn;
-  }
-
-  // =========== Event Plane Angle ============= //
-  // cache the leading jet within acceptance
-  fLeadingJet = GetLeadingJet(fJetMakerName);
-  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  // check for MB/HT event
+  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
 
   // switches for Event Plane analysis
   Bool_t doEPAnalysis = kFALSE;  // set false by default
@@ -914,6 +855,45 @@ Int_t StEventPlaneMaker::Make() {
       }
       break;
   }
+
+  // ======================== end of Triggers ============================= //
+
+  // ================= JetMaker ================ //
+  // get JetMaker
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
+  const char *fJetMakerNameCh = fJetMakerName;
+  if(!JetMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;
+    return kStWarn;
+  }
+
+  // get jet collection associated with JetMaker
+  fJets = static_cast<TClonesArray*>(JetMaker->GetJets());
+  if(!fJets) {
+    LOG_WARN << Form(" No fJets object! Skip! ") << endm;
+    return kStWarn;
+  }
+
+  // ============== RhoMaker =============== //
+  // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
+  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerName));
+  const char *fRhoMakerNameCh = fRhoMakerName;
+  if(!RhoMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
+    return kStWarn;
+  }
+
+  // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
+  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
+  if(!fRho) {
+    LOG_WARN << Form("Couldn't get fRho object! ") << endm;
+    return kStWarn;
+  }
+
+  // =========== Event Plane Angle ============= //
+  // cache the leading jet within acceptance
+  fLeadingJet = GetLeadingJet(fJetMakerName);
+  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
 
   // ==================================================================
   // 1) get z-vertex binning
@@ -1006,7 +986,7 @@ Bool_t StEventPlaneMaker::AcceptJet(StJet *jet) { // for jets
 //_________________________________________________________________________
 TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
-  for(int i=0; i<7; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
   //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
@@ -1054,20 +1034,19 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212};
-    int arrBHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrHT1[] = {450201, 450211, 460201};
+    int arrHT2[] = {450202, 450212};
+    int arrHT3[] = {460203, 6, 10, 14, 31, 450213};
     int arrMB[] = {450014};
     int arrMB30[] = {20, 450010, 450020};
     int arrCentral5[] = {20, 450010, 450020};
     int arrCentral[] = {15, 460101, 460111};
     int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
     //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
@@ -1090,15 +1069,13 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // get vector of triggers
-    vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {4, 16, 17, 530202, 540203};
-    int arrBHT3[] = {17, 520203, 530213};
+    int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    int arrHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrHT2[] = {4, 16, 17, 530202, 540203};
+    int arrHT3[] = {17, 520203, 530213};
     int arrMB[] = {520021};
     int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
     int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
@@ -1108,9 +1085,9 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
     bin = 1; h->Fill(bin);
 
     // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
     //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
@@ -1340,7 +1317,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   int nTrack = mPicoDst->numberOfTracks();
   for(int i=0; i<nTrack; i++) {
     // get tracks
-    StPicoTrack* track = mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -1364,8 +1341,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
-//    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
+    if(phi < 0) phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
     // FIXME - temp - but fill before pt max cut
     //if(method == 1) {
@@ -1636,23 +1612,17 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   }
 
   // TEST - debug BBC
-  if(fabs(sumcos_E) < 1e-6) { 
-    //cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; 
+  if(fabs(sumcos_E) < 1e-6) { //cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; 
     hBBCepDebug->Fill(1.); }
-  if(fabs(sumsin_E) < 1e-6) { 
-    //cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; 
+  if(fabs(sumsin_E) < 1e-6) { //cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; 
     hBBCepDebug->Fill(2.); }
-  if(fabs(sumcos_W) < 1e-6) { 
-    //cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; 
+  if(fabs(sumcos_W) < 1e-6) { //cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; 
     hBBCepDebug->Fill(3.); }
-  if(fabs(sumsin_W) < 1e-6) { 
-    //cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; 
+  if(fabs(sumsin_W) < 1e-6) { //cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; 
     hBBCepDebug->Fill(4.); }
-  if(fabs(sum_E) < 1e-6) { 
-    //cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; 
+  if(fabs(sum_E) < 1e-6) {    //cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; 
     hBBCepDebug->Fill(6.); }
-  if(fabs(sum_W) < 1e-6) { 
-    //cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; 
+  if(fabs(sum_W) < 1e-6) {    //cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; 
     hBBCepDebug->Fill(7.); }
 
   // create Q-vectors
@@ -2184,7 +2154,9 @@ Int_t StEventPlaneMaker::GetRunNo(int runid){
   // Run14 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {  
     // 1654 for Run14 AuAu
-    for(int i = 0; i < 1654; i++){
+    //for(int i = 0; i < 1654; i++){
+    // new picoDst production is 830
+    for(int i = 0; i < 830; i++) {
       if(Run14AuAu_IdNo[i] == runid) {
         return i;
       }
@@ -2503,7 +2475,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < Qtrack; i++){
-    StPicoTrack* track = (StPicoTrack*)mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)

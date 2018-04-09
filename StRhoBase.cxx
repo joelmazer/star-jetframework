@@ -69,11 +69,16 @@ StRhoBase::StRhoBase() :
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
-  fHistRhoScaledvsNcluster(0),
-  mOutName(""),
-  fJetMakerName(""),
-  fRhoMakerName("")
+  fHistRhoScaledvsNcluster(0)
+//  mOutName(""),
+//  fJetMakerName(""),
+//  fRhoMakerName("")
 {
+  ;
+  mOutName = "";
+  fJetMakerName = "";
+  fRhoMakerName = "";
+
   // Constructor.
   for (Int_t i = 0; i < 4; i++) {
     fHistJetNconstVsPt[i] = 0;
@@ -116,12 +121,16 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
-  fHistRhoScaledvsNcluster(0),
-  mOutName(outName),
-  fJetMakerName(jetMakerName),
-  fRhoMakerName(name)
+  fHistRhoScaledvsNcluster(0)
+//  mOutName(outName),
+//  fJetMakerName(jetMakerName),
+//  fRhoMakerName(name)
 {
+  ;
   // Constructor.
+  mOutName = outName;
+  fJetMakerName =jetMakerName;
+  fRhoMakerName = name;
 
   for (Int_t i = 0; i < 4; i++) {
     fHistJetNconstVsPt[i] = 0;
@@ -439,21 +448,21 @@ Int_t StRhoBase::Make()
   double fCent = 0.0;  
 
   // get the PicoDstMaker
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -467,7 +476,7 @@ Int_t StRhoBase::Make()
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
 
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
   if(!JetMaker) {
     LOG_WARN << " No JetMakerTask! Skip! " << endm;
     return kStWarn;

@@ -101,78 +101,21 @@ class StAnMaker : public StJetFrameworkPicoBase {
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
 
     // switches
-    Bool_t                  doUsePrimTracks;         // primary track switch
-    Int_t                   fDebugLevel;             // debug printout level
     Bool_t                  doPrintEventCounter;     // print event # switch
-    Int_t                   fRunFlag;                // Run Flag numerator value
-    Int_t                   fCentralityDef;          // Centrality Definition enumerator value
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
-    Bool_t                  fCorrJetPt;              // correct jet pt by rho
-
-    // cuts
-    Double_t                fMinPtJet;               // min jet pt to keep jet in output
-    Double_t                fJetConstituentCut;      // min jet constituent
-    Double_t                fTrackBias;              // high pt track in jet bias
-    Double_t                fJetRad;                 // jet radius
-    Double_t                fEventZVtxMinCut;        // min event z-vertex cut
-    Double_t                fEventZVtxMaxCut;        // max event z-vertex cut
-    Double_t                fTrackPtMinCut;          // min track pt cut
-    Double_t                fTrackPtMaxCut;          // max track pt cut
-    Double_t                fTrackPhiMinCut;         // min track phi cut
-    Double_t                fTrackPhiMaxCut;         // max track phi cut
-    Double_t                fTrackEtaMinCut;         // min track eta cut
-    Double_t                fTrackEtaMaxCut;         // max track eta cut
-    Double_t                fTrackDCAcut;            // max track dca cut
-    Int_t                   fTracknHitsFit;          // requirement for track hits
-    Double_t                fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
-
-    // centrality    
-    Double_t                fCentralityScaled;           // scaled by 5% centrality 
-    Int_t                   ref16;                       // multiplicity bin (16)
-    Int_t                   ref9;                        // multiplicity bin (9)
-
-    // event
-    Double_t                Bfield;                      // event Bfield
-    StThreeVectorF          mVertex;                     // event vertex 3-vector
-    Double_t                zVtx;                        // z-vertex component
 
     // event selection types
     UInt_t                  fTriggerEventType;           // Physics selection of event used for signal
     Int_t                   fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
 
-    // used for event plane calculation and resolution
-    StJet*                  fLeadingJet;//! leading jet
-    StJet*                  fSubLeadingJet;//! subleading jet
-
-    // clonesarray collections of tracks and jets
-    TClonesArray           *fJets;//! jet collection
-
   private:
     Int_t                   fRunNumber;
 
-    // PicoDstMaker and PicoDst object pointer
-    StPicoDstMaker         *mPicoDstMaker;
-    StPicoDst              *mPicoDst;
-    StPicoEvent            *mPicoEvent;
-    StJetMakerTask         *JetMaker;
-    StRho                  *RhoMaker;
-
-    // centrality objects
-    StRefMultCorr          *grefmultCorr;
-   
-    // output file name string 
-    TString                 mOutName;
-
     // Rho objects
     StRhoParameter         *GetRhoFromEvent(const char *name);
-    StRhoParameter         *fRho;//!<!          // event rho
-    Double_t                fRhoVal;//!<!       // event rho value, same for local rho
-    TString                 fRhoName;///<       // rho name
 
     // maker names
     TString                 fAnalysisMakerName;
-    TString                 fJetMakerName;
-    TString                 fRhoMakerName;
     TString                 fEventMixerMakerName;
 
     ClassDef(StAnMaker, 1)

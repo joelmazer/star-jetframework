@@ -34,28 +34,25 @@ class StJetMakerTask;
 ClassImp(StRho)
 
 //________________________________________________________________________
-StRho::StRho() : 
-  StRhoBase(""),
-  fNExclLeadJets(0),
-  fJets(0),
-  fHistMultvsRho(0),
-  mOutName(""), 
-  fJetMakerName(""),
-  fRhoMakerName("")
+StRho::StRho() : StRhoBase("")
 {
-  // Standard constructor.
+  fNExclLeadJets = 0;
+  fJets = 0x0;
+  mOutName = ""; 
+  fJetMakerName = "";
+  fRhoMakerName = "";
 }
 
 //________________________________________________________________________
 StRho::StRho(const char *name, Bool_t histo, const char *outName, const char *jetMakerName) :
-  StRhoBase(name, histo, jetMakerName),
-  fNExclLeadJets(0),
-  fJets(0),
-  fHistMultvsRho(0),
-  mOutName(outName),
-  fJetMakerName(jetMakerName),
-  fRhoMakerName(name)
+  StRhoBase(name, histo, jetMakerName)
 {
+  fNExclLeadJets = 0;
+  fJets = 0x0;
+  mOutName = outName;
+  fJetMakerName = jetMakerName;
+  fRhoMakerName = name;
+
   // Constructor.
   if (!name) return;
   SetName(name);
@@ -148,21 +145,21 @@ Int_t StRho::Make()
   // Run the analysis - for each event
 
   // get PicoDstMaker
-  mPicoDstMaker = (StPicoDstMaker*)GetMaker("picoDst");
+  mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
     LOG_WARN << " No PicoDstMaker! Skip! " << endm;
     return kStWarn;
   }
 
   // construct PicoDst object from maker
-  mPicoDst = mPicoDstMaker->picoDst();
+  mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
 
   // create pointer to PicoEvent
-  mPicoEvent = mPicoDst->event();
+  mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
@@ -177,7 +174,7 @@ Int_t StRho::Make()
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // get JetMaker
-  JetMaker = (StJetMakerTask*)GetMaker(fJetMakerName);
+  JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));
   const char *fJetMakerNameCh = fJetMakerName;
   if(!JetMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fJetMakerNameCh) << endm;

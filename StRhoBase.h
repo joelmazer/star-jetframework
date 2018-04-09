@@ -114,12 +114,14 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TH2F                  *fHistRhovsNcluster;             //!rho vs. no. of clusters
   TH2F                  *fHistRhoScaledvsNcluster;       //!rhoscaled vs. no. of clusters
 
+/*
   // maker names
   TString                mOutName;
   TString                fJetMakerName;
   TString                fJetBGMakerName;
   TString                fRhoMakerName;
-  
+*/
+
   StRhoBase(const StRhoBase&);             // not implemented
   StRhoBase& operator=(const StRhoBase&);  // not implemented
   
