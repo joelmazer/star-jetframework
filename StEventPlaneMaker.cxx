@@ -996,7 +996,7 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
-    StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(i);
+    StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
     // fill for valid triggers
@@ -2924,16 +2924,16 @@ void StEventPlaneMaker::CalculateEventPlaneResolution(Double_t bbc, Double_t zdc
 } 
 
 //_____________________________________________________________________________
-Double_t StEventPlaneMaker::CalculateEventPlaneChi(Double_t res)
-{
-    // return chi for given resolution to combine event plane estimates from two subevents
-    // see Phys. Rev. C no. CS6346 (http://arxiv.org/abs/nucl-ex/9805001)
-    Double_t chi(2.), delta(1.), con((TMath::Sqrt(TMath::Pi()))/(2.*TMath::Sqrt(2)));
-    for (Int_t i(0); i < 15; i++) {
-        chi = ((con*chi*TMath::Exp(-chi*chi/4.)*(TMath::BesselI0(chi*chi/4.)+TMath::BesselI1(chi*chi/4.))) < res) ? chi + delta : chi - delta;
-        delta = delta / 2.;
-    }
-    return chi;
+Double_t StEventPlaneMaker::CalculateEventPlaneChi(Double_t res) {
+  // return chi for given resolution to combine event plane estimates from two subevents
+  // see Phys. Rev. C no. CS6346 (http://arxiv.org/abs/nucl-ex/9805001)
+  Double_t chi(2.), delta(1.), con((TMath::Sqrt(TMath::Pi()))/(2.*TMath::Sqrt(2)));
+  for (Int_t i(0); i < 15; i++) {
+    chi = ((con*chi*TMath::Exp(-chi*chi/4.)*(TMath::BesselI0(chi*chi/4.)+TMath::BesselI1(chi*chi/4.))) < res) ? chi + delta : chi - delta;
+    delta = delta / 2.;
+  }
+
+  return chi;
 }
 
 //______________________________________________________________________

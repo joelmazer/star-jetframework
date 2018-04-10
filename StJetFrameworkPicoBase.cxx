@@ -501,7 +501,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
   // loop over tracks
   for(int i = 0; i < n; i++) {
-    StPicoTrack* track = mPicoDst->track(i);
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // primary track switch

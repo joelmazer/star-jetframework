@@ -809,7 +809,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
 /*  
-  EventPlaneMaker = (StEventPlaneMaker*)GetMaker(fEventPlaneMakerName);
+  EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
   const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
   if(!EventPlaneMaker) {
     LOG_WARN << Form(" No %s! Skip! ", fEventPlaneMakerNameCh) << endm;
@@ -1127,7 +1127,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // initialize event pools
     StEventPool* pool = 0x0;
     pool = fPoolMgr->GetEventPool(centbin, zVtx); //FIXME AuAu fcent: cent bin? cent16
-    if (!pool) {
+    if(!pool) {
       Form("No pool found for centrality = %i, zVtx = %f", centbin, zVtx); // FIXME if cent changes to double
       return kTRUE; //FIXME
     }
@@ -1207,7 +1207,6 @@ Int_t StMyAnalysisMaker3::Make() {
               // shift angle (0, 2*pi) 
               if(Mixphi < 0)    Mixphi += 2*pi;
               if(Mixphi > 2*pi) Mixphi -= 2*pi;
-
               //cout<<"itrack = "<<ibg<<"  phi = "<<Mixphi<<"  eta = "<<Mixeta<<"  pt = "<<Mixpt<<"  q = "<<Mixcharge<<endl;
 
               // get jet - track relations
@@ -2393,14 +2392,14 @@ void StMyAnalysisMaker3::CalculateEventPlaneResolution(Double_t bbc, Double_t zd
 } 
 
 //_____________________________________________________________________________
-Double_t StMyAnalysisMaker3::CalculateEventPlaneChi(Double_t res)
-{
-    // return chi for given resolution to combine event plane estimates from two subevents
-    // see Phys. Rev. C no. CS6346 (http://arxiv.org/abs/nucl-ex/9805001)
-    Double_t chi(2.), delta(1.), con((TMath::Sqrt(TMath::Pi()))/(2.*TMath::Sqrt(2)));
-    for (Int_t i(0); i < 15; i++) {
-        chi = ((con*chi*TMath::Exp(-chi*chi/4.)*(TMath::BesselI0(chi*chi/4.)+TMath::BesselI1(chi*chi/4.))) < res) ? chi + delta : chi - delta;
-        delta = delta / 2.;
-    }
-    return chi;
+Double_t StMyAnalysisMaker3::CalculateEventPlaneChi(Double_t res) {
+  // return chi for given resolution to combine event plane estimates from two subevents
+  // see Phys. Rev. C no. CS6346 (http://arxiv.org/abs/nucl-ex/9805001)
+  Double_t chi(2.), delta(1.), con((TMath::Sqrt(TMath::Pi()))/(2.*TMath::Sqrt(2)));
+  for (Int_t i(0); i < 15; i++) {
+    chi = ((con*chi*TMath::Exp(-chi*chi/4.)*(TMath::BesselI0(chi*chi/4.)+TMath::BesselI1(chi*chi/4.))) < res) ? chi + delta : chi - delta;
+    delta = delta / 2.;
+  }
+
+  return chi;
 }  

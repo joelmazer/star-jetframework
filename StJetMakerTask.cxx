@@ -131,7 +131,7 @@ StJetMakerTask::StJetMakerTask() :
 //  fJetMakerName("")
 {
   // Default constructor.
-  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kTRUE; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
 
   for(int i=0; i<4801; i++) { 
     fTowerToTriggerTypeHT1[i] = kFALSE;
@@ -204,12 +204,15 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
 //  fJetMakerName("")
 {
   // Standard constructor.
-  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kTRUE; }
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
 
   for(int i=0; i<4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
+
+    mTowerMatchTrkIndex[i] = 0;
+    mTowerStatusArr[i] = kFALSE;
   }
 
   if (!name) return;
@@ -396,6 +399,9 @@ Int_t StJetMakerTask::Finish() {
 void StJetMakerTask::DeclareHistograms() {
     // declare histograms
     double pi = 1.0*TMath::Pi();
+
+    //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
+    
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
@@ -547,12 +553,12 @@ int StJetMakerTask::Make()
   FillEmcTriggersArr();
 
 //  if(fHaveMBevent) {
-  // Find jets
-  // note that parameter are globally set, may not need to have params
-  FindJets(tracks, clus, fJetAlgo, fRadius);
+    // Find jets
+    // note that parameter are globally set, may not need to have params
+    FindJets(tracks, clus, fJetAlgo, fRadius);
 
-  // fill jet branch
-  FillJetBranch();
+    // fill jet branch
+    FillJetBranch();
 //  }
 
   return kStOK;
@@ -576,7 +582,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
   // loop over ALL tracks in PicoDst and add to jet, after acceptance and quality cuts 
   if((fJetType == kFullJet) || (fJetType == kChargedJet)) {
-    for(unsigned short iTracks=0; iTracks < ntracks; iTracks++){
+    for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
       if(!trk){ continue; }
 
@@ -616,102 +622,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     // get # of clusters and set variables
     unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
 
-/*
-    // print EMCal cluster info
-    if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
-    if(fDebugLevel == 2) cout<<"nClus = "<<nclus<<endl;  
-
-    // loop over ALL clusters in PicoDst and add to jet //TODO
-    for(unsigned short iClus = 0; iClus < nclus; iClus++){
-      StPicoBEmcPidTraits* cluster = mPicoDst->bemcPidTraits(iClus); // NEW usage
-      if(!cluster){ continue; }
-
-      // print index of associated track in the event (debug = 2)
-      if(fDebugLevel == 8) cout<<"iClus = "<<iClus<<"  trackIndex = "<<cluster->trackIndex()<<"  nclus = "<<nclus<<endl;
-
-      // use StEmcDetector to get position information
-      //StEmcDetector* detector;
-      //detector=mEmcCol->detector(kBarrelEmcTowerId);
-      //if(!detector) cout<<"don't have detector object"<<endl;
-
-      // cluster and tower ID
-      // ID's are calculated as such:
-      // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
-      // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-      int clusID = cluster->bemcId();  // index in bemc point array
-      int towID = cluster->btowId();   // projected tower Id: 1 - 4800
-      int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      if(towID < 0) continue;
-
-      // get tower location - from ID - this method needs a eta correction (not done here)
-      float towerEta, towerPhi;    // need to be floats
-      mGeom->getEtaPhi(towID,towerEta,towerPhi);
-      if(towerPhi < 0)    towerPhi += 2*pi;
-      if(towerPhi > 2*pi) towerPhi -= 2*pi;
-      if(fDebugLevel == 8) {
-        cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3<<"   towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
-      }
-
-      // cluster and tower position - from vertex and ID
-      StThreeVectorF  towPosition = mPosition->getPosFromVertex(mVertex, towID);
-      double towPhi = towPosition.phi();
-      double towEta = towPosition.pseudoRapidity();
-
-      // matched track index
-      int trackIndex = cluster->trackIndex();
-      StPicoTrack* trk = (StPicoTrack*)mPicoDst->track(trackIndex);
-      StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
-      if(!trk) continue;
-      //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
-
-      StThreeVectorD position, momentum;
-      double kilogauss = 1000;
-      double tesla = 0.00001;
-      double magneticField = Bfield * kilogauss  / tesla; // in Tesla
-      bool ok = kFALSE;
-      if(mPosition) { 
-        ok = mPosition->projTrack(&position,&momentum,trkMu,(Double_t) Bfield); 
-      }
-
-      double eta = position.pseudoRapidity(); 
-      double phi = position.phi();
-      double z   = position.z();
-      double theta = 2*TMath::ATan(exp(-1.0*eta));
-
-      // get track variables to matched tower
-      StThreeVectorF mTrkMom;
-      if(doUsePrimTracks) {
-        // get primary track vector
-        mTrkMom = trk->pMom();
-      } else {
-        // get global track vector
-        mTrkMom = trk->gMom(mVertex, Bfield);
-      }
- 
-      double matchPhi = mTrkMom.phi();
-      double matchEta = mTrkMom.pseudoRapidity();
-      double matchP = mTrkMom.mag();
-      if(towPhi < 0)    towPhi += 2*pi;
-      if(towPhi > 2*pi) towPhi -= 2*pi;
-      if(matchPhi < 0)    matchPhi += 2*pi;
-      if(matchPhi > 2*pi) matchPhi -= 2*pi;
-
-      // print some tower / cluster / track debug info
-      //if(fDebugLevel == 8) {
-      if(fDebugLevel == 8 && cluster->bemcE0() > 1.0) {
-        cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
-        cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
-        cout<<" mTowE = "<<cluster->btowE()<<"  mTowE2 = "<<cluster->btowE2()<<"  mTowE3 = "<<cluster->btowE3()<<endl;
-        cout<<"Track: -> trkPhi = "<<matchPhi<<" trkEta = "<<matchEta<<"  trkP = "<<matchP<<endl;
-        cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
-        cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
-        cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
-      }
-
-    } // 'cluster' loop
-*/
-
 // ==================== March 6th, 2018
     // towerStatus array
     //float mTowerMatchTrkIndex[4801] = { 0 };
@@ -731,6 +641,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
       // cluster and tower ID
+      // ID's are calculated as such:
+      // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
+      // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
       int clusID = cluster->bemcId();  // index in bemc point array
       int towID = cluster->btowId();   // projected tower Id: 1 - 4800
       int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
@@ -745,14 +658,17 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // matched track index
       int trackIndex = cluster->trackIndex();
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
-      //StMuTrack* mutrk = (StMuTrack*)mPicoDst->track(trackIndex);
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
-      //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; } // FIXME - do I want to apply quality cuts to matched track?
 
-      // tower status set - towerID is matched to track passing quality cuts
-      mTowerMatchTrkIndex[towID] = trackIndex;
-      mTowerStatusArr[towID] = kTRUE;
-      matchedTowerTrackCounter++;
+      // TODO should check this FIXME
+      //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; } // FIXME - do I want to apply quality cuts to matched track?
+      if(AcceptJetTrack(trk, Bfield, mVertex)) {
+
+        // tower status set - towerID is matched to track passing quality cuts
+        mTowerMatchTrkIndex[towID] = trackIndex;
+        mTowerStatusArr[towID] = kTRUE;
+        matchedTowerTrackCounter++;
+      } // when tracks meet cuts, save matching to arrays
     }
 
     // loop over towers and add input vectors to fastjet
@@ -786,27 +702,32 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         //if(mTowerMatchTrkIndex[towerID] > 0) 
         StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+
+        // TODO want to process tower on its own if track did not meet quality cut
+        // this should already be done above
         //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
+        if(AcceptJetTrack(trk, Bfield, mVertex)) {
 
-        // get track variables to matched tower
-        StThreeVectorF mTrkMom;
-        if(doUsePrimTracks) { 
-          // get primary track vector
-          mTrkMom = trk->pMom(); 
-        } else { 
-          // get global track vector
-          mTrkMom = trk->gMom(mVertex, Bfield); 
-        }
+          // get track variables to matched tower
+          StThreeVectorF mTrkMom;
+          if(doUsePrimTracks) { 
+            // get primary track vector
+            mTrkMom = trk->pMom(); 
+          } else { 
+            // get global track vector
+            mTrkMom = trk->gMom(mVertex, Bfield); 
+          }
 
-        // track variables
-        //double pt = mTrkMom.perp();
-        //double phi = mTrkMom.phi();
-        //double eta = mTrkMom.pseudoRapidity();
-        double p = mTrkMom.mag();
-        double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+          // track variables
+          //double pt = mTrkMom.perp();
+          //double phi = mTrkMom.phi();
+          //double eta = mTrkMom.pseudoRapidity();
+          double p = mTrkMom.mag();
+          double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
-        // apply hadronic correction to tower
-        towerE = towerEunCorr - (mHadronicCorrFrac * E);
+          // apply hadronic correction to tower
+          towerE = towerEunCorr - (mHadronicCorrFrac * E);
+        }  
       } 
       // else - no match so treat towers on their own
 
@@ -825,8 +746,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
       //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || towerID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"towerID = "<<towerID<<"  E = "<<towerE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
-      // get components from Energy (p - momentum) - TODO double check: do these need eta corrections?
-      // the below lines 'converts' the tower energy to momentum, may want this - double check!
+      // get components from Energy (p - momentum)
+      // the below lines 'converts' the tower energy to momentum
       StThreeVectorF mom;
       GetMomentum(mom, tower, pi0mass);
       double towerPx = mom.x();
@@ -834,7 +755,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       double towerPz = mom.z();
 
       // add towers to fastjet
-      // shift tower index
+      // shift tower index (tracks 0+, ghosts = -1, towers < -1)
       int uidTow = -(itow + 2);  
       fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, uidTow); // includes E
     } // tower loop
@@ -945,7 +866,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(uid));
       if(!trk) continue;
 
-      // acceptance and kinematic quality cuts
+      // acceptance and kinematic quality cuts - probably not needed (done before passing to fastjet) FIXME
       if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
       // primary track switch
@@ -977,14 +898,17 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       fHistJetNTrackvsEta->Fill(eta);
       fHistJetNTrackvsPhivsEta->Fill(phi, eta);
 
+/*
+ *    // test for bad tracks
       double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
       int nHitsFit = trk->nHitsFit();
       int nHitsMax = trk->nHitsMax();
       double nHitsRatio = 1.0*nHitsFit/nHitsMax;
       short charge = trk->charge();
-      //if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
-      //     "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
-      //     "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
+      if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
+           "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
+           "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
+*/
 
       // increase track counter
       nt++;
@@ -1017,66 +941,48 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         if(towerPhi < 0)    towerPhi += 2*pi;
         if(towerPhi > 2*pi) towerPhi -= 2*pi;
 
-//========
-/*
-      // get tower location - from ID: via this method, need to correct eta (when using this method)
-      float tEta, tPhi;    // need to be floats
-      StEmcGeom *mGeom3 = (StEmcGeom::instance("bemc"));
-      double radius = mGeom3->Radius();
-      mGeom3->getEtaPhi(towerID,tEta,tPhi);
-      if(tPhi < 0)    tPhi += 2*pi;
-      if(tPhi > 2*pi) tPhi -= 2*pi;
-
-     // correct eta for Vz position 
-     double theta;
-     theta = 2 * atan(exp(-tEta)); // getting theta from eta 
-     double z = 0;
-     if(tEta != 0) z = radius / tan(theta);  // 231 cm = radius of SMD 
-     double zNominal = z - mVertex.z();
-     double thetaCorr = atan2(radius, zNominal); // theta with respect to primary vertex
-     double etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
-
-     cout<<"tEta = "<<tEta<<"  etaCorr = "<<etaCorr<<"  towerEta = "<<towerEta<<"  tPhi = "<<tPhi<<"  towerPhi = "<<towerPhi<<endl;
-*/
-//==========
-
-        // April9, need to perform hadronic correction again since
+        // April9, need to perform hadronic correction again since StBTowHit object is not updated
         // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
         if(mTowerStatusArr[towerID]) {
           //if(mTowerMatchTrkIndex[towerID] > 0) 
           StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
           if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
-          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
-          // get track variables to matched tower
-          StThreeVectorF mTrkMom;
-          if(doUsePrimTracks) {
-            // get primary track vector
-            mTrkMom = trk->pMom();
-          } else {
-            // get global track vector
-            mTrkMom = trk->gMom(mVertex, Bfield);
+          // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
+          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }  // comment in April10
+          if(AcceptJetTrack(trk, Bfield, mVertex)) {
+
+            // get track variables to matched tower
+            StThreeVectorF mTrkMom;
+            if(doUsePrimTracks) {
+              // get primary track vector
+              mTrkMom = trk->pMom();
+            } else {
+              // get global track vector
+              mTrkMom = trk->gMom(mVertex, Bfield);
+            }
+
+            // track variables
+            double p = mTrkMom.mag();
+            double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
+            // apply hadronic correction to tower
+            towE = towEuncorr - (mHadronicCorrFrac * E);
           }
 
-          // track variables
-          double p = mTrkMom.mag();
-          double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-
-          // apply hadronic correction to tower
-          towE = towEuncorr - (mHadronicCorrFrac * E);
         }
         // else - no match so treat towers on their own
 
         // cut on tower energy - should of already been done before adding them to fastjet
-        //if(towerE < 0) towerE = 0.0;
-        //if(towerE < mTowerEnergyMin) continue;
+        if(towE < 0) towE = 0.0;
+        if(towE < mTowerEnergyMin) continue;
         // =================================================================
 
         // find max tower E and neutral E total
         if(towE > maxTower) maxTower = towE;
         neutralE += towE;
 
-        if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
+        //if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
         //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || toweirID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"Adding to jet now.. towerID = "<<towerID<<"  E = "<<towE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
         // fill QA histos for jet towers
@@ -1402,10 +1308,11 @@ Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tow
   // initialize Emc position objects
   StEmcPosition *Position = new StEmcPosition();
 
-  // vertex components
-  double xVtx = mVertex.x();
-  double yVtx = mVertex.y();
-  double zVtx = mVertex.z();
+  // vertex components - only need if below method is used
+  // mGeom3->getEtaPhi(towerID,tEta,tPhi);
+  //double xVtx = mVertex.x();
+  //double yVtx = mVertex.y();
+  //double zVtx = mVertex.z();
 
   // get mass, E, P, ID
   if(mass < 0) mass = 0;
@@ -1664,7 +1571,7 @@ Bool_t StJetMakerTask::DoComparison(int myarr[], int elems) {
 //_________________________________________________________________________
 void StJetMakerTask::FillEmcTriggersArr() {
   // zero out trigger array and get number of Emcal Triggers
-  for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = kFALSE; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
 
   // tower - HT trigger types array
@@ -1698,3 +1605,26 @@ void StJetMakerTask::FillEmcTriggersArr() {
   }
 
 }
+//========
+/*
+      // get tower location - from ID: need to correct eta (when using this method)
+      float tEta, tPhi;    // need to be floats
+      StEmcGeom *mGeom3 = (StEmcGeom::instance("bemc"));
+      double radius = mGeom3->Radius();
+      mGeom3->getEtaPhi(towerID,tEta,tPhi);
+      if(tPhi < 0)    tPhi += 2*pi;
+      if(tPhi > 2*pi) tPhi -= 2*pi;
+
+     // correct eta for Vz position 
+     double theta;
+     theta = 2 * atan(exp(-tEta)); // getting theta from eta 
+     double z = 0;
+     if(tEta != 0) z = radius / tan(theta);  // 231 cm = radius of SMD 
+     double zNominal = z - mVertex.z();
+     double thetaCorr = atan2(radius, zNominal); // theta with respect to primary vertex
+     double etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
+
+     cout<<"tEta = "<<tEta<<"  etaCorr = "<<etaCorr<<"  towerEta = "<<towerEta<<"  tPhi = "<<tPhi<<"  towerPhi = "<<towerPhi<<endl;
+*/
+//==========
+

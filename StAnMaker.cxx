@@ -506,19 +506,11 @@ void StAnMaker::RunTowers()
     int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
-    // get tower location - from ID: via this method, need to correct eta
-    float tEta, tPhi;    // need to be floats
-    StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
-    mGeom2->getEtaPhi(towID,tEta,tPhi);
-    if(tPhi < 0)    tPhi += 2*pi;
-    if(tPhi > 2*pi) tPhi -= 2*pi;
-
     // cluster and tower position - from vertex and ID
     StThreeVectorF  towPosition;
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.phi();
     double towEta = towPosition.pseudoRapidity();
-    double detectorRadius = mGeom2->Radius();  // use this below so you don't have to hardcode it TODO
 
     // matched track index
     int trackIndex = cluster->trackIndex();
