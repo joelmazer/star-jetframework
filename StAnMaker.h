@@ -106,7 +106,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
 
     // event selection types
     UInt_t                  fTriggerEventType;           // Physics selection of event used for signal
-    Int_t                   fEmcTriggerArr[7];           // EMCal triggers array: used to select signal and do QA
+    Int_t                   fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
   private:
     Int_t                   fRunNumber;

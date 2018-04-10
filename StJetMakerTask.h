@@ -102,7 +102,7 @@ class StJetMakerTask : public StMaker {
   void    DeclareHistograms();
   void    WriteHistograms();
 
-  // KK: Use one set to reject bad towers
+  // Use one set to reject bad towers
   void ResetBadTowerList( );
   void ResetDeadTowerList( );
   Bool_t AddBadTowers(TString csvfile);
@@ -118,6 +118,7 @@ class StJetMakerTask : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+  virtual void         SetTriggerEventType(UInt_t te)     { fTriggerEventType = te; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -152,12 +153,12 @@ class StJetMakerTask : public StMaker {
   void         SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
 
   // for jet substructure routines
-  StJetUtility* AddUtility(StJetUtility* utility);
-  TObjArray* GetUtilities() { return fUtilities ; }
+  StJetUtility*          AddUtility(StJetUtility* utility);
+  TObjArray*             GetUtilities()                   { return fUtilities ; }
 
   // jets
-  TClonesArray* GetJets()                        { return fJets; }
-  TClonesArray* GetJetConstit()                  { return fJetsConstit; }
+  TClonesArray*          GetJets()                        { return fJets; }
+  TClonesArray*          GetJetConstit()                  { return fJetsConstit; }
  
   // getters
   Double_t               GetGhostArea()                   { return fGhostArea         ; }
@@ -202,6 +203,10 @@ class StJetMakerTask : public StMaker {
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const;
+  Bool_t                 CheckForMB(int RunFlag, int type);
+  Bool_t                 CheckForHT(int RunFlag, int type);
+  Bool_t                 DoComparison(int myarr[], int elems);
+  void                   FillEmcTriggersArr();
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
@@ -229,6 +234,10 @@ class StJetMakerTask : public StMaker {
   Double_t               Bfield;                  // event Bfield
   StThreeVectorF         mVertex;                 // event vertex 3-vector
   Double_t               zVtx;                    // z-vertex component
+
+  // event selection types
+  UInt_t                 fTriggerEventType;           // Physics selection of event used for signal
+  Int_t                  fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
   // tower to firing trigger type matched array
   Bool_t                 fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
@@ -310,6 +319,9 @@ class StJetMakerTask : public StMaker {
   // centrality objects
   StRefMultCorr* grefmultCorr;
 
+  Float_t mTowerMatchTrkIndex[4801];
+  Bool_t mTowerStatusArr[4801];
+
   // histograms
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
@@ -333,6 +345,7 @@ class StJetMakerTask : public StMaker {
   TH2F           *fHistQATowIDvsEta;//!
   TH2F           *fHistQATowIDvsPhi;//!
 
+  // bad and dead tower list functions and arrays
   Bool_t IsTowerOK( Int_t mTowId );
   Bool_t IsTowerDead( Int_t mTowId );
   std::set<Int_t> badTowers; 

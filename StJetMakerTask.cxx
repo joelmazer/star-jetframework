@@ -84,6 +84,7 @@ StJetMakerTask::StJetMakerTask() :
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
+  fTriggerEventType(0),
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
@@ -130,10 +131,15 @@ StJetMakerTask::StJetMakerTask() :
 //  fJetMakerName("")
 {
   // Default constructor.
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kTRUE; }
+
   for(int i=0; i<4801; i++) { 
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE; 
+
+    mTowerMatchTrkIndex[i] = 0;
+    mTowerStatusArr[i] = kFALSE;
   }
 
 }
@@ -151,6 +157,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
+  fTriggerEventType(0),
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -197,6 +204,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
 //  fJetMakerName("")
 {
   // Standard constructor.
+  for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kTRUE; }
+
   for(int i=0; i<4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -241,24 +250,24 @@ Int_t StJetMakerTask::Init() {
   DeclareHistograms();
 
   //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
-  //AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
-  //AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+  //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
+  //AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
 
   // Add dead + bad tower lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        AddBadTowers("StRoot/StMyAnalysisMaker/Y2014_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/Y2014_DeadTowers.txt");
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
         break;
 
     default :
-      AddBadTowers("StRoot/StMyAnalysisMaker/Empty_BadTowers.txt");
-      AddDeadTowers("StRoot/StMyAnalysisMaker/Empty_DeadTowers.txt");
+      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
   }
 
   // Create user objects.
@@ -450,6 +459,12 @@ int StJetMakerTask::Make()
   // ZERO's out the jet array
   fJets->Delete();
 
+  // April9 test - ZERO these out for double checking they aren't set
+  for(int i = 0; i < 4801; i++) {
+    mTowerMatchTrkIndex[i] = 0;
+    mTowerStatusArr[i] = kFALSE;
+  }
+
 /*
   // get muDst 
   mu = (StMuDst*) GetInputDS("MuDst");         
@@ -524,12 +539,21 @@ int StJetMakerTask::Make()
   if ((fJetType==0)||(fJetType==2)) { }
 */      
 
+  // check for MB and HT triggers
+  bool fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+
+  // fill trigger array
+  FillEmcTriggersArr();
+
+//  if(fHaveMBevent) {
   // Find jets
   // note that parameter are globally set, may not need to have params
   FindJets(tracks, clus, fJetAlgo, fRadius);
 
   // fill jet branch
   FillJetBranch();
+//  }
 
   return kStOK;
 }
@@ -543,13 +567,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
   // initialize Emc position objects
   StEmcPosition *mPosition = new StEmcPosition();
-
-  // get event B (magnetic) field
-  Float_t Bfield = mPicoEvent->bField();
-
-  // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
-  double zVtx = mVertex.z();
 
   // assume neutral pion mass
   // additional parameters constructed
@@ -578,8 +595,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
       // track variables
       //double pt = mTrkMom.perp();
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
+      //double phi = mTrkMom.phi();
+      //double eta = mTrkMom.pseudoRapidity();
       double px = mTrkMom.x();
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
@@ -697,8 +714,8 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
 // ==================== March 6th, 2018
     // towerStatus array
-    float mTowerMatchTrkIndex[4801] = { 0 };
-    bool mTowerStatusArr[4801] = { 0 };
+    //float mTowerMatchTrkIndex[4801] = { 0 };
+    //bool mTowerStatusArr[4801] = { 0 };
     int matchedTowerTrackCounter = 0;
 
     // print
@@ -708,7 +725,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
 //    cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
-    // loop over ALL clusters in PicoDst and add to jet //TODO
+    // loop over ALL clusters in PicoDst to get track<->tower matches saved to arrays for hadronic correction
     for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
       StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
       if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
@@ -719,15 +736,6 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       if(towID < 0) continue;
-
-      ////////
-      // get tower location - from ID: via this method, need to correct eta (when using this method)
-      float tEta, tPhi;    // need to be floats
-      StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
-      //cout<<"radius = "<<mGeom2->Radius()<<endl;
-      mGeom2->getEtaPhi(towID,tEta,tPhi);
-      if(tPhi < 0)    tPhi += 2*pi;
-      if(tPhi > 2*pi) tPhi -= 2*pi;
 
       // cluster and tower position - from vertex and ID - shouldn't need to correct via this method
       StThreeVectorF towPosition = mPosition->getPosFromVertex(mVertex, towID);
@@ -745,10 +753,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       mTowerMatchTrkIndex[towID] = trackIndex;
       mTowerStatusArr[towID] = kTRUE;
       matchedTowerTrackCounter++;
-
     }
 
-    // loop over towers
+    // loop over towers and add input vectors to fastjet
     int nTowers = mPicoDst->numberOfBTOWHits();
     for(int itow = 0; itow < nTowers; itow++) {
       StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
@@ -764,13 +771,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
       double towerEta = towerPosition.pseudoRapidity();
-      double towX = towerPosition.x();
-      double towY = towerPosition.y();
-      double towZ = towerPosition.z();
-      double towMag = towerPosition.mag();
       int towerADC = tower->adc();
-      double towerEunCorr = tower->energy();
-      double towerE = tower->energy();
+      double towerEunCorr = tower->energy();  // uncorrected energy
+      double towerE = tower->energy();        // corrected energy (hadronically - done below)
 
       // tower matched to firing trigger - TODO
       //if(fTowerToTriggerTypeHT1[emcTrigID])
@@ -796,7 +799,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
         }
 
         // track variables
-        double pt = mTrkMom.perp();
+        //double pt = mTrkMom.perp();
         //double phi = mTrkMom.phi();
         //double eta = mTrkMom.pseudoRapidity();
         double p = mTrkMom.mag();
@@ -811,6 +814,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towerE < 0) towerE = 0.0;
       if(towerE < mTowerEnergyMin) continue;
 
+      // check for bad (and dead) towers
       bool TowerOK = IsTowerOK(towerID);
       bool TowerDead = IsTowerDead(towerID);
       if(!TowerOK) {
@@ -819,25 +823,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       }
       //if(TowerDead) continue;
 
-      if(towerID == 796) cout<<"towerID == 796, how the hell is this happening?"<<endl;
-
-/*
-    // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
-    // correct eta for Vz position 
-    float theta;
-    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
-    double z = 0;
-    if(towEta != 0) z = 231.0 / tan(theta);  // 231 cm = radius of SMD 
-    double zNominal = z - mVertex.z();
-    double thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
-    float etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
-*/
+      //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || towerID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"towerID = "<<towerID<<"  E = "<<towerE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
       // get components from Energy (p - momentum) - TODO double check: do these need eta corrections?
       // the below lines 'converts' the tower energy to momentum, may want this - double check!
-//      double towerPx = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towX / towMag);
-//      double towerPy = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towY / towMag);
-//      double towerPz = 1.0*TMath::Sqrt(towerE*towerE - pi0mass*pi0mass) * (towZ / towMag);
       StThreeVectorF mom;
       GetMomentum(mom, tower, pi0mass);
       double towerPx = mom.x();
@@ -993,9 +982,9 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       int nHitsMax = trk->nHitsMax();
       double nHitsRatio = 1.0*nHitsFit/nHitsMax;
       short charge = trk->charge();
-      if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
-           "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
-           "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
+      //if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
+      //     "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
+      //     "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
 
       // increase track counter
       nt++;
@@ -1010,26 +999,85 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
       // neutral towers: start at (index = -2, ghosts are -1, and tracks 0+)
       if(uid < -1) {
-        // convert uid to tower id (index of tower)
-        Int_t towid = -(uid + 2);
-        jet->AddClusterAt(towid, nc);
-        StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towid));
+        // convert uid to tower index (index of tower)
+        Int_t towIndex = -(uid + 2);   // 1 less than towerID
+        jet->AddClusterAt(towIndex, nc);
+        StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towIndex));
         if(!tower) continue;
 
         // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-        StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towid);
         int towerID = tower->id();
+        StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
         double towerPhi = towerPosition.phi();
         double towerEta = towerPosition.pseudoRapidity();
+        double towEuncorr = tower->energy();
         double towE = tower->energy();
-        neutralE += towE;
 
         // shift tower phi (0, 2*pi)
         if(towerPhi < 0)    towerPhi += 2*pi;
         if(towerPhi > 2*pi) towerPhi -= 2*pi;
-        
-        // find max tower E
+
+//========
+/*
+      // get tower location - from ID: via this method, need to correct eta (when using this method)
+      float tEta, tPhi;    // need to be floats
+      StEmcGeom *mGeom3 = (StEmcGeom::instance("bemc"));
+      double radius = mGeom3->Radius();
+      mGeom3->getEtaPhi(towerID,tEta,tPhi);
+      if(tPhi < 0)    tPhi += 2*pi;
+      if(tPhi > 2*pi) tPhi -= 2*pi;
+
+     // correct eta for Vz position 
+     double theta;
+     theta = 2 * atan(exp(-tEta)); // getting theta from eta 
+     double z = 0;
+     if(tEta != 0) z = radius / tan(theta);  // 231 cm = radius of SMD 
+     double zNominal = z - mVertex.z();
+     double thetaCorr = atan2(radius, zNominal); // theta with respect to primary vertex
+     double etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
+
+     cout<<"tEta = "<<tEta<<"  etaCorr = "<<etaCorr<<"  towerEta = "<<towerEta<<"  tPhi = "<<tPhi<<"  towerPhi = "<<towerPhi<<endl;
+*/
+//==========
+
+        // April9, need to perform hadronic correction again since
+        // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
+        if(mTowerStatusArr[towerID]) {
+          //if(mTowerMatchTrkIndex[towerID] > 0) 
+          StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+          if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
+
+          // get track variables to matched tower
+          StThreeVectorF mTrkMom;
+          if(doUsePrimTracks) {
+            // get primary track vector
+            mTrkMom = trk->pMom();
+          } else {
+            // get global track vector
+            mTrkMom = trk->gMom(mVertex, Bfield);
+          }
+
+          // track variables
+          double p = mTrkMom.mag();
+          double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
+          // apply hadronic correction to tower
+          towE = towEuncorr - (mHadronicCorrFrac * E);
+        }
+        // else - no match so treat towers on their own
+
+        // cut on tower energy - should of already been done before adding them to fastjet
+        //if(towerE < 0) towerE = 0.0;
+        //if(towerE < mTowerEnergyMin) continue;
+        // =================================================================
+
+        // find max tower E and neutral E total
         if(towE > maxTower) maxTower = towE;
+        neutralE += towE;
+
+        if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
+        //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || toweirID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"Adding to jet now.. towerID = "<<towerID<<"  E = "<<towE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
@@ -1351,8 +1399,6 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
 
 //________________________________________________________________________________________________________
 Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const {
-  double pi = 1.0*TMath::Pi();
-
   // initialize Emc position objects
   StEmcPosition *Position = new StEmcPosition();
 
@@ -1497,4 +1543,158 @@ Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
 //____________________________________________________________________________
 void StJetMakerTask::ResetDeadTowerList( ){
   deadTowers.clear();
+}
+
+//_________________________________________________________________________
+Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
+  // Run14 triggers:
+  int arrMB_Run14[] = {450014};
+  int arrMB30_Run14[] = {20, 450010, 450020};
+  int arrMB5_Run14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+  // additional 30: 4, 5, 450201, 450202, 450211, 450212
+
+  // Run16 triggers:
+  int arrMB_Run16[] = {520021};
+  int arrMB5_Run16[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+  int arrMB10_Run16[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+
+  // run flag selection to check for MB firing
+  switch(RunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        switch(type) { 
+          case StJetFrameworkPicoBase::kRun14main :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB30 :
+              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+        }
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(type) {
+          case StJetFrameworkPicoBase::kRun16main :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB10 :
+              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+        }
+  } // RunFlag switch
+
+  // return status
+  return kFALSE;
+} // MB function
+
+//
+// check to see if the event was EMC triggered for High Towers
+//____________________________________________________________________________
+Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
+
+  // Run14 triggers:
+  int arrHT1_Run14[] = {450201, 450211, 460201};
+  int arrHT2_Run14[] = {450202, 450212};
+  int arrHT3_Run14[] = {460203, 6, 10, 14, 31, 450213};
+
+  // Run16 triggers:
+  int arrHT1_Run16[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrHT2_Run16[] = {4, 16, 17, 530202, 540203};
+  int arrHT3_Run16[] = {17, 520203, 530213};
+
+  // run flag selection to check for MB firing
+  switch(RunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run14, sizeof(arrHT3_Run14)/sizeof(*arrHT3_Run14)))) { return kTRUE; }
+              break;
+          default :  // default to HT2
+              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
+        }
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run16, sizeof(arrHT2_Run16)/sizeof(*arrHT2_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run16)/sizeof(*arrHT3_Run16)))) { return kTRUE; }
+              break;
+          default :  // Run16 only has HT1's
+              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
+        }
+  } // RunFlag switch
+
+  return kFALSE;
+}
+
+//________________________________________________________________________
+Bool_t StJetMakerTask::DoComparison(int myarr[], int elems) {
+  //std::cout << "Length of array = " << (sizeof(myarr)/sizeof(*myarr)) << std::endl;
+  bool match = kFALSE;
+
+  // loop over specific physics selection array and compare to specific event trigger
+  for(int i = 0; i < elems; i++) {
+    if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
+    if(match) break;
+  }
+  //cout<<"elems: "<<elems<<"  match: "<<match<<endl;
+
+  return match;
+}
+
+//_________________________________________________________________________
+void StJetMakerTask::FillEmcTriggersArr() {
+  // zero out trigger array and get number of Emcal Triggers
+  for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
+  int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+
+  // tower - HT trigger types array
+  // zero these out - so they are refreshed for each event
+  for(int i = 0; i < 4801; i++) {
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
+
+  // loop over valid EmcalTriggers
+  for(int i = 0; i < nEmcTrigger; i++) {
+    StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
+    if(!emcTrig) continue;
+
+    // emc trigger parameters
+    int emcTrigID = emcTrig->id();
+
+    // check if i'th trigger fired HT triggers by meeting threshold
+    bool isHT1 = emcTrig->isHT1();
+    bool isHT2 = emcTrig->isHT2();
+    bool isHT3 = emcTrig->isHT3();
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+
+    // fill for valid triggers
+    if(isHT1) fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = kTRUE;
+    if(isHT2) fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT2] = kTRUE;
+    if(isHT3) fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT3] = kTRUE;
+  }
+
 }

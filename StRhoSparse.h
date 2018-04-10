@@ -43,7 +43,7 @@ class StRhoSparse : public StRhoBase {
  private:
   TH2F            *fHistOccCorrvsCent;//!      occupancy correction vs. centrality
   TH2F            *fHistOccCorrvsMult;//!      occupancy correction vs. multiplicity
-  TH2F            *fHistMultvsUnCorrRho;//!          multiplicity vs. rho
+  TH2F            *fHistMultvsUnCorrRho;//!    multiplicity vs. rho
   TH2F            *fHistMultvsCorrRho;//!      multiplicity vs. corrected rho 
 
   // maker names

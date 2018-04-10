@@ -163,8 +163,8 @@ class StJetFrameworkPicoBase : public StMaker {
     StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
     StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
  
-    virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
-    virtual void            SetEventPlaneTrackWeight(int weight)            {fTrackWeight = weight; }
+    virtual void            SetExcludeLeadingJetsFromFit(Float_t n)   {fExcludeLeadingJetsFromFit = n; }
+    virtual void            SetEventPlaneTrackWeight(int weight)      {fTrackWeight = weight; }
 
     // set names of makers for global use
     virtual void            SetOutputFileName(const char *on)         { mOutName = on; }
@@ -191,7 +191,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 DoComparison(int myarr[], int elems);
     Bool_t                 CheckForMB(int RunFlag, int type);
     Bool_t                 CheckForHT(int RunFlag, int type);
-    Bool_t                 GetMomentum(StThreeVectorF &mom, StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
+    Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch

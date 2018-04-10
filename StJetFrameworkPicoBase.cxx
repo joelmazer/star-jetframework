@@ -905,13 +905,13 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
   switch(RunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
+          case kIsHT1 :
               if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
               break;
-          case StJetFrameworkPicoBase::kIsHT2 :
+          case kIsHT2 :
               if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
               break;
-          case StJetFrameworkPicoBase::kIsHT3 :
+          case kIsHT3 :
               if((DoComparison(arrHT3_Run14, sizeof(arrHT3_Run14)/sizeof(*arrHT3_Run14)))) { return kTRUE; }
               break;
           default :  // default to HT2
@@ -920,13 +920,13 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
+          case kIsHT1 :
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
               break;
-          case StJetFrameworkPicoBase::kIsHT2 :
+          case kIsHT2 :
               if((DoComparison(arrHT2_Run16, sizeof(arrHT2_Run16)/sizeof(*arrHT2_Run16)))) { return kTRUE; }
               break;
-          case StJetFrameworkPicoBase::kIsHT3 :
+          case kIsHT3 :
               if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run16)/sizeof(*arrHT3_Run16)))) { return kTRUE; }
               break;
           default :  // Run16 only has HT1's
@@ -938,47 +938,40 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
 }
 
 //________________________________________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const {
-  double pi = 1.0*TMath::Pi();
-
+Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const {
   // initialize Emc position objects
   StEmcPosition *Position = new StEmcPosition();
 
-  // vertex
+  // vertex components
   StThreeVectorF fVertex = PicoEvent->primaryVertex();
-  double xVtx = fVertex.x();
-  double yVtx = fVertex.y();
-  double zVtx = fVertex.z();
+//  double xVtx = fVertex.x();
+//  double yVtx = fVertex.y();
+//  double zVtx = fVertex.z();
 
+  // get mass, E, P, ID
   if(mass < 0) mass = 0;
   Double_t energy = tower->energy();
   Double_t p = TMath::Sqrt(energy*energy - mass*mass);
   int towerID = tower->id();
 
+  // get tower position
   StThreeVectorF towerPosition = Position->getPosFromVertex(fVertex, towerID);
-  double towX = towerPosition.x();
-  double towY = towerPosition.y();
-  double towZ = towerPosition.z();
-  double towmag = towerPosition.mag();
-  double towerPhi = towerPosition.phi();
-  if(towerPhi < 0)    towerPhi += 2.0*pi;
-  if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
-  double towerEta = towerPosition.pseudoRapidity();
+  double posX = towerPosition.x();
+  double posY = towerPosition.y();
+  double posZ = towerPosition.z();
 
-  Float_t pos[3];
-  pos[0]-=xVtx;
-  pos[1]-=yVtx;
-  pos[2]-=zVtx;
-  Double_t r = TMath::Sqrt(pos[0]*pos[0]+pos[1]*pos[1]+pos[2]*pos[2]) ;
+  // shouldn't need correction with above method
+//  posX-=xVtx;
+//  posY-=yVtx;
+//  posZ-=zVtx;
 
-  cout<<"r = "<<r<<"  towmag = "<<towmag<<endl;
-
+  // get r, set position components
+  Double_t r = TMath::Sqrt(posX*posX + posY*posY + posZ*posZ) ;
   if(r > 1e-12) {
-    mom.setX( p*pos[0]/r );
-    mom.setY( p*pos[1]/r ); 
-    mom.setZ( p*pos[2]/r ); 
+    mom.setX( p*posX/r );
+    mom.setY( p*posY/r );
+    mom.setZ( p*posZ/r );
     // energy) ;
   } else { return kFALSE; }
   return kTRUE;
 }
-

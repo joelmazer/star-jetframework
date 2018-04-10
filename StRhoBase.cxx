@@ -497,7 +497,7 @@ Int_t StRhoBase::Make()
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
+  //int refMult = mPicoEvent->refMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   Int_t cent16 = grefmultCorr->getCentralityBin16();

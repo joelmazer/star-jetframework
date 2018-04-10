@@ -512,8 +512,8 @@ int StPicoTrackClusterQA::Make()
   if(fDoTowerQAforHT && doQAAnalysis)  RunFiredTriggerQA();  //cout<<"HT.."<<endl; } // HT triggered
   if(!fDoTowerQAforHT && fHaveMBevent) RunFiredTriggerQA();  //cout<<"MB.."<<endl; } // MB triggered
 
-  if(fDoTowerQAforHT && doQAAnalysis)  RunQA();
-  if(!fDoTowerQAforHT && fHaveMBevent) RunQA();
+  if(fDoTowerQAforHT && doQAAnalysis)  { RunQA(); RunTowerTest(); }
+  if(!fDoTowerQAforHT && fHaveMBevent) { RunQA(); RunTowerTest(); }
 
   return kStOK;
 
@@ -624,14 +624,6 @@ void StPicoTrackClusterQA::RunQA()
     // print index of associated track in the event (debug = 2)
     if(fDebugLevel == 8) cout<<"iClus = "<<iClus<<"  trackIndex = "<<cluster->trackIndex()<<"  nclus = "<<nclus<<endl;
 
-    // ===========================================================================
-    // use StEmcDetector to get position information
-    // need mMuDst in order to get mEmcCol which is an EMC collection
-    //StEmcDetector* detector;
-    //detector=mEmcCol->detector(kBarrelEmcTowerId);
-    //if(!detector) cout<<"don't have detector object"<<endl;
-    // ===========================================================================
-
     // cluster and tower ID
     // ID's are calculated as such:
     // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
@@ -641,19 +633,6 @@ void StPicoTrackClusterQA::RunQA()
     int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
-
-/*
-    // Feb21, 2018: this will work need to change object name - weird error conflicting with name in StJetMakerTask
-    // get tower location - from ID
-    float towerEta, towerPhi;    // need to be floats
-    mGeom->getEtaPhi(towID,towerEta,towerPhi);
-    if(towerPhi < 0)    towerPhi += 2*pi;
-    if(towerPhi > 2*pi) towerPhi -= 2*pi;
-    if(fDebugLevel == 8) {
-      cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3;
-      cout<<"   towerEta = "<<towerEta<<"  towerPhi = "<<towerPhi<<endl;
-    }
-*/
 
     // cluster and tower position - from vertex and ID
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
@@ -671,55 +650,12 @@ void StPicoTrackClusterQA::RunQA()
     if(fDebugLevel == 8) cout<<"cluster bemcId = "<<cluster->bemcId()<<"  cluster btowId = "<<cluster->btowId();
     if(fDebugLevel == 8) cout<<"  cluster trackIndex = "<<cluster->trackIndex()<<"  trkId = "<<trk->id()<<endl;
 
-    StThreeVectorD position, momentum;
-    double kilogauss = 1000;
-    double tesla = 0.00001;
-    double magneticField = Bfield * kilogauss  / tesla; // in Tesla
-    bool ok = kFALSE;
-    if(mPosition) { 
-      ok = mPosition->projTrack(&position, &momentum, trkMu, (Double_t)Bfield); 
-    }
-
-    // get position vector from projection
-    // get eta, phi and z-vtx from position of track projection
-    double eta = position.pseudoRapidity(); 
-    double phi = position.phi();
-    double z   = position.z();
-    double theta = 2*TMath::ATan(exp(-1.0*eta));
-
-    // TEST comparing track position with cluster and tower
-    double towPhi = towPosition.phi();
-    double towEta = towPosition.pseudoRapidity();
-    double pmatchPhi = trk->pMom().phi();
-    double gmatchPhi = trk->gMom().phi();
-    double pmatchEta = trk->pMom().pseudoRapidity();
-    double gmatchEta = trk->gMom().pseudoRapidity();
-    double clusPhi = clusPosition.phi();
-    double clusEta = clusPosition.pseudoRapidity();
-    if(towPhi < 0)    towPhi += 2*pi;
-    if(towPhi > 2*pi) towPhi -= 2*pi;
-    if(gmatchPhi < 0)    gmatchPhi += 2*pi;
-    if(gmatchPhi > 2*pi) gmatchPhi -= 2*pi;
-    if(clusPhi < 0)    clusPhi += 2*pi;
-    if(clusPhi > 2*pi) clusPhi -= 2*pi;
-
-/*
-    // print some tower / cluster / track debug info
-    //if(fDebugLevel == 8) {
-    if(fDebugLevel == 8 && cluster->bemcE0() > 1.0) {
-      cout<<"tID = "<<towID<<" cID = "<<clusID<<" iTrk = "<<trackIndex<<" TrkID = "<<trk->id();
-      cout<<" tEta = "<<towEta<<" tPhi = "<<towPhi<<"  towE = "<<cluster->bemcE0();
-      cout<<" mTowE = "<<cluster->btowE()<<"  mTowE2 = "<<cluster->btowE2()<<"  mTowE3 = "<<cluster->btowE3()<<endl;
-      cout<<"Track: -> trkPhi = "<<gmatchPhi<<" trkEta = "<<gmatchEta<<"  trkP = "<<trk->gMom().mag()<<endl;
-      cout<<"Project trk -> eta = "<<eta<<"  phi = "<<phi<<"  z = "<<z;
-      cout<<"  etaDist = "<<cluster->btowEtaDist()<<"  phiDist = "<<cluster->btowPhiDist()<<endl;
-      cout<<"Cluster: cID = "<<clusID<<"  iClus = "<<iClus<<"  cEta = "<<clusEta<<"  cPhi = "<<clusPhi<<"  clusE = "<<cluster->bemcE()<<endl<<endl;
-    } // debug statement
-*/
+    // April 9, 2018: removed ton of useless code that was here just to originally figure out tower - track matching and indexing
+    // add some useful QA code back here soon!
 
     // fill tower sparse
-    Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
-    fhnTowerQA->Fill(towerEntries);
+    //Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
+    //fhnTowerQA->Fill(towerEntries);
 
   } // cluster loop
 
@@ -1458,38 +1394,14 @@ void StPicoTrackClusterQA::RunTowerTest()
     int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     if(towID < 0) continue;
 
-    // get tower location - from ID: via this method, need to correct eta
-    float tEta, tPhi;    // need to be floats
-    StEmcGeom *mGeom2 = (StEmcGeom::instance("bemc"));
-    mGeom2->getEtaPhi(towID,tEta,tPhi);
-    if(tPhi < 0)    tPhi += 2*pi;
-    if(tPhi > 2*pi) tPhi -= 2*pi;
-    if(fDebugLevel == 8) {
-      cout<<"towID1 = "<<towID<<"  towID2 = "<<towID2<<"  towID3 = "<<towID3<<"   towerEta = "<<tEta<<"  towerPhi = "<<tPhi<<endl;
-    }
-
     // cluster and tower position - from vertex and ID
     StThreeVectorF  towPosition;
     towPosition = mPosition->getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.phi();
+    if(towPhi < 0)    towPhi += 2*pi;
+    if(towPhi > 2*pi) towPhi -= 2*pi;
     double towEta = towPosition.pseudoRapidity();
-    double detectorRadius = mGeom2->Radius();  // use this below so you don't have to hardcode it TODO
-
-    // correct eta for Vz position // 231
-    float theta = 2 * atan(exp(-towEta)); // getting theta from eta 
-    double z = 0;
-    if(towEta != 0) z = 225.405 / tan(theta);      // 231 cm = radius of SMD
-    double zNominal = z - mVertex.z();
-    double thetaCorr = atan2(225.405, zNominal); // theta with respect to primary vertex
-    float etaCorr =-log(tan(thetaCorr / 2.0));   // eta with respect to primary vertex
-
-    // correct eta for Vz position // 231
-    float theta2 = 2 * atan(exp(-tEta)); // getting theta from eta 
-    double z2 = 0;
-    if(tEta != 0) z2 = 225.405 / tan(theta2);         // 231 cm = radius of SMD
-    double zNominal2 = z2 - mVertex.z();
-    double thetaCorr2 = atan2(225.405, zNominal2); // theta with respect to primary vertex
-    float etaCorr2 =-log(tan(thetaCorr2 / 2.0));   // eta with respect to primary vertex
+    //double detectorRadius = mGeom->Radius();
 
     // matched track index
     int trackIndex = cluster->trackIndex();
@@ -1546,6 +1458,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
     StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
     double towerPhi = towerPosition.phi();
+    if(towerPhi < 0)    towerPhi += 2*pi;
+    if(towerPhi > 2*pi) towerPhi -= 2*pi;
     double towerEta = towerPosition.pseudoRapidity();
     int towerADC = tower->adc();
     double towerEunCorr = tower->energy();
@@ -1574,9 +1488,9 @@ void StPicoTrackClusterQA::RunTowerTest()
         mTrkMom = trk->gMom(mVertex, Bfield); 
       }
 
-      double pt = mTrkMom.perp();
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
+      //double pt = mTrkMom.perp();
+      //double phi = mTrkMom.phi();
+      //double eta = mTrkMom.pseudoRapidity();
       double p = mTrkMom.mag();
       double pi0mass = Pico::mMass[0]; // GeV
       double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
@@ -1589,18 +1503,6 @@ void StPicoTrackClusterQA::RunTowerTest()
     // cut on tower energy - corrected or not
     if(towerE < 0) towerE = 0.0;
     if(towerE < mTowerEnergyMin) continue;
-
-/*
-    // Feb26, 2018: don't think I need this if using getPosFromVertex(vert, id)
-    // correct eta for Vz position 
-    float theta;
-    theta = 2 * atan(exp(-towEta)); // getting theta from eta 
-    double z = 0;
-    if(towEta != 0) z = 231.0 / tan(theta);  // 231 cm = radius of SMD 
-    double zNominal = z - mVertex.z();
-    double thetaCorr = atan2(231.0, zNominal); // theta with respect to primary vertex
-    float etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
-*/
 
     // print
 //    cout<<"itow: "<<itow<<"  towerID = "<<towerID<<"  towerPhi = "<<towerPhi<<"  towerEta = "<<towerEta<<"  towerADC = "<<towerADC<<"  towerE = "<<towerE<<"  towerEunCorr = "<<towerEunCorr<<"  mIndex = "<<mTowerMatchTrkIndex[towerID]<<endl;
