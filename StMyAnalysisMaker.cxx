@@ -3294,23 +3294,17 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   }
 
   // TEST - debug BBC
-  if(fabs(sumcos_E) < 1e-6) { 
-    //cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; 
+  if(fabs(sumcos_E) < 1e-6) { //cout<<"BBC sumcos_E < 1e-6, "<<sumcos_E<<endl; 
     hBBCepDebug->Fill(1.); }
-  if(fabs(sumsin_E) < 1e-6) { 
-    //cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; 
+  if(fabs(sumsin_E) < 1e-6) { //cout<<"BBC sumsin_E < 1e-6, "<<sumsin_E<<endl; 
     hBBCepDebug->Fill(2.); }
-  if(fabs(sumcos_W) < 1e-6) { 
-    //cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; 
+  if(fabs(sumcos_W) < 1e-6) { //cout<<"BBC sumcos_W < 1e-6, "<<sumcos_W<<endl; 
     hBBCepDebug->Fill(3.); }
-  if(fabs(sumsin_W) < 1e-6) { 
-    //cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; 
+  if(fabs(sumsin_W) < 1e-6) { //cout<<"BBC sumsin_W < 1e-6, "<<sumsin_W<<endl; 
     hBBCepDebug->Fill(4.); }
-  if(fabs(sum_E) < 1e-6) { 
-    //cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; 
+  if(fabs(sum_E) < 1e-6) {    //cout<<"BBC sum_E < 1e-6, "<<sum_E<<endl; 
     hBBCepDebug->Fill(6.); }
-  if(fabs(sum_W) < 1e-6) { 
-    //cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; 
+  if(fabs(sum_W) < 1e-6) {    //cout<<"BBC sum_W < 1e-6, "<<sum_W<<endl; 
     hBBCepDebug->Fill(7.); }
 
   // create Q-vectors
@@ -3562,29 +3556,21 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   //cout<<"w_ev = "<<w_ev<<"  w_wv = "<<w_wv<<"  w_eh = "<<w_eh<<"  w_wh = "<<w_wh<<endl;
   // TEST - debug ZDC
-  if(fabs(mQey) < 1e-6) { 
-    //cout<<"ZDC mQey < 1e-6, "<<mQey<<endl; 
+  if(fabs(mQey) < 1e-6) { //cout<<"ZDC mQey < 1e-6, "<<mQey<<endl; 
     hZDCepDebug->Fill(1.); }
-  if(fabs(mQex) < 1e-6) { 
-    //cout<<"ZDC mQex < 1e-6, "<<mQex<<endl; 
+  if(fabs(mQex) < 1e-6) { //cout<<"ZDC mQex < 1e-6, "<<mQex<<endl; 
     hZDCepDebug->Fill(2.); }
-  if(fabs(mQwy) < 1e-6) { 
-    //cout<<"ZDC mQwy < 1e-6, "<<mQwy<<endl; 
+  if(fabs(mQwy) < 1e-6) { //cout<<"ZDC mQwy < 1e-6, "<<mQwy<<endl; 
     hZDCepDebug->Fill(3.); }
-  if(fabs(mQwx) < 1e-6) { 
-    //cout<<"ZDC mQwx < 1e-6, "<<mQwx<<endl; 
+  if(fabs(mQwx) < 1e-6) { //cout<<"ZDC mQwx < 1e-6, "<<mQwx<<endl; 
     hZDCepDebug->Fill(4.); }
-  if(fabs(w_ev) < 1e-6) { 
-    //cout<<"ZDC w_ev < 1e-6, "<<w_ev<<endl; 
+  if(fabs(w_ev) < 1e-6) { //cout<<"ZDC w_ev < 1e-6, "<<w_ev<<endl; 
     hZDCepDebug->Fill(6.); }
-  if(fabs(w_wv) < 1e-6) { 
-    //cout<<"ZDC w_wv < 1e-6, "<<w_wv<<endl; 
+  if(fabs(w_wv) < 1e-6) { //cout<<"ZDC w_wv < 1e-6, "<<w_wv<<endl; 
     hZDCepDebug->Fill(7.); }
-  if(fabs(w_eh) < 1e-6) { 
-    //cout<<"ZDC w_eh < 1e-6, "<<w_eh<<endl; 
+  if(fabs(w_eh) < 1e-6) { //cout<<"ZDC w_eh < 1e-6, "<<w_eh<<endl; 
     hZDCepDebug->Fill(8.); }
-  if(fabs(w_wh) < 1e-6) { 
-    //cout<<"ZDC w_wh < 1e-6, "<<w_wh<<endl; 
+  if(fabs(w_wh) < 1e-6) { //cout<<"ZDC w_wh < 1e-6, "<<w_wh<<endl; 
     hZDCepDebug->Fill(9.); }
 
   // initialize vectors
@@ -3831,15 +3817,15 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 
   // perform re-centering of ZDC event plane angle
   if(zdc_shift_read_switch || zdc_apply_corr_switch) { // TODO double check this - i think this is now FIXED Dec11, 2017
-    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip] - mZDCSMDCenterex;
-    if(eastwest == 1 && verthori == 0) return -mZDCSMDCenterwx - zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 0 && verthori == 0) return zdcsmd_x[strip] - mZDCSMDCenterex;
+    if(strip < 7 && eastwest == 1 && verthori == 0) return -mZDCSMDCenterwx - zdcsmd_x[strip];
     if(eastwest == 0 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterey;
     if(eastwest == 1 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterwy;
   }
 // } else {
   if((zdc_recenter_read_switch) && (!zdc_shift_read_switch)){	
-    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip];
-    if(eastwest == 1 && verthori == 0) return -zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 0 && verthori == 0) return zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 1 && verthori == 0) return -zdcsmd_x[strip];
     if(eastwest == 0 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
     if(eastwest == 1 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
   }
@@ -3917,30 +3903,18 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   QvectorCal(ref9, region_vz, n, ptbin);
 
   // TEST - debug TPC
-  if(fabs(Q2x_m) < 1e-6) { 
-    cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; 
-    hTPCepDebug->Fill(1.); 
-  }
-  if(fabs(Q2y_m) < 1e-6) { 
-    cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; 
-    hTPCepDebug->Fill(2.); 
-  }
-  if(fabs(Q2x_p) < 1e-6) { 
-    cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; 
-    hTPCepDebug->Fill(3.); 
-  }
-  if(fabs(Q2y_p) < 1e-6) { 
-    cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
-    hTPCepDebug->Fill(4.); 
-  }
-  if(fabs(Q2x) < 1e-6) { 
-    cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
-    hTPCepDebug->Fill(5.); 
-  }
-  if(fabs(Q2y) < 1e-6) { 
-    cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
-    hTPCepDebug->Fill(6.); 
-  }
+  if(fabs(Q2x_m) < 1e-6) { cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; 
+    hTPCepDebug->Fill(1.); }
+  if(fabs(Q2y_m) < 1e-6) { cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; 
+    hTPCepDebug->Fill(2.); }
+  if(fabs(Q2x_p) < 1e-6) { cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; 
+    hTPCepDebug->Fill(3.); }
+  if(fabs(Q2y_p) < 1e-6) { cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
+    hTPCepDebug->Fill(4.); }
+  if(fabs(Q2x) < 1e-6) { cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
+    hTPCepDebug->Fill(5.); }
+  if(fabs(Q2y) < 1e-6) { cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
+    hTPCepDebug->Fill(6.); }
 
   if(fabs(Q2x_raw == 0.) && fabs(Q2y_raw == 0.)) { cout<<"Q2x_raw or Q2y_raw == 0"<<endl;  return kStOK; }
 
@@ -4205,7 +4179,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
+    if(phi < 0) phi += 2*pi;
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
 

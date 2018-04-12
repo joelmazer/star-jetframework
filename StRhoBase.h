@@ -106,8 +106,8 @@ class StRhoBase : public StJetFrameworkPicoBase {
   TH2F                  *fHistDeltaRhovsCent;            //!delta rho vs. centrality
   TH2F                  *fHistDeltaRhoScalevsCent;       //!delta rhoscaled vs. centrality
 
-  TH3F                  *fHistRhovsNtrackvsV0Mult;       //!rho vs. no. of tracks vs V0mult
-  TH3F                  *fHistRhoScaledvsNtrackvsV0Mult; //!rhoscaled vs. no. of tracks vs V0mult
+  TH3F                  *fHistRhovsNtrackvsMult;         //!rho vs. no. of tracks vs mult
+  TH3F                  *fHistRhoScaledvsNtrackvsMult;   //!rhoscaled vs. no. of tracks vs mult
   TH2F                  *fHistDeltaRhovsNtrack;          //!delta rho vs. no. of tracks
   TH2F                  *fHistDeltaRhoScalevsNtrack;     //!delta rho scaled vs. no. of tracks
  

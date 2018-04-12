@@ -23,8 +23,6 @@
 
 #include "Riostream.h"
 
-//#include "StParticleContainer.h"
-//#include "StClusterContainer.h"
 
 /// \cond CLASSIMP
 ClassImp(StJet);
@@ -436,7 +434,7 @@ Double_t StJet::GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t 
     return (trkPx * Px() + trkPy * Py() + trkPz * Pz()) / pJetSq;
   }
   else {
-    Form("%s: strange, pjet*pjet seems to be zero pJetSq: %f", GetName(), pJetSq); // FIXME
+    cout<<Form("%s: strange, pjet*pjet seems to be zero pJetSq: %f", GetName(), pJetSq);
     return -1;
   }
 }
@@ -611,44 +609,6 @@ void StJet::Clear(Option_t */*option*/)
 }
 
 /**
- * Retrieve the track constituent corresponding to the index found at a certain position.
- * Automatically retrieves the particle from the proper TClonesArray. This function is preferred to
- * TrackAt(Int_t, TClonesArray), which is only kept for backwards compatibility.
- *
- * @param idx Position of the track constituent
- * @return Pointer to the track constituent requested (if found)
- */
-
-/* ==============
-StVParticle* StJet::Track(Int_t idx) const // FIXME
-{
-    StPicoDstMaker *mPicoDstMaker;
-    StPicoDst      *mPicoDst;
-
-  return StParticleContainer::GetEmcalContainerIndexMap().GetObjectFromGlobalIndex(TrackAt(idx)); // FIXME
-}
-================ */
-
-/**
- * Finds the track constituent corresponding to the index found at a certain position.
- * @param idx Position of the track constituent
- * @param ta Array with pointers to the tracks from which jet constituents are drawn
- * @return Pointer to the track constituent requested (if found)
- */
-
-/* ======================
-StVParticle* StJet::TrackAt(Int_t idx, TClonesArray *ta) const // FIXME
-{
-  if (!ta) return 0;
-  auto res =  StParticleContainer::GetEmcalContainerIndexMap().LocalIndexFromGlobalIndex(TrackAt(idx)); // FIXME
-  if (res.second != ta) {
-    //AliWarning(Form("TClonesArray %s that was passed does not correspond to the passed index! The index belongs to a different TClonesArray named %s! Returning the object corresponding to the index (not the passed TClonesArray)! Consider fixing by updating to jet->Track(index).", ta->GetName(), res.second->GetName())); // FIXME
-  }
-  return dynamic_cast<StVParticle*>(res.second->At(res.first)); // FIXME
-}
-========================*/
-
-/**
  * Checks whether a given track is among the jet constituents
  * @param track Pointer to the track to be searched
  * @param tracks Array with pointers to the tracks from which jet constituents are drawn
@@ -712,12 +672,4 @@ Bool_t StJet::IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted) const
       return kTRUE;
   }
   return kFALSE;
-}
-
-// TODO TEST
-void StJet::AddJetConstit(const Double_t dPx, const Double_t dPy, const Double_t dPz, const Double_t dE)
-{
-  TLorentzVector constit(dPx, dPy, dPz, dE);
-  //fJetConstit.push_back(constit);
-  return;
 }

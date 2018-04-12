@@ -50,7 +50,7 @@ namespace fastjet {
  * The class implements also a number of service function to calculate other observable,
  * such as fragmentation functions, subtracted jet momentum, etc.
  */
-class StJet : public StVParticle // FIXME
+class StJet : public StVParticle
 {
  public:
   
@@ -65,7 +65,7 @@ class StJet : public StVParticle // FIXME
   std::ostream &Print(std::ostream &in) const;
   TString toString() const;
 
-  // Implementation of StVParticle interface //FIXME
+  // Implementation of StVParticle interface
   Double_t          Px()                         const { return fPt*TMath::Cos(fPhi) ; }
   Double_t          Py()                         const { return fPt*TMath::Sin(fPhi) ; }
   Double_t          Pz()                         const { return fPt*TMath::SinH(fEta); }
@@ -120,17 +120,13 @@ class StJet : public StVParticle // FIXME
   Double_t          PtSubVect(Double_t rho, Bool_t save = kFALSE)      ;
   TLorentzVector    SubtractRhoVect(Double_t rho, Bool_t save = kFALSE);
 
-  // Jet constituents //FIXME  AliVCluster
-////  StVCluster      *Cluster(Int_t idx)                                             const;
-////  StVCluster      *ClusterAt(Int_t idx, TClonesArray *ca)                         const;
+  // Jet constituents
 ////  Int_t             ContainsCluster(AliVCluster* cluster, TClonesArray* clusters)  const;
   Int_t             ContainsCluster(Int_t ic)                                      const;
 ////  StVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
-////  StVParticle     *Track(Int_t idx)                                               const;
-////  StVParticle     *TrackAt(Int_t idx, TClonesArray *ta)                           const;
   Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)         const;
   Int_t             ContainsTrack(Int_t it)                                         const;
-  StVParticle       *GetLeadingTrack(TClonesArray *tracks)                          const;
+////  StVParticle       *GetLeadingTrack(TClonesArray *tracks)                          const;
 
   // Fragmentation Function
   Double_t          GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz)  const;
@@ -181,8 +177,8 @@ class StJet : public StVParticle // FIXME
 
   // Matching
   void              ResetMatching();
-  void              SetClosestJet(StJet *j, Double_t d)       { fClosestJets[0] = j; fClosestJetsDist[0] = d    ; }
-  void              SetSecondClosestJet(StJet *j, Double_t d) { fClosestJets[1] = j; fClosestJetsDist[1] = d    ; }
+  void              SetClosestJet(StJet *j, Double_t d)             { fClosestJets[0] = j; fClosestJetsDist[0] = d    ; }
+  void              SetSecondClosestJet(StJet *j, Double_t d)       { fClosestJets[1] = j; fClosestJetsDist[1] = d    ; }
   void              SetMatchedToClosest(UShort_t m)                 { fMatched        = 0; fMatchingType       = m    ; }
   void              SetMatchedToSecondClosest(UShort_t m)           { fMatched        = 1; fMatchingType       = m    ; }
   StJet*            ClosestJet()                              const { return fClosestJets[0]                          ; }
@@ -198,9 +194,6 @@ class StJet : public StVParticle // FIXME
   const std::vector<TLorentzVector> GetGhosts()   const { return fGhosts  ; }
 
 //TEST =========================
-  void AddJetConstit(const Double_t dPx, const Double_t dPy, const Double_t dPz, const Double_t dE);
-//  const std::vector<TLorentzVector> GetConstits()   const { return fJetConstit  ; }
-//  void SetJetConstituents(std::vector<TLorentzVector> n)        { fJetConstit = n;                         }
   void SetJetConstituents(std::vector<fastjet::PseudoJet> n)        { fJetConstit = n;                         }
   //const std::vector<fastjet::PseudoJet>&  GetInputVectors()    const { return fInputVectors;               }
   const std::vector<fastjet::PseudoJet>& GetMyJets()  const { return fJetConstit; }
@@ -259,8 +252,6 @@ class StJet : public StVParticle // FIXME
   Bool_t            fHasGhost;            //!<! Whether ghost particle are included within the constituents
   std::vector<TLorentzVector> fGhosts;    //!<! Vector containing the ghost particles
 
-// TEST
-//  std::vector<TLorentzVector> fJetConstit; //!<! Vector containing the jet constituents
   std::vector<fastjet::PseudoJet> fJetConstit; //!<! Vector containing the jet constituents
 
   StJetShapeProperties *fJetShapeProperties; //!<! Pointer to the jet shape properties

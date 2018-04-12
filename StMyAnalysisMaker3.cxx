@@ -232,7 +232,6 @@ Int_t StMyAnalysisMaker3::Init() {
 
   // initialize the histograms
   DeclareHistograms();
-  //DeclareEventPlaneHistograms();  // TODO - set up a switch
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
@@ -701,6 +700,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // ranges can be different than functional cent bin setter
   Int_t cbin = -1;
   // need to figure out centrality first in STAR: TODO
+  // this is actually not used since the below line does the cut:  if(fRequireCentSelection)
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
   else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
@@ -802,6 +802,7 @@ Int_t StMyAnalysisMaker3::Make() {
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
 
+  // this is not meaningful, was part of a past test
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
@@ -818,9 +819,7 @@ Int_t StMyAnalysisMaker3::Make() {
 */
 
   // get event plane maker 
-  //StEventPlaneMaker *EventPlaneMaker0, *EventPlaneMaker1, *EventPlaneMaker2, *EventPlaneMaker3, *EventPlaneMaker4;
   double tpc2EP_bin0, tpc2EP_bin1, tpc2EP_bin2, tpc2EP_bin3, tpc2EP_bin4;
-  //double tpc2EP;
   if(!doTPCptassocBin) {
     EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
     const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
@@ -847,11 +846,11 @@ Int_t StMyAnalysisMaker3::Make() {
     }
 
     // get event plane angle for different pt bins
-    if(EventPlaneMaker0) { tpc2EP_bin0 = (double)EventPlaneMaker0->GetTPCEP(); } else { tpc2EP_bin0 = -99; }
-    if(EventPlaneMaker1) { tpc2EP_bin1 = (double)EventPlaneMaker1->GetTPCEP(); } else { tpc2EP_bin1 = -99; }
-    if(EventPlaneMaker2) { tpc2EP_bin2 = (double)EventPlaneMaker2->GetTPCEP(); } else { tpc2EP_bin2 = -99; }
-    if(EventPlaneMaker3) { tpc2EP_bin3 = (double)EventPlaneMaker3->GetTPCEP(); } else { tpc2EP_bin3 = -99; }
-    if(EventPlaneMaker4) { tpc2EP_bin4 = (double)EventPlaneMaker4->GetTPCEP(); } else { tpc2EP_bin4 = -99; }
+    if(EventPlaneMaker0) { tpc2EP_bin0 = (double)EventPlaneMaker0->GetTPCEP(); } else { tpc2EP_bin0 = -999; }
+    if(EventPlaneMaker1) { tpc2EP_bin1 = (double)EventPlaneMaker1->GetTPCEP(); } else { tpc2EP_bin1 = -999; }
+    if(EventPlaneMaker2) { tpc2EP_bin2 = (double)EventPlaneMaker2->GetTPCEP(); } else { tpc2EP_bin2 = -999; }
+    if(EventPlaneMaker3) { tpc2EP_bin3 = (double)EventPlaneMaker3->GetTPCEP(); } else { tpc2EP_bin3 = -999; }
+    if(EventPlaneMaker4) { tpc2EP_bin4 = (double)EventPlaneMaker4->GetTPCEP(); } else { tpc2EP_bin4 = -999; }
 
     // assign global event plane to selected pt-dependent bin
     if(fTPCptAssocBin == 0) TPC_PSI2 = tpc2EP_bin0;
@@ -1326,7 +1325,6 @@ void StMyAnalysisMaker3::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins
 
    case 0:
       label = "centrality 5% bin";
-      // think about how I want to do this here TODO
       nbins = 20; //16;
       xmin = 0.;
       xmax = 100.; //16.;     
@@ -1448,7 +1446,6 @@ void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &n
 
     case 0:
       label = "centrality 5% bin";
-      // think about how I want to do this here TODO
       nbins = 20; //16;
       xmin = 0.;
       xmax = 100.; //16.;
@@ -1684,7 +1681,7 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
     int arrBHT2[] = {4, 16, 17, 530202, 540203};
     int arrBHT3[] = {17, 520203, 530213};

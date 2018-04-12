@@ -8,7 +8,7 @@
 
 #include <set>
 
-// TEST for clusters TODO
+// for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
 #include "StEmcUtil/projection/StEmcPosition.h"
 #include "StMuDSTMaker/COMMON/StMuDst.h"
@@ -181,9 +181,6 @@ class StJetMakerTask : public StMaker {
   Double_t               GetJetTrackPhiMax()              { return fJetTrackPhiMax    ; }
   Double_t               GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
-  void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
-                                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
-
   Bool_t                 IsLocked() const;
 
 /*
@@ -199,6 +196,8 @@ class StJetMakerTask : public StMaker {
  protected:
   void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   //Int_t FindJets();
+  void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
+                            std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis

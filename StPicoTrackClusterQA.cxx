@@ -1216,7 +1216,8 @@ void StPicoTrackClusterQA::GetDimParamsTowers(Int_t iEntry, TString &label, Int_
 } // end of tower sparse
 
 //============================================================================
-// 
+//
+// - not used, taken from Kolja's framework 
 // this is for a test... for now.. Feb12, 2018
 //____________________________________________________________________________
 Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
@@ -1332,7 +1333,7 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
 }
 
 //
-//
+// - Not used, from Kolja's framework
 //___________________________________________________________________________________________________
 Int_t StPicoTrackClusterQA::MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID) {
   StEmcCluster* smdCluster = nullptr;
@@ -1406,9 +1407,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     // matched track index
     int trackIndex = cluster->trackIndex();
     StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
-    //StMuTrack* mutrk = (StMuTrack*)mPicoDst->track(trackIndex);
     if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
-    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"Track not accepted.."<<endl; continue; }
 
     // tower status set - towerID is matched to track passing quality cuts
     mTowerMatchTrkIndex[towID] = trackIndex;
@@ -1475,8 +1475,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     if(mTowerStatusArr[towerID]) {
       //if(mTowerMatchTrkIndex[towerID] > 0) 
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
-      ///if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // March5, 2018 commented back in TODO
-      //if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+      if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // March5, 2018 commented back in TODO
+      if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }  // TODO double check this
 
       // get track variables to matched tower
       StThreeVectorF mTrkMom;

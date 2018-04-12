@@ -11,6 +11,7 @@
 #include <TString.h>
 #include "FJ_includes.h"
 #include "StJetShape.h"
+#include "StJetPicoDefinitions.h"
 
 class StFJWrapper
 {
@@ -444,8 +445,8 @@ Double_t StFJWrapper::GetJetArea(UInt_t idx) const
   Double_t retval = -1; // really wrong area..
   if ( idx < fInclusiveJets.size() ) {
     retval = fClustSeq->area(fInclusiveJets[idx]);
-  } else { //FIXME
-    (Form("[e] ::GetJetArea wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
   return retval;
 }
@@ -458,8 +459,8 @@ Double_t StFJWrapper::GetFilteredJetArea(UInt_t idx) const
   Double_t retval = -1; // really wrong area..
   if (fDoFilterArea && fClustSeqActGhosts && (idx<fFilteredJets.size())) {
     retval = fClustSeqActGhosts->area(fFilteredJets[idx]);
-  } else {//FIXME
-    (Form("[e] ::GetFilteredJetArea wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
   return retval;
 }
@@ -471,8 +472,8 @@ fastjet::PseudoJet StFJWrapper::GetJetAreaVector(UInt_t idx) const
   fastjet::PseudoJet retval;
   if ( idx < fInclusiveJets.size() ) {
     retval = fClustSeq->area_4vector(fInclusiveJets[idx]);
-  } else {//FIXME
-    (Form("[e] ::GetJetArea wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
   return retval;
 }
@@ -484,8 +485,8 @@ fastjet::PseudoJet StFJWrapper::GetFilteredJetAreaVector(UInt_t idx) const
   fastjet::PseudoJet retval;
   if (fDoFilterArea && fClustSeqActGhosts && (idx<fFilteredJets.size())) {
     retval = fClustSeqActGhosts->area_4vector(fFilteredJets[idx]);
-  } else {//FIXME
-    (Form("[e] ::GetFilteredJetArea wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
   return retval;
 }
@@ -525,8 +526,8 @@ StFJWrapper::GetJetConstituents(UInt_t idx) const
 
   if ( idx < fInclusiveJets.size() ) {
     retval = fClustSeq->constituents(fInclusiveJets[idx]);
-  } else {//FIXME
-    (Form("[e] ::GetJetConstituents wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
 
   return retval;
@@ -543,8 +544,8 @@ StFJWrapper::GetFilteredJetConstituents(UInt_t idx) const
   if ( idx < fFilteredJets.size() ) {
     if (fClustSeqSA)        retval = fClustSeqSA->constituents(fFilteredJets[idx]);
     if (fClustSeqActGhosts) retval = fClustSeqActGhosts->constituents(fFilteredJets[idx]);
-  } else {//FIXME
-    (Form("[e] ::GetFilteredJetConstituents wrong index: %d",idx));
+  } else {
+    __ERROR(Form("Wrong index: %d",idx));
   }
 
   return retval;
@@ -556,8 +557,8 @@ void StFJWrapper::GetMedianAndSigma(Double_t &median, Double_t &sigma, Int_t rem
   // Get the median and sigma from fastjet.
   // User can also do it on his own because the cluster sequence is exposed (via a getter)
 
-  if (!fClustSeq) {//FIXME
-    ("[e] Run the jfinder first.");
+  if (!fClustSeq) {
+    __ERROR(Form("Run the jfinder first."));
     return;
   }
 
@@ -571,8 +572,8 @@ void StFJWrapper::GetMedianAndSigma(Double_t &median, Double_t &sigma, Int_t rem
       fClustSeq->get_median_rho_and_sigma(input_jets, *fRange, fUseArea4Vector, median, sigma, mean_area);
       input_jets.clear();
     }
-  } catch (fj::Error) {//FIXME
-    //sprintf(" [w] FJ Exception caught.");
+  } catch (fj::Error) {
+    __WARNING(Form("FJ Exception caught."));
     median = -1.;
     sigma = -1;
   }
@@ -625,8 +626,8 @@ Int_t StFJWrapper::Run()
                                       1.0,    //search of stable cones - zero = until no more
                                       1.0); // this should be seed effectively for proto jets
       fJetDef = new fastjet::JetDefinition(fPlugin);
-    } else {//FIXME
-     //sprintf("[e] Unrecognized plugin number!");
+    } else {
+     __ERROR(Form("Unrecognized plugin number!"));
     }
   } else {
     fJetDef = new fj::JetDefinition(fAlgor, fR, fScheme, fStrategy);
@@ -634,8 +635,8 @@ Int_t StFJWrapper::Run()
 
   try {
     fClustSeq = new fj::ClusterSequenceArea(fInputVectors, *fJetDef, *fAreaDef);
-  } catch (fj::Error) {//FIXME
-    //sprintf(" [w] FJ Exception caught.");
+  } catch (fj::Error) {
+    __ERROR(Form("FJ Exception caught."));
     return -1;
   }
 
@@ -669,8 +670,8 @@ Int_t StFJWrapper::Filter()
                                                                            *fJetDef,
                                                                             fInputGhosts,
                                                                             fGhostArea);
-      } catch (fj::Error) {//FIXME
-        Form(" [w] FJ Exception caught.");
+      } catch (fj::Error) {
+        __WARNING(Form("FJ Exception caught."));
         return -1;
       }
 
@@ -682,8 +683,8 @@ Int_t StFJWrapper::Filter()
   } else {
     try {
       fClustSeqSA = new fastjet::ClusterSequence(fInputVectors, *fJetDef);
-    } catch (fj::Error) {//FIXME
-      Form(" [w] FJ Exception caught.");
+    } catch (fj::Error) {
+      __WARNING(Form("FJ Exception caught."));
       return -1;
     }
 
@@ -729,8 +730,8 @@ void StFJWrapper::SubtractBackground(Double_t median_pt)
       fClustSeq->get_median_rho_and_sigma(*fRange, fUseArea4Vector, median, sigma, mean_area);
     }
 
-    catch (fj::Error) {//FIXME
-      Form(" [w] FJ Exception caught.");
+    catch (fj::Error) {
+      __WARNING(Form("FJ Exception caught."));
       median = -9999.;
       sigma = -1;
       fMedUsedForBgSub = median;
@@ -741,7 +742,7 @@ void StFJWrapper::SubtractBackground(Double_t median_pt)
     // we do not know the sigma in this case
     sigma = -1;
     if (0.0 == median_pt) {
-      Form(" [w] Median specified for bg subtraction is ZERO: %f \n", median_pt );
+      __WARNING(Form("Median specified for bg subtraction is ZERO: %f \n", median_pt ));
       fMedUsedForBgSub = 0.;
     } else {
       fMedUsedForBgSub = median_pt;
@@ -944,8 +945,8 @@ Double_t StFJWrapper::NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, D
   try {
     fClustSeqSA = new fastjet::ClusterSequence(fInputVectors, *fJetDef);
     // ClustSeqSA = new fastjet::ClusterSequenceArea(fInputVectors, *fJetDef, *fAreaDef);
-  } catch (fj::Error) {//FIXME
-    //sprintf(" [w] FJ Exception caught.");
+  } catch (fj::Error) {
+    __WARNING(Form("FJ Exception caught."));
     return -1;
   }
   fFilteredJets.clear();

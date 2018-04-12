@@ -1511,17 +1511,6 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   double tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
   double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
-  // Method 1: used in ALICE
-  // TEST - TODO
-  double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );
-  if(n1 > pi) n1 -= pi;
-  double p1 = TVector2::Phi_0_2pi( mQtpcp.Phi() / order );
-  if(p1 > pi) p1 -= pi;
-  double n2 = TVector2::Phi_0_2pi( tpcn2 ); // divided by order above
-  if(n2 > pi) n2 -= pi;
-  double p2 = TVector2::Phi_0_2pi( tpcp2 ); // divided by order above
-  if(p2 > pi) p2 -= pi;
-
   // standard event plane distributions as function of centrality
   //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
   fHistEPTPCnAlt->Fill(fCentralityScaled, tpcn2);
@@ -1800,7 +1789,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   int RunId_Order = GetRunNo(RunId);
   if(RunId_Order < -1) return kStOK;
 
-  // initialize some east/west horizontal and vertical values - what are they?
+  // initialize some east/west horizontal and vertical values
   double zdc_EH[8] = {0.}; // y
   double zdc_WH[8] = {0.}; // y
   double zdc_EV[7] = {0.}; // x
@@ -1822,7 +1811,6 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   double eh = 0., wh = 0., ev = 0., wv = 0.;
   double w_eh = 0., w_wh = 0., w_ev = 0., w_wv = 0.;
 
-  // h: horizontal - X, v: vertical - Y      TODO! double check this!
   // h: horizontal - Y, v: vertical - X     March 20, 2018: this is correct! 
   // https://pdfs.semanticscholar.org/9499/5cee9e50bc55027a8b187681ce8d74c735af.pdf
   // loop over horizontal tiles for ZDCSMD
@@ -1866,36 +1854,28 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   //cout<<"w_ev = "<<w_ev<<"  w_wv = "<<w_wv<<"  w_eh = "<<w_eh<<"  w_wh = "<<w_wh<<endl;
   // TEST - debug ZDC
-  if(fabs(mQey) < 1e-6) { 
-    //cout<<"ZDC mQey < 1e-6, "<<mQey<<endl; 
+  if(fabs(mQey) < 1e-6) { //cout<<"ZDC mQey < 1e-6, "<<mQey<<endl; 
     hZDCepDebug->Fill(1.); }
-  if(fabs(mQex) < 1e-6) { 
-    //cout<<"ZDC mQex < 1e-6, "<<mQex<<endl; 
+  if(fabs(mQex) < 1e-6) { //cout<<"ZDC mQex < 1e-6, "<<mQex<<endl; 
     hZDCepDebug->Fill(2.); }
-  if(fabs(mQwy) < 1e-6) { 
-    //cout<<"ZDC mQwy < 1e-6, "<<mQwy<<endl; 
+  if(fabs(mQwy) < 1e-6) { //cout<<"ZDC mQwy < 1e-6, "<<mQwy<<endl; 
     hZDCepDebug->Fill(3.); }
-  if(fabs(mQwx) < 1e-6) { 
-    //cout<<"ZDC mQwx < 1e-6, "<<mQwx<<endl; 
+  if(fabs(mQwx) < 1e-6) { //cout<<"ZDC mQwx < 1e-6, "<<mQwx<<endl; 
     hZDCepDebug->Fill(4.); }
-  if(fabs(w_ev) < 1e-6) { 
-    //cout<<"ZDC w_ev < 1e-6, "<<w_ev<<endl; 
+  if(fabs(w_ev) < 1e-6) { //cout<<"ZDC w_ev < 1e-6, "<<w_ev<<endl; 
     hZDCepDebug->Fill(6.); }
-  if(fabs(w_wv) < 1e-6) { 
-    //cout<<"ZDC w_wv < 1e-6, "<<w_wv<<endl; 
+  if(fabs(w_wv) < 1e-6) { //cout<<"ZDC w_wv < 1e-6, "<<w_wv<<endl; 
     hZDCepDebug->Fill(7.); }
-  if(fabs(w_eh) < 1e-6) { 
-    //cout<<"ZDC w_eh < 1e-6, "<<w_eh<<endl; 
+  if(fabs(w_eh) < 1e-6) { //cout<<"ZDC w_eh < 1e-6, "<<w_eh<<endl; 
     hZDCepDebug->Fill(8.); }
-  if(fabs(w_wh) < 1e-6) { 
-    //cout<<"ZDC w_wh < 1e-6, "<<w_wh<<endl; 
+  if(fabs(w_wh) < 1e-6) { //cout<<"ZDC w_wh < 1e-6, "<<w_wh<<endl; 
     hZDCepDebug->Fill(9.); }
 
   // initialize vectors
   TVector2 mQ1, mQw, mQe, mQtot, zQ_raw;
   mQe.Set(mQex, mQey);
   mQw.Set(mQwx, mQwy);
-  mQ1 = mQe - mQw;      // 1st order event plane:  Dec7, why is this written this way?
+  mQ1 = mQe - mQw;      // 1st order event plane:  Dec7, why is this written this way? for n=1
   ZDC_PSI1 = mQ1.Phi(); // set global 1st order ZDC event plane
   mQtot.Set((mQex + mQwx), (mQey + mQwy));   // 2nd order - Jan9 found bug!
   zQ_raw.Set((mQex + mQwx), (mQey + mQwy));  // 2nd order
@@ -2128,15 +2108,15 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 
   // perform re-centering of ZDC event plane angle
   if(zdc_shift_read_switch || zdc_apply_corr_switch) { // TODO double check this - i think this is now FIXED Dec11, 2017
-    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip] - mZDCSMDCenterex;
-    if(eastwest == 1 && verthori == 0) return -mZDCSMDCenterwx - zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 0 && verthori == 0) return zdcsmd_x[strip] - mZDCSMDCenterex;
+    if(strip < 7 && eastwest == 1 && verthori == 0) return -mZDCSMDCenterwx - zdcsmd_x[strip];
     if(eastwest == 0 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterey;
     if(eastwest == 1 && verthori == 1) return (zdcsmd_y[strip])/(sqrt(2.)) - mZDCSMDCenterwy;
   }
 // } else {
   if((zdc_recenter_read_switch) && (!zdc_shift_read_switch)){	
-    if(eastwest == 0 && verthori == 0) return zdcsmd_x[strip];
-    if(eastwest == 1 && verthori == 0) return -zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 0 && verthori == 0) return zdcsmd_x[strip];
+    if(strip < 7 && eastwest == 1 && verthori == 0) return -zdcsmd_x[strip];
     if(eastwest == 0 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
     if(eastwest == 1 && verthori == 1) return zdcsmd_y[strip]/sqrt(2.);
   }
@@ -2214,30 +2194,18 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   QvectorCal(ref9, region_vz, n, ptbin);
 
   // TEST - debug TPC
-  if(fabs(Q2x_m) < 1e-6) { 
-    cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; 
-    hTPCepDebug->Fill(1.); 
-  }
-  if(fabs(Q2y_m) < 1e-6) { 
-    cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; 
-    hTPCepDebug->Fill(2.); 
-  }
-  if(fabs(Q2x_p) < 1e-6) { 
-    cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; 
-    hTPCepDebug->Fill(3.); 
-  }
-  if(fabs(Q2y_p) < 1e-6) { 
-    cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
-    hTPCepDebug->Fill(4.); 
-  }
-  if(fabs(Q2x) < 1e-6) { 
-    cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
-    hTPCepDebug->Fill(5.); 
-  }
-  if(fabs(Q2y) < 1e-6) { 
-    cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
-    hTPCepDebug->Fill(6.); 
-  }
+  if(fabs(Q2x_m) < 1e-6) { cout<<"TPC Q2x_m < 1e-6, "<<Q2x_m<<endl; 
+    hTPCepDebug->Fill(1.); }
+  if(fabs(Q2y_m) < 1e-6) { cout<<"TPC Q2y_m < 1e-6, "<<Q2y_m<<endl; 
+    hTPCepDebug->Fill(2.); }
+  if(fabs(Q2x_p) < 1e-6) { cout<<"TPC Q2x_p < 1e-6, "<<Q2x_p<<endl; 
+    hTPCepDebug->Fill(3.); }
+  if(fabs(Q2y_p) < 1e-6) { cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
+    hTPCepDebug->Fill(4.); }
+  if(fabs(Q2x) < 1e-6) {   cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
+    hTPCepDebug->Fill(5.); }
+  if(fabs(Q2y) < 1e-6) {   cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
+    hTPCepDebug->Fill(6.); }
 
   if(fabs(Q2x_raw == 0.) && fabs(Q2y_raw == 0.)) { cout<<"Q2x_raw or Q2y_raw == 0"<<endl;  return kStOK; }
 
@@ -2499,7 +2467,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
+    if(phi < 0) phi += 2*pi;
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
 
@@ -2594,8 +2562,6 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     }
 
     // components (x and y)    (no segregation of minus and positive regions HERE - double check!)
-    //double x = pt*cos(2.*phi); // Liang used this
-    //double y = pt*sin(2.*phi); // Liang used this
     double x = trackweight * cos(order*phi);
     double y = trackweight * sin(order*phi);
     Q2x_raw += x;

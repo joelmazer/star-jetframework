@@ -64,15 +64,12 @@ StRhoBase::StRhoBase() :
   fHistRhoScaledvsCent(0),
   fHistDeltaRhovsCent(0),
   fHistDeltaRhoScalevsCent(0),
-  fHistRhovsNtrackvsV0Mult(0),
-  fHistRhoScaledvsNtrackvsV0Mult(0),
+  fHistRhovsNtrackvsMult(0),
+  fHistRhoScaledvsNtrackvsMult(0),
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0)
-//  mOutName(""),
-//  fJetMakerName(""),
-//  fRhoMakerName("")
 {
   ;
   mOutName = "";
@@ -116,15 +113,12 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistRhoScaledvsCent(0),
   fHistDeltaRhovsCent(0),
   fHistDeltaRhoScalevsCent(0),
-  fHistRhovsNtrackvsV0Mult(0),
-  fHistRhoScaledvsNtrackvsV0Mult(0),
+  fHistRhovsNtrackvsMult(0),
+  fHistRhoScaledvsNtrackvsMult(0),
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
   fHistRhoScaledvsNcluster(0)
-//  mOutName(outName),
-//  fJetMakerName(jetMakerName),
-//  fRhoMakerName(name)
 {
   ;
   // Constructor.
@@ -157,8 +151,8 @@ StRhoBase::~StRhoBase()
   delete fHistRhoScaledvsCent;
   delete fHistDeltaRhovsCent;
   delete fHistDeltaRhoScalevsCent;
-  delete fHistRhovsNtrackvsV0Mult;
-  delete fHistRhoScaledvsNtrackvsV0Mult;
+  delete fHistRhovsNtrackvsMult;
+  delete fHistRhoScaledvsNtrackvsMult;
   delete fHistDeltaRhovsNtrack;
   delete fHistDeltaRhoScalevsNtrack;
   delete fHistRhovsNcluster;
@@ -194,18 +188,12 @@ Int_t StRhoBase::Init()
   if(fScaleFunction && !fOutRhoScaled) { fOutRhoScaled = new StRhoParameter(fOutRhoScaledName, 0); }
 
 /*
-  if (!fCompareRhoName.IsNull() && !fCompareRho) {
+  if(!fCompareRhoName.IsNull() && !fCompareRho) {
     fCompareRho = dynamic_cast<StRhoParameter*>(InputEvent()->FindListObject(fCompareRhoName));
-    if (!fCompareRho) {
-      Form("%s: Could not retrieve rho %s!", GetName(), fCompareRhoName.Data());
-    }
   }
 
-  if (!fCompareRhoScaledName.IsNull() && !fCompareRhoScaled) {
+  if(!fCompareRhoScaledName.IsNull() && !fCompareRhoScaled) {
     fCompareRhoScaled = dynamic_cast<StRhoParameter*>(InputEvent()->FindListObject(fCompareRhoScaledName));
-    if (!fCompareRhoScaled) {
-      Form("%s: Could not retrieve rho %s!", GetName(), fCompareRhoScaledName.Data());
-    }
   }
 */
 
@@ -272,7 +260,7 @@ void StRhoBase::WriteHistograms()
 {
   // added Jul17, 2017
   fHistRhovsCent->Write();
-  fHistRhovsNtrackvsV0Mult->Write();
+  fHistRhovsNtrackvsMult->Write();
   fHistRhovsNcluster->Write();
   fHistJetPtvsCent->Write();
   fHistJetAreavsCent->Write();
@@ -295,7 +283,7 @@ void StRhoBase::WriteHistograms()
   fHistDeltaRhovsCent->Write();
   fHistDeltaRhovsNtrack->Write();
   fHistRhoScaledvsCent->Write();
-  fHistRhoScaledvsNtrackvsV0Mult->Write();
+  fHistRhoScaledvsNtrackvsMult->Write();
   fHistRhoScaledvsNcluster->Write();
   fHistDeltaRhoScalevsCent->Write();
   fHistDeltaRhoScalevsNtrack->Write();
@@ -309,11 +297,11 @@ void StRhoBase::DeclareHistograms()
 
   // ranges for AuAu - TODO update range
   Float_t Ntrackrange[2] = {0, 6000};
-  Float_t V0Mult[2] = {0.,25000.};
+  Float_t Mult[2] = {0.,25000.};
   if(!fIsAuAu){
      //set multiplicity related axes to a smaller max value
      Ntrackrange[1] = 200.;
-     V0Mult[1] = 2000.;
+     Mult[1] = 2000.;
   }
  
   int fNbins = 1;
@@ -325,10 +313,10 @@ void StRhoBase::DeclareHistograms()
   fHistRhovsCent->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
 
   //if (fParticleCollArray.GetEntriesFast()>0) {
-    fHistRhovsNtrackvsV0Mult = new TH3F("fHistRhovsNtrackvsV0Mult", "fHistRhovsNtrackvsV0Mult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, V0Mult[0], V0Mult[1]);
-    fHistRhovsNtrackvsV0Mult->GetXaxis()->SetTitle("No. of tracks");
-    fHistRhovsNtrackvsV0Mult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
-    fHistRhovsNtrackvsV0Mult->GetZaxis()->SetTitle("V0 mult");
+    fHistRhovsNtrackvsMult = new TH3F("fHistRhovsNtrackvsMult", "fHistRhovsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
+    fHistRhovsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
+    fHistRhovsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
+    fHistRhovsNtrackvsMult->GetZaxis()->SetTitle("mult");
   //}
 
   //if (fClusterCollArray.GetEntriesFast()>0) {
@@ -401,16 +389,16 @@ void StRhoBase::DeclareHistograms()
     //}
   //}
 
-  //if (fScaleFunction) {
+  //if(fScaleFunction) {
     fHistRhoScaledvsCent = new TH2F("fHistRhoScaledvsCent", "fHistRhoScaledvsCent", 101, -1, 100, fNbins, fMinBinPt , fMaxBinPt*2);
     fHistRhoScaledvsCent->GetXaxis()->SetTitle("Centrality (%)");
     fHistRhoScaledvsCent->GetYaxis()->SetTitle("#rho_{scaled} (GeV/c * rad^{-1})");
 
     //if (fParticleCollArray.GetEntriesFast()>0) {
-      fHistRhoScaledvsNtrackvsV0Mult = new TH3F("fHistRhoScaledvsNtrackvsV0Mult", "fHistRhoScaledvsNtrackvsV0Mult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, V0Mult[0], V0Mult[1]);
-      fHistRhoScaledvsNtrackvsV0Mult->GetXaxis()->SetTitle("No. of tracks");
-      fHistRhoScaledvsNtrackvsV0Mult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
-      fHistRhoScaledvsNtrackvsV0Mult->GetZaxis()->SetTitle("V0 mult");
+      fHistRhoScaledvsNtrackvsMult = new TH3F("fHistRhoScaledvsNtrackvsMult", "fHistRhoScaledvsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
+      fHistRhoScaledvsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
+      fHistRhoScaledvsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
+      fHistRhoScaledvsNtrackvsMult->GetZaxis()->SetTitle("mult");
     //}
 
     //if (fClusterCollArray.GetEntriesFast()>0) {
@@ -484,10 +472,10 @@ Int_t StRhoBase::Make()
 
   // if we have JetMaker, get jet collection associated with it
   if(JetMaker) {
-    fJets =  JetMaker->GetJets();
+    fJets =  static_cast<TClonesArray*>(JetMaker->GetJets());
     //fJets->SetName("BGJetsRho"); // name will be that set by specific Maker task
   }
-  if(!fJets) return kStWarn; //kStFatal;
+  if(!fJets) return kStWarn;
 
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
@@ -577,7 +565,7 @@ Bool_t StRhoBase::FillHistograms()
   
   fHistRhovsCent->Fill(fCent, fOutRho->GetVal());
 
-  //fHistRhovsNtrackvsV0Mult->Fill(Ntracks, fOutRho->GetVal(),multV0A+multV0C);
+  //fHistRhovsNtrackvsMult->Fill(Ntracks, fOutRho->GetVal(),multA+multC);
   fHistRhovsNcluster->Fill(Nclusters, fOutRho->GetVal());
   if(fCompareRho) {
     fHistDeltaRhovsCent->Fill(fCent, fOutRho->GetVal() - fCompareRho->GetVal());
@@ -587,7 +575,7 @@ Bool_t StRhoBase::FillHistograms()
   // scaled Rho
   if(fOutRhoScaled) {
     fHistRhoScaledvsCent->Fill(fCent, fOutRhoScaled->GetVal());
-    //fHistRhoScaledvsNtrackvsV0Mult->Fill(Ntracks, fOutRhoScaled->GetVal(),multV0A+multV0C);
+    //fHistRhoScaledvsNtrackvsMult->Fill(Ntracks, fOutRhoScaled->GetVal(),multA+multC);
     //fHistRhoScaledvsNcluster->Fill(Nclusters,  fOutRhoScaled->GetVal());
     if (fCompareRhoScaled) {
       fHistDeltaRhoScalevsCent->Fill(fCent, fOutRhoScaled->GetVal() - fCompareRhoScaled->GetVal());

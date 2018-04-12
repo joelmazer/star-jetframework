@@ -35,6 +35,17 @@ class StEventPlaneMaker;
 class StJetFrameworkPicoBase : public StMaker {
   public:
 
+  // debug flags for specifics
+  enum fDebugFlagEnum_t {
+    kDebugNothing, // don't want lowest elements to be used
+    kDebugFillJets = 11
+    //kDebugMixedEvents,
+    //kDebugEmcTrigger,
+    //kDebugGeneralEvt,
+    //kDebugCentrality,
+    //kDebugEventPlaneCalc
+  };
+
   // jet type enumerator
   enum EJetType_t {
     kFullJet,
@@ -230,8 +241,6 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                  fTracknHitsFit;          // requirement for track hits
     Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
 
-
-
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
     StJet*         fSubLeadingJet;//! sub-leading jet
@@ -289,7 +298,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t GetEventCounter() {return mEventCounter;}
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}
-                
+
   private:
 
     ClassDef(StJetFrameworkPicoBase, 1)

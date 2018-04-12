@@ -40,7 +40,7 @@
 
 #include "StPicoConstants.h"
 
-// test for clusters: TODO
+// for clusters
 #include "StMuDSTMaker/COMMON/StMuTrack.h"
 //StEmc
 #include "StEmcClusterCollection.h"
@@ -61,6 +61,8 @@ class StEEmcCluster;
 // centrality
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
+
+#include "StJetPicoDefinitions.h"
 
 class StMaker;
 class StChain;
@@ -651,9 +653,9 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towID < 0) continue;
 
       // cluster and tower position - from vertex and ID - shouldn't need to correct via this method
-      StThreeVectorF towPosition = mPosition->getPosFromVertex(mVertex, towID);
-      double towPhi = towPosition.phi();
-      double towEta = towPosition.pseudoRapidity();
+      ///StThreeVectorF towPosition = mPosition->getPosFromVertex(mVertex, towID);
+      ///double towPhi = towPosition.phi();
+      ///double towEta = towPosition.pseudoRapidity();
 
       // matched track index
       int trackIndex = cluster->trackIndex();
@@ -686,7 +688,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       double towerPhi = towerPosition.phi();
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
-      double towerEta = towerPosition.pseudoRapidity();
+      ///double towerEta = towerPosition.pseudoRapidity();
       int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
@@ -781,11 +783,11 @@ void StJetMakerTask::FillJetBranch()
   GetSortedArray(indexes, jets_incl);
 
   // loop over FastJet jets
-  Form("%d jets found", (Int_t)jets_incl.size()); //FIXME - setup a debug statement
+  __DEBUG(StJetFrameworkPicoBase::kDebugFillJets, Form("%d jets found", (Int_t)jets_incl.size()));
   //for(UInt_t ij = 0, jetCount = 0; ij < jets_incl.size(); ++ij) {
   for(UInt_t ijet = 0, jetCount = 0; ijet < jets_incl.size(); ++ijet) {
     Int_t ij = indexes[ijet];
-    //Form("Jet pt = %f, area = %f", jets_incl[ij].perp(), fjw.GetJetArea(ij)); //FIXME - setup a debug statement
+    __DEBUG(StJetFrameworkPicoBase::kDebugFillJets,Form("Jet pt = %f, area = %f", jets_incl[ij].perp(), fjw.GetJetArea(ij)));
 
     // PERFORM CUTS ON inclusive JETS before saving
     // cut on min jet pt
@@ -821,7 +823,7 @@ void StJetMakerTask::FillJetBranch()
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
     FillJetConstituents(jet, constituents, constituents);
 
-    //Form("Added jet n. %d, pt = %f, area = %f, constituents = %d", jetCount, jet->Pt(), jet->Area(), jet->GetNumberOfConstituents()); //FIXME - setup a debug statement
+    __DEBUG(StJetFrameworkPicoBase::kDebugFillJets, Form("Added jet n. %d, pt = %f, area = %f, constituents = %d", jetCount, jet->Pt(), jet->Area(), jet->GetNumberOfConstituents()));
 
     jetCount++;
   } // jet loop 
@@ -897,18 +899,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       fHistJetNTrackvsPhi->Fill(phi);
       fHistJetNTrackvsEta->Fill(eta);
       fHistJetNTrackvsPhivsEta->Fill(phi, eta);
-
-/*
- *    // test for bad tracks
-      double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-      int nHitsFit = trk->nHitsFit();
-      int nHitsMax = trk->nHitsMax();
-      double nHitsRatio = 1.0*nHitsFit/nHitsMax;
-      short charge = trk->charge();
-      if(phi < 4.8 && phi > 4.1) cout<<"phi = "<<phi<<"  eta = "<<eta<<"  pt = "<<pt<<
-           "  q = "<<charge<<"  nHitsFit = "<<nHitsFit<<"  nHitsMax = "<<nHitsMax<<
-           "  nHitsRatio = "<<nHitsRatio<<"  nHitsDedx = "<<trk->nHitsDedx()<<"  dca = "<<dca<<endl;
-*/
 
       // increase track counter
       nt++;
@@ -1131,14 +1121,13 @@ fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t
 //________________________________________________________________________
 Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
+  ///double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // get momentum vector of track - global or primary track
   StThreeVectorF mTrkMom;
   if(doUsePrimTracks) { 
     if(!(trk->isPrimary())) return kFALSE; // check if primary
-
     // get primary track vector
     mTrkMom = trk->pMom(); 
   } else { 
@@ -1185,12 +1174,8 @@ Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
   Int_t centbin = -1;
 
-  if(nBin == 16) {
-    centbin = nBin - 1 - cent;
-  }
-  if(nBin == 9) {
-    centbin = nBin - 1 - cent;
-  }
+  if(nBin == 16) { centbin = nBin - 1 - cent; }
+  if(nBin == 9)  { centbin = nBin - 1 - cent; }
 
   return centbin;
 }
@@ -1337,37 +1322,36 @@ Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tow
     mom.setX( p*posX/r );
     mom.setY( p*posY/r );
     mom.setZ( p*posZ/r );
-    // energy) ;
   } else { return kFALSE; }
   return kTRUE;
 }
 
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
-  if ( badTowers.size()==0 ){
-    //__ERROR("TStarJetPicoTowerCuts::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+  if( badTowers.size()==0 ){
+    __ERROR("StJetMakerTask::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
-  if ( badTowers.count( mTowId )>0 ){
-    //__DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
     return kFALSE;
   } else {
-    //__DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
     return kTRUE;
   }    
 }
 
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
-  if ( deadTowers.size()==0 ){
-    //__ERROR("TStarJetPicoTowerCuts::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+  if( deadTowers.size()==0 ){
+    __ERROR("StJetMakerTask::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
-  if ( deadTowers.count( mTowId )>0 ){
-    //__DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
     return kTRUE;
   } else {
-    //__DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
     return kFALSE;
   }
 }
@@ -1377,7 +1361,7 @@ void StJetMakerTask::ResetBadTowerList( ){
   badTowers.clear();
 }
 
-// KK: Add bad towers from comma separated values file
+// Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
 Bool_t StJetMakerTask::AddBadTowers(TString csvfile){  
@@ -1385,26 +1369,25 @@ Bool_t StJetMakerTask::AddBadTowers(TString csvfile){
   std::string line;
   std::ifstream inFile ( csvfile );
 
-  //__DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
 	  
-  if ( !inFile.good() ) {
-    //__WARNING(Form("Can't open %s", csvfile.Data()) );
-    cout<<"can't open bad tower list"<<endl;
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
     return kFALSE;
   }
   
-  while (std::getline (inFile, line) ){
-    if ( line.size()==0 ) continue; // skip empty lines
-    if ( line[0] == '#' ) continue; // skip comments
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
 
     std::istringstream ss( line );
     while( ss ){
       std::string entry;
       std::getline( ss, entry, ',' );
       int ientry = atoi(entry.c_str());
-      if (ientry) {
+      if(ientry) {
 	badTowers.insert( ientry );
-	//__DEBUG(2, Form("Added bad tower # %d", ientry));
+	__DEBUG(2, Form("Added bad tower # %d", ientry));
       }
     }
   }
@@ -1420,26 +1403,25 @@ Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
   std::string line;
   std::ifstream inFile ( csvfile );
 
-  //__DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
 
-  if ( !inFile.good() ) {
-    //__WARNING(Form("Can't open %s", csvfile.Data()) );
-    cout<<"can't open bad tower list"<<endl;
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
     return kFALSE;
   }
 
-  while (std::getline (inFile, line) ){
-    if ( line.size()==0 ) continue; // skip empty lines
-    if ( line[0] == '#' ) continue; // skip comments
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
 
     std::istringstream ss( line );
     while( ss ){
       std::string entry;
       std::getline( ss, entry, ',' );
       int ientry = atoi(entry.c_str());
-      if (ientry) {
+      if(ientry) {
         deadTowers.insert( ientry );
-        //__DEBUG(2, Form("Added bad tower # %d", ientry));
+        __DEBUG(2, Form("Added bad tower # %d", ientry));
       }
     }
   }
