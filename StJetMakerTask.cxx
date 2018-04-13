@@ -226,6 +226,8 @@ StJetMakerTask::~StJetMakerTask()
 {
   // Destructor
   //fJets->Clear(); delete fJets;
+  if(fHistCentrality)          delete fHistCentrality;
+
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
   if(fHistJetNTrackvsEta)      delete fHistJetNTrackvsEta;
@@ -255,13 +257,11 @@ Int_t StJetMakerTask::Init() {
   DeclareHistograms();
 
   //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
-  //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-  //AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
-
   // Add dead + bad tower lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
@@ -403,7 +403,8 @@ void StJetMakerTask::DeclareHistograms() {
     double pi = 1.0*TMath::Pi();
 
     //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
-    
+    fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", 20, 0, 100);    
+
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
@@ -431,6 +432,8 @@ void StJetMakerTask::DeclareHistograms() {
 
 void StJetMakerTask::WriteHistograms() {
   // write histograms
+  fHistCentrality->Write();
+
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
   fHistJetNTrackvsEta->Write();
@@ -530,6 +533,8 @@ int StJetMakerTask::Make()
   int cent16 = grefmultCorr->getCentralityBin16();
   if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
   int centbin = GetCentBin(cent16, 16);
+  double centralityScaled = centbin*5.0;
+  fHistCentrality->Fill(centralityScaled);
 
   // cut on centrality for analysis before doing anything
   // TEST: kStOk -> kStErr // Error, drop this and go to the next event
@@ -635,7 +640,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
     int nTrigs = mPicoDst->numberOfEmcTriggers();
     int nBTowHits = mPicoDst->numberOfBTOWHits();
     int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
-//    cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
+    //cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
     // loop over ALL clusters in PicoDst to get track<->tower matches saved to arrays for hadronic correction
     for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){

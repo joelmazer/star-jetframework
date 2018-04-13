@@ -322,6 +322,8 @@ class StJetMakerTask : public StMaker {
   Bool_t mTowerStatusArr[4801];
 
   // histograms
+  TH1F           *fHistCentrality;//!
+
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
