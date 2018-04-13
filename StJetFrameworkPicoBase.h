@@ -46,6 +46,16 @@ class StJetFrameworkPicoBase : public StMaker {
     //kDebugEventPlaneCalc
   };
 
+  // debug flags for specifics
+  enum fBadTowerLists{
+    kAltBadTow, 
+    kBadTow1,
+    kBadTow2,
+    kBadTow3,
+    kBadTow4,
+    kBadTow5
+  };
+
   // jet type enumerator
   enum EJetType_t {
     kFullJet,

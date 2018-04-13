@@ -428,7 +428,7 @@ void StAnMaker::RunJets()
 
     // loop over constituents towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-      int towerid = jet->TrackAt(itow);
+      int towerid = jet->ClusterAt(itow);
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
       if(!tow){ continue; }
 
