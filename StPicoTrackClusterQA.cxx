@@ -18,6 +18,9 @@
 #include "TFile.h"
 #include <THnSparse.h>
 
+#include <sstream>
+#include <fstream>
+
 // general StRoot classes
 #include "StThreeVectorF.hh"
 
@@ -65,6 +68,10 @@
 // towers
 #include "StJetPicoTower.h"
 
+#include "StJetPicoDefinitions.h"
+
+class StJetFrameworkPicoBase;
+
 ClassImp(StPicoTrackClusterQA)
 
 //________________________________________________________________________
@@ -99,13 +106,20 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
   fGoodTrackCounter(0),
+  fTowerEMinCut(0.2),
+  fTowerEMaxCut(100.0),
+  fTowerEtaMinCut(-1.0),
+  fTowerEtaMaxCut(1.0),
+  fTowerPhiMinCut(0.0),
+  fTowerPhiMaxCut(2.0*TMath::Pi()),
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
   fRunNumber(0),
-  fTriggerEventType(0),
+  fEmcTriggerEventType(0),
+  fMBEventType(2),  // kVPDMB5
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
   mBemcTables(0x0),
@@ -164,13 +178,20 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
   fGoodTrackCounter(0),
+  fTowerEMinCut(0.2),
+  fTowerEMaxCut(100.0),
+  fTowerEtaMinCut(-1.0),
+  fTowerEtaMaxCut(1.0),
+  fTowerPhiMinCut(0.0),
+  fTowerPhiMaxCut(2.0*TMath::Pi()),
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
   fRunNumber(0),
-  fTriggerEventType(0),
+  fEmcTriggerEventType(0),
+  fMBEventType(2),   // kVPDMB5
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
   mBemcTables(0x0),
@@ -211,6 +232,7 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistNTrackvsEta)  delete fHistNTrackvsEta;
   if(fHistNTrackvsPhivsEta) delete fHistNTrackvsPhivsEta;
   if(fHistNTowervsE)    delete fHistNTowervsE;
+  if(fHistNTowervsEt)   delete fHistNTowervsEt;
   if(fHistNTowervsPhi)  delete fHistNTowervsPhi;
   if(fHistNTowervsEta)  delete fHistNTowervsEta;
   if(fHistNTowervsPhivsEta) delete fHistNTowervsPhivsEta;
@@ -220,6 +242,12 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   delete hTriggerIds;
   delete hEmcTriggers;
 
+  if(fHistNZeroEHT1vsID) delete fHistNZeroEHT1vsID;
+  if(fHistNZeroEHT2vsID) delete fHistNZeroEHT2vsID;
+  if(fHistNZeroEHT3vsID) delete fHistNZeroEHT3vsID;
+  if(fHistNNegEHT1vsID)  delete fHistNNegEHT1vsID;
+  if(fHistNNegEHT2vsID)  delete fHistNNegEHT2vsID;
+  if(fHistNNegEHT3vsID)  delete fHistNNegEHT3vsID;
   if(fHistNFiredHT0vsID) delete fHistNFiredHT0vsID;
   if(fHistNFiredHT1vsID) delete fHistNFiredHT1vsID;
   if(fHistNFiredHT2vsID) delete fHistNFiredHT2vsID;
@@ -243,6 +271,25 @@ Int_t StPicoTrackClusterQA::Init() {
 
   // test placement
   mBemcTables = new StBemcTables();
+
+  //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
+  // Add dead + bad tower lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
+        break;
+
+    default :
+      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
+  }
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
@@ -311,10 +358,11 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 100, 0., 20.);
     fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "Ntracks vs #phi", 72, 0., 2*pi);
     fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "Ntracks vs #eta", 40, -1.0, 1.0);
-    fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "Ntrackvs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
+    fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "Ntrack vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
 
     // Tower histograms
     fHistNTowervsE = new TH1F("fHistNTowervsE", "Ntowers vs energy", 100, 0., 20.0);
+    fHistNTowervsEt = new TH1F("fHistNTowervsEt", "Ntowers vs transverse energy", 100, 0., 20.0);
     fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "Ntowers vs #phi", 144, 0., 2*pi);
     fHistNTowervsEta = new TH1F("fHistNTowervsEta", "Ntowers vs #eta", 40, -1.0, 1.0);
     fHistNTowervsPhivsEta = new TH2F("fHistNTowervsPhivsEta", "Ntowers vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
@@ -324,6 +372,14 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
     hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
     hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
+
+    // trigger histograms, zero and negative entries QA
+    fHistNZeroEHT1vsID = new TH1F("fHistNZeroEHT1vsID", "NTowers fired HT1 with zero E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNZeroEHT2vsID = new TH1F("fHistNZeroEHT2vsID", "NTowers fired HT2 with zero E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNZeroEHT3vsID = new TH1F("fHistNZeroEHT3vsID", "NTowers fired HT3 with zero E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT1vsID = new TH1F("fHistNNegEHT1vsID", "NTowers fired HT1 with negative E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT2vsID = new TH1F("fHistNNegEHT2vsID", "NTowers fired HT2 with negative E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT3vsID = new TH1F("fHistNNegEHT3vsID", "NTowers fired HT3 with negative E vs tower ID", 4800, 0.5, 4800.5);
 
     // trigger histograms: firing towers QA
     fHistNFiredHT0vsID = new TH1F("fHistNFiredHT0vsID", "NTrig fired HT0 vs tower ID", 4800, 0.5, 4800.5);
@@ -362,6 +418,7 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fHistNTrackvsEta->Write();
   fHistNTrackvsPhivsEta->Write();
   fHistNTowervsE->Write();
+  fHistNTowervsEt->Write();
   fHistNTowervsPhi->Write();
   fHistNTowervsEta->Write();
   fHistNTowervsPhivsEta->Write();
@@ -373,6 +430,12 @@ void StPicoTrackClusterQA::WriteHistograms() {
   hEmcTriggers->Write();
 
   // trigger QA histograms
+  fHistNZeroEHT1vsID->Write();
+  fHistNZeroEHT2vsID->Write();
+  fHistNZeroEHT3vsID->Write();
+  fHistNNegEHT1vsID->Write();
+  fHistNNegEHT2vsID->Write();
+  fHistNNegEHT3vsID->Write();
   fHistNFiredHT0vsID->Write();
   fHistNFiredHT1vsID->Write();
   fHistNFiredHT2vsID->Write();
@@ -495,13 +558,13 @@ int StPicoTrackClusterQA::Make()
 
   // switches for Jet and Event Plane analysis
   bool doQAAnalysis = kFALSE; // set false by default
-  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fTriggerEventType]) { doQAAnalysis = kTRUE; }
+      if(fEmcTriggerArr[fEmcTriggerEventType]) { doQAAnalysis = kTRUE; }
       break;
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
       if(fHaveEmcTrigger) { doQAAnalysis = kTRUE; }
@@ -643,7 +706,7 @@ void StPicoTrackClusterQA::RunQA()
 
     // get track corresponding to EMC pidTraits in question from its index
     StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
-    StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
+    //StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
     if(!trk) continue;
     //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
 
@@ -667,8 +730,8 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistNTrackvsPhi->Sumw2();
   fHistNTrackvsEta->Sumw2();
   fHistNTrackvsPhivsEta->Sumw2();
-
   fHistNTowervsE->Sumw2();
+  fHistNTowervsEt->Sumw2();
   fHistNTowervsPhi->Sumw2();
   fHistNTowervsEta->Sumw2();
   fHistNTowervsPhivsEta->Sumw2();
@@ -680,6 +743,12 @@ void StPicoTrackClusterQA::SetSumw2() {
   hEmcTriggers->Sumw2();
 
   // trigger QA histograms
+  fHistNZeroEHT1vsID->Sumw2();
+  fHistNZeroEHT2vsID->Sumw2();
+  fHistNZeroEHT3vsID->Sumw2();
+  fHistNNegEHT1vsID->Sumw2();
+  fHistNNegEHT2vsID->Sumw2();
+  fHistNNegEHT3vsID->Sumw2();
   fHistNFiredHT0vsID->Sumw2();
   fHistNFiredHT1vsID->Sumw2();
   fHistNFiredHT2vsID->Sumw2();
@@ -821,6 +890,8 @@ Bool_t StPicoTrackClusterQA::SelectAnalysisCentralityBin(Int_t centbin, Int_t fC
   return doAnalysis;
 }
 
+// 
+// Track Quality Cuts
 //________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
@@ -875,6 +946,47 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
   if(nHitsRatio < fTracknHitsRatio) return kFALSE;
 
   // passed all above cuts - keep track and fill input vector to fastjet
+  return kTRUE;
+}
+
+// 
+// Tower Quality Cuts
+//________________________________________________________________________
+Bool_t StPicoTrackClusterQA::AcceptTower(StPicoBTowHit *tower) {
+  // get EMCal position
+  StEmcPosition *mPosition = new StEmcPosition();
+
+  // constants:
+  double pi = 1.0*TMath::Pi();
+
+  // tower ID
+  int towerID = tower->id();
+
+  // make sure some of these aren't still in event array
+  if(towerID < 0) return kFALSE;
+
+  // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+  StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+  double phi = towerPosition.phi();
+  if(phi < 0)    phi += 2.0*pi;
+  if(phi > 2*pi) phi -= 2.0*pi;
+  double eta = towerPosition.pseudoRapidity();
+  int towerADC = tower->adc();
+  double towerEunCorr = tower->energy();  // uncorrected energy
+
+  // check for bad (and dead) towers
+  bool TowerOK = IsTowerOK(towerID);      // kTRUE means GOOD
+  bool TowerDead = IsTowerDead(towerID);  // kTRUE means BAD
+  if(!TowerOK)  { return kFALSE; }
+  if(TowerDead) { return kFALSE; }
+
+  // jet track acceptance cuts now - after getting 3vector - hardcoded
+  if((eta < fTowerEtaMinCut) || (eta > fTowerEtaMaxCut)) return kFALSE;
+  if(phi < 0)    phi+= 2*pi;
+  if(phi > 2*pi) phi-= 2*pi;
+  if((phi < fTowerPhiMinCut) || (phi > fTowerPhiMaxCut)) return kFALSE;
+
+  // passed all above cuts - keep tower and fill input vector to fastjet
   return kTRUE;
 }
 
@@ -958,14 +1070,15 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+  // Run14 triggers:
     int arrHT1[] = {450201, 450211, 460201};
-    int arrHT2[] = {450202, 450212};
-    int arrHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrHT2[] = {450202, 450212, 460202, 460212};
+    int arrHT3[] = {450203, 450213, 460203};
     int arrMB[] = {450014};
-    int arrMB30[] = {20, 450010, 450020};
-    int arrCentral5[] = {20, 450010, 450020};
-    int arrCentral[] = {15, 460101, 460111};
-    int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+    int arrMB30[] = {450010, 450020};
+    int arrCentral5[] = {450010, 450020};
+    int arrCentral[] = {460101, 460111};
+    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
     int bin = 0;
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
@@ -997,13 +1110,13 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
 
     // hard-coded trigger Ids for run16
     int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrHT2[] = {4, 16, 17, 530202, 540203};
-    int arrHT3[] = {17, 520203, 530213};
+    int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrHT2[] = {530202, 540203};
+    int arrHT3[] = {520203, 530213};
     int arrMB[] = {520021};
-    int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {6, 520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
+    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
     bin = 1; h->Fill(bin);
@@ -1383,7 +1496,7 @@ void StPicoTrackClusterQA::RunTowerTest()
   int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
 //  cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
-  // loop over ALL clusters in PicoDst and add to jet //TODO
+  // loop over ALL clusters in PicoDst
   for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
     StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
     if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
@@ -1408,7 +1521,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     int trackIndex = cluster->trackIndex();
     StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
     if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
-    if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"Track not accepted.."<<endl; continue; }
+    //if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"Track not accepted.."<<endl; continue; }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; } 
 
     // tower status set - towerID is matched to track passing quality cuts
     mTowerMatchTrkIndex[towID] = trackIndex;
@@ -1450,6 +1564,9 @@ void StPicoTrackClusterQA::RunTowerTest()
   for(int itow = 0; itow < nTowers; itow++) {
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
+
+    // quality/acceptance cuts
+    if(!AcceptTower(tower)) { continue; }
 
     // tower ID
     int towerID = tower->id();
@@ -1501,14 +1618,16 @@ void StPicoTrackClusterQA::RunTowerTest()
     // else - no match so treat towers on their own
 
     // cut on tower energy - corrected or not
-    if(towerE < 0) towerE = 0.0;
-    if(towerE < mTowerEnergyMin) continue;
+    double towerEt = towerE / (1.0*TMath::CosH(towerEta)); // - FIXME should we cut on tower Et or E?
+    if(towerEt < 0) towerEt = 0.0;
+    if(towerEt < mTowerEnergyMin) continue;
 
     // print
 //    cout<<"itow: "<<itow<<"  towerID = "<<towerID<<"  towerPhi = "<<towerPhi<<"  towerEta = "<<towerEta<<"  towerADC = "<<towerADC<<"  towerE = "<<towerE<<"  towerEunCorr = "<<towerEunCorr<<"  mIndex = "<<mTowerMatchTrkIndex[towerID]<<endl;
 
     // fill QA histos for towers
     fHistNTowervsE->Fill(towerE);
+    fHistNTowervsEt->Fill(towerEt);
     fHistNTowervsPhi->Fill(towerPhi);
     fHistNTowervsEta->Fill(towerEta);
     fHistNTowervsPhivsEta->Fill(towerPhi, towerEta);
@@ -1564,7 +1683,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
 
     // tower ID (1-4800)
     int towerID = tower->id();
-    if(towerID < 0) { cout<<"tower ID < 0"<<endl; continue; } // double check these aren't still in the event list
+    if(towerID < 0) { cout<<"tower ID < 0, tower ID = "<<towerID<<endl; continue; } // double check these aren't still in the event list
 
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
     StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
@@ -1575,8 +1694,20 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
 
     //if(towerEt < 0) cout<<"emcTrigID = "<<emcTrigID<<"  towerID = "<<towerID<<"  towerEta = "<<towerEta<<"  towerE = "<<towerE<<"  towerEt = "<<towerEt<<endl;
 
-    // temp cut - look into these...
-    if(towerE < 0) continue;
+    // fill some histograms for QA when have a zero energy entry
+    if(towerE == 0) {  // for ZERO energy 
+      fHistNZeroEHT1vsID->Fill(towerID);
+      fHistNZeroEHT2vsID->Fill(towerID);
+      fHistNZeroEHT3vsID->Fill(towerID);
+    }
+
+    // Fill histogram with towerID when we come across a negative energy entry
+    if(towerE < 0) { // for negative energy
+      fHistNNegEHT1vsID->Fill(towerID);
+      fHistNNegEHT2vsID->Fill(towerID);
+      fHistNNegEHT3vsID->Fill(towerID);
+      continue;
+    }
 
     // fill for fired triggers
     if(isHT0) fHistNFiredHT0vsID->Fill(emcTrigID);
@@ -1602,14 +1733,14 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
 Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
   // Run14 triggers:
   int arrMB_Run14[] = {450014};
-  int arrMB30_Run14[] = {20, 450010, 450020};
-  int arrMB5_Run14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+  int arrMB30_Run14[] = {450010, 450020};
+  int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
   // additional 30: 4, 5, 450201, 450202, 450211, 450212
 
   // Run16 triggers:
   int arrMB_Run16[] = {520021};
-  int arrMB5_Run16[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10_Run16[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+  int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+  int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1655,13 +1786,13 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
 
   // Run14 triggers:
   int arrHT1_Run14[] = {450201, 450211, 460201};
-  int arrHT2_Run14[] = {450202, 450212};
-  int arrHT3_Run14[] = {460203, 6, 10, 14, 31, 450213};
+  int arrHT2_Run14[] = {450202, 450212, 460202, 460212};
+  int arrHT3_Run14[] = {450203, 450213, 460203};
 
   // Run16 triggers:
-  int arrHT1_Run16[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrHT2_Run16[] = {4, 16, 17, 530202, 540203};
-  int arrHT3_Run16[] = {17, 520203, 530213};
+  int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrHT2_Run16[] = {530202, 540203};
+  int arrHT3_Run16[] = {520203, 530213};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1697,4 +1828,112 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
   } // RunFlag switch
 
   return kFALSE;
+}
+
+//____________________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
+  if( badTowers.size()==0 ){
+    __ERROR("StPicoTrackClusterQA::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }
+}
+
+//____________________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::IsTowerDead( Int_t mTowId ){
+  if( deadTowers.size()==0 ){
+    __ERROR("StPicoTrackClusterQA::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
+}
+
+//____________________________________________________________________________
+void StPicoTrackClusterQA::ResetBadTowerList( ){
+  badTowers.clear();
+}
+
+// Add bad towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+Bool_t StPicoTrackClusterQA::AddBadTowers(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+ 
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badTowers.insert( ientry );
+        __DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+ 
+  return kTRUE;
+}
+
+// Add dead towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+Bool_t StPicoTrackClusterQA::AddDeadTowers(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        deadTowers.insert( ientry );
+        __DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+
+//____________________________________________________________________________
+void StPicoTrackClusterQA::ResetDeadTowerList( ){
+  deadTowers.clear();
 }

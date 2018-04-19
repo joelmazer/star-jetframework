@@ -143,6 +143,9 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fTrackDCAcut = 3.0; fTracknHitsFit = 15; fTracknHitsRatio = 0.52;
+  fTowerEMinCut = 0.2; fTowerEMaxCut = 100.0;
+  fTowerEtaMinCut = -1.0; fTowerEtaMaxCut = 1.0;
+  fTowerPhiMinCut = 0.0; fTowerPhiMaxCut = 2.0*TMath::Pi();
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
   fCentBinSize = 5; fReduceStatsCent = -1;
   fCentralityScaled = 0.;
@@ -151,7 +154,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   mVertex = 0x0;
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
-  fTriggerEventType = 0; fMixingEventType = 0;
+  fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   doComments = mDoComments;
   fhnJH = 0x0;
@@ -729,8 +732,8 @@ Int_t StMyAnalysisMaker3::Make() {
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
 
   // check for MB/HT event
-  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // switches for Jet and Event Plane analysis
   Bool_t doJetAnalysis = kFALSE; // set false by default
@@ -739,7 +742,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fTriggerEventType]) {
+      if(fEmcTriggerArr[fEmcTriggerEventType]) {
         doJetAnalysis = kTRUE;
         doEPAnalysis = kTRUE;
       }
@@ -900,8 +903,6 @@ Int_t StMyAnalysisMaker3::Make() {
   // loop over Jets in the event: initialize some parameter variables
   Int_t ijethi = -1;
   Double_t highestjetpt = 0.0;
-
-  //if((fDebugLevel == 7) && (fEmcTriggerArr[fTriggerEventType])) cout<<"Have selected trigger type for signal jet!!"<<endl;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
     // Run - Trigger Selection to process jets from
     if(!doJetAnalysis) continue;
@@ -1644,13 +1645,13 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
     int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212};
-    int arrBHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrBHT2[] = {450202, 450212, 460202, 460212};
+    int arrBHT3[] = {460203, 450213, 460203};
     int arrMB[] = {450014};
-    int arrMB30[] = {20, 450010, 450020};
-    int arrCentral5[] = {20, 450010, 450020};
-    int arrCentral[] = {15, 460101, 460111};
-    int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+    int arrMB30[] = {450010, 450020};
+    int arrCentral5[] = {450010, 450020};
+    int arrCentral[] = {460101, 460111};
+    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
     int bin = 0;
     if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
@@ -1682,13 +1683,13 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
 
     // hard-coded trigger Ids for run16
     //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {4, 16, 17, 530202, 540203};
-    int arrBHT3[] = {17, 520203, 530213};
+    int arrBHT1[] = {15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrBHT2[] = {530202, 540203};
+    int arrBHT3[] = {520203, 530213};
     int arrMB[] = {520021};
-    int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {6, 520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
+    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
     bin = 1; h->Fill(bin);
@@ -1805,34 +1806,14 @@ Trigger information for Physics stream:
 
 Run14: AuAu
 physics	
-1	BBC_mb_fast_prepost	15062057	15064011
-1	MB_sel1	15046070	15046094
-1	MB_sel9	15045068	15045069
-1	VPDMB-5	15075055	15076099
-1	VPDMB-5-p-nobsmd-hlt	15081020	15090048
-1	VPD_mb-emcped	15052044	15052047
-4	BBC_mb_fast_prepost	15083023	15083023
-4	BHT2*VPDMB-30	15076087	15076099
-4	VPDMB-5-p-nobsmd-hlt	15090049	15167007
-4	VPD_mb-emcped	15052058	15056025
 5	BHT1*VPDMB-30	15076087	15076099
-6	BHT3	15076073	15076099
-6	ZDC-mb	15046070	15059070
-7	ZDC-mb	15056026	15057020
-8	BBC_mb	15046070	15046094
-9	EHT	15077045	15167014
-9	VPD_mb	15046070	15047100
-9	VPD_mb-emcped	15056026	15070021
-10	BBC_mb_fast_prepost	15064061	15070021
 10	BHT3-L2Gamma	15076089	15077035
 13	BHT2*BBC	15171058	15174040
 14	BHT3*BBC	15171058	15174040
 15	BHT1*BBC	15171058	15174040
 15	Central-mon	15079048	15167014
 16	VPDMB-5-p-nobsmd	15077042	15081025
-19	ZDC-mb	15061031	15061032
 20	VPDMB-30	15074070	15076099
-21	MB-mon	15076072	15076099
 26	Central-5	15075071	15079046
 27	VPDMB-5-p-nobsmd-hltheavyfrag	15083024	15083024
 28	Central-5-hltheavyfrag	15083024	15083024
@@ -1840,21 +1821,14 @@ physics
 31	BHT3-hltDiElectron	15076089	15076092
 32	VPDMB-5-ssd	15080029	15083062
 88	VPDMB-5-p-nobsmd-hltDiElectron	15083024	15083024
-440001	VPD_mb	15047102	15070021
-440004	ZDC-mb	15057021	15070021
-440005	BBC_mb	15046095	15049033
-440015	BBC_mb	15049037	15070021
-440050	MB_sel1	15046095	15047093
 450005	VPDMB-5-p-nobsmd	15081026	15086018
 450008	VPDMB-5	15076101	15167014
 450009	VPDMB-5-p-nobsmd-ssd-hlt	15143032	15167014
 450010	VPDMB-30	15076101	15167014
-450011	MB-mon	15076101	15167014
 450014	VPDMB-5-nobsmd	15077056	15167014
 450015	VPDMB-5-p-nobsmd	15086042	15097029
 450018	VPDMB-5	15153036	15167007
 450020	VPDMB-30	15153036	15167007
-450021	MB-mon	15153036	15167007
 450024	VPDMB-5-nobsmd	15153036	15167007
 450025	VPDMB-5-p-nobsmd	15097030	15167014
 450050	VPDMB-5-p-nobsmd-hlt	15097030	15112023

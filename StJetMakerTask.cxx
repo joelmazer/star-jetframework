@@ -86,7 +86,9 @@ StJetMakerTask::StJetMakerTask() :
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
-  fTriggerEventType(0),
+  fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
+  fMBEventType(2),      // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
+  fTriggerToUse(0),     // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
@@ -116,6 +118,12 @@ StJetMakerTask::StJetMakerTask() :
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  fJetTowerEMin(0.2),
+  fJetTowerEMax(100.0),
+  fJetTowerEtaMin(-1.0),
+  fJetTowerEtaMax(1.0),
+  fJetTowerPhiMin(0.0),
+  fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
   fLegacyMode(kFALSE),
@@ -159,7 +167,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
-  fTriggerEventType(0),
+  fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEMCTriggerFlagEnum
+  fMBEventType(2),      // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
+  fTriggerToUse(0),     // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -189,6 +199,12 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
+  fJetTowerEMin(0.2),
+  fJetTowerEMax(100.0),
+  fJetTowerEtaMin(-1.0),
+  fJetTowerEtaMax(1.0),
+  fJetTowerPhiMin(0.0),
+  fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
   fLegacyMode(kFALSE),
@@ -234,6 +250,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTrackvsPhivsEta) delete fHistJetNTrackvsPhivsEta;
   if(fHistJetNTowervsID)       delete fHistJetNTowervsID;
   if(fHistJetNTowervsE)        delete fHistJetNTowervsE;
+  if(fHistJetNTowervsEt)       delete fHistJetNTowervsEt;
   if(fHistJetNTowervsPhi)      delete fHistJetNTowervsPhi;
   if(fHistJetNTowervsEta)      delete fHistJetNTowervsEta;
   if(fHistJetNTowervsPhivsEta) delete fHistJetNTowervsPhivsEta;
@@ -411,6 +428,7 @@ void StJetMakerTask::DeclareHistograms() {
     fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
     fHistJetNTowervsID = new TH1F("fHistJetNTowervsID", "Jet tower vs tower id", 4800, 0.5, 4800.5);
     fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
+    fHistJetNTowervsEt = new TH1F("fHistJetNTowervsEt", "Jet tower constituents vs transverse energy", 100, 0., 20.0);
     fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2*pi);
     fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
     fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet tower constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
@@ -440,6 +458,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistJetNTrackvsPhivsEta->Write();
   fHistJetNTowervsID->Write();
   fHistJetNTowervsE->Write();
+  fHistJetNTowervsEt->Write();
   fHistJetNTowervsPhi->Write();
   fHistJetNTowervsEta->Write();
   fHistJetNTowervsPhivsEta->Write();
@@ -552,21 +571,25 @@ int StJetMakerTask::Make()
   if ((fJetType==0)||(fJetType==2)) { }
 */      
 
-  // check for MB and HT triggers
-  bool fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+  // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  //bool fHaveAnyEvent = kTRUE;
 
   // fill trigger array
   FillEmcTriggersArr();
 
-//  if(fHaveMBevent) {
-    // Find jets
-    // note that parameter are globally set, may not need to have params
-    FindJets(tracks, clus, fJetAlgo, fRadius);
+  // no need for switch for few checks
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMBevent))   return kStOK;  // MB triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
+  // else fTriggerToUse is ANY and we still want to run analysis
 
-    // fill jet branch
-    FillJetBranch();
-//  }
+  // Find jets
+  // note that parameter are globally set, may not need to have params
+  FindJets(tracks, clus, fJetAlgo, fRadius);
+
+  // fill jet branch
+  FillJetBranch();
 
   return kStOK;
 }
@@ -745,8 +768,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       // check for bad (and dead) towers
       bool TowerOK = IsTowerOK(towerID);
       bool TowerDead = IsTowerDead(towerID);
-      if(!TowerOK) {
-        //cout<<"towerID bad = "<<towerID<<endl;
+      if(!TowerOK) {  //cout<<"towerID bad = "<<towerID<<endl;
         continue;
       }
       //if(TowerDead) continue;
@@ -968,9 +990,10 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         }
         // else - no match so treat towers on their own
 
-        // cut on tower energy - should of already been done before adding them to fastjet
-        if(towE < 0) towE = 0.0;
-        if(towE < mTowerEnergyMin) continue;
+        // cut on tower transverse energy - should of already been done before adding them to fastjet
+        double towEt = towE / (1.0*TMath::CosH(towerEta)); // - FIXME should we cut on tower Et or E?
+        if(towEt < 0) towEt = 0.0; 
+        if(towEt < mTowerEnergyMin) continue;  // should make this Et TODO
         // =================================================================
 
         // find max tower E and neutral E total
@@ -983,6 +1006,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
         fHistJetNTowervsE->Fill(towE);
+        fHistJetNTowervsEt->Fill(towEt);
         fHistJetNTowervsPhi->Fill(towerPhi);
         fHistJetNTowervsEta->Fill(towerEta);
         fHistJetNTowervsPhivsEta->Fill(towerPhi, towerEta);
@@ -1171,6 +1195,45 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   if(nHitsRatio < fJetTracknHitsRatio) return kFALSE;
 
   // passed all above cuts - keep track and fill input vector to fastjet
+  return kTRUE;
+}
+
+//
+// Tower Quality Cuts
+//________________________________________________________________________
+Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower) {
+  // get EMCal position
+  StEmcPosition *mPosition = new StEmcPosition();
+
+  // constants:
+  double pi = 1.0*TMath::Pi();
+
+  // tower ID
+  int towerID = tower->id();
+
+  // make sure some of these aren't still in event array
+  if(towerID < 0) return kFALSE; 
+
+  // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
+  StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+  double phi = towerPosition.phi();
+  if(phi < 0)    phi += 2.0*pi;
+  if(phi > 2*pi) phi -= 2.0*pi;
+  double eta = towerPosition.pseudoRapidity();
+
+  // check for bad (and dead) towers
+  bool TowerOK = IsTowerOK(towerID);      // kTRUE means GOOD
+  bool TowerDead = IsTowerDead(towerID);  // kTRUE means BAD
+  if(!TowerOK)  { return kFALSE; }
+  if(TowerDead) { return kFALSE; }
+
+  // jet track acceptance cuts now - after getting 3vector - hardcoded
+  if((eta < fJetTowerEtaMin) || (eta > fJetTowerEtaMax)) return kFALSE;
+  if(phi < 0)    phi+= 2*pi;
+  if(phi > 2*pi) phi-= 2*pi;
+  if((phi < fJetTowerPhiMin) || (phi > fJetTowerPhiMax)) return kFALSE;
+
+  // passed all above cuts - keep tower and fill input vector to fastjet
   return kTRUE;
 }
 
@@ -1443,14 +1506,17 @@ void StJetMakerTask::ResetDeadTowerList( ){
 Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
   // Run14 triggers:
   int arrMB_Run14[] = {450014};
-  int arrMB30_Run14[] = {20, 450010, 450020};
-  int arrMB5_Run14[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+  int arrMB30_Run14[] = {450010, 450020};
+  int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
   // additional 30: 4, 5, 450201, 450202, 450211, 450212
+  // 1: VPDMB-5   Run:            15075055 - 15076099
+  // 1: VPDMB-5-p-nobsmd-hlt Run: 15081020 - 15090048
+  // 4: VPDMB-5-p-nobsmd-hlt Run: 15090049 - 15167007
 
   // Run16 triggers:
   int arrMB_Run16[] = {520021};
-  int arrMB5_Run16[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10_Run16[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+  int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+  int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1496,13 +1562,13 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
 
   // Run14 triggers:
   int arrHT1_Run14[] = {450201, 450211, 460201};
-  int arrHT2_Run14[] = {450202, 450212};
-  int arrHT3_Run14[] = {460203, 6, 10, 14, 31, 450213};
+  int arrHT2_Run14[] = {450202, 450212, 460202, 460212};
+  int arrHT3_Run14[] = {450203, 450213, 460203};
 
   // Run16 triggers:
-  int arrHT1_Run16[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrHT2_Run16[] = {4, 16, 17, 530202, 540203};
-  int arrHT3_Run16[] = {17, 520203, 530213};
+  int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrHT2_Run16[] = {530202, 540203};
+  int arrHT3_Run16[] = {520203, 530213};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {

@@ -69,7 +69,7 @@ void readPicoDstQA(const Char_t *inputFile="testLIST_Run14.list", const Char_t *
         Task->SetTrackEtaRange(-1.0, 1.0);
         Task->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
         Task->SetUsePrimaryTracks(usePrimaryTracks);
-        //Task->SetTriggerEventType(StJetFrameworkPicoBase::kIsHT1);  // kIsHT1 or kIsHT2
+        //Task->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT1);  // kIsHT1 or kIsHT2
         Task->SetRunFlag(StJetFrameworkPicoBase::Run16_AuAu200);         // FIXME
         Task->SetCentralityDef(StJetFrameworkPicoBase::kgrefmult_P16id); // FIXME
         Task->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality

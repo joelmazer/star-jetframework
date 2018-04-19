@@ -180,7 +180,7 @@ void readPicoDstMakeTrees(const Char_t *inputFile="test_run17061011.list", const
         anaMaker->SetJetConstituentCut(2.0);             // 2.0 is default 
         anaMaker->SetRunFlag(StJetFrameworkPicoBase::Run16_AuAu200);
         anaMaker->SetCentralityDef(StJetFrameworkPicoBase::kgrefmult_P16id);
-        anaMaker->SetTriggerEventType(StJetFrameworkPicoBase::kIsHT1);  // kIsHT1 or kIsHT2
+        anaMaker->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT1);  // kIsHT1 or kIsHT2
         anaMaker->SetTurnOnCentSelection(doCentSelection);              // run analysis for specific centrality
         anaMaker->SetCentralityBinCut(centralitySelection);             // specific centrality range to run 
 

@@ -104,24 +104,30 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
+    // tower setters
+    virtual void            SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
+    virtual void            SetTowerEtaRange(Double_t temi, Double_t temx) { fTowerEtaMinCut = temi; fTowerEtaMaxCut = temx; }
+    virtual void            SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
+
     // event mixing - setters
     virtual void            SetEventMixing(Int_t yesno)	       { fDoEventMixing=yesno; }
     virtual void            SetMixingTracks(Int_t tracks)      { fMixingTracks = tracks; }
     virtual void            SetNMixedTr(Int_t nmt)             { fNMIXtracks = nmt; }
     virtual void            SetNMixedEvt(Int_t nme)            { fNMIXevents = nme; }
+    virtual void            SetCentBinSize(Int_t centbins)     { fCentBinSize = centbins; }
+    virtual void            SetReduceStatsCent(Int_t red)      { fReduceStatsCent = red; }
+    virtual void            SetDoFilterPtMixEvents(Int_t fil)  { fDoFilterPtMixEvents = fil; }
 
-    // mixed selection - setters
-    virtual void            SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
-    virtual void            SetMixedEventType(UInt_t me)         { fMixingEventType = me; }
-    virtual void            SetCentBinSize(Int_t centbins)       { fCentBinSize = centbins; }
-    virtual void            SetReduceStatsCent(Int_t red)        { fReduceStatsCent = red; }
-    virtual void            SetDoFilterPtMixEvents(Int_t fil)    { fDoFilterPtMixEvents = fil; }
+    // event selection - setters
+    virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
+    virtual void            SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }
+    virtual void            SetMixedEventType(UInt_t me)       { fMixingEventType = me; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
 
     // use rho to correct jet pt in correlation sparses
-    virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
+    virtual void            SetCorrectJetPt(Bool_t cpt)        { fCorrJetPt = cpt; }
 
     // event plane
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
@@ -192,7 +198,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
 
     // event selection types
-    UInt_t         fTriggerEventType;           // Physics selection of event used for signal
+    UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
+    UInt_t         fMBEventType;                // Physics selection of event used for MB
     UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
     Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 

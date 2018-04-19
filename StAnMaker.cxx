@@ -89,12 +89,15 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fTrackDCAcut = 3.0;
   fTracknHitsFit = 15; fTracknHitsRatio = 0.52;
+  fTowerEMinCut = 0.2; fTowerEMaxCut = 100.0;
+  fTowerEtaMinCut = -1.0; fTowerEtaMaxCut = 1.0;
+  fTowerPhiMinCut = 0.0;  fTowerPhiMaxCut = 2.0*TMath::Pi();
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
   mVertex = 0x0;
   zVtx = 0.0;
-  fTriggerEventType = 0;
+  fEmcTriggerEventType = 0; fMBEventType = 2;
   fRho = 0x0;
   fRhoVal = 0;
   fAnalysisMakerName = name;
@@ -280,29 +283,17 @@ Int_t StAnMaker::Make() {
   // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl;
   FillEmcTriggers();
 
-  // Run16 triggers:
-  int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrBHT2[] = {4, 16, 17, 530202, 540203};
-  int arrBHT3[] = {17, 520203, 530213};
-  int arrMB[] = {520021};
-  int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
   // get trigger IDs from PicoEvent class and loop over them
-  vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
-  //cout<<"EventTriggers: ";
+  vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
+  if(fDebugLevel == StJetFrameworkPicoBase::kDebugEmcTrigger) cout<<"EventTriggers: ";
   for(unsigned int i=0; i<mytriggers.size(); i++) {
-    //cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
-    if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (mytriggers[i] == 450014)) { fHaveMBevent = kTRUE; }   
-    // FIXME Hard-coded for now
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)))) { fHaveEmcTrigger = kTRUE; }
-    if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5)))) { fHaveMBevent = kTRUE; }
+    if(fDebugLevel == StJetFrameworkPicoBase::kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", ";
   }
-  //cout<<endl;
+  if(fDebugLevel == StJetFrameworkPicoBase::kDebugEmcTrigger) cout<<endl;
 
-  // Run - Trigger Selection to process (jets) from - double check, copied from another class of mine
-  //if((fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) && (!fEmcTriggerArr[fTriggerEventType])) continue;
-  //if((fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) && (fHaveEmcTrigger)) continue; //FIXME//
+  // check for MB/HT event
+  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // ======================== end of Triggers ============================= //
 
@@ -354,8 +345,8 @@ Int_t StAnMaker::Make() {
   // run Tracks:
   RunTracks();
 
-  // run Towers (incomplete):
-  //RunTowers();
+  // run Towers:
+  RunTowers();
 
   return kStOK;
 }
@@ -598,73 +589,6 @@ Double_t StAnMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
   return dphi;   // dphi in [0, Pi/2]
 }
 
-//________________________________________________________________________
-Bool_t StAnMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
-  // declare kinematic variables
-  double phi, eta, px, py, pz, pt, p, energy, charge, dca;
-  int nHitsFit, nHitsMax;
-  double nHitsRatio;
-
-  // constants: assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
-  double pi = 1.0*TMath::Pi();
-
-  // primary track switch
-  if(doUsePrimTracks) {
-    if(!(trk->isPrimary())) return kFALSE; // check if primary
-
-    // get primary track variables
-    StThreeVectorF mPMomentum = trk->pMom();
-    phi = mPMomentum.phi();
-    eta = mPMomentum.pseudoRapidity();
-    px = mPMomentum.x();
-    py = mPMomentum.y();
-    pt = mPMomentum.perp();
-    pz = mPMomentum.z();
-    p = mPMomentum.mag();
-  } else {
-    // get global track variables
-    StThreeVectorF mgMomentum = trk->gMom(Vert, B);
-    phi = mgMomentum.phi();
-    eta = mgMomentum.pseudoRapidity();
-    px = mgMomentum.x();
-    py = mgMomentum.y();
-    pt = mgMomentum.perp();
-    pz = mgMomentum.z();
-    p = mgMomentum.mag();
-  }
-
-  // additional calculations
-  energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  charge = trk->charge();
-  dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  nHitsFit = trk->nHitsFit();
-  nHitsMax = trk->nHitsMax();
-  nHitsRatio = 1.0*nHitsFit/nHitsMax;
-
-  // do pt cut here to accommadate either type of track
-  if(doUsePrimTracks) { // primary  track
-    if(pt < fTrackPtMinCut) return kFALSE;
-  } else { // global track
-    if(pt < fTrackPtMinCut) return kFALSE;
-  }
-
-  // track pt, eta, phi cuts
-  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
-  if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
-  if(phi < 0) phi+= 2*pi;
-  if(phi > 2*pi) phi-= 2*pi;
-  if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
-    
-  // additional quality cuts for tracks
-  if(dca > fTrackDCAcut) return kFALSE;
-  if(nHitsFit < fTracknHitsFit) return kFALSE;
-  if(nHitsRatio < fTracknHitsRatio) return kFALSE;
-
-  // passed all above cuts - keep track and fill input vector to fastjet
-  return kTRUE;
-}
-
 //_________________________________________________________________________
 void StAnMaker::FillEmcTriggers() {
   // number of Emcal Triggers
@@ -696,26 +620,26 @@ void StAnMaker::FillEventTriggerQA() {
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
     int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212};
-    int arrBHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrBHT2[] = {450202, 450212, 460202, 460212};
+    int arrBHT3[] = {460203, 450213, 460203};
     int arrMB[] = {450014};
-    int arrMB30[] = {20, 450010, 450020};
-    int arrCentral5[] = {20, 450010, 450020};
-    int arrCentral[] = {15, 460101, 460111};
-    int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+    int arrMB30[] = {450010, 450020};
+    int arrCentral5[] = {450010, 450020};
+    int arrCentral[] = {460101, 460111};
+    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
   }
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
     // hard-coded trigger Ids for run16
     int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {4, 16, 17, 530202, 540203};
-    int arrBHT3[] = {17, 520203, 530213};
+    int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrBHT2[] = {530202, 540203};
+    int arrBHT3[] = {520203, 530213};
     int arrMB[] = {520021};
-    int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {6, 520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
+    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
   }
 
 }

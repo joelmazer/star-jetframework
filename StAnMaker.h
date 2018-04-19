@@ -72,8 +72,14 @@ class StAnMaker : public StJetFrameworkPicoBase {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
-    // mixed selection - setters
-    virtual void            SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
+    // tower setters
+    virtual void            SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
+    virtual void            SetTowerEtaRange(Double_t temi, Double_t temx) { fTowerEtaMinCut = temi; fTowerEtaMaxCut = temx; }
+    virtual void            SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
+
+    // event selection - setters
+    virtual void            SetEmcTriggerEventType(UInt_t te)    { fEmcTriggerEventType = te;  }
+    virtual void            SetMBEventType(UInt_t mbe)           { fMBEventType = mbe; }
 
     // efficiency correction setter
     virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
@@ -105,7 +111,8 @@ class StAnMaker : public StJetFrameworkPicoBase {
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
 
     // event selection types
-    UInt_t                  fTriggerEventType;           // Physics selection of event used for signal
+    UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
+    UInt_t                  fMBEventType;                // Physics selection of event used for MB
     Int_t                   fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
   private:

@@ -5,6 +5,8 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
+#include <set>
+
 // ROOT classes
 class TClonesArray;
 class TF1;
@@ -38,16 +40,16 @@ class StJetFrameworkPicoBase : public StMaker {
   // debug flags for specifics
   enum fDebugFlagEnum_t {
     kDebugNothing, // don't want lowest elements to be used
-    kDebugFillJets = 11
-    //kDebugMixedEvents,
-    //kDebugEmcTrigger,
+    kDebugFillJets = 11,
+    kDebugMixedEvents = 12,
+    kDebugEmcTrigger = 13
     //kDebugGeneralEvt,
     //kDebugCentrality,
     //kDebugEventPlaneCalc
   };
 
-  // debug flags for specifics
-  enum fBadTowerLists{
+  // debug flags for tower lists
+  enum fBadTowerListsEnum_t {
     kAltBadTow, 
     kBadTow1,
     kBadTow2,
@@ -90,7 +92,7 @@ class StJetFrameworkPicoBase : public StMaker {
   };
 
     // event plane track weight type enumerator
-    enum EPtrackWeightType {
+    enum EPtrackWeightTypeEnum {
       kNoWeight,
       kPtLinearWeight,
       kPtLinear2Const5Weight
@@ -103,19 +105,27 @@ class StJetFrameworkPicoBase : public StMaker {
     };
 
     // run flags for specifics
-    enum fTriggerFlagEnum {
+    enum fEmcTriggerFlagEnum {
       kAny,
       kIsHT0, kIsHT1, kIsHT2, kIsHT3,
       kIsJP0, kIsJP1, kIsJP2
     };
 
-    // MB flags
+    // MB flags for specifics
     enum fMBFlagEnum {
       kRun14main = 0,
       kRun16main = 1,
       kVPDMB5    = 2,
       kVPDMB10   = 3,
-      kVPDMB30   = 4
+      kVPDMB30   = 4,
+    };
+
+    // trigger type used to run specific part of analysis
+    enum fTriggerEventTypeEnum {
+      kTriggerANY = 0,
+      kTriggerMB  = 1, // corresponding to specific MB selection
+      kTriggerHT  = 2, // corresponding to specific HT selection
+      kTriggerJP  = 3  // corresponding to specific JP selection
     };
 
     // Centrality Interfaces:
@@ -132,7 +142,7 @@ class StJetFrameworkPicoBase : public StMaker {
     };    
 
     // centrality bin range
-    enum fCentralityBin {
+    enum fCentralityBinEnum {
       kCent010, kCent020,
       kCent1020, kCent1030, kCent1040,
       kCent2030, kCent2040, kCent2050, kCent2060,
@@ -151,6 +161,14 @@ class StJetFrameworkPicoBase : public StMaker {
     //virtual Int_t Make();
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
+
+    Bool_t AcceptTower(StPicoBTowHit *tower, StThreeVectorF Vertex);     // tower accept cuts function
+
+    // Use one set to reject bad towers and another for hot towers
+    //void ResetBadTowerList( );
+    //void ResetDeadTowerList( );
+    //Bool_t AddBadTowers(TString csvfile);
+    //Bool_t AddDeadTowers(TString csvfile);
 
     static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
 
@@ -180,6 +198,11 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
+    // tower setters
+    virtual void            SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
+    virtual void            SetTowerEtaRange(Double_t temi, Double_t temx) { fTowerEtaMinCut = temi; fTowerEtaMaxCut = temx; }
+    virtual void            SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
+
     // leading jet
     StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
     StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
@@ -200,12 +223,20 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void           AddToHistogramsName(TString add)           { fAddToHistogramsName = add  ; }
     virtual TString        GetAddedHistogramsStringToName() const     { return fAddToHistogramsName ; }
 
+    // bad and dead tower list functions and arrays
+    //Bool_t IsTowerOK( Int_t mTowId );
+    //Bool_t IsTowerDead( Int_t mTowId );
+    //std::set<Int_t> badTowers;
+    //std::set<Int_t> deadTowers;
+
+
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const; // relative jet track angle
-    Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;  // relative jet event plane angle
-    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
+    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
+    Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
+    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
+    //Bool_t                 AcceptTower(StPicoBTowHit *tower, StThreeVectorF Vertex);     // tower accept cuts function
     Double_t               GetReactionPlane(); // get reaction plane angle
     Int_t                  EventCounter();     // when called, provides Event #
     Double_t               GetRhoValue(TString fRhoMakerNametemp);
@@ -250,6 +281,12 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fTrackDCAcut;            // max track dca cut
     Int_t                  fTracknHitsFit;          // requirement for track hits
     Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
+    Double_t               fTowerEMinCut;           // min tower energy cut
+    Double_t               fTowerEMaxCut;           // max tower energy cut
+    Double_t               fTowerEtaMinCut;         // min tower eta cut
+    Double_t               fTowerEtaMaxCut;         // max tower eta cut
+    Double_t               fTowerPhiMinCut;         // min tower phi cut
+    Double_t               fTowerPhiMaxCut;         // max tower phi cut
 
     // used for event plane calculation and resolution
     StJet*         fLeadingJet;//! leading jet
@@ -263,7 +300,6 @@ class StJetFrameworkPicoBase : public StMaker {
     TClonesArray   *fTracksME;//! track collection to slim down for mixed events
     TClonesArray   *fJets;//!  jet array
     TClonesArray   *fBGJets;//! background jets array
-
 
     // PicoDstMaker and PicoDst object pointer
     StPicoDstMaker *mPicoDstMaker;

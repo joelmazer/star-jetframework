@@ -128,6 +128,8 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
+  fEmcTriggerEventType = 0;
+  fMBEventType = 2;    // kVPDMB5
   fJetConstituentCut = 2.0;
   fTrackBias = 0.2;
   fTowerBias = 0.2;
@@ -835,8 +837,8 @@ Int_t StEventPlaneMaker::Make() {
   FillEmcTriggersHist(hEmcTriggers);
  
   // check for MB/HT event
-  fHaveMBevent = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fTriggerEventType);
+  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // switches for Event Plane analysis
   Bool_t doEPAnalysis = kFALSE;  // set false by default
@@ -844,7 +846,7 @@ Int_t StEventPlaneMaker::Make() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fTriggerEventType]) {
+      if(fEmcTriggerArr[fEmcTriggerEventType]) {
         doEPAnalysis = kTRUE;
       }
       break;
@@ -1035,13 +1037,13 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
     int arrHT1[] = {450201, 450211, 460201};
-    int arrHT2[] = {450202, 450212};
-    int arrHT3[] = {460203, 6, 10, 14, 31, 450213};
+    int arrHT2[] = {450202, 450212, 460202, 460212};
+    int arrHT3[] = {460203, 450213, 460203};
     int arrMB[] = {450014};
-    int arrMB30[] = {20, 450010, 450020};
-    int arrCentral5[] = {20, 450010, 450020};
-    int arrCentral[] = {15, 460101, 460111};
-    int arrMB5[] = {1, 4, 16, 32, 450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
+    int arrMB30[] = {450010, 450020};
+    int arrCentral5[] = {450010, 450020};
+    int arrCentral[] = {460101, 460111};
+    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
     int bin = 0;
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
@@ -1073,13 +1075,13 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 
     // hard-coded trigger Ids for run16
     int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrHT1[] = {7, 15, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrHT2[] = {4, 16, 17, 530202, 540203};
-    int arrHT3[] = {17, 520203, 530213};
+    int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+    int arrHT2[] = {530202, 540203};
+    int arrHT3[] = {520203, 530213};
     int arrMB[] = {520021};
-    int arrMB5[] = {1, 43, 45, 520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {7, 8, 56, 520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {6, 520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
+    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
+    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
+    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
     bin = 1; h->Fill(bin);

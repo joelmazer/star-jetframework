@@ -6,6 +6,8 @@
 //class StJetFrameworkPicoBase;
 //class StJetMakerTask;
 
+#include <set>
+
 // includes
 //#include "StJetFrameworkPicoBase.h"
 #include "StMaker.h"
@@ -91,6 +93,12 @@ class StPicoTrackClusterQA : public StMaker {
   void    DeclareHistograms();
   void    WriteHistograms();
 
+  // Use one set to reject bad towers
+  void ResetBadTowerList( );
+  void ResetDeadTowerList( );
+  Bool_t AddBadTowers(TString csvfile);
+  Bool_t AddDeadTowers(TString csvfile);
+
   // THnSparse Setup
   virtual THnSparse*      NewTHnSparseFTracks(const char* name, UInt_t entries);
   virtual void GetDimParamsTracks(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
@@ -111,19 +119,26 @@ class StPicoTrackClusterQA : public StMaker {
   // track / cluster setters 
   virtual void         SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;}   // min track cut
   virtual void         SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;}   // max track cut
-  virtual void         SetMinClusterPt(Double_t minpt)    { fClusterPtMinCut    = minpt;} // min cluster cut
-  virtual void         SetMaxClusterPt(Double_t maxpt)    { fClusterPtMaxCut    = maxpt;} // max cluster cut
   virtual void         SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
   virtual void         SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
   virtual void         SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
   virtual void         SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
   virtual void         SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
+  virtual void         SetMinClusterPt(Double_t minpt)    { fClusterPtMinCut    = minpt;} // min cluster cut
+  virtual void         SetMaxClusterPt(Double_t maxpt)    { fClusterPtMaxCut    = maxpt;} // max cluster cut
 
-  virtual void         SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
-  virtual void         SetDoTowerQAforHT(Bool_t m)          { fDoTowerQAforHT = m; }
+  // tower setters
+  virtual void         SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
+  virtual void         SetTowerEtaRange(Double_t temi, Double_t temx) { fTowerEtaMinCut = temi; fTowerEtaMaxCut = temx; }
+  virtual void         SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
+
+  // event selection
+  virtual void         SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
+  virtual void         SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }       
+  virtual void         SetDoTowerQAforHT(Bool_t m)        { fDoTowerQAforHT = m; }
 
   // efficiency correction setter
-  virtual void         SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
+  virtual void         SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
 
   // common setters
   void                 SetClusName(const char *n)       { fCaloName      = n;  }
@@ -149,7 +164,8 @@ class StPicoTrackClusterQA : public StMaker {
   void                   RunTowerTest();
   void                   RunFiredTriggerQA();  
   Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
-  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+  Bool_t                 AcceptTower(StPicoBTowHit *tower);                              // tower accept cuts function
+  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                       // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
   TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
@@ -193,6 +209,12 @@ class StPicoTrackClusterQA : public StMaker {
   Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
   Int_t                  fGoodTrackCounter;       // good tracks - passed quality cuts
+  Double_t               fTowerEMinCut;           // min tower energy cut
+  Double_t               fTowerEMaxCut;           // max tower energy cut
+  Double_t               fTowerEtaMinCut;         // min tower eta cut
+  Double_t               fTowerEtaMaxCut;         // max tower eta cut
+  Double_t               fTowerPhiMinCut;         // min tower phi cut
+  Double_t               fTowerPhiMaxCut;         // max tower phi cut
 
   // centrality    
   Double_t        fCentralityScaled;           // scaled by 5% centrality 
@@ -206,7 +228,8 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t           fRunNumber;                  // Run number
 
   // event selection types
-  UInt_t          fTriggerEventType;           // Physics selection of event used for signal
+  UInt_t          fEmcTriggerEventType;        // Physics selection of event used for signal
+  UInt_t          fMBEventType;                // Physics selection of event used for MB
   Int_t           fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
   Bool_t          fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
   Bool_t          fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
@@ -245,6 +268,7 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNTrackvsEta;//!
   TH2F           *fHistNTrackvsPhivsEta;//!
   TH1F           *fHistNTowervsE;//!
+  TH1F           *fHistNTowervsEt;//!
   TH1F           *fHistNTowervsPhi;//!
   TH1F           *fHistNTowervsEta;//!
   TH2F           *fHistNTowervsPhivsEta;//!
@@ -254,6 +278,14 @@ class StPicoTrackClusterQA : public StMaker {
   TH1            *fHistEventSelectionQAafterCuts;//!
   TH1            *hTriggerIds;//!
   TH1            *hEmcTriggers;//!
+
+  // trigger histos for zero and negative energy
+  TH1F           *fHistNZeroEHT1vsID;//!
+  TH1F           *fHistNZeroEHT2vsID;//!
+  TH1F           *fHistNZeroEHT3vsID;//!
+  TH1F           *fHistNNegEHT1vsID;//!
+  TH1F           *fHistNNegEHT2vsID;//!
+  TH1F           *fHistNNegEHT3vsID;//!
 
   // trigger histos - firing towers QA
   TH1F           *fHistNFiredHT0vsID;//!
@@ -272,6 +304,12 @@ class StPicoTrackClusterQA : public StMaker {
   // THn Sparse's
   THnSparse      *fhnTrackQA;//!      // sparse of track info
   THnSparse      *fhnTowerQA;//!      // sparse of tower info
+
+  // bad and dead tower list functions and arrays
+  Bool_t IsTowerOK( Int_t mTowId );
+  Bool_t IsTowerDead( Int_t mTowId );
+  std::set<Int_t> badTowers;
+  std::set<Int_t> deadTowers;
 
   StPicoTrackClusterQA(const StPicoTrackClusterQA&);            // not implemented
   StPicoTrackClusterQA &operator=(const StPicoTrackClusterQA&); // not implemented

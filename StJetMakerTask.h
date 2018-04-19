@@ -118,27 +118,14 @@ class StJetMakerTask : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-  virtual void         SetTriggerEventType(UInt_t te)     { fTriggerEventType = te; }
+  virtual void         SetEmcTriggerEventType(UInt_t te)   { fEmcTriggerEventType = te; }
+  virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
+  virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
   void         SetTracksName(const char *n)               { fTracksName    = n;  }
   void         SetJetsName(const char *n)                 { fJetsName      = n;  }
-  void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min;}
-  void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max;}
-  void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min;}
-  void         SetMinJetClusE(Double_t min)               { fMinJetClusE   = min;}
-  void         SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min;}
-  void         SetRadius(Double_t r)                      { fRadius        = r;  }
-
-  void         SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
-  void         SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
-  void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
-  void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
-  void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
-  void         SetJetTrackDCAcut(Double_t d)              { fJetTrackDCAcut   = d     ; }
-  void         SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
-  void         SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
   void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
   void         SetJetType(Int_t t)                        { fJetType          = t     ; }
   void         SetRecombScheme(Int_t scheme)              { fRecombScheme     = scheme; }
@@ -147,6 +134,25 @@ class StJetMakerTask : public StMaker {
 //  void                   SetRecombScheme(ERecoScheme_t scheme)      { fRecombScheme     = scheme; }
   void         SetMinJetArea(Double_t a)                  { fMinJetArea       = a     ; }
   void         SetMinJetPt(Double_t j)                    { fMinJetPt         = j     ; }
+  void         SetRadius(Double_t r)                      { fRadius        = r;  }
+  void         SetGhostArea(Double_t gharea)              { fGhostArea        = gharea; }
+  void         SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
+  void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
+
+  void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min;}
+  void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max;}
+  void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
+  void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
+  void         SetJetTrackDCAcut(Double_t d)              { fJetTrackDCAcut   = d     ; }
+  void         SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
+  void         SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
+  void         SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min;}
+  void         SetJetTowerERange(Double_t enmi, Double_t enmx) { fJetTowerEMin = enmi; fJetTowerEMax = enmx; }
+  void         SetJetTowerEtaRange(Double_t temi, Double_t temx) { fJetTowerEtaMin = temi; fJetTowerEtaMax = temx; }
+  void         SetJetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fJetTowerPhiMin = tpmi; fJetTowerPhiMax = tpmx; }
+  void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min;}
+  void         SetMinJetClusE(Double_t min)               { fMinJetClusE   = min;}
+
   void         SetLocked()                                { fLocked = kTRUE;}
   void         SetTrackEfficiency(Double_t t)             { fTrackEfficiency  = t     ; }
   void         SetLegacyMode(Bool_t mode)                 { fLegacyMode       = mode  ; }
@@ -180,6 +186,10 @@ class StJetMakerTask : public StMaker {
   Double_t               GetJetTrackPhiMin()              { return fJetTrackPhiMin    ; }
   Double_t               GetJetTrackPhiMax()              { return fJetTrackPhiMax    ; }
   Double_t               GetTrackEfficiency()             { return fTrackEfficiency   ; }
+  Double_t               GetJetTowerEtaMin()              { return fJetTowerEtaMin    ; }
+  Double_t               GetJetTowerEtaMax()              { return fJetTowerEtaMax    ; }
+  Double_t               GetJetTowerPhiMin()              { return fJetTowerPhiMin    ; }
+  Double_t               GetJetTowerPhiMax()              { return fJetTowerPhiMax    ; }
 
   Bool_t                 IsLocked() const;
 
@@ -198,7 +208,8 @@ class StJetMakerTask : public StMaker {
   //Int_t FindJets();
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
-  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
+  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
+  Bool_t                 AcceptJetTower(StPicoBTowHit *tower);                            // tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const;
@@ -235,8 +246,10 @@ class StJetMakerTask : public StMaker {
   Double_t               zVtx;                    // z-vertex component
 
   // event selection types
-  UInt_t                 fTriggerEventType;           // Physics selection of event used for signal
-  Int_t                  fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
+  UInt_t                 fEmcTriggerEventType;    // Physics selection of event used for signal - HT or JP
+  UInt_t                 fMBEventType;            // MB selection  
+  UInt_t                 fTriggerToUse;           // trigger to use for analysis
+  Int_t                  fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
   // tower to firing trigger type matched array
   Bool_t                 fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
@@ -273,21 +286,27 @@ class StJetMakerTask : public StMaker {
   Double_t               fGhostArea;              // ghost area
 
   // track attributes
-  Double_t               fMinJetTrackPt;          // min jet track transverse momentum
-  Double_t               fMaxJetTrackPt;          // max jet track transverse momentum
-  Double_t               fMinJetClusPt;           // min jet cluster transverse momentum
-  Double_t               fMinJetClusE;            // min jet cluster energy
-  Double_t               fMinJetTowerE;           // min jet tower energy - not used (use mTowerEnergyMin)
-  Double_t               fJetTrackEtaMin;         // min jet track eta
-  Double_t               fJetTrackEtaMax;         // max jet track eta
-  Double_t               fJetTrackPhiMin;         // min jet track phi
-  Double_t               fJetTrackPhiMax;         // max jet track phi
+  Double_t               fMinJetTrackPt;          // min jet track transverse momentum cut
+  Double_t               fMaxJetTrackPt;          // max jet track transverse momentum cut
+  Double_t               fMinJetClusPt;           // min jet cluster transverse momentum cut
+  Double_t               fMinJetClusE;            // min jet cluster energy cut
+  Double_t               fMinJetTowerE;           // min jet tower energy cut - not used (use mTowerEnergyMin)
+  Double_t               fJetTrackEtaMin;         // min jet track eta cut
+  Double_t               fJetTrackEtaMax;         // max jet track eta cut
+  Double_t               fJetTrackPhiMin;         // min jet track phi cut
+  Double_t               fJetTrackPhiMax;         // max jet track phi cut
   Double_t               fJetTrackDCAcut;         // max jet track dca cut
   Int_t                  fJetTracknHitsFit;       // requirement for track hits
   Double_t               fJetTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
   // tower attributes
+  Double_t               fJetTowerEMin;        // min jet tower energy cut
+  Double_t               fJetTowerEMax;        // max jet tower energy cut
+  Double_t               fJetTowerEtaMin;      // min jet tower eta cut
+  Double_t               fJetTowerEtaMax;      // max jet tower eta cut
+  Double_t               fJetTowerPhiMin;      // min jet tower phi cut
+  Double_t               fJetTowerPhiMax;      // max jet tower phi cut
   Double_t               mTowerEnergyMin;
   Float_t                mHadronicCorrFrac;
 
@@ -318,8 +337,8 @@ class StJetMakerTask : public StMaker {
   // centrality objects
   StRefMultCorr* grefmultCorr;
 
-  Float_t mTowerMatchTrkIndex[4801];
-  Bool_t mTowerStatusArr[4801];
+  Float_t        mTowerMatchTrkIndex[4801];
+  Bool_t         mTowerStatusArr[4801];
 
   // histograms
   TH1F           *fHistCentrality;//!
@@ -330,6 +349,7 @@ class StJetMakerTask : public StMaker {
   TH2F           *fHistJetNTrackvsPhivsEta;//!
   TH1F           *fHistJetNTowervsID;//!
   TH1F           *fHistJetNTowervsE;//!
+  TH1F           *fHistJetNTowervsEt;//!
   TH1F           *fHistJetNTowervsPhi;//!
   TH1F           *fHistJetNTowervsEta;//!
   TH2F           *fHistJetNTowervsPhivsEta;//!

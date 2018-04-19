@@ -109,14 +109,15 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
-    // mixed selection - setters
-    virtual void            SetTriggerEventType(UInt_t te)       { fTriggerEventType = te; }
+    // event selection - setters
+    virtual void            SetEmcTriggerEventType(UInt_t te)     { fEmcTriggerEventType = te; }
+    virtual void            SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
 
     // use rho to correct jet pt in correlation sparses
-    virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
+    virtual void            SetCorrectJetPt(Bool_t cpt)        { fCorrJetPt = cpt; }
 
     // event plane
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
@@ -175,7 +176,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Bool_t                 doReadCalibFile;         // read calibration file switch
 
     // event selection types
-    UInt_t         fTriggerEventType;           // Physics selection of event used for signal
+    UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
+    UInt_t         fMBEventType;                // Physics selection of event used for MB
     Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution
