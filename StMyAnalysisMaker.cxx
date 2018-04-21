@@ -225,7 +225,6 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 { /*  */
   // destructor
   delete hEventPlane;
-  delete hEventPlane2pi;
   delete hEventPlaneWeighted;
   delete fHistEPTPCnAlt;
   delete fHistEPTPCpAlt;
@@ -397,7 +396,6 @@ Int_t StMyAnalysisMaker::Init() {
 
   // initialize the histograms
   DeclareHistograms();
-  //DeclareEventPlaneHistograms();  // TODO - set up a switch
 
   // initialize calibration file for event plane
   //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
@@ -512,7 +510,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   // QA histos
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
-  hEventPlane2pi = new TH1F("hEventPlane2pi", "Event plane distribution 2#pi", 72, 0.0, 2.0*pi);  //TODO delete this soon
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   fHistEPTPCnAlt = new TH2F("fHistEPTPCnAlt", "", 20, 0., 100., 72, -pi, pi);
   fHistEPTPCpAlt = new TH2F("fHistEPTPCpAlt", "", 20, 0., 100., 72, -pi, pi);
@@ -891,7 +888,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
 void StMyAnalysisMaker::WriteHistograms() {
   // default histos
   hEventPlane->Write();
-  hEventPlane2pi->Write();
   hEventPlaneWeighted->Write();
   fHistEPTPCnAlt->Write();
   fHistEPTPCpAlt->Write();
@@ -1249,7 +1245,6 @@ Int_t StMyAnalysisMaker::Make() {
 
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
-  hEventPlane2pi->Fill(rpAngle);
 
   double eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
@@ -1872,7 +1867,6 @@ void StMyAnalysisMaker::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins,
 
    case 0:
       label = "centrality 5% bin";
-      // think about how I want to do this here TODO
       nbins = 20; //16;
       xmin = 0.;
       xmax = 100.; //16.;     
@@ -1994,7 +1988,6 @@ void StMyAnalysisMaker::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nb
 
     case 0:
       label = "centrality 5% bin";
-      // think about how I want to do this here TODO
       nbins = 20; //16;
       xmin = 0.;
       xmax = 100.; //16.;
@@ -2736,7 +2729,6 @@ physics
 void StMyAnalysisMaker::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
-  hEventPlane2pi->Sumw2();
   hEventPlaneWeighted->Sumw2();
   fHistEPTPCnAlt->Sumw2();
   fHistEPTPCpAlt->Sumw2();
@@ -3177,15 +3169,8 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // Method 1: used in ALICE
-  // TEST - TODO
-  double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );
-  if(n1 > pi) n1 -= pi;
-  double p1 = TVector2::Phi_0_2pi( mQtpcp.Phi() / order );
-  if(p1 > pi) p1 -= pi;
-  double n2 = TVector2::Phi_0_2pi( tpcn2 ); // divided by order above
-  if(n2 > pi) n2 -= pi;
-  double p2 = TVector2::Phi_0_2pi( tpcp2 ); // divided by order above
-  if(p2 > pi) p2 -= pi;
+  //double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );
+  //if(n1 > pi) n1 -= pi;
 
   // standard event plane distributions as function of centrality
   //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
@@ -3495,7 +3480,6 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
   double eh = 0., wh = 0., ev = 0., wv = 0.;
   double w_eh = 0., w_wh = 0., w_ev = 0., w_wv = 0.;
 
-  // h: horizontal - X, v: vertical - Y      TODO! double check this!
   // h: horizontal - Y, v: vertical - X     March 20, 2018: this is correct! 
   // https://pdfs.semanticscholar.org/9499/5cee9e50bc55027a8b187681ce8d74c735af.pdf
   // loop over horizontal tiles for ZDCSMD

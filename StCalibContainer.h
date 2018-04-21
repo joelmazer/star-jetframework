@@ -25,11 +25,14 @@ class TFile;
 class StCalibContainer : public TNamed {
 
  public :
+  // 'explicit' added below to constructor to remove cppcheck warning
+
   StCalibContainer();
-  StCalibContainer(const char* name);
+  explicit StCalibContainer(const char* name);
   virtual ~StCalibContainer();
   StCalibContainer(const StCalibContainer& cont); 
   StCalibContainer& operator=(const StCalibContainer& cont);
+
 // Object adding and removal
   void   AppendObject(TObject* obj, Int_t lower, Int_t upper, TString passName="");
   void   UpdateObject(Int_t index, TObject* obj, Int_t lower, Int_t upper, TString passName="");

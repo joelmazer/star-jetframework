@@ -38,6 +38,7 @@ StRho::StRho() : StRhoBase("")
 {
   fNExclLeadJets = 0;
   fJets = 0x0;
+  fHistMultvsRho = 0x0;
   mOutName = ""; 
   fJetMakerName = "";
   fRhoMakerName = "";
@@ -49,6 +50,7 @@ StRho::StRho(const char *name, Bool_t histo, const char *outName, const char *je
 {
   fNExclLeadJets = 0;
   fJets = 0x0;
+  fHistMultvsRho = 0x0;
   mOutName = outName;
   fJetMakerName = jetMakerName;
   fRhoMakerName = name;
@@ -62,7 +64,7 @@ StRho::StRho(const char *name, Bool_t histo, const char *outName, const char *je
 StRho::~StRho()
 { /*  */
   // destructor
-  delete fHistMultvsRho;
+  if(fHistMultvsRho) delete fHistMultvsRho;
 
 }
 
@@ -120,6 +122,8 @@ Int_t StRho::Finish() {
 //________________________________________________________________________
 void StRho::DeclareHistograms() {
     // declare histograms
+    // weird that this next line is needed to remove cppcheck warning
+    delete fHistMultvsRho;
     // mult was 150, 0, 1500
     fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 160, 0., 800., 100, 0., 100.);
     fHistMultvsRho->GetXaxis()->SetTitle("Charged track multiplicity");

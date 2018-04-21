@@ -158,7 +158,6 @@ StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
   delete hEventPlane;
-  delete hEventPlane2pi;
   delete hEventPlaneWeighted;
   delete fHistEPTPCnAlt;
   delete fHistEPTPCpAlt;
@@ -358,7 +357,6 @@ void StEventPlaneMaker::DeclareHistograms() {
 
   // QA histos
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
-  hEventPlane2pi = new TH1F("hEventPlane2pi", "Event plane distribution 2#pi", 72, 0.0, 2.0*pi);  //TODO delete this soon
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   fHistEPTPCnAlt = new TH2F("fHistEPTPCnAlt", "", 20, 0., 100., 72, -pi, pi);
   fHistEPTPCpAlt = new TH2F("fHistEPTPCpAlt", "", 20, 0., 100., 72, -pi, pi);
@@ -623,7 +621,6 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
 
   // default histos
   hEventPlane->Write();
-  hEventPlane2pi->Write();
   hEventPlaneWeighted->Write();
   fHistEPTPCnAlt->Write();
   fHistEPTPCpAlt->Write();
@@ -1123,7 +1120,6 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 void StEventPlaneMaker::SetEPSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
-  hEventPlane2pi->Sumw2();
   hEventPlaneWeighted->Sumw2();
   fHistEPTPCnAlt->Sumw2();
   fHistEPTPCpAlt->Sumw2();

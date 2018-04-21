@@ -286,12 +286,8 @@ Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
   Int_t centbin = -1;
 
-  if(nBin == 16) {
-    centbin = nBin - 1 - cent;
-  }
-  if(nBin == 9) {
-    centbin = nBin - 1 - cent;
-  }
+  if(nBin == 16) { centbin = nBin - 1 - cent; }
+  if(nBin == 9)  { centbin = nBin - 1 - cent; }
 
   return centbin;
 }
@@ -1056,7 +1052,8 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTow
 /*
 //____________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
-  if( badTowers.size()==0 ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
     // maybe change class if calling FROM base
     __ERROR("StJetFrameworkPicoBase::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
@@ -1072,7 +1069,8 @@ Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
 
 //____________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
-  if( deadTowers.size()==0 ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
     // maybe change class if calling FROM base
     __ERROR("StJetFrameworkPicoBase::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );

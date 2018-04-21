@@ -644,7 +644,7 @@ void StPicoTrackClusterQA::RunQA()
     double phi = mTrkMom.phi();
     double eta = mTrkMom.pseudoRapidity();
     double p = mTrkMom.mag();
-    double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+    //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
     short charge = trk->charge();         
     int bemcIndex = trk->bemcPidTraitsIndex();
 
@@ -895,7 +895,7 @@ Bool_t StPicoTrackClusterQA::SelectAnalysisCentralityBin(Int_t centbin, Int_t fC
 //________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
+  //double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
@@ -971,8 +971,8 @@ Bool_t StPicoTrackClusterQA::AcceptTower(StPicoBTowHit *tower) {
   if(phi < 0)    phi += 2.0*pi;
   if(phi > 2*pi) phi -= 2.0*pi;
   double eta = towerPosition.pseudoRapidity();
-  int towerADC = tower->adc();
-  double towerEunCorr = tower->energy();  // uncorrected energy
+  //int towerADC = tower->adc();
+  //double towerEunCorr = tower->energy();  // uncorrected energy
 
   // check for bad (and dead) towers
   bool TowerOK = IsTowerOK(towerID);      // kTRUE means GOOD
@@ -1109,7 +1109,7 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
     int arrHT2[] = {530202, 540203};
     int arrHT3[] = {520203, 530213};
@@ -1514,7 +1514,7 @@ void StPicoTrackClusterQA::RunTowerTest()
     double towPhi = towPosition.phi();
     if(towPhi < 0)    towPhi += 2*pi;
     if(towPhi > 2*pi) towPhi -= 2*pi;
-    double towEta = towPosition.pseudoRapidity();
+    //double towEta = towPosition.pseudoRapidity();
     //double detectorRadius = mGeom->Radius();
 
     // matched track index
@@ -1550,7 +1550,6 @@ void StPicoTrackClusterQA::RunTowerTest()
 
     // print tower and track info
 //    cout<<"towers: towPhi = "<<towPhi<<"  towEta = "<<towEta<<"  etaCorr = "<<etaCorr;  //<<endl;
-//    cout<<"  tPhi = "<<tPhi<<"  tEta = "<<tEta<<"  etaCorr2 = "<<etaCorr2<<endl;
 //    cout<<"tracks:  pt = "<<pt<<"  p = "<<p<<"  phi = "<<phi<<"  eta = "<<eta<<endl;
 
   }
@@ -1578,8 +1577,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     if(towerPhi < 0)    towerPhi += 2*pi;
     if(towerPhi > 2*pi) towerPhi -= 2*pi;
     double towerEta = towerPosition.pseudoRapidity();
-    int towerADC = tower->adc();
-    double towerEunCorr = tower->energy();
+    //int towerADC = tower->adc();
+    //double towerEunCorr = tower->energy();
     double towerE = tower->energy();
 
     // tower matched to firing trigger - TODO
@@ -1592,7 +1591,7 @@ void StPicoTrackClusterQA::RunTowerTest()
     if(mTowerStatusArr[towerID]) {
       //if(mTowerMatchTrkIndex[towerID] > 0) 
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
-      if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // March5, 2018 commented back in TODO
+      if(!trk) { cout<<"No trk pointer...."<<endl; continue; } 
       if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }  // TODO double check this
 
       // get track variables to matched tower
@@ -1609,7 +1608,6 @@ void StPicoTrackClusterQA::RunTowerTest()
       //double phi = mTrkMom.phi();
       //double eta = mTrkMom.pseudoRapidity();
       double p = mTrkMom.mag();
-      double pi0mass = Pico::mMass[0]; // GeV
       double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
       // apply hadronic correction
@@ -1617,8 +1615,8 @@ void StPicoTrackClusterQA::RunTowerTest()
     } 
     // else - no match so treat towers on their own
 
-    // cut on tower energy - corrected or not
-    double towerEt = towerE / (1.0*TMath::CosH(towerEta)); // - FIXME should we cut on tower Et or E?
+    // cut on transvere tower energy - corrected or not
+    double towerEt = towerE / (1.0*TMath::CosH(towerEta));
     if(towerEt < 0) towerEt = 0.0;
     if(towerEt < mTowerEnergyMin) continue;
 
@@ -1641,7 +1639,7 @@ void StPicoTrackClusterQA::RunTowerTest()
 void StPicoTrackClusterQA::RunFiredTriggerQA()
 {
   // assume neutral pion mass
-  double pi0mass = Pico::mMass[0]; // GeV
+  //double pi0mass = Pico::mMass[0]; // GeV
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
 
   // initialize Emc position objects
@@ -1832,7 +1830,8 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
 
 //____________________________________________________________________________________________
 Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
-  if( badTowers.size()==0 ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
     __ERROR("StPicoTrackClusterQA::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
@@ -1847,7 +1846,8 @@ Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
 
 //____________________________________________________________________________________________
 Bool_t StPicoTrackClusterQA::IsTowerDead( Int_t mTowId ){
-  if( deadTowers.size()==0 ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
     __ERROR("StPicoTrackClusterQA::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }

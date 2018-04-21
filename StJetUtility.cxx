@@ -4,12 +4,11 @@ ClassImp(StJetUtility)
 
 //______________________________________________________________________________
 StJetUtility::StJetUtility() :
-TNamed(),
+  TNamed(),
   fJetTask(0),
   fInit(kFALSE)
 {
   // Dummy constructor.
-
 }
 
 //______________________________________________________________________________

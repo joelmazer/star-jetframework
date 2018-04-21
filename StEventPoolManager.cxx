@@ -175,7 +175,7 @@ Long64_t StEventPool::Merge(TCollection* hlist)
   while ( (tmpObj = static_cast<StEventPool*>(objIter())) )
   {
     // Update this pool (it won't get fuller than demanded)
-    for(Int_t i=0; i<tmpObj->fEvents.size(); i++)
+    for(Int_t i=0; i<(Int_t)tmpObj->fEvents.size(); i++)
       UpdatePool(tmpObj->fEvents.at(i));
   }
   fLockFlag = origLock;
@@ -506,16 +506,16 @@ void StEventPoolManager::Validate()
   std::cout << "############## StEventPoolManager ##############\n"; 
   std::cout << "== Binning ==\n"; 
   TString tmpStr = "cent/mult: ";
-  for(Int_t i = 0; i<fMultBins.size(); i++)
+  for(Int_t i = 0; i<(Int_t)fMultBins.size(); i++)
     tmpStr += Form("%4.3f ", fMultBins[i]);
   tmpStr += " vertex: ";
-  for(Int_t i = 0; i<fZvtxBins.size(); i++)
+  for(Int_t i = 0; i<(Int_t)fZvtxBins.size(); i++)
     tmpStr += Form("%4.3f ", fZvtxBins[i]);
   tmpStr += " psi: ";
-  for(Int_t i = 0; i<fPsiBins.size(); i++)
+  for(Int_t i = 0; i<(Int_t)fPsiBins.size(); i++)
     tmpStr += Form("%4.3f ", fPsiBins[i]);
   tmpStr += " pt: ";
-  for(Int_t i = 0; i<fPtBins.size(); i++)
+  for(Int_t i = 0; i<(Int_t)fPtBins.size(); i++)
     tmpStr += Form("%4.3f ", fPtBins[i]);
   std::cout << tmpStr.Data() << std::endl;
   std::cout << "== Event pools ==\n";

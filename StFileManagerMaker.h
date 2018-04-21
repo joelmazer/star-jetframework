@@ -14,7 +14,8 @@ class StFileManagerMaker : public StMaker
 public:
   enum PicoIoMode {IoWrite=1, IoRead=2};
 
-  StFileManagerMaker(char const* name = "PicoDst");
+  // 'explicit' added below to constructor to remove cppcheck warning
+  explicit StFileManagerMaker(char const* name = "PicoDst");
   StFileManagerMaker(PicoIoMode ioMode, char const* fileName = "", char const* name = "PicoDst");
   virtual ~StFileManagerMaker();
 

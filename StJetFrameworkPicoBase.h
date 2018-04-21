@@ -152,8 +152,9 @@ class StJetFrameworkPicoBase : public StMaker {
       kCent6080
     };
 
+    // 'explicit' added below to constructor to remove cppcheck warning
     StJetFrameworkPicoBase();
-    StJetFrameworkPicoBase(const char *name);
+    explicit StJetFrameworkPicoBase(const char *name);
     virtual ~StJetFrameworkPicoBase();
    
     // class required functions

@@ -6,23 +6,23 @@
 #include "StFJWrapper.h"
 
 class StJetMakerTask;
-class StJet; // FIXME
+class StJet;
 class StFJWrapper;
 
 class StJetUtility : public TNamed
 {
  public:
+  // explicit added in the below 2 lines to remove cppcheck warning for c++11 compilers
 
   StJetUtility();
-  StJetUtility(const char* name);
-  StJetUtility(const StJetUtility &jet);
+  explicit StJetUtility(const char* name);
+  explicit StJetUtility(const StJetUtility &jet);
   StJetUtility& operator=(const StJetUtility &jet);
   ~StJetUtility() {;}
 
   virtual void Init() = 0;                                                 // Executed only once at the end of AliEmcalJetTask::DoInit()
   virtual void InitEvent(StFJWrapper& fjw) = 0;                            //
   virtual void Prepare(StFJWrapper& fjw) = 0;                              // Executed for each event at the beginning of AliEmcalJetTask::FillJetBranch()
-  // FIXME
   virtual void ProcessJet(StJet* jet, Int_t ij, StFJWrapper& fjw) = 0;     // Executed for each jet in the loop in AliEmcalJetTask::FillJetBranch()
   virtual void Terminate(StFJWrapper& fjw) = 0;                            // Executed for each event at the end of AliEmcalJetTask::FillJetBranch()
 

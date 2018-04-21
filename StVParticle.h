@@ -28,9 +28,10 @@ const Double_t kAlmost0Field=1.e-13;
 class StVParticle: public TObject {
 
 public:
+  // 'explicit' added below to constructor to remove cppcheck warning
   StVParticle() { }
   virtual ~StVParticle() { }
-  StVParticle(const StVParticle& vPart); 
+  explicit StVParticle(const StVParticle& vPart); 
   StVParticle& operator=(const StVParticle& vPart);
 
   // kinematics

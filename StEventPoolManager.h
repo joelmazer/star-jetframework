@@ -53,7 +53,8 @@ class StEventPool : public TObject
     fTargetFraction(1),
     fTargetEvents(0)  {;} // default constructor needed for correct saving
 
- StEventPool(Int_t d) 
+ // 'explicit' added below to constructor to remove cppcheck warning - double check this one in particular FIXME TODO
+ explicit StEventPool(Int_t d) 
    : fEvents(0),
     fNTracksInEvent(0),
     fEventIndex(0),
@@ -264,7 +265,7 @@ public:
   std::vector<Double_t> fPsiBins;                       // Event plane angle (Psi) bins
   std::vector<Double_t> fPtBins;                        // pt bins
 
-  std::vector<StEventPool*> fEvPool;                   // pool in bins of [fNMultBin][fNZvtxBin][fNPsiBin][fNPtBins]
+  std::vector<StEventPool*> fEvPool;                    // pool in bins of [fNMultBin][fNZvtxBin][fNPsiBin][fNPtBins]
   Int_t      fTargetTrackDepth;                         // Required track size, same for all pools.
 
   Int_t       GetBinIndex(Int_t iMult, Int_t iZvtx, Int_t iPsi, Int_t iPt) const {return fNZvtxBins*fNPsiBins*fNPtBins*iMult + fNPsiBins*fNPtBins*iZvtx + fNPtBins*iPsi + iPt;}

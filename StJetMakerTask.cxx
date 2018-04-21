@@ -716,7 +716,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       double towerPhi = towerPosition.phi();
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
-      ///double towerEta = towerPosition.pseudoRapidity();
+      double towerEta = towerPosition.pseudoRapidity();
       int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
@@ -761,9 +761,10 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       } 
       // else - no match so treat towers on their own
 
-      // cut on tower energy
-      if(towerE < 0) towerE = 0.0;
-      if(towerE < mTowerEnergyMin) continue;
+      // cut on transverse tower energy
+      double towerEt = towerE / (1.0*TMath::CosH(towerEta));
+      if(towerEt < 0) towerEt = 0.0;
+      if(towerEt < mTowerEnergyMin) continue;
 
       // check for bad (and dead) towers
       bool TowerOK = IsTowerOK(towerID);
@@ -1026,8 +1027,8 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   jet->SetNumberOfClusters(nc);
   jet->SetMaxTrackPt(maxTrack);
   jet->SetMaxClusterPt(maxTower);
-  jet->SetMaxTowerE(maxTower);
-  jet->SetNEF(neutralE/jet->E());
+  jet->SetMaxTowerE(maxTower);     // should this be Et? FIXME
+  jet->SetNEF(neutralE/jet->E());  // should this be Et? FIXME
   //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
 
   // fill jets histograms
@@ -1396,7 +1397,8 @@ Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tow
 
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
-  if( badTowers.size()==0 ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
     __ERROR("StJetMakerTask::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
@@ -1411,7 +1413,8 @@ Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
 
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
-  if( deadTowers.size()==0 ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
     __ERROR("StJetMakerTask::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }

@@ -60,7 +60,7 @@ StRhoSparse::StRhoSparse(const char *name, Bool_t histo, const char *outName, co
   fRhoSparseMakerName(name)
 {
   // Constructor.
-  if (!name) return;
+  if(!name) return;
   SetName(name);
 }
 
@@ -68,10 +68,10 @@ StRhoSparse::StRhoSparse(const char *name, Bool_t histo, const char *outName, co
 StRhoSparse::~StRhoSparse()
 { /*  */
   // destructor
-  delete fHistOccCorrvsCent;
-  delete fHistOccCorrvsMult;
-  delete fHistMultvsUnCorrRho;
-  delete fHistMultvsCorrRho;
+  if(fHistOccCorrvsCent)   delete fHistOccCorrvsCent;
+  if(fHistOccCorrvsMult)   delete fHistOccCorrvsMult;
+  if(fHistMultvsUnCorrRho) delete fHistMultvsUnCorrRho;
+  if(fHistMultvsCorrRho)   delete fHistMultvsCorrRho;
 }
 
 //________________________________________________________________________
@@ -111,6 +111,8 @@ Int_t StRhoSparse::Finish() {
 //________________________________________________________________________
 void StRhoSparse::DeclareHistograms() {
   // declare histograms
+  // weird that this next line is needed to remove cppcheck warning
+  delete fHistOccCorrvsCent;
   //fHistOccCorrvsCent = new TH2F("OccCorrvsCent", "Occupancy correction vs centrality", 101, -1, 100, 2000, 0 , 2);
   fHistOccCorrvsCent = new TH2F("OccCorrvsCent", "Occupancy correction vs centrality", 20, 0.0, 100, 200, 0, 2); //2000
   fHistOccCorrvsMult = new TH2F("OccCorrvsMult", "Occupancy correction vs multiplicity", 160, 0.0, 800, 200, 0, 2); //2000
@@ -139,13 +141,10 @@ void StRhoSparse::Clear(Option_t *opt) {
 }
 
 //________________________________________________________________________
-Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2)
-{
-  for (Int_t i = 0; i < jet1->GetNumberOfTracks(); ++i)
-  {
+Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2) {
+  for (Int_t i = 0; i < jet1->GetNumberOfTracks(); ++i) {
     Int_t jet1Track = jet1->TrackAt(i);
-    for (Int_t j = 0; j < jet2->GetNumberOfTracks(); ++j)
-    {
+    for (Int_t j = 0; j < jet2->GetNumberOfTracks(); ++j) {
       Int_t jet2Track = jet2->TrackAt(j);
       if (jet1Track == jet2Track)
         return kTRUE;
@@ -170,7 +169,7 @@ Int_t StRhoSparse::Make()
 {
   // Run the analysis.
   fOutRho->SetVal(0);
-  if (fOutRhoScaled)  fOutRhoScaled->SetVal(0);
+  if(fOutRhoScaled)  fOutRhoScaled->SetVal(0);
 
   if(fDebugLevel == 1) cout<<"fJetMakerName = "<<fJetMakerName<<"  fJetBGMakerName = "<<fJetBGMakerName<<endl;
 
@@ -260,13 +259,13 @@ Int_t StRhoSparse::Make()
   Float_t maxJetPts[] = { 0,  0};
 
   // leading jet exclusion
-  if (fNExclLeadJets > 0) {
-    for (Int_t ij = 0; ij < Njets; ++ij) {
+  if(fNExclLeadJets > 0) {
+    for(Int_t ij = 0; ij < Njets; ++ij) {
       StJet *jet = static_cast<StJet*>(fBGJets->At(ij));
-      if (!jet) { continue; } 
+      if(!jet) { continue; } 
       //if (!AcceptJet(jet)) continue;
 
-      if (jet->Pt() > maxJetPts[0]) {
+      if(jet->Pt() > maxJetPts[0]) {
 	maxJetPts[1] = maxJetPts[0];
 	maxJetIds[1] = maxJetIds[0];
 	maxJetPts[0] = jet->Pt();
@@ -276,7 +275,7 @@ Int_t StRhoSparse::Make()
 	maxJetIds[1] = ij;
       }
     }
-    if (fNExclLeadJets < 2) {
+    if(fNExclLeadJets < 2) {
       maxJetIds[1] = -1;
       maxJetPts[1] = 0;
     }
@@ -288,17 +287,17 @@ Int_t StRhoSparse::Make()
   Double_t TotaljetAreaPhys=0;
 
   // push all jets within selected acceptance into stack
-  for (Int_t iJets = 0; iJets < Njets; ++iJets) {
+  for(Int_t iJets = 0; iJets < Njets; ++iJets) {
     // excluding lead jets
-    if (iJets == maxJetIds[0] || iJets == maxJetIds[1]) continue;
+    if(iJets == maxJetIds[0] || iJets == maxJetIds[1]) continue;
 
     // get background jets
     StJet *jet = static_cast<StJet*>(fBGJets->At(iJets));
-    if(!jet) {  continue; } 
+    if(!jet) { continue; } 
 
     // add total jet area
     TotaljetArea+=jet->Area();
-    if(jet->Pt()>0.1){
+    if(jet->Pt() > 0.1) {
       TotaljetAreaPhys+=jet->Area();
     }
 
@@ -307,7 +306,7 @@ Int_t StRhoSparse::Make()
     // Search for overlap with signal jets
     Bool_t isOverlapping = kFALSE;
     if(fJets) {
-      for(Int_t j=0;j<NjetsSig;j++) {
+      for(Int_t j = 0; j < NjetsSig; j++) {
         // get signal jets
         StJet* signalJet = static_cast<StJet*>(fJets->At(j)); // GetAcceptJet(j)
         if(!signalJet) continue;
@@ -329,8 +328,8 @@ Int_t StRhoSparse::Make()
   }
 
   // calculate occupancy correction
-  Double_t OccCorr=0.0;
-  if(TotaljetArea>0) OccCorr=TotaljetAreaPhys/TotaljetArea;
+  Double_t OccCorr = 0.0;
+  if(TotaljetArea > 0) OccCorr = TotaljetAreaPhys / TotaljetArea;
 
   if(fDebugLevel == 2) cout<<"NjetsSig = "<<NjetsSig<<"  NBGjets = "<<Njets<<"  TotaljetArea = "<<TotaljetArea<<"  OccCorr = "<<OccCorr<<endl;
  
