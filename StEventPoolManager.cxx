@@ -182,7 +182,8 @@ Long64_t StEventPool::Merge(TCollection* hlist)
   return hlist->GetEntries() + 1;
 }
 
-void StEventPool::Clear()
+//void StEventPool::Clear()
+void StEventPool::Clear(Option_t *opt)
 {
   // Clear the pool without deleting the object
   // Don't touch lock or save flag here to be fully flexible

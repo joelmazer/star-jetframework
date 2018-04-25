@@ -30,7 +30,7 @@
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
-#include "StEventPoolManager.h"
+//#include "StEventPoolManager.h"
 #include "StEventPlaneMaker.h" // new
 
 // new includes
@@ -65,6 +65,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fCorrJetPt(kFALSE),
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
+  doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
@@ -125,6 +126,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCorrJetPt(kFALSE),
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
+  doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
   fMinPtJet(0.0),
   fTrackBias(0.2),
   fTowerBias(0.2),
@@ -567,7 +569,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
   // leading jet check and removal
   float excludeInEta = -999;
-  ///fLeadingJet = GetLeadingJet();
+  ///fLeadingJet = GetLeadingJet();  // FIXME
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from ep estimate
     if(fLeadingJet) excludeInEta = fLeadingJet->Eta();
   }
@@ -582,7 +584,6 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
     StThreeVectorF mTrkMom;
     if(doUsePrimTracks) {
       if(!(track->isPrimary())) return kFALSE; // check if primary
-
       // get primary track vector
       mTrkMom = track->pMom();
     } else {
@@ -678,7 +679,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
       return leadingJet;
     } else { // rho parameter provided
       // return leading jet after background subtraction
-      Double_t rho(0);
+      //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
       // loop over jets
@@ -751,7 +752,7 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
     } else { // rho parameter provided
       // return leading jet after background subtraction
-      Double_t rho(0);
+      //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
       // loop over jets

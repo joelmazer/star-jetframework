@@ -87,10 +87,6 @@ class StAnMaker : public StJetFrameworkPicoBase {
     // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
 
-    // leading jets
-    StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
-    StJet*                  GetSubLeadingJet(StRhoParameter* eventRho = 0x0);
-
   protected:
     void                    RunTracks();
     void                    RunTowers();

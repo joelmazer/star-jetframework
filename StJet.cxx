@@ -634,6 +634,19 @@ Int_t StJet::ContainsCluster(Int_t ic) const
   return -1;
 }
 
+/**
+ * Checks whether a certain tower is among the jet constituents by looking for its index
+ * @param ic Index of the tower to search
+ * @return The position of the tower in the jet constituent array, if the tower is found; -1 if the tower is not a jet constituent
+ */
+// this returns 1 less than the towers ID since it returns the place in the Array
+Int_t StJet::ContainsTower(Int_t ic) const
+{
+  for (Int_t i = 0; i < fClusterIDs.GetSize(); i++) {
+    if (ic == fClusterIDs[i]) return i;
+  }
+  return -1;
+}
 
 // test functions for now = FIXME
 /**

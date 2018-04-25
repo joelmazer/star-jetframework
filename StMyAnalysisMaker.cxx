@@ -56,35 +56,7 @@
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
 
-/*
-#include "corrections/tpc_recenter_data.h"
-#include "corrections/tpc_recenter_data_bin0.h"
-#include "corrections/tpc_recenter_data_bin1.h"
-#include "corrections/tpc_recenter_data_bin2.h"
-#include "corrections/tpc_recenter_data_bin3.h"
-#include "corrections/tpc_recenter_data_bin4.h"
-#include "corrections/tpc_recenter_data_bin0_Method1.h"
-#include "corrections/tpc_recenter_data_bin1_Method1.h"
-#include "corrections/tpc_recenter_data_bin2_Method1.h"
-#include "corrections/tpc_recenter_data_bin3_Method1.h"
-#include "corrections/tpc_recenter_data_bin4_Method1.h"
-#include "corrections/bbc_recenter_data.h"
-#include "corrections/zdc_recenter_data.h"
-#include "corrections/tpc_shift_data.h"
-#include "corrections/tpc_shift_data_bin0.h"
-#include "corrections/tpc_shift_data_bin1.h"
-#include "corrections/tpc_shift_data_bin2.h"
-#include "corrections/tpc_shift_data_bin3.h"
-#include "corrections/tpc_shift_data_bin4.h"
-#include "corrections/tpc_shift_data_bin0_Method1.h"
-#include "corrections/tpc_shift_data_bin1_Method1.h"
-#include "corrections/tpc_shift_data_bin2_Method1.h"
-#include "corrections/tpc_shift_data_bin3_Method1.h"
-#include "corrections/tpc_shift_data_bin4_Method1.h"
-#include "corrections/bbc_shift_data.h"
-#include "corrections/zdc_shift_data.h"
-*/
-
+// include header that has all the event plane correction headers - with calibration/correction values
 #include "StPicoEPCorrectionsIncludes.h"
 
 // new includes
@@ -1137,7 +1109,7 @@ Int_t StMyAnalysisMaker::Make() {
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
+  //int refMult = mPicoEvent->refMult();
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
 //  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
@@ -1159,9 +1131,8 @@ Int_t StMyAnalysisMaker::Make() {
   //grefmultCorr->isCentralityOk(cent16)
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  double centralityScaled = centbin*5.0;
   fCentralityScaled = centbin*5.0;
-  hCentrality->Fill(centralityScaled);
+  hCentrality->Fill(fCentralityScaled);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
@@ -1238,10 +1209,33 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
+  // ============== RhoMaker =============== //
+  // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
+  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerName));
+  const char *fRhoMakerNameCh = fRhoMakerName;
+  if(!RhoMaker) {
+    LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
+    return kStWarn;
+  }
+
+  // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
+  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
+  if(!fRho) {
+    LOG_WARN << Form("Couldn't get fRho object! ") << endm;
+    return kStWarn;
+  }
+
+  // get rho/area value from rho object     fRho->ls("");
+  //double value = GetRhoValue(fRhoMakerName);
+  fRhoVal = fRho->GetVal();
+  hRhovsCent->Fill(centbin*5.0, fRhoVal);
+  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
+
   // =========== Event Plane Angle ============= //
   // cache the leading + subleading jets within acceptance
-  fLeadingJet = GetLeadingJet();
-  fSubLeadingJet = GetSubLeadingJet();
+  // first parameter is Jet Maker name, 2nd is Rho Parameter: fRho
+  fLeadingJet = GetLeadingJet(fJetMakerName);
+  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
 
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
@@ -1319,28 +1313,6 @@ Int_t StMyAnalysisMaker::Make() {
   } // have Emc HT trigger - process event plane calculation/ corrections / resolutions
 
   // ===================================================================================
-
-  // ============== RhoMaker =============== //
-  // get RhoMaker from event: old names "StRho_JetsBG", "OutRho", "StMaker#0"
-  RhoMaker = static_cast<StRho*>(GetMaker(fRhoMakerName));
-  const char *fRhoMakerNameCh = fRhoMakerName;
-  if(!RhoMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fRhoMakerNameCh) << endm;
-    return kStWarn;
-  }
-
-  // set rho object, alt fRho = GetRhoFromEvent(fRhoName);
-  fRho = static_cast<StRhoParameter*>(RhoMaker->GetRho());
-  if(!fRho) {
-    LOG_WARN << Form("Couldn't get fRho object! ") << endm;
-    return kStWarn;    
-  } 
-  
-  // get rho/area value from rho object     fRho->ls("");
-  //double value = GetRhoValue(fRhoMakerName);
-  fRhoVal = fRho->GetVal();
-  hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.2*0.2*fRhoVal<<endl;
 
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
@@ -1427,9 +1399,9 @@ Int_t StMyAnalysisMaker::Make() {
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
-      int clusID = tow->id(); // clusID = towerid -1 because of array element numbering different than ids which start at 1
-      int containsCluster = jet->ContainsCluster(ArrayIndex);
-      //cout<<">= 0: "<<containsCluster<<"  itow = "<<itow<<"  id = "<<clusID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
+      //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      //int containsTower = jet->ContainsTower(ArrayIndex);
+      //cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
 
     }
 
@@ -2345,7 +2317,7 @@ TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
     int arrHT2[] = {530202, 540203};
     int arrHT3[] = {520203, 530213};
@@ -2484,106 +2456,6 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
   fhnEP->Fill(EPentries);
 
   return psi;
-}
-
-// _____________________________________________________________________________________________
-StJet* StMyAnalysisMaker::GetLeadingJet(StRhoParameter* eventRho) {
-  // return pointer to the highest pt jet (before background subtraction) within acceptance
-  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
-  if(fJets) {
-    // get number of jets, initialize pt and leading jet pointer
-    Int_t iJets(fJets->GetEntriesFast());
-    Double_t pt(0);
-    StJet* leadingJet(0x0);
-
-    if(!eventRho) { // no rho parameter provided
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        //if(!AcceptJet(jet)) continue;
-        if(jet->Pt() > pt) {
-          leadingJet = jet;
-          pt = leadingJet->Pt();
-        }
-      }
-      return leadingJet;
-    } else { // rho parameter provided
-      // return leading jet after background subtraction
-      Double_t rho(0);
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        //if(!AcceptJet(jet)) continue;
-        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-          leadingJet = jet;
-          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-        }
-      }
-      return leadingJet;
-    }
-  }
-
-  return 0x0;
-}
-
-// _____________________________________________________________________________________________
-StJet* StMyAnalysisMaker::GetSubLeadingJet(StRhoParameter* eventRho) {
-  // return pointer to the second highest pt jet (before background subtraction) within acceptance
-  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
-  if(fJets) {
-    // get number of jets 
-    Int_t iJets(fJets->GetEntriesFast());
-
-    // initialize pt's
-    Double_t pt(0);
-    Double_t pt2(0);
-
-    // leading and subleading jet pointers
-    StJet* leadingJet(0x0);
-    StJet* subleadingJet(0x0);
-
-    if(!eventRho) { // no rho parameter provided
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        // leading jet
-        if(jet->Pt() > pt) {
-          leadingJet = jet;
-          pt = leadingJet->Pt();
-        }
-
-        // subleading jet
-        if((jet->Pt() > pt2) && (jet->Pt() < pt)) { 
-          subleadingJet = jet;
-          pt2 = subleadingJet->Pt();
-        }
-
-      }
-      return subleadingJet;
-
-    } else { // rho parameter provided
-      // return leading jet after background subtraction
-      Double_t rho(0);
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        // leading jet
-        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-          leadingJet = jet;
-          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-        }
-
-        // subleading jet
-        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
-          subleadingJet = jet;
-          pt2 = subleadingJet->Pt();
-        }
-      }
-      return leadingJet;
-    }
-  }
-
-  return 0x0;
 }
 
 /*
@@ -3166,7 +3038,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   // combine x-y vectors for neg and pos Eta ranges (cross-check)
   double tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
   double tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
-  double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
+  //double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // Method 1: used in ALICE
   //double n1 = TVector2::Phi_0_2pi( mQtpcn.Phi() / order );

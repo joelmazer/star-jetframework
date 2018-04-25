@@ -31,7 +31,7 @@ class StJetMakerTask;
 class StJet;
 class StRho;
 class StRhoParameter;
-class StEventPoolManager;
+//class StEventPoolManager;
 class StEventPlaneMaker;
 
 class StJetFrameworkPicoBase : public StMaker {
@@ -189,6 +189,7 @@ class StJetFrameworkPicoBase : public StMaker {
     
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -230,7 +231,6 @@ class StJetFrameworkPicoBase : public StMaker {
     //std::set<Int_t> badTowers;
     //std::set<Int_t> deadTowers;
 
-
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
@@ -253,6 +253,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fRequireCentSelection;   // require particular centrality bin
+    Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
 
     // centrality    
     Double_t               fCentralityScaled;       // scaled by 5% centrality 

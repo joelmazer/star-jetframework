@@ -81,14 +81,18 @@ StJetMakerTask::StJetMakerTask() :
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fRequireCentSelection(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
+  fCentralitySelectionCut(-99),
+  doUseBBCCoincidenceRate(kTRUE),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
   fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
-  fMBEventType(2),      // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
-  fTriggerToUse(0),     // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
+  fMBEventType(2),         // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
+  fTriggerToUse(0),        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
+  fBadTowerListVers(1),
   mOutName(""),
   fTracksName(""),
   fCaloName(""),
@@ -162,14 +166,18 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fRequireCentSelection(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
+  fCentralitySelectionCut(-99),
+  doUseBBCCoincidenceRate(kTRUE),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
   fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEMCTriggerFlagEnum
-  fMBEventType(2),      // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
-  fTriggerToUse(0),     // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
+  fMBEventType(2),         // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
+  fTriggerToUse(0),        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
+  fBadTowerListVers(1),
   mOutName(outName),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
@@ -278,7 +286,12 @@ Int_t StJetMakerTask::Init() {
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
+        if(fBadTowerListVers == 1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
+        if(fBadTowerListVers == 2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
+        if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
+        if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
+        if(fBadTowerListVers == 5)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
@@ -495,19 +508,6 @@ int StJetMakerTask::Make()
     mTowerStatusArr[i] = kFALSE;
   }
 
-/*
-  // get muDst 
-  mu = (StMuDst*) GetInputDS("MuDst");         
-  if(!mu) {
-    LOG_WARN << " No muDst! Skip! " << endm;
-    return kStWarn;
-  }
-
-  // get EmcCollection
-  mEmcCol = (StEmcCollection*)mu->emcCollection();
-  if(!mEmcCol) return kStWarn;
-*/
-
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -536,17 +536,19 @@ int StJetMakerTask::Make()
   mVertex = mPicoEvent->primaryVertex();
   zVtx = mVertex.z();
 
-  // Z-vertex cut
-  // per the Aj analysis (-40, 40)
+  // Z-vertex cut - - per the Aj analysis (-40, 40)
   // TEST: kStOk -> kStErr // Error, drop this and go to the next event
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //Pico::kSkipThisEvent; //kStOk; //kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //Pico::kSkipThisEvent;
 
   // ============================ CENTRALITY ============================== //
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int RunId = mPicoEvent->runId();
-  float fBBCCoincidenceRate = mPicoEvent->BBCx();
+  double fBBCCoincidenceRate = mPicoEvent->BBCx();
+  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
   int grefMult = mPicoEvent->grefMult();
   grefmultCorr->init(RunId);
+  if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+  else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   int cent16 = grefmultCorr->getCentralityBin16();
@@ -558,18 +560,6 @@ int StJetMakerTask::Make()
   // cut on centrality for analysis before doing anything
   // TEST: kStOk -> kStErr // Error, drop this and go to the next event
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
-
-  // TClonesArrays - not needed anymore
-  TClonesArray *tracks = 0;
-  TClonesArray *clus   = 0;
-
-/*
-  // TRACKS: for FULL or Charged jets
-  if ((fJetType==0)||(fJetType==1)) { }
-
-  // NEUTRAL: for FULL or Neutral jets
-  if ((fJetType==0)||(fJetType==2)) { }
-*/      
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
@@ -584,18 +574,29 @@ int StJetMakerTask::Make()
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
 
-  // Find jets
-  // note that parameter are globally set, may not need to have params
-  FindJets(tracks, clus, fJetAlgo, fRadius);
+  // Find jets:  deprecated version -> FindJets(tracks, clus, fJetAlgo, fRadius);
+  FindJets();
 
-  // fill jet branch
+  // Fill jet branch
   FillJetBranch();
 
   return kStOK;
 }
 
+//
+// old class to FindJets - it is deprecated, but kept for backwards compatibility
+// the parameters are global so they don't do anything here
 //________________________________________________________________________
 void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius)
+{
+  // call main (new) FindJets function
+  FindJets();
+}
+
+//
+// Main class to FindJets from tracks + towers
+//________________________________________________________________________
+void StJetMakerTask::FindJets()
 {
   // Find jets.
   // clear out existing wrapper object
@@ -648,20 +649,16 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 
   // full or neutral jets - get towers and apply hadronic correction
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
-    // looping over clusters to add to jet - STAR: matching already done
-    // get # of clusters and set variables
-    unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
-
-// ==================== March 6th, 2018
+    // ==================== March 6th, 2018
     // towerStatus array
     //float mTowerMatchTrkIndex[4801] = { 0 };
     //bool mTowerStatusArr[4801] = { 0 };
     int matchedTowerTrackCounter = 0;
 
     // print
-    int nTracks = mPicoDst->numberOfTracks();
-    int nTrigs = mPicoDst->numberOfEmcTriggers();
-    int nBTowHits = mPicoDst->numberOfBTOWHits();
+    //int nTracks = mPicoDst->numberOfTracks();
+    //int nTrigs = mPicoDst->numberOfEmcTriggers();
+    //int nBTowHits = mPicoDst->numberOfBTOWHits();
     int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
     //cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
@@ -717,7 +714,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
       double towerEta = towerPosition.pseudoRapidity();
-      int towerADC = tower->adc();
+      //int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
 

@@ -161,7 +161,9 @@ class StEventPool : public TObject
   Int_t       UpdatePool(TObjArray *trk);
   Long64_t    Merge(TCollection* hlist);
 //  deque<TObjArray*> GetEvents() { return fEvents; }
-  void        Clear();
+
+//  void        Clear();
+  virtual void  Clear(Option_t *opt="");
 
 protected:
   Bool_t      IsReady(Int_t tracks, Int_t events) const { return (tracks >= fTargetFraction * fTargetTrackDepth) || ((fTargetEvents > 0) && (events >= fTargetEvents)); }

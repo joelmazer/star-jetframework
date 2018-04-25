@@ -430,11 +430,7 @@ void StRhoBase::Clear(Option_t *opt)
 
 //________________________________________________________________________
 Int_t StRhoBase::Make() 
-{
-  // Run the analysis.
-  // test for now //FIXME
-  double fCent = 0.0;  
-
+{ // Run the analysis.
   // get the PicoDstMaker
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -489,8 +485,11 @@ Int_t StRhoBase::Make()
   grefmultCorr->init(RunId);
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t cent9 = grefmultCorr->getCentralityBin9();
+  //Int_t cent9 = grefmultCorr->getCentralityBin9();
   Int_t fCentBin = GetCentBin(cent16, 16); // centbin
+
+  // test for now //FIXME
+  double fCent = 0.0;
 
   // set Rho value
   Double_t rho = GetRhoFactor(fCent);
@@ -520,7 +519,7 @@ Bool_t StRhoBase::FillHistograms()
   Int_t Ntracks   = 0;
   Int_t Nclusters = 0;
   //if (GetParticleContainer(0)) Ntracks = GetParticleContainer(0)->GetNAcceptedParticles(); //FIXME
-  //if (GetClusterContainer(0)) Nclusters = GetClusterCon<F12>tainer(0)->GetNAcceptedClusters(); //FIXME
+  //if (GetClusterContainer(0)) Nclusters = GetClusterContainer(0)->GetNAcceptedClusters(); //FIXME
 
   if(fJets) {
     Int_t    Njets         = fJets->GetEntries();
@@ -532,6 +531,7 @@ Bool_t StRhoBase::FillHistograms()
     Double_t rhoPlus2Sigma = fOutRho->GetVal() + 2*fInEventSigmaRho;
     Double_t rhoPlus3Sigma = fOutRho->GetVal() + 3*fInEventSigmaRho;
 
+    // loop over jets
     for (Int_t i = 0; i < Njets; ++i) { 
       StJet *jet = static_cast<StJet*>(fJets->At(i));
       if(!jet) { continue; } 

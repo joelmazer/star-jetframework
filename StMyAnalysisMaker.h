@@ -147,8 +147,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
 
     // event plane
-    StJet*                  GetLeadingJet(StRhoParameter* eventRho = 0x0);
-    StJet*                  GetSubLeadingJet(StRhoParameter* eventRho = 0x0);
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)         {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(Int_t weight)          {fTrackWeight = weight; }
     virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEventPlaneMaxTrackPtCut = m; }  

@@ -92,7 +92,9 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
+    virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
 
     // jet switches
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -110,8 +112,9 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
 
     // event selection - setters
-    virtual void            SetEmcTriggerEventType(UInt_t te)     { fEmcTriggerEventType = te; }
+    virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
     virtual void            SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }
+    virtual void            SetTriggerToUse(UInt_t ttu)        { fTriggerToUse = ttu; }
 
     // efficiency correction setter
     virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
@@ -140,8 +143,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetEPTPCptAssocBin(Int_t pb)                    {fTPCptAssocBin = pb; }
 
     // Where to read calib object with EP calibration if not default
-    void                    SetEPcalibFileName(TString filename) {fEPcalibFileName = filename; } 
-    void                    SetOutFileNameEP(TString epout) {mOutNameEP = epout; }
+    void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
+    void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
     virtual void            SetdoReadCalibFile(Bool_t rc)                   {doReadCalibFile = rc; } 
 
     // get functions:
@@ -178,6 +181,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
     UInt_t         fMBEventType;                // Physics selection of event used for MB
+    UInt_t         fTriggerToUse;               // trigger to use for analysis
     Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // used for event plane calculation and resolution

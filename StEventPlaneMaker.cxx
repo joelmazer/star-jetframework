@@ -41,7 +41,6 @@
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
-#include "StEventPoolManager.h"
 #include "StPicoTrk.h"
 #include "StFemtoTrack.h"
 #include "StEPFlattener.h"
@@ -120,16 +119,21 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   mOutNameEP = "";
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
-  fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
+  fRunFlag = 0;       // see StMyAnalysisMaker::fRunFlagEnum
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fRequireCentSelection = kFALSE;
+  fCentralitySelectionCut = -99;
+  doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
-  fEmcTriggerEventType = 0;
-  fMBEventType = 2;    // kVPDMB5
+  fEmcTriggerEventType = 0; // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
+  fMBEventType = 2;         // kVPDMB5
+  fTriggerToUse = 0;        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
+  fMinPtJet = 10.0;         // perhaps this should be lower?
   fJetConstituentCut = 2.0;
   fTrackBias = 0.2;
   fTowerBias = 0.2;
@@ -802,9 +806,10 @@ Int_t StEventPlaneMaker::Make() {
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
-  int refMult = mPicoEvent->refMult();
+  //int refMult = mPicoEvent->refMult();
   grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+  if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+  else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); } 
 
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   Int_t cent16 = grefmultCorr->getCentralityBin16();
@@ -817,7 +822,6 @@ Int_t StEventPlaneMaker::Make() {
   // centrality / multiplicity histograms
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  double centralityScaled = centbin*5.0;
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything
@@ -833,7 +837,7 @@ Int_t StEventPlaneMaker::Make() {
 
   FillEmcTriggersHist(hEmcTriggers);
  
-  // check for MB/HT event
+  // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
@@ -855,6 +859,10 @@ Int_t StEventPlaneMaker::Make() {
       break;
   }
 
+  // no need for switch for few checks
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMBevent))   return kStOK;  // MB triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
+  // else fTriggerToUse is ANY and we still want to run analysis
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
@@ -1071,7 +1079,7 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
     int bin = 0;
 
     // hard-coded trigger Ids for run16
-    int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
+    //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
     int arrHT2[] = {530202, 540203};
     int arrHT3[] = {520203, 530213};
@@ -1507,7 +1515,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   // combine x-y vectors for neg and pos Eta ranges (cross-check)
   double tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
   double tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
-  double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
+  //double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // standard event plane distributions as function of centrality
   //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);

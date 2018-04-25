@@ -225,7 +225,7 @@ Int_t StRhoSparse::Make()
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  //Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning

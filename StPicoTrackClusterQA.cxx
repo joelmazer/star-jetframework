@@ -452,7 +452,6 @@ void StPicoTrackClusterQA::WriteHistograms() {
   // sparses
   //fhnTrackQA->Write();
   //fhnTowerQA->Write();
-
 }
 
 //-----------------------------------------------------------------------------
@@ -512,7 +511,6 @@ int StPicoTrackClusterQA::Make()
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
-
   // ===================================================
 
   // ========================= Trigger Info =============================== //
@@ -530,7 +528,6 @@ int StPicoTrackClusterQA::Make()
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", ";
   }
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
-
   // ======================== end of Triggers ============================= //
 
   // Event QA print-out
@@ -556,7 +553,7 @@ int StPicoTrackClusterQA::Make()
   if(mtdpid) mtdpid->Print();
 */
 
-  // switches for Jet and Event Plane analysis
+  // switches for QA analysis
   bool doQAAnalysis = kFALSE; // set false by default
   fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
@@ -582,16 +579,17 @@ int StPicoTrackClusterQA::Make()
 
   if(!doQAAnalysis) return kStOK;
 
+/*
   int nTracks = mPicoDst->numberOfTracks();
   int nTrigs = mPicoDst->numberOfEmcTriggers();
   int nBTowHits = mPicoDst->numberOfBTOWHits();
   int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
-
   cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
-  //cout<<"highTowerThreshold 0 = "<<mPicoEvent->highTowerThreshold(0)<<endl;
-  //cout<<"highTowerThreshold 1 = "<<mPicoEvent->highTowerThreshold(1)<<endl;
-  //cout<<"highTowerThreshold 2 = "<<mPicoEvent->highTowerThreshold(2)<<endl;
-  //cout<<"highTowerThreshold 3 = "<<mPicoEvent->highTowerThreshold(3)<<endl;
+  cout<<"highTowerThreshold 0 = "<<mPicoEvent->highTowerThreshold(0)<<endl;
+  cout<<"highTowerThreshold 1 = "<<mPicoEvent->highTowerThreshold(1)<<endl;
+  cout<<"highTowerThreshold 2 = "<<mPicoEvent->highTowerThreshold(2)<<endl;
+  cout<<"highTowerThreshold 3 = "<<mPicoEvent->highTowerThreshold(3)<<endl;
+*/
 
   // Event / object PRINT INFO!!
   //mPicoDst->printTracks();
@@ -652,7 +650,7 @@ void StPicoTrackClusterQA::RunQA()
     if(phi<0)    phi += 2*pi;
     if(phi>2*pi) phi -= 2*pi;
 
-    if(fDebugLevel == 8) cout<<"iTracks = "<<iTracks<<"  p = "<<pt<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
+    if(fDebugLevel == 8) cout<<"iTracks = "<<iTracks<<"  p = "<<p<<"  charge = "<<charge<<"  eta = "<<eta<<"  phi = "<<phi;
     if(fDebugLevel == 8) cout<<"  nHitsFit = "<<trk->nHitsFit()<<"  BEmc Index = "<<bemcIndex<<endl;
 
     // fill some QA histograms
@@ -1490,9 +1488,9 @@ void StPicoTrackClusterQA::RunTowerTest()
   int matchedTowerTrackCounter = 0;
 
   // print
-  int nTracks = mPicoDst->numberOfTracks();
-  int nTrigs = mPicoDst->numberOfEmcTriggers();
-  int nBTowHits = mPicoDst->numberOfBTOWHits();
+  //int nTracks = mPicoDst->numberOfTracks();
+  //int nTrigs = mPicoDst->numberOfEmcTriggers();
+  //int nBTowHits = mPicoDst->numberOfBTOWHits();
   int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
 //  cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
@@ -1656,10 +1654,10 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     // flags: HT1 = 2, HT2 = 6, HT3 = 14, JP = 112
 
     // check if i'th trigger fired HT triggers by meeting threshold
-    bool isHT0 = emcTrig->isHT0();
-    bool isHT1 = emcTrig->isHT1();
-    bool isHT2 = emcTrig->isHT2();
-    bool isHT3 = emcTrig->isHT3();
+    bool isHT0 = emcTrig->isHT0(); // ADC > 11
+    bool isHT1 = emcTrig->isHT1(); // ADC > 15
+    bool isHT2 = emcTrig->isHT2(); // ADC > 18
+    bool isHT3 = emcTrig->isHT3(); // ADC > 25
     bool isJP0 = emcTrig->isJP0();
     bool isJP1 = emcTrig->isJP1();
     bool isJP2 = emcTrig->isJP2();
@@ -1690,7 +1688,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     double towerE = tower->energy();
     double towerEt = towerE / (1.0*TMath::CosH(towerEta));
 
-    //if(towerEt < 0) cout<<"emcTrigID = "<<emcTrigID<<"  towerID = "<<towerID<<"  towerEta = "<<towerEta<<"  towerE = "<<towerE<<"  towerEt = "<<towerEt<<endl;
+    // if(towerEt < 0) cout<<"emcTrigID = "<<emcTrigID<<"  towerID = "<<towerID<<"  towerEta = "<<towerEta<<"  towerE = "<<towerE<<"  towerEt = "<<towerEt<<"  ADC = "<<tower->adc()<<endl;
 
     // fill some histograms for QA when have a zero energy entry
     if(towerE == 0) {  // for ZERO energy 

@@ -121,6 +121,7 @@ class StJetMakerTask : public StMaker {
   virtual void         SetEmcTriggerEventType(UInt_t te)   { fEmcTriggerEventType = te; }
   virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
   virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
+  virtual void         SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -204,13 +205,15 @@ class StJetMakerTask : public StMaker {
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
 
  protected:
+  // this 1st version is deprecated as the parameters are global for the class and already set
   void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
-  //Int_t FindJets();
+  void                   FindJets();
+  //Int_t FindJets(); // use this if want to return NJets found
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
   Bool_t                 AcceptJetTower(StPicoBTowHit *tower);                            // tower accept cuts function
-  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const;
   Bool_t                 CheckForMB(int RunFlag, int type);
@@ -239,6 +242,7 @@ class StJetMakerTask : public StMaker {
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
+  Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
 
   // event variables
   Double_t               Bfield;                  // event Bfield
@@ -249,6 +253,7 @@ class StJetMakerTask : public StMaker {
   UInt_t                 fEmcTriggerEventType;    // Physics selection of event used for signal - HT or JP
   UInt_t                 fMBEventType;            // MB selection  
   UInt_t                 fTriggerToUse;           // trigger to use for analysis
+  UInt_t                 fBadTowerListVers;       // version of bad tower file list to use
   Int_t                  fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
   // tower to firing trigger type matched array
@@ -301,14 +306,14 @@ class StJetMakerTask : public StMaker {
   Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
 
   // tower attributes
-  Double_t               fJetTowerEMin;        // min jet tower energy cut
-  Double_t               fJetTowerEMax;        // max jet tower energy cut
-  Double_t               fJetTowerEtaMin;      // min jet tower eta cut
-  Double_t               fJetTowerEtaMax;      // max jet tower eta cut
-  Double_t               fJetTowerPhiMin;      // min jet tower phi cut
-  Double_t               fJetTowerPhiMax;      // max jet tower phi cut
-  Double_t               mTowerEnergyMin;
-  Float_t                mHadronicCorrFrac;
+  Double_t               fJetTowerEMin;           // min jet tower energy cut
+  Double_t               fJetTowerEMax;           // max jet tower energy cut
+  Double_t               fJetTowerEtaMin;         // min jet tower eta cut
+  Double_t               fJetTowerEtaMax;         // max jet tower eta cut
+  Double_t               fJetTowerPhiMin;         // min jet tower phi cut
+  Double_t               fJetTowerPhiMax;         // max jet tower phi cut
+  Double_t               mTowerEnergyMin;         // min jet tower energy cut
+  Float_t                mHadronicCorrFrac;       // hadronic correction fraction from 0.0 to 1.0
 
   // may not need some of next bools
   TObjArray             *fUtilities;              // jet utilities (gen subtractor, constituent subtractor etc.)
@@ -329,10 +334,10 @@ class StJetMakerTask : public StMaker {
   static const Int_t     fgkConstIndexShift;      //!contituent index shift
 
  private:
-  StMuDst        *mu; // muDst object
+  StMuDst        *mu;            // muDst object
   StPicoDstMaker *mPicoDstMaker; // PicoDstMaker object
-  StPicoDst      *mPicoDst; // PicoDst object
-  StPicoEvent    *mPicoEvent; // PicoEvent object
+  StPicoDst      *mPicoDst;      // PicoDst object
+  StPicoEvent    *mPicoEvent;    // PicoEvent object
 
   // centrality objects
   StRefMultCorr* grefmultCorr;

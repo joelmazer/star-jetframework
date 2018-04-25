@@ -183,8 +183,6 @@ Int_t StAnMaker::Finish() {
 //-----------------------------------------------------------------------------
 void StAnMaker::DeclareHistograms() {
   // initialization of histograms done here
-  double pi = 1.0*TMath::Pi();
-
 }
 
 // write histograms
@@ -204,7 +202,6 @@ void StAnMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StAnMaker::Make() {
-  const double pi = 1.0*TMath::Pi();
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
 
@@ -355,8 +352,9 @@ Int_t StAnMaker::Make() {
 void StAnMaker::RunJets()
 {
   // cache the leading + subleading jets within acceptance
-  fLeadingJet = GetLeadingJet();
-  fSubLeadingJet = GetSubLeadingJet();
+  // first parameter is Jet Maker name, 2nd is Rho Parameter: fRho
+  fLeadingJet = GetLeadingJet(fJetMakerName);
+  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
 
   // ====================== Jet loop below ============================
   // loop over Jets in the event: initialize some parameter variables
@@ -658,102 +656,4 @@ Bool_t StAnMaker::DoComparison(int myarr[], int elems) {
   }
 
   return match;
-}
-
-// _____________________________________________________________________________________________
-StJet* StAnMaker::GetLeadingJet(StRhoParameter* eventRho) {
-  // return pointer to the highest pt jet (before background subtraction) within acceptance
-  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
-  if(fJets) {
-    // get number of jets, initialize pt and leading jet pointer
-    Int_t iJets(fJets->GetEntriesFast());
-    Double_t pt(0);
-    StJet* leadingJet(0x0);
-
-    if(!eventRho) { // no rho parameter provided
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        if(jet->Pt() > pt) {
-          leadingJet = jet;
-          pt = leadingJet->Pt();
-        }
-      }
-      return leadingJet;
-    } else { // rho parameter provided
-      // return leading jet after background subtraction
-      Double_t rho(0);
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-          leadingJet = jet;
-          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-        }
-      }
-      return leadingJet;
-    }
-  }
-
-  return 0x0;
-}
-
-// _____________________________________________________________________________________________
-StJet* StAnMaker::GetSubLeadingJet(StRhoParameter* eventRho) {
-  // return pointer to the second highest pt jet (before background subtraction) within acceptance
-  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
-  if(fJets) {
-    // get number of jets 
-    Int_t iJets(fJets->GetEntriesFast());
-
-    // initialize pt's
-    Double_t pt(0);
-    Double_t pt2(0);
-
-    // leading and subleading jet pointers
-    StJet* leadingJet(0x0);
-    StJet* subleadingJet(0x0);
-
-    if(!eventRho) { // no rho parameter provided
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        // leading jet
-        if(jet->Pt() > pt) {
-          leadingJet = jet;
-          pt = leadingJet->Pt();
-        }
-
-        // subleading jet
-        if((jet->Pt() > pt2) && (jet->Pt() < pt)) { 
-          subleadingJet = jet;
-          pt2 = subleadingJet->Pt();
-        }
-
-      }
-      return subleadingJet;
-
-    } else { // rho parameter provided
-      // return leading jet after background subtraction
-      Double_t rho(0);
-      // loop over jets
-      for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
-        // leading jet
-        if((jet->Pt() - jet->Area()*fRhoVal) > pt) {
-          leadingJet = jet;
-          pt = (leadingJet->Pt()-jet->Area()*fRhoVal);
-        }
-
-        // subleading jet
-        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
-          subleadingJet = jet;
-          pt2 = subleadingJet->Pt();
-        }
-      }
-      return leadingJet;
-    }
-  }
-
-  return 0x0;
 }
