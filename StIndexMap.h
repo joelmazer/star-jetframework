@@ -80,7 +80,7 @@ class StIndexMap {
   // See: https://stackoverflow.com/a/4039892
   template<class X, class Y>
   friend void swap(StIndexMap<X, Y> & first, StIndexMap<X, Y> & second);
-  StIndexMap(StIndexMap<U, V> && other);
+  explicit StIndexMap(StIndexMap<U, V> && other);  // added explicit on Apr26 2018
 
   // Don't delete fClass, as it was returned by TClass and deleting it will cause segfaults in ROOT
   virtual ~StIndexMap() {}

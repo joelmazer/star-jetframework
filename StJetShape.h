@@ -79,9 +79,9 @@ class StJetShapeConstituent : public fastjet::FunctionOfPseudoJet<Double32_t>{
   Double_t result(const fastjet::PseudoJet &jet) const {
     if (!jet.has_constituents())
       return 0; 
-    Double_t num = 0.;
+    //Double_t num = 0.;
     std::vector<fastjet::PseudoJet> constits = jet.constituents();
-    num=1.*constits.size();  
+    Double_t num=1.*constits.size();  
     return num;
   }
 };

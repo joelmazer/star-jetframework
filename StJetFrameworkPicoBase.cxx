@@ -30,7 +30,6 @@
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
-//#include "StEventPoolManager.h"
 #include "StEventPlaneMaker.h" // new
 
 // new includes
