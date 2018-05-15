@@ -44,7 +44,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
       kDebugEmcTrigger,
       kDebugGeneralEvt,
       kDebugCentrality,
-      kDebugEventPlaneCalc
+      kDebugEventPlaneCalc,
+      kDebugJetvsEPtype
     };
 
     // enumerator for TPC event plane method

@@ -2,6 +2,8 @@
 #include "TFile.h"
 #define PI 3.1415926
 
+// March31:  check function names... found incomplete editing from weeks prior
+
 int shift_getAB()
 {
   // methods
@@ -11,7 +13,7 @@ int shift_getAB()
   //Method = 4;  // ZDC shift
 
   // pt bin methods
-  int ptbin = 4;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
+  int ptbin = 0;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
   bool appendDate = kTRUE;
 
   // append bin for pt assoc bins to file name
@@ -21,11 +23,10 @@ int shift_getAB()
   // append date to file name
   const char *funcDate = "";
   //if(appendDate) { funcDate = Form("_STEP2_Jan20"); } // CHANGE NAME case-by-case
-  if(appendDate) { funcDate = Form("_STEP2_Feb5"); } // CHANGE NAME case-by-case
-
-  // print append strings
-  cout<<"funcbin = "<<funcBin<<endl;
-  cout<<"funcDate = "<<funcDate<<endl;
+  //if(appendDate) { funcDate = Form("_STEP2_Feb5"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_March31"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_April28"); } // CHANGE NAME case-by-case
+  if(appendDate) { funcDate = Form("_STEP2_May15"); } // CHANGE NAME case-by-case
 
   // method of jet removal
   // "Method1": kRemoveEtaStrip
@@ -33,20 +34,28 @@ int shift_getAB()
   // "Method3": kRemoveLeadingJetConstituents
   // "Method5": kRemoveEtaPhiConeLeadSub
   // "Method6": kRemoveLeadingSubJetConstituents
-  const char *JetMethod = "";
-  JetMethod = "_Method1";
+  //JetMethod = "_Method2ch_Run14"; // from 
+  const char *JetMethod = "_Method2ch";
+  const char *RunName = "_Run14";
+
+  // print append strings
+  cout<<"funcbin = "<<funcBin<<endl;
+  cout<<"funcDate = "<<funcDate<<endl;
+  cout<<"JetMethod = "<<JetMethod<<endl;
+  cout<<"RunName = "<<RunName<<endl;
 
   // input calibration file with histograms
   //	TFile *f = new TFile("./Q_recentered.root");
   //TFile *f = new TFile("./after_recenter.root");
   //TFile *f = new TFile("./before_shift.root");
   //TFile *f = new TFile("./shift_calib_file.root"); // default
-  TFile *f = new TFile(Form("./shift_calib_file%s%s.root", funcBin, funcDate));
+  //TFile *f = new TFile(Form("./shift_calib_file%s%s.root", funcBin, funcDate));
+  TFile *f = new TFile(Form("/star/u/jmazer19/Y2017/STAR/temp/shift_calib_file%s%s.root", funcBin, funcDate));
 
   // output file
-  if(Method == 2) { ofstream out(Form("tpc_shift_data%s%s.h", funcBin, JetMethod)); }
-  if(Method == 3) { ofstream out("bbc_shift_data.h"); } // default
-  if(Method == 4) { ofstream out("zdc_shift_data.h"); } // default
+  if(Method == 2) { ofstream out(Form("tpc_shift_data%s%s%s.h", funcBin, JetMethod, RunName)); }
+  if(Method == 3) { ofstream out(Form("bbc_shift_data%s.h", RunName)); } // default
+  if(Method == 4) { ofstream out(Form("zdc_shift_data%s.h", RunName)); } // default
 
   // A = m, B = p: for TPC
   const int N_c =20;
@@ -90,20 +99,20 @@ int shift_getAB()
   }
 
   // =======================================
-  // added Feb6
+  // added Feb6, edited April28
   if(Method == 2) { 
-    out<<(Form("#ifndef tpc_shift_data%s%s_h", funcBin, JetMethod)); 
-    out<<(Form("#define tpc_shift_data%s%s_h", funcBin, JetMethod));
+    out<<(Form("#ifndef tpc_shift_data%s%s%s_h", funcBin, JetMethod, RunName))<<endl; 
+    out<<(Form("#define tpc_shift_data%s%s%s_h", funcBin, JetMethod, RunName))<<endl;
   }
   if(Method == 3) { 
-    out<<("#ifndef bbc_shift_data_h");
-    out<<("#define bbc_shift_data_h");
+    out<<(Form("#ifndef bbc_shift_data%s_h", RunName))<<endl;
+    out<<(Form("#define bbc_shift_data%s_h", RunName))<<endl;
   } 
   if(Method == 4) { 
-    out<<("#ifndef zdc_shift_data_h");
-    out<<("#define zdc_shift_data_h");
+    out<<(Form("#ifndef zdc_shift_data%s_h", RunName))<<endl;
+    out<<(Form("#define zdc_shift_data%s_h", RunName))<<endl;
   } 
-  out<<"endl;"
+  out<<endl;
 
 /*
   out<<"class X {"<<endl;
@@ -118,10 +127,10 @@ int shift_getAB()
   // ======================================
 
   // write function for one side  shift_Qpx
-  if(Method == 2) { out<<Form("double tpc_shift_N%s%s[9][20][20]=", funcBin, JetMethod)<<endl; }
-  //if(Method == 2) { out<<"double tpc_shift_A[9][20][20]="<<endl; } // new
-  if(Method == 3) { out<<"double bbc_shift_A[9][20][20]="<<endl; }
-  if(Method == 4) { out<<"double zdc_shift_A[9][20][20]="<<endl; }
+  if(Method == 2) { out<<Form("static double tpc_shift_N%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; }
+  //if(Method == 2) { out<<Form("static double tpc_shift_A%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; } // new
+  if(Method == 3) { out<<Form("static double bbc_shift_A%s[9][20][20]=", RunName)<<endl; }
+  if(Method == 4) { out<<Form("static double zdc_shift_A%s[9][20][20]=", RunName)<<endl; }
 
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
@@ -137,15 +146,19 @@ int shift_getAB()
 
 /*
   // write function for other side
-  if(Method == 2) { out<<Form("double tpc_shift_P%s%s[9][20][20]=", funcBin, JetMethod)<<endl; }
-  //if(Method == 2) { out<<"double tpc_shift_B[9][20][20]="<<endl; } // new
-  if(Method == 3) { out<<"double bbc_shift_B[9][20][20]="<<endl; }
-  if(Method == 4) { out<<"double zdc_shift_B[9][20][20]="<<endl; }
+  if(Method == 2) { out<<Form("static double tpc_shift_P%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; }
+  //if(Method == 2) { out<<Form("static double tpc_shift_B%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; } // new
+  if(Method == 3) { out<<Form("static double bbc_shift_B%s[9][20][20]=", RunName)<<endl; }
+  if(Method == 4) { out<<Form("static double zdc_shift_B%s[9][20][20]=", RunName)<<endl; }
 */
 
-  if(Method == 2) { out<<Form("static constexpr double tpc_shift_P%s%s[9][20][20]=", funcBin, JetMethod)<<endl; }
-  if(Method == 3) { out<<"static constexpr double bbc_shift_B[9][20][20]="<<endl; }
-  if(Method == 4) { out<<"static constexpr double zdc_shift_B[9][20][20]="<<endl; }
+//  if(Method == 2) { out<<Form("static constexpr double tpc_shift_P%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; }
+//  if(Method == 3) { out<<Form("static constexpr double bbc_shift_B%s[9][20][20]=", RunName)<<endl; }
+//  if(Method == 4) { out<<Form("static constexpr double zdc_shift_B%s[9][20][20]=", RunName)<<endl; }
+
+  if(Method == 2) { out<<Form("static double tpc_shift_P%s%s%s[9][20][20]=", funcBin, JetMethod, RunName)<<endl; }
+  if(Method == 3) { out<<Form("static double bbc_shift_B%s[9][20][20]=", RunName)<<endl; }
+  if(Method == 4) { out<<Form("static double zdc_shift_B%s[9][20][20]=", RunName)<<endl; }
 
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
@@ -157,9 +170,6 @@ int shift_getAB()
       }
     }
   }
-  out<<"};"<<endl;
-
-  // added Feb6
   out<<"};"<<endl;
   out<<"#endif"<<endl;
 

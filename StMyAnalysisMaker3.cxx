@@ -950,6 +950,11 @@ Int_t StMyAnalysisMaker3::Make() {
       if(fTPCptAssocBin == 2) dEP = dEP2;
       if(fTPCptAssocBin == 3) dEP = dEP3;
       if(fTPCptAssocBin == 4) dEP = dEP4;
+
+      double tempRP = GetReactionPlane();
+      double tempdRP = RelativeEPJET(jetPhi, tempRP);
+      if(fDebugLevel == kDebugJetvsEPtype) cout<<"jetPhi = "<<jetPhi<<"  RP = "<<tempRP<<"  bin0 = "<<tpc2EP_bin0<<"  bin1 = "<<tpc2EP_bin1<<"  bin2 = "<<tpc2EP_bin2<<"  bin3 = "<<tpc2EP_bin3<<"  bin4 = "<<tpc2EP_bin4<<endl;
+      if(fDebugLevel == kDebugJetvsEPtype) cout<<"tempdRP = "<<tempdRP<<"  dEP0: "<<dEP0<<"  dEP1: "<<dEP1<<"  dEP2: "<<dEP2<<"  dEP3: "<<dEP3<<"  dEP4: "<<dEP4<<endl;
     }
     //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<endl; // - test statement
 
@@ -1786,7 +1791,7 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
     if(phi > 2*pi) phi -= 2*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
-    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    if(fExcludeLeadingJetsFromFit > 0 && fLeadingJet && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
     // configure track weight when performing Q-vector summation
     double trackweight;

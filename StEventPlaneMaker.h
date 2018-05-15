@@ -97,6 +97,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
 
     // jet switches
+    virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
@@ -259,8 +260,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     // histograms
     TH1F* hEventPlane;//!   
     TH1F* hEventPlaneWeighted;//!
-    TH2F* fHistEPTPCnAlt;//!
-    TH2F* fHistEPTPCpAlt;//!
     TH2F* fHistEPTPCn;//!
     TH2F* fHistEPTPCp;//!
     TH2F* fHistEPBBC;//!

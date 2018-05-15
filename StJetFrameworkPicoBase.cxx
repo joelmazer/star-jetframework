@@ -70,6 +70,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
+  fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
   fTowerBias(0.2),
@@ -126,6 +127,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
   doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
+  fJetType(0), 
   fMinPtJet(0.0),
   fTrackBias(0.2),
   fTowerBias(0.2),

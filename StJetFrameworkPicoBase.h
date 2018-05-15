@@ -182,6 +182,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
     // jet setters
+    virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
@@ -266,6 +267,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               zVtx;                    // z-vertex component
 
     // cuts
+    Int_t                  fJetType;                // jet type (full, charged, neutral)
     Double_t               fMinPtJet;               // min jet pt to keep jet in output
     Double_t               fJetConstituentCut;      // min jet constituent
     Double_t               fTrackBias;              // high pt track in jet bias

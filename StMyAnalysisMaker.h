@@ -48,7 +48,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
       kDebugEmcTrigger,
       kDebugGeneralEvt,
       kDebugCentrality,
-      kDebugEventPlaneCalc
+      kDebugEventPlaneCalc,
+      kDebugJetvsEPtype
     };
 
     // enumerator for TPC event plane method
@@ -104,6 +105,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
+    virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
@@ -170,6 +172,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
     void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
     virtual void            SetdoReadCalibFilei(Bool_t rc)                  {doReadCalibFile = rc; } 
+    virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin

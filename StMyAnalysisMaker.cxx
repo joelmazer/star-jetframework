@@ -148,6 +148,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
+  fJetType = 0;  // full is default
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -181,6 +182,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
+  fEventPlaneMakerName = "";
 
   //if(doEventPlaneCorrections) 
   InitParameters();
@@ -443,15 +445,20 @@ Int_t StMyAnalysisMaker::Finish() {
   }
 
   //  Write event plane histos to file and close it.
-  if(mOutNameEP!="") {
-    //TFile *foutEP = new TFile(mOutName.Data(), "UPDATE");
-    TFile *foutEP = new TFile(mOutNameEP.Data(), "RECREATE");
+  ///if(mOutNameEP!="") {  ///
+  if(mOutName!="") {
+    TFile *foutEP = new TFile(mOutName.Data(), "UPDATE");
+    ///TFile *foutEP = new TFile(mOutNameEP.Data(), "RECREATE"); ///
     foutEP->cd();
-    //foutEP->mkdir(fAnalysisMakerName);
-    //foutEP->cd(fAnalysisMakerName);
-    WriteEventPlaneHistograms();
+    //foutEP->mkdir(fAnalysisMakerName); ///
+    //foutEP->cd(fAnalysisMakerName);    ///
+    foutEP->mkdir(fEventPlaneMakerName); // new May14
+    foutEP->cd(fEventPlaneMakerName);    // new May14
 
-    //foutEP->cd();
+    WriteEventPlaneHistograms();
+    foutEP->cd();                        // new May14
+
+    //foutEP->cd();  
     foutEP->Write();
     foutEP->Close();
   }
@@ -848,7 +855,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   UInt_t bitcodeEP = 0; // bit coded, see GetDimparamsEP() below
   bitcodeEP = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7;
-  fhnEP = NewTHnSparseF("fhnEP", bitcodeEP);
+  // fhnEP = NewTHnSparseF("fhnEP", bitcodeEP); // bug found May14 - this was not even used
+  fhnEP = NewTHnSparseEP("fhnEP", bitcodeEP);
 
   // Switch on Sumw2 for all histos - (except profiles)
   SetSumw2();
@@ -915,7 +923,7 @@ void StMyAnalysisMaker::WriteHistograms() {
   fhnJH->Write();
   fhnMixedEvents->Write();
   fhnCorr->Write();
-  fhnEP->Write();
+  //fhnEP->Write();
 
   // (perhaps temp - save resolution hists to main output file instead of event plane calibration file)
   if(doEventPlaneRes){
@@ -1249,6 +1257,7 @@ Int_t StMyAnalysisMaker::Make() {
     // 1) get z-vertex binning
     // 2) call BBC_EP_Cal to calculate corrections for BBC event plane
     // 3) call ZDC_EP_Cal to calculate corrections for ZDC event plane
+    // 4) call EventPlaneCal to calculate corrections for TPC event plane
 
     //if(ref9 < 0) return kStOK;    // >80% centrality;
     int region_vz = GetVzRegion(zVtx);
@@ -1349,7 +1358,7 @@ Int_t StMyAnalysisMaker::Make() {
     double jetNEF = jet->NEF();
     //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
     double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
-    //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<endl; // - test statement
+    //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<"  dEP = "<<dEP<<endl; // - test statement
 
     // some threshold cuts
     if(fCorrJetPt) {  // background subtracted jet pt
@@ -1369,7 +1378,6 @@ Int_t StMyAnalysisMaker::Make() {
       StThreeVectorF mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) return kFALSE; // check if primary
-
         // get primary track vector
         mTrkMom = trk->pMom();
       } else {
@@ -1385,6 +1393,10 @@ Int_t StMyAnalysisMaker::Make() {
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
       double jetZ = jet->GetZ(px, py, pz);
+
+      // shift angle (0, 2*pi) 
+      if(phi < 0)    phi += 2*pi;
+      if(phi > 2*pi) phi -= 2*pi;
 
       // fill jet track constituent histograms
       hJetTracksPt->Fill(pt);
@@ -1402,7 +1414,6 @@ Int_t StMyAnalysisMaker::Make() {
       //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
       //int containsTower = jet->ContainsTower(ArrayIndex);
       //cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
-
     }
 
     // fill some histos
@@ -1535,9 +1546,6 @@ Int_t StMyAnalysisMaker::Make() {
     TObjArray* bgTracks;
 
   // do event mixing when Signal Jet is part of event with a HT1 or HT2 or HT3 trigger firing
-  //FIXME FIXME FIXME
-  //if(fEmcTriggerArr[fEmcTriggerEventType]) {  // RUN14
-  //if(fHaveEmcTrigger) { // RUN16  - commented out March17, 2018
   if(doJetAnalysis) { // trigger type requested was fired for this event - do mixing
     if(pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
@@ -1575,8 +1583,9 @@ Int_t StMyAnalysisMaker::Make() {
         //cout<<"nMix = "<<nMix<<endl;
 
         // Fill for biased jet triggers only
-        //FIXME if ((jet->MaxTrackPt()>fTrkBias) || (jet->MaxClusterPt()>fClusBias)) {  // && jet->Pt() > fJetPtcut) {
-        if(jet->GetMaxTrackPt() > fTrackBias) {
+        //if ((jet->MaxTrackPt()>fTrkBias) || (jet->MaxClusterPt()>fClusBias)) {  // && jet->Pt() > fJetPtcut) {
+        ///if(jet->GetMaxTrackPt() > fTrackBias) {  // update May14, 2018
+        if((jet->GetMaxTrackPt() > fTrackBias) || (jet->GetMaxTowerE() > fTowerBias)) {
           // Fill mixed-event histos here: loop over nMix events
           for(int jMix = 0; jMix < nMix; jMix++) {
  
@@ -2425,7 +2434,7 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
     if(phi > 2*pi) phi -= 2*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
-    if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    if(fExcludeLeadingJetsFromFit > 0 && (fLeadingJet) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
     // configure track weight when performing Q-vector summation
     double trackweight;
@@ -3883,22 +3892,43 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
           case kRemoveEtaPhiCone:
             if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-                tpc_delta_psi += (tpc_shift_N_bin0_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                  tpc_shift_P_bin0_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                tpc_delta_psi += (tpc_shift_N_bin1_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                  tpc_shift_P_bin1_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                tpc_delta_psi += (tpc_shift_N_bin2_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                  tpc_shift_P_bin2_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                tpc_delta_psi += (tpc_shift_N_bin3_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                  tpc_shift_P_bin3_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                tpc_delta_psi += (tpc_shift_N_bin4_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                  tpc_shift_P_bin4_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
-              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              if(fJetType == kFullJet) {
+                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin0_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin0_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin1_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin1_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin2_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin2_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin3_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin3_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin4_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin4_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              } // full jets
+
+              if(fJetType == kChargedJet) {
+                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin0_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin0_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin1_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin1_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin2_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin2_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin3_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin3_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin4_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin4_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              } // charged jets
             }
 
             if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
@@ -4070,6 +4100,8 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
+    if(phi < -2*pi) cout<<"phi < 2pi, how the hell"<<endl;
+
     if(phi < 0) phi += 2*pi;
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
@@ -4232,22 +4264,43 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
             case kRemoveEtaPhiCone:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-                  x -= tpc_center_Qpx_bin0_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qpy_bin0_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                  x -= tpc_center_Qpx_bin1_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qpy_bin1_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                  x -= tpc_center_Qpx_bin2_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qpy_bin2_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                  x -= tpc_center_Qpx_bin3_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qpy_bin3_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                  x -= tpc_center_Qpx_bin4_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qpy_bin4_Method2_Run14[ref9][region_vz];
-                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                if(fJetType == kFullJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qpx_bin0_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin0_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qpx_bin1_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin1_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qpx_bin2_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin2_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qpx_bin3_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin3_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qpx_bin4_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin4_Method2_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // full jets
+
+                if(fJetType == kChargedJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qpx_bin0_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin0_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qpx_bin1_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin1_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qpx_bin2_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin2_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qpx_bin3_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin3_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qpx_bin4_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin4_Method2ch_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // charged jets
               }
 
               if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
@@ -4313,22 +4366,43 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
             case kRemoveEtaPhiCone:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-                  x -= tpc_center_Qnx_bin0_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qny_bin0_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                  x -= tpc_center_Qnx_bin1_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qny_bin1_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                  x -= tpc_center_Qnx_bin2_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qny_bin2_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                  x -= tpc_center_Qnx_bin3_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qny_bin3_Method2_Run14[ref9][region_vz];
-                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                  x -= tpc_center_Qnx_bin4_Method2_Run14[ref9][region_vz];
-                  y -= tpc_center_Qny_bin4_Method2_Run14[ref9][region_vz];
-                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                if(fJetType == kFullJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qnx_bin0_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin0_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qnx_bin1_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin1_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qnx_bin2_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin2_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qnx_bin3_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin3_Method2_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qnx_bin4_Method2_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin4_Method2_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // full jets
+
+                if(fJetType == kChargedJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qnx_bin0_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin0_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qnx_bin1_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin1_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qnx_bin2_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin2_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qnx_bin3_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin3_Method2ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qnx_bin4_Method2ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin4_Method2ch_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // charged jets
               }
 
               if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {

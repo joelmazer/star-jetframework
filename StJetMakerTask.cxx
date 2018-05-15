@@ -289,9 +289,13 @@ Int_t StJetMakerTask::Init() {
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
         if(fBadTowerListVers == 1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
         if(fBadTowerListVers == 2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
+        if(fBadTowerListVers == 3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
+        if(fBadTowerListVers == 79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
+
         if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
         if(fBadTowerListVers == 5)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
+
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
@@ -696,7 +700,7 @@ void StJetMakerTask::FindJets()
         mTowerStatusArr[towID] = kTRUE;
         matchedTowerTrackCounter++;
       } // when tracks meet cuts, save matching to arrays
-    }
+    } // PIDTraits loop
 
     // loop over towers and add input vectors to fastjet
     int nTowers = mPicoDst->numberOfBTOWHits();

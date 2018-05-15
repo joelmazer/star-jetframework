@@ -5,7 +5,7 @@
 int tpc_recenter_getNP()
 {
   // pt bin methods
-  int ptbin = 4;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
+  int ptbin = 0;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
   bool appendDate = kTRUE;
 
   // append bin for pt assoc bins to file name
@@ -15,7 +15,10 @@ int tpc_recenter_getNP()
   // append date to file name:  TODO - update every time!
   const char *funcDate = "";
   //if(appendDate) { funcDate = Form("_STEP1_Jan20"); }
-  if(appendDate) { funcDate = Form("_STEP1_Feb1"); }
+  //if(appendDate) { funcDate = Form("_STEP1_Feb1"); }
+  //if(appendDate) { funcDate = Form("_STEP1_March30"); }
+  //if(appendDate) { funcDate = Form("_STEP1_April28"); }
+  if(appendDate) { funcDate = Form("_STEP1_May14"); }
 
   cout<<"funcbin = "<<funcBin<<endl;
   cout<<"funcDate = "<<funcDate<<endl;
@@ -27,13 +30,16 @@ int tpc_recenter_getNP()
   // "Method5": kRemoveEtaPhiConeLeadSub
   // "Method6": kRemoveLeadingSubJetConstituents
   const char *JetMethod = "";
-  JetMethod = "_Method1";
+  // add "_ch" to end for charged only jets
+  JetMethod = "_Method2ch_Run14"; // for charged jets
+  //JetMethod = "_Method2_Run14";  // TODO this will change for different methods
 
   // input calibration file with histograms
   //	TFile *f = new TFile("./Q_recentered.root");
   //TFile *f = new TFile("./after_recenter.root");
   //TFile *f = new TFile("./before_shift.root");
-  TFile *f = new TFile(Form("./recenter_calib_file%s%s.root", funcBin, funcDate)); 
+  //TFile *f = new TFile(Form("./recenter_calib_file%s%s.root", funcBin, funcDate)); 
+  TFile *f = new TFile(Form("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file%s%s.root", funcBin, funcDate));
 
   // output file
   ofstream out(Form("tpc_recenter_data%s%s.h", funcBin, JetMethod));
@@ -71,8 +77,14 @@ int tpc_recenter_getNP()
     }
   }
 
+  // add text to beginning of header to avoid linker problems
+  out<<(Form("#ifndef tpc_recenter_data%s%s_h", funcBin, JetMethod))<<endl;
+  out<<(Form("#define tpc_recenter_data%s%s_h", funcBin, JetMethod))<<endl;
+  out<<endl;
+
   // write function for one side:  center_Qnx
-  out<<Form("double tpc_center_Qnx%s%s[9][20]=", funcBin, JetMethod)<<endl;
+  // added static on March31
+  out<<Form("static double tpc_center_Qnx%s%s[9][20]=", funcBin, JetMethod)<<endl;
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
     for(int j=0; j<20; j++) {
@@ -84,7 +96,8 @@ int tpc_recenter_getNP()
   out<<"};"<<endl;
 
   // write function for one side:  center_Qny
-  out<<Form("double tpc_center_Qny%s%s[9][20]=", funcBin, JetMethod)<<endl;
+  // added static on March31
+  out<<Form("static double tpc_center_Qny%s%s[9][20]=", funcBin, JetMethod)<<endl;
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
     for(int j=0; j<20; j++) {
@@ -96,7 +109,8 @@ int tpc_recenter_getNP()
   out<<"};"<<endl;
 
   // write function for one side:  center_Qpx
-  out<<Form("double tpc_center_Qpx%s%s[9][20]=", funcBin, JetMethod)<<endl;
+  // added static on March31
+  out<<Form("static double tpc_center_Qpx%s%s[9][20]=", funcBin, JetMethod)<<endl;
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
     for(int j=0; j<20; j++) {
@@ -108,7 +122,8 @@ int tpc_recenter_getNP()
   out<<"};"<<endl;
 
   // write function for one side:  center_Qpy
-  out<<Form("double tpc_center_Qpy%s%s[9][20]=", funcBin, JetMethod)<<endl;
+  // added static on March31
+  out<<Form("static double tpc_center_Qpy%s%s[9][20]=", funcBin, JetMethod)<<endl;
   out<<"{"<<endl;
   for(int i=0; i<9; i++) {
     for(int j=0; j<20; j++) {
@@ -118,6 +133,7 @@ int tpc_recenter_getNP()
     }
   }
   out<<"};"<<endl;
+  out<<"#endif"<<endl;
 
   // outfile.close();
   return 0;
