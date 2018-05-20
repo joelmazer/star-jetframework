@@ -150,6 +150,8 @@ Int_t StAnMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break; // added May20
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }

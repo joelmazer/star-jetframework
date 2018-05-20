@@ -71,6 +71,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // booking of histograms (optional)
     void    DeclareHistograms();
     void    WriteHistograms();
+    void    WriteTrackQAHistograms();
+    void    WriteJetEPQAHistograms();
 
     // THnSparse Setup
     virtual THnSparse*      NewTHnSparseF(const char* name, UInt_t entries);
@@ -86,7 +88,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
+    virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
+    virtual void            SetWriteJetQAHistograms(Bool_t w)  { doWriteJetQAHist = w; }
 
+    // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
@@ -154,6 +159,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // Where to read calib object with EP calibration if not default
     void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
     void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
+    void                    SetOutFileNameQA(TString QAout)                 {mOutNameQA = QAout; }
 
     virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
@@ -164,10 +170,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
     Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     void                    SetSumw2(); // set errors weights 
-    void                    SetEPSumw2(); // set errors weights for event plane histograms
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
     static Double_t         CalculateEventPlaneChi(Double_t res);
+    void                    TrackQA();
 
     // Added from Liang
     void                    QvectorCal(int ref9, int region_vz, int n, int ptbin);
@@ -181,6 +187,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
 
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
+    Bool_t                  doWriteTrackQAHist;      // write track QA histograms
+    Bool_t                  doWriteJetQAHist;        // write jet QA histograms
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
     Bool_t                  doEventPlaneRes;         // event plane resolution switch
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
@@ -275,7 +283,9 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F* hMultiplicity;//!
     TH2F* hRhovsCent;//!
     TH1F* hTrackPhi[9];//!
+    TH1F* hTrackEta[9];//!
     TH1F* hTrackPt[9];//!
+    TH2F* hTrackEtavsPhi;//!
 
     // jet histos
     TH1F* hJetPt;//!
@@ -291,6 +301,24 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F* hJetTracksEta;//!
     TH1F* hJetTracksZ;//!
     TH2F* hJetPtvsArea;//!
+    TH1F* hJetEventEP;//!
+    TH2F* hJetPhivsEP;//!
+
+    TH1F* hJetPtIn;//!
+    TH1F* hJetPhiIn;//!
+    TH1F* hJetEtaIn;//!
+    TH1F* hJetEventEPIn;//!
+    TH2F* hJetPhivsEPIn;//!
+    TH1F* hJetPtMid;//!
+    TH1F* hJetPhiMid;//!
+    TH1F* hJetEtaMid;//!
+    TH1F* hJetEventEPMid;//!
+    TH2F* hJetPhivsEPMid;//!
+    TH1F* hJetPtOut;//!
+    TH1F* hJetPhiOut;//!
+    TH1F* hJetEtaOut;//!
+    TH1F* hJetEventEPOut;//!
+    TH2F* hJetPhivsEPOut;//!
 
     // correlation histo
     TH2  *fHistJetHEtaPhi;//!

@@ -325,6 +325,8 @@ Int_t StEventPlaneMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break; // added May20
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -652,8 +654,8 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
 
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
-    hTrackPhi[i]->Write();
-    hTrackPt[i]->Write();
+    //hTrackPhi[i]->Write();  // comment out May 17 TODO
+    //hTrackPt[i]->Write();   // comment out May 17 TODO
   }
 
   // QA histos
@@ -1362,8 +1364,8 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     if(phi > 2*pi) phi -= 2*pi;
     // FIXME - temp - but fill before pt max cut
     //if(method == 1) {
-      hTrackPhi[ref9]->Fill(phi);
-      hTrackPt[ref9]->Fill(pt);
+    //  hTrackPhi[ref9]->Fill(phi);// comment out May 17
+    //  hTrackPt[ref9]->Fill(pt);  // comment out May 17
     //}
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     ////if(pt > ptcut) continue; // == TEST == //
@@ -2781,6 +2783,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
                 } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
               }
               break;
+
             case kRemoveLeadingJetConstituents:
               // dothis
               break;

@@ -137,11 +137,17 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   grefmultCorr = 0;
   mOutName = outName;
   mOutNameEP = "";
+  mOutNameQA = "";
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   doPrintEventCounter = kFALSE;
   fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fRequireCentSelection = kFALSE;
+  fCentralitySelectionCut = -99;
+  doWriteTrackQAHist = kTRUE;
+  doWriteJetQAHist = kTRUE;
+  doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -216,8 +222,10 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hRhovsCent;
   for(int i=0; i<9; i++){ // centrality
     delete hTrackPhi[i];
+    delete hTrackEta[i];
     delete hTrackPt[i];
   }
+  delete hTrackEtavsPhi;
 
   delete hJetPt;
   delete hJetCorrPt;
@@ -232,6 +240,25 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   delete hJetTracksEta;
   delete hJetTracksZ;
   delete hJetPtvsArea;
+  delete hJetEventEP;
+  delete hJetPhivsEP;
+
+  delete hJetPtIn;
+  delete hJetPhiIn;
+  delete hJetEtaIn;
+  delete hJetEventEPIn;
+  delete hJetPhivsEPIn;
+  delete hJetPtMid;
+  delete hJetPhiMid;
+  delete hJetEtaMid;
+  delete hJetEventEPMid;
+  delete hJetPhivsEPMid;
+  delete hJetPtOut;
+  delete hJetPhiOut;
+  delete hJetEtaOut;
+  delete hJetEventEPOut;
+  delete hJetPhivsEPOut;
+
   delete fHistJetHEtaPhi;
   delete fHistEventSelectionQA;
   delete fHistEventSelectionQAafterCuts;
@@ -411,6 +438,8 @@ Int_t StMyAnalysisMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break; // added May20
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -442,6 +471,31 @@ Int_t StMyAnalysisMaker::Finish() {
     fout->cd();
     fout->Write();
     fout->Close();
+  }
+
+  //  Write QA histos to file and close it.
+  if(mOutNameQA!="") {
+    TFile *fQAout = new TFile(mOutNameQA.Data(), "UPDATE");
+    fQAout->cd();
+
+    // track QA
+    if(doWriteTrackQAHist) {
+      fQAout->mkdir(Form("TrackQA"));
+      fQAout->cd(Form("TrackQA"));
+      WriteTrackQAHistograms();
+      fQAout->cd();
+    }
+
+    // jet QA
+    if(doWriteJetQAHist) {
+      fQAout->mkdir(Form("JetEPQA"));
+      fQAout->cd(Form("JetEPQA"));
+      WriteJetEPQAHistograms();
+      fQAout->cd();
+    }
+
+    fQAout->Write();
+    fQAout->Close();
   }
 
   //  Write event plane histos to file and close it.
@@ -508,8 +562,10 @@ void StMyAnalysisMaker::DeclareHistograms() {
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
+    hTrackEta[i] = new TH1F(Form("hTrackEta%d", i), Form("track distribution vs #eta, centr%d", i), 40, -1.0, 1.0);
     hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 80, 0., 20.0);
   }
+  hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
 
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
@@ -525,6 +581,26 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
   hJetTracksZ = new TH1F("hJetTracksZ", "Jet track fragmentation function", 144, 0, 1.44);
   hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
+  hJetEventEP = new TH1F("hJetEventEP", "no of jet events vs event plane", 72, 0.0, 1.0*pi);
+  hJetPhivsEP = new TH2F("hJetPhivsEP", "Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+
+  hJetPtIn = new TH1F("hJetPtIn", "no of jets in-plane vs p_{T}", 100, 0.0, 100);
+  hJetPhiIn = new TH1F("hJetPhiIn", "no of jets in-plane vs #phi", 72, 0.0, 2.0*pi);
+  hJetEtaIn = new TH1F("hJetEtaIn", "no of jets in-plane vs #eta", 40, -1.0, 1.0);
+  hJetEventEPIn = new TH1F("hJetEventEPIn", "no of in-plane jet events vs event plane", 72, 0.0, 1.0*pi);
+  hJetPhivsEPIn = new TH2F("hJetPhivsEPIn", "in-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+
+  hJetPtMid = new TH1F("hJetPtMid", "no of jets mid-plane vs p_{T}", 100, 0.0, 100);
+  hJetPhiMid = new TH1F("hJetPhiMid", "no of jets mid-plane vs #phi", 72, 0.0, 2.0*pi);
+  hJetEtaMid = new TH1F("hJetEtaMid", "no of jets mid-plane vs #eta", 40, -1.0, 1.0);
+  hJetEventEPMid = new TH1F("hJetEventEPMid", "no of mid-plane jet events vs event plane", 72, 0.0, 1.0*pi);
+  hJetPhivsEPMid = new TH2F("hJetPhivsEPMid", "mid-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+
+  hJetPtOut = new TH1F("hJetPtOut", "no of jets out-of-plane vs p_{T}", 100, 0.0, 100);
+  hJetPhiOut = new TH1F("hJetPhiOut", "no of jets out-of-plane vs #phi", 72, 0.0, 2.0*pi);
+  hJetEtaOut = new TH1F("hJetEtaOut", "no of jets out-of-plane vs #eta", 40, -1.0, 1.0);
+  hJetEventEPOut = new TH1F("hJetEventEPOut", "no of out-of-plane jet events vs event plane", 72, 0.0, 1.0*pi);
+  hJetPhivsEPOut = new TH2F("hJetPhivsEPOut", "out-of-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
 
   fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
@@ -863,6 +939,38 @@ void StMyAnalysisMaker::DeclareHistograms() {
   SetEPSumw2();
 }
 
+// write track QA histograms
+//_____________________________________________________________________________
+void StMyAnalysisMaker::WriteTrackQAHistograms() {
+  // track phi distribution for centrality
+  for(int i=0; i<9; i++){ // centrality
+    hTrackPhi[i]->Write();
+    hTrackEta[i]->Write();
+    hTrackPt[i]->Write();
+  }
+  hTrackEtavsPhi->Write();
+}
+
+// write Jet event plane QA histograms
+//______________________________________________________________________________
+void StMyAnalysisMaker::WriteJetEPQAHistograms() {
+  hJetPtIn->Write();
+  hJetPhiIn->Write();
+  hJetEtaIn->Write();
+  hJetEventEPIn->Write();
+  hJetPhivsEPIn->Write();
+  hJetPtMid->Write();
+  hJetPhiMid->Write();
+  hJetEtaMid->Write();
+  hJetEventEPMid->Write();
+  hJetPhivsEPMid->Write();
+  hJetPtOut->Write();
+  hJetPhiOut->Write();
+  hJetEtaOut->Write();
+  hJetEventEPOut->Write();
+  hJetPhivsEPOut->Write();
+}
+
 // write histograms
 //_____________________________________________________________________________
 void StMyAnalysisMaker::WriteHistograms() {
@@ -884,12 +992,6 @@ void StMyAnalysisMaker::WriteHistograms() {
   hMultiplicity->Write();
   hRhovsCent->Write();
 
-  // track phi distribution for centrality
-  for(int i=0; i<9; i++){ // centrality
-    hTrackPhi[i]->Write();
-    hTrackPt[i]->Write();
-  }
-
   // jet histos
   hJetPt->Write();
   hJetCorrPt->Write();
@@ -904,6 +1006,24 @@ void StMyAnalysisMaker::WriteHistograms() {
   hJetTracksEta->Write();
   hJetTracksZ->Write();
   hJetPtvsArea->Write();
+  hJetEventEP->Write();
+  hJetPhivsEP->Write();
+  hJetPtIn->Write();
+  hJetPhiIn->Write();
+  hJetEtaIn->Write();
+  hJetEventEPIn->Write();
+  hJetPhivsEPIn->Write();
+  hJetPtMid->Write();
+  hJetPhiMid->Write();
+  hJetEtaMid->Write();
+  hJetEventEPMid->Write();
+  hJetPhivsEPMid->Write();
+  hJetPtOut->Write();
+  hJetPhiOut->Write();
+  hJetEtaOut->Write();
+  hJetEventEPOut->Write();
+  hJetPhivsEPOut->Write();
+
   fHistJetHEtaPhi->Write();
 
   // QA histos
@@ -1323,6 +1443,10 @@ Int_t StMyAnalysisMaker::Make() {
 
   // ===================================================================================
 
+  // run Track QA and fill histograms
+  if(doWriteTrackQAHist) TrackQA();
+
+
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
   const Int_t ntracks = mPicoDst->numberOfTracks();
@@ -1425,6 +1549,29 @@ Int_t StMyAnalysisMaker::Make() {
     hJetNEF->Fill(jetNEF);
     hJetArea->Fill(jetarea);
     hJetPtvsArea->Fill(jetpt, jetarea);
+    hJetEventEP->Fill(TPC_PSI2);
+    hJetPhivsEP->Fill(TPC_PSI2, jetPhi);
+
+    // fill some jet QA plots for each orientation
+    if(dEP >= 0 && dEP < 1.0*pi/6.0) {
+      hJetPtIn->Fill(jetpt);
+      hJetPhiIn->Fill(jetPhi);
+      hJetEtaIn->Fill(jetEta);
+      hJetEventEPIn->Fill(TPC_PSI2);
+      hJetPhivsEPIn->Fill(jetPhi, TPC_PSI2);
+    } else if(dEP >= 1.0*pi/6.0 && dEP < 2.0*pi/6.0) {
+      hJetPtMid->Fill(jetpt);
+      hJetPhiMid->Fill(jetPhi);
+      hJetEtaMid->Fill(jetEta);
+      hJetEventEPMid->Fill(TPC_PSI2);
+      hJetPhivsEPMid->Fill(jetPhi, TPC_PSI2);
+    } else if(dEP >= 2.0*pi/6.0 && dEP <= 3.0*pi/6.0) {
+      hJetPtOut->Fill(jetpt);
+      hJetPhiOut->Fill(jetPhi);
+      hJetEtaOut->Fill(jetEta);
+      hJetEventEPOut->Fill(TPC_PSI2);
+      hJetPhivsEPOut->Fill(jetPhi, TPC_PSI2);
+    }
 
     // get nTracks and maxTrackPt
     double maxtrackpt = jet->GetMaxTrackPt();
@@ -1676,12 +1823,8 @@ Int_t StMyAnalysisMaker::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
   Int_t centbin = -1;
 
-  if(nBin == 16) {
-    centbin = nBin - 1 - cent;
-  }
-  if(nBin == 9) {
-    centbin = nBin - 1 - cent;
-  }
+  if(nBin == 16) { centbin = nBin - 1 - cent; }
+  if(nBin ==  9) { centbin = nBin - 1 - cent; }
 
   return centbin;
 }
@@ -1690,30 +1833,29 @@ Int_t StMyAnalysisMaker::GetCentBin(Int_t cent, Int_t nBin) const
 TString StMyAnalysisMaker::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag)
 {
   TString algoString;
-  switch (jetAlgo)
-  {
-  case kt_algorithm:
-    algoString = "KT";
-    break;
-  case antikt_algorithm:
-    algoString = "AKT";
-    break;
-  default:
-    ::Warning("StMyAnalysisMaker::GenerateJetName", "Unknown jet finding algorithm '%d'!", jetAlgo);
-    algoString = "";
+  switch (jetAlgo) {
+      case kt_algorithm:
+        algoString = "KT";
+        break;
+      case antikt_algorithm:
+        algoString = "AKT";
+        break;
+      default:
+        ::Warning("StMyAnalysisMaker::GenerateJetName", "Unknown jet finding algorithm '%d'!", jetAlgo);
+        algoString = "";
   }
 
   TString typeString;
   switch (jetType) {
-  case kFullJet:
-    typeString = "Full";
-    break;
-  case kChargedJet:
-    typeString = "Charged";
-    break;
-  case kNeutralJet:
-    typeString = "Neutral";
-    break;
+      case kFullJet:
+        typeString = "Full";
+        break;
+      case kChargedJet:
+        typeString = "Charged";
+        break;
+      case kNeutralJet:
+        typeString = "Neutral";
+        break;
   }
 
   TString radiusString = TString::Format("R%03.0f", radius*100.0);
@@ -1730,32 +1872,32 @@ TString StMyAnalysisMaker::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlg
 
   TString recombSchemeString;
   switch (recoScheme) {
-  case E_scheme:
-    recombSchemeString = "E_scheme";
-    break;
-  case pt_scheme:
-    recombSchemeString = "pt_scheme";
-    break;
-  case pt2_scheme:
-    recombSchemeString = "pt2_scheme";
-    break;
-  case Et_scheme:
-    recombSchemeString = "Et_scheme";
-    break;
-  case Et2_scheme:
-    recombSchemeString = "Et2_scheme";
-    break;
-  case BIpt_scheme:
-    recombSchemeString = "BIpt_scheme";
-    break;
-  case BIpt2_scheme:
-    recombSchemeString = "BIpt2_scheme";
-    break;
-  case external_scheme:
-    recombSchemeString = "ext_scheme";
-    break;
-  default:
-    ::Error("StMyAnalysisMaker::GenerateJetName", "Recombination %d scheme not recognized.", recoScheme);
+      case E_scheme:
+        recombSchemeString = "E_scheme";
+        break;
+      case pt_scheme:
+        recombSchemeString = "pt_scheme";
+        break;
+      case pt2_scheme:
+        recombSchemeString = "pt2_scheme";
+        break;
+      case Et_scheme:
+        recombSchemeString = "Et_scheme";
+        break;
+      case Et2_scheme:
+        recombSchemeString = "Et2_scheme";
+        break;
+      case BIpt_scheme:
+        recombSchemeString = "BIpt_scheme";
+        break;
+      case BIpt2_scheme:
+        recombSchemeString = "BIpt2_scheme";
+        break;
+      case external_scheme:
+        recombSchemeString = "ext_scheme";
+        break;
+      default:
+        ::Error("StMyAnalysisMaker::GenerateJetName", "Recombination %d scheme not recognized.", recoScheme);
   }
 
   TString name = TString::Format("%s_%s%s%s%s%s_%s",
@@ -2627,8 +2769,10 @@ void StMyAnalysisMaker::SetSumw2() {
   //hRhovsCent->Sumw2();
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Sumw2();
+    hTrackEta[i]->Sumw2();
     hTrackPt[i]->Sumw2();
   }
+  hTrackEtavsPhi->Sumw2();
 
   hJetPt->Sumw2();
   hJetCorrPt->Sumw2();
@@ -2643,6 +2787,23 @@ void StMyAnalysisMaker::SetSumw2() {
   hJetTracksEta->Sumw2();
   hJetTracksZ->Sumw2();
   hJetPtvsArea->Sumw2();
+  hJetEventEP->Sumw2();
+  hJetPhivsEP->Sumw2();
+  hJetPtIn->Sumw2();
+  hJetPhiIn->Sumw2();
+  hJetEtaIn->Sumw2();
+  hJetEventEPIn->Sumw2();
+  hJetPhivsEPIn->Sumw2();
+  hJetPtMid->Sumw2();
+  hJetPhiMid->Sumw2();
+  hJetEtaMid->Sumw2();
+  hJetEventEPMid->Sumw2();
+  hJetPhivsEPMid->Sumw2();
+  hJetPtOut->Sumw2();
+  hJetPhiOut->Sumw2();
+  hJetEtaOut->Sumw2();
+  hJetEventEPOut->Sumw2();
+  hJetPhivsEPOut->Sumw2();
   fHistJetHEtaPhi->Sumw2();
   //fHistEventSelectionQA->Sumw2();
   //fHistEventSelectionQAafterCuts->Sumw2();
@@ -4623,4 +4784,51 @@ Double_t StMyAnalysisMaker::CalculateEventPlaneChi(Double_t res)
         delta = delta / 2.;
     }
     return chi;
+}
+
+//
+// track QA function to fill some histograms with track information
+//
+//_____________________________________________________________________________
+void StMyAnalysisMaker::TrackQA()
+{
+  // get # of tracks
+  int nTrack = mPicoDst->numberOfTracks();
+  double pi = 1.0*TMath::Pi();
+
+  // loop over all tracks
+  for(int i=0; i<nTrack; i++) {
+    // get tracks
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
+
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) {
+      // get primary track vector
+      mTrkMom = track->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
+    }
+
+    // track variables
+    double pt = mTrkMom.perp();
+    double phi = mTrkMom.phi();
+    double eta = mTrkMom.pseudoRapidity();
+
+    // should set a soft pt range (0.2 - 5.0?)
+    // more acceptance cuts now - after getting 3-vector
+    if(phi < 0) phi += 2*pi;
+    if(phi > 2*pi) phi -= 2*pi;
+
+    hTrackPhi[ref9]->Fill(phi);
+    hTrackEta[ref9]->Fill(eta);
+    hTrackPt[ref9]->Fill(pt);
+    hTrackEtavsPhi->Fill(phi, eta);
+  }
 }  

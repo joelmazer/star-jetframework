@@ -102,6 +102,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   refmultCorr(0),
   refmult2Corr(0),
   mOutName(""),
+  mOutNameEP(""),
+  mOutNameQA(""),
   fJetMakerName(""),
   fJetBGMakerName(""),
   fRhoMakerName(""),
@@ -127,7 +129,6 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
   doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
-  fJetType(0), 
   fMinPtJet(0.0),
   fTrackBias(0.2),
   fTowerBias(0.2),
@@ -159,6 +160,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   refmultCorr(0),
   refmult2Corr(0),
   mOutName(""),
+  mOutNameEP(""),
+  mOutNameQA(""),
   fJetMakerName(""),
   fJetBGMakerName(""),
   fRhoMakerName(""),
@@ -234,6 +237,8 @@ Int_t StJetFrameworkPicoBase::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break;  // added May20
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -299,30 +304,29 @@ Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
 TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag)
 {
   TString algoString;
-  switch (jetAlgo)
-  {
-  case kt_algorithm:
-    algoString = "KT";
-    break;
-  case antikt_algorithm:
-    algoString = "AKT";
-    break;
-  default:
-    ::Warning("StJetFrameworkPicoBase::GenerateJetName", "Unknown jet finding algorithm '%d'!", jetAlgo);
-    algoString = "";
+  switch (jetAlgo) {
+      case kt_algorithm:
+        algoString = "KT";
+        break;
+      case antikt_algorithm:
+        algoString = "AKT";
+        break;
+      default:
+        ::Warning("StJetFrameworkPicoBase::GenerateJetName", "Unknown jet finding algorithm '%d'!", jetAlgo);
+        algoString = "";
   }
 
   TString typeString;
   switch (jetType) {
-  case kFullJet:
-    typeString = "Full";
-    break;
-  case kChargedJet:
-    typeString = "Charged";
-    break;
-  case kNeutralJet:
-    typeString = "Neutral";
-    break;
+      case kFullJet:
+        typeString = "Full";
+        break;
+      case kChargedJet:
+        typeString = "Charged";
+        break;
+      case kNeutralJet:
+        typeString = "Neutral";
+        break;
   }
 
   TString radiusString = TString::Format("R%03.0f", radius*100.0);
@@ -339,32 +343,32 @@ TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t j
 
   TString recombSchemeString;
   switch (recoScheme) {
-  case E_scheme:
-    recombSchemeString = "E_scheme";
-    break;
-  case pt_scheme:
-    recombSchemeString = "pt_scheme";
-    break;
-  case pt2_scheme:
-    recombSchemeString = "pt2_scheme";
-    break;
-  case Et_scheme:
-    recombSchemeString = "Et_scheme";
-    break;
-  case Et2_scheme:
-    recombSchemeString = "Et2_scheme";
-    break;
-  case BIpt_scheme:
-    recombSchemeString = "BIpt_scheme";
-    break;
-  case BIpt2_scheme:
-    recombSchemeString = "BIpt2_scheme";
-    break;
-  case external_scheme:
-    recombSchemeString = "ext_scheme";
-    break;
-  default:
-    ::Error("StJetFrameworkPicoBase::GenerateJetName", "Recombination %d scheme not recognized.", recoScheme);
+      case E_scheme:
+        recombSchemeString = "E_scheme";
+        break;
+      case pt_scheme:
+        recombSchemeString = "pt_scheme";
+        break;
+      case pt2_scheme:
+        recombSchemeString = "pt2_scheme";
+        break;
+      case Et_scheme:
+        recombSchemeString = "Et_scheme";
+        break;
+      case Et2_scheme:
+        recombSchemeString = "Et2_scheme";
+        break;
+      case BIpt_scheme:
+        recombSchemeString = "BIpt_scheme";
+        break;
+      case BIpt2_scheme:
+        recombSchemeString = "BIpt2_scheme";
+        break;
+      case external_scheme:
+        recombSchemeString = "ext_scheme";
+        break;
+      default:
+        ::Error("StJetFrameworkPicoBase::GenerateJetName", "Recombination %d scheme not recognized.", recoScheme);
   }
 
   TString name = TString::Format("%s_%s%s%s%s%s_%s",
@@ -408,7 +412,7 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
   // test
   if( dphi < 0 || dphi > TMath::Pi()/2 ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
-    cout<<"dPHI not in range [0, 0.5*Pi]!"<<endl;
+    cout<<"dEP not in range [0, 0.5*Pi]!"<<endl;
   }
 
   return dphi;   // dphi in [0, Pi/2]
@@ -940,6 +944,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -955,6 +960,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
+        break; // added May20
   } // RunFlag switch
 
   // return status
@@ -992,6 +998,7 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
           default :  // default to HT2
               if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1007,6 +1014,8 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
           default :  // Run16 only has HT1's
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
         }
+        break; // added May20
+
   } // RunFlag switch
 
   return kFALSE;

@@ -317,6 +317,8 @@ Int_t StPicoTrackClusterQA::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break; // added May20
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -1754,6 +1756,7 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1769,6 +1772,8 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
+        break; // added May20
+
   } // RunFlag switch
 
   // return status
@@ -1806,6 +1811,7 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
           default :  // default to HT2
               if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1821,6 +1827,8 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
           default :  // Run16 only has HT1's
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
         }
+        break; // added May20
+
   } // RunFlag switch
 
   return kFALSE;

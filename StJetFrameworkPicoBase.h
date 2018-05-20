@@ -216,6 +216,7 @@ class StJetFrameworkPicoBase : public StMaker {
     // set names of makers for global use
     virtual void            SetOutputFileName(const char *on)         { mOutName = on; }
     void                    SetOutFileNameEP(TString epout)           { mOutNameEP = epout; }
+    void                    SetOutFileNameQA(TString QAout)           { mOutNameQA = QAout; }
     virtual void            SetJetMakerName(const char *jn)           { fJetMakerName = jn; }
     virtual void            SetJetBGMakerName(const char *bjn)        { fJetBGMakerName = bjn; }
     virtual void            SetRhoMakerName(const char *rn)           { fRhoMakerName = rn; }
@@ -322,6 +323,7 @@ class StJetFrameworkPicoBase : public StMaker {
     // output file name string 
     TString        mOutName;
     TString        mOutNameEP;
+    TString        mOutNameQA;
 
     // maker names
     TString        fJetMakerName;

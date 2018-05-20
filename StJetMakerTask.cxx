@@ -287,10 +287,12 @@ Int_t StJetMakerTask::Init() {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
-        if(fBadTowerListVers == 1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
-        if(fBadTowerListVers == 2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
-        if(fBadTowerListVers == 3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
-        if(fBadTowerListVers == 79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
+        if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
+        if(fBadTowerListVers ==  2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
+        if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
+        if(fBadTowerListVers ==  79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
+        if(fBadTowerListVers == 122) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79_ALT.txt");
+        if(fBadTowerListVers == 283) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_283.txt");
 
         if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
@@ -383,8 +385,12 @@ Int_t StJetMakerTask::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
+        break;  // need this from embedded switch - May20
+    
     default :
+        cout<<"I am in default.. - THIS SHOULD NOT HAPPEN!!"<<endl;
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        break;
   }
 
   return kStOK;
@@ -675,10 +681,11 @@ void StJetMakerTask::FindJets()
       // ID's are calculated as such:
       // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
       // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-      int clusID = cluster->bemcId();  // index in bemc point array
+      // commented out clusID, towID2, towID3 on May20
+      //int clusID = cluster->bemcId();  // index in bemc point array
       int towID = cluster->btowId();   // projected tower Id: 1 - 4800
-      int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      //int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
+      //int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       if(towID < 0) continue;
 
       // cluster and tower position - from vertex and ID - shouldn't need to correct via this method
@@ -1538,6 +1545,7 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1553,6 +1561,8 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
+        break; // added May20
+
   } // RunFlag switch
 
   // return status
@@ -1590,6 +1600,7 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
           default :  // default to HT2
               if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
         }
+        break; // added May20
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1605,6 +1616,8 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
           default :  // Run16 only has HT1's
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
         }
+        break; // added May20
+
   } // RunFlag switch
 
   return kFALSE;
