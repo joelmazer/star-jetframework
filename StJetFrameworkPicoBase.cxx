@@ -51,7 +51,7 @@
 class StEmcPosition;
 
 // classes
-class StJetMakerTask;
+//class StJetMakerTask;
 
 ClassImp(StJetFrameworkPicoBase)
 

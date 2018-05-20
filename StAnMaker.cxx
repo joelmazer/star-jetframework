@@ -50,7 +50,7 @@
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 // classes
-class StJetMakerTask;
+//class StJetMakerTask;
 
 /*
 namespace fastjet {

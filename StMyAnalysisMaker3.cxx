@@ -41,7 +41,6 @@
 #include "StRoot/StPicoDstMaker/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
-//#include "StRoot/StPicoDstMaker/StPicoV0.h"
 
 // my STAR includes
 #include "StEventPlaneMaker.h"
@@ -77,11 +76,11 @@
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 // classes
-class StJetMakerTask;
+//class StJetMakerTask;
 
-namespace fastjet {
-  class PseudoJet;
-}
+//namespace fastjet {
+//  class PseudoJet;
+//}
 
 ClassImp(StMyAnalysisMaker3)
 

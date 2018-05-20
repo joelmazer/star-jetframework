@@ -29,7 +29,7 @@ class TH2F;
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-class StJetMakerTask;
+//class StJetMakerTask;
 
 ClassImp(StRho)
 

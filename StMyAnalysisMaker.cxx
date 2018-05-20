@@ -78,11 +78,11 @@
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 // classes
-class StJetMakerTask;
+//class StJetMakerTask;
 
-namespace fastjet {
-  class PseudoJet;
-}
+//namespace fastjet {
+//  class PseudoJet;
+//}
 
 ClassImp(StMyAnalysisMaker)
 
