@@ -1305,7 +1305,8 @@ Int_t StMyAnalysisMaker::Make() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fEmcTriggerEventType]) {
+      //if(fEmcTriggerArr[fEmcTriggerEventType]) {
+      if(fHaveEmcTrigger) {
         doJetAnalysis = kTRUE;
         doEPAnalysis = kTRUE;
       }
@@ -3040,13 +3041,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
     if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
-//    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
-    // FIXME - temp - but fill before pt max cut
-    //if(method == 1) {
-      hTrackPhi[ref9]->Fill(phi);
-      hTrackPt[ref9]->Fill(pt);
-    //}
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     ////if(pt > ptcut) continue; // == TEST == //
 
@@ -3063,6 +3058,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
+    // FIXME FIXME double check these are updated - found bug on May25
     // remove strip only when we have a leading jet
     // Method1: kRemoveEtaStrip
     //if(fTPCEPmethod == 1){
@@ -3074,15 +3070,14 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     } else if(method == 2){
       // remove cone (in eta and phi) around leading jet
       // Method2: kRemoveEtaPhiCone
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+        ((deltaR < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
     //} else if(fTPCEPmethod == 3){
     } else if(method == 3){ 
       // remove tracks above 2 GeV in cone around leading jet
       // Method3: kRemoveLeadingJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
       (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
     //} else if(fTPCEPmethod == 4){
@@ -3090,7 +3085,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       // remove strip only when we have a leading + subleading jet
       // Method4: kRemoveEtaStripLeadSubLead
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
@@ -3099,24 +3094,22 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     } else if(method == 5){
       // remove cone (in eta and phi) around leading + subleading jet
       // Method5: kRemoveEtaPhiConeLeadSubLead
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+      double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
+      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) &&
+        ((deltaR    < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhiSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+        ((deltaRSub < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
     //} else if(fTPCEPmethod == 6){
     } else if(method == 6){ 
       // remove tracks above 2 GeV in cone around leading + subleading jet
       // Method6: kRemoveLeadingSubJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInEtaSub));
+        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+        (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }
@@ -4280,60 +4273,52 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
       if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
+    // BUGS fixed May25
     // remove strip only when we have a leading jet
     // Method1: kRemoveEtaStrip
     if(fTPCEPmethod == 1){
-    //if(method == 1){
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
     } else if(fTPCEPmethod == 2){
-    //} else if(method == 2){
       // remove cone (in eta and phi) around leading jet
       // Method2: kRemoveEtaPhiCone
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+        ((deltaR < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
     } else if(fTPCEPmethod == 3){
-    //} else if(method == 3){
       // remove tracks above 2 GeV in cone around leading jet
       // Method3: kRemoveLeadingJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
     } else if(fTPCEPmethod == 4){
-    //} else if(method == 4){
       // remove strip only when we have a leading + subleading jet
       // Method4: kRemoveEtaStripLeadSubLead
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
     } else if(fTPCEPmethod == 5){
-    //} else if(method == 5){
       // remove cone (in eta and phi) around leading + subleading jet
       // Method5: kRemoveEtaPhiConeLeadSubLead
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+      double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi-excludeInPhiSub)*(phi-excludeInPhiSub));
+      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) &&
+        ((deltaR    < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhiSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+        ((deltaRSub < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
     } else if(fTPCEPmethod == 6){
-    //} else if(method == 6){
       // remove tracks above 2 GeV in cone around leading + subleading jet
       // Method6: kRemoveLeadingSubJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInEtaSub));
+        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+        (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }

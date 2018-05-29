@@ -265,6 +265,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Double_t               fEPTPCn;
     Double_t               fEPTPCp;
     Double_t               fEPTPC;
+    Double_t               fEPTPCcomb;
     Double_t               fEPBBC;
     Double_t               fEPZDC;
 
@@ -272,6 +273,17 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     bool         doComments;
 
     // histograms
+    TH1F* hdEPReactionPlaneFnc;//!
+    TH1F* hdEPEventPlaneFncN2;//!
+    TH1F* hdEPEventPlaneFncP2;//!
+    TH1F* hdEPEventPlaneFnc2;//!
+    TH1F* hdEPEventPlaneClass;//!
+    TH1F* hReactionPlaneFnc;//!
+    TH1F* hEventPlaneFncN2;//!
+    TH1F* hEventPlaneFncP2;//!
+    TH1F* hEventPlaneFnc2;//!
+    TH1F* hEventPlaneClass;//!
+
     TH1F* hEventPlane;//!   
     TH1F* hEventPlaneWeighted;//!
     TH2F* fHistEPTPCn;//!
@@ -282,6 +294,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F* hCentrality;//!
     TH1F* hMultiplicity;//!
     TH2F* hRhovsCent;//!
+    TH1F* hdEPtrk[5];//!
     TH1F* hTrackPhi[9];//!
     TH1F* hTrackEta[9];//!
     TH1F* hTrackPt[9];//!

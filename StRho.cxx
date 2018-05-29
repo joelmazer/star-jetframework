@@ -227,7 +227,7 @@ Int_t StRho::Make()
   // exclude leading jets
   if(fNExclLeadJets > 0) {
     // loop over jets
-    for (Int_t ij = 0; ij < Njets; ++ij) {
+    for(Int_t ij = 0; ij < Njets; ++ij) {
       StJet *jet = static_cast<StJet*>(fJets->At(ij));
       if(!jet) { continue; } 
 

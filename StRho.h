@@ -15,8 +15,6 @@ class TH2F;
 class TClonesArray;
 
 // STAR classes
-//class StPicoDst;
-//class StPicoDstMaker;
 class StMaker;
 
 //class StRho : virtual public StMaker, virtual public StRhoBase { //FIXME

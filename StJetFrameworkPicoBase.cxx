@@ -412,7 +412,7 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
   // test
   if( dphi < 0 || dphi > TMath::Pi()/2 ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
-    cout<<"dEP not in range [0, 0.5*Pi]!"<<endl;
+    cout<<"dEP not in range [0, 0.5*Pi]!"<<" jetAng: "<<jetAng<<"  EPang: "<<EPAng<<endl;
   }
 
   return dphi;   // dphi in [0, Pi/2]

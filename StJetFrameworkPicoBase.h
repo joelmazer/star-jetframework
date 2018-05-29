@@ -152,6 +152,17 @@ class StJetFrameworkPicoBase : public StMaker {
       kCent6080
     };
 
+    // enumerator for TPC event plane method
+    enum fTPCEPmethodEnum {
+      kRemoveNothing,
+      kRemoveEtaStrip,
+      kRemoveEtaPhiCone,
+      kRemoveLeadingJetConstituents, // greater than 2 GeV
+      kRemoveEtaStripLeadSub,
+      kRemoveEtaPhiConeLeadSub,
+      kRemoveLeadingSubJetConstituents // greater than 2 GeV
+    };
+
     // 'explicit' added below to constructor to remove cppcheck warning
     StJetFrameworkPicoBase();
     explicit StJetFrameworkPicoBase(const char *name);

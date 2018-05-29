@@ -5,9 +5,9 @@
 // adapted from the AliROOT class AliAnalysisTaskRhoBase.h for STAR
 #include "StJetFrameworkPicoBase.h"
 
-#include "StJetMakerTask.h"
+//#include "StJetMakerTask.h"
 #include "StMaker.h"
-#include "StJet.h"
+//#include "StJet.h"
 
 // root classes
 class TString;
@@ -18,13 +18,9 @@ class TH3F;
 
 // STAR classes
 class StMaker;
-class StJet;
-class StJetMakerTask;
 class StRhoParameter;
 
 // classes for header
-class StPicoDst;
-class StPicoDstMaker;
 class StRefMultCorr;
 
 // might not want to inherit from 2 classes

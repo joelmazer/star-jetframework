@@ -180,6 +180,17 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
 StMyAnalysisMaker3::~StMyAnalysisMaker3()
 { /*  */
   // destructor
+  delete hdEPReactionPlaneFnc;
+  delete hdEPEventPlaneFncN2;
+  delete hdEPEventPlaneFncP2;
+  delete hdEPEventPlaneFnc2;
+  delete hdEPEventPlaneClass;
+  delete hReactionPlaneFnc;
+  delete hEventPlaneFncN2;
+  delete hEventPlaneFncP2;
+  delete hEventPlaneFnc2;
+  delete hEventPlaneClass;
+
   delete hEventPlane;
   delete hEventPlaneWeighted;
   delete fHistEPTPCn;
@@ -190,6 +201,7 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   delete hCentrality;
   delete hMultiplicity;
   delete hRhovsCent;
+  for(int i=0; i<5; i++) { delete hdEPtrk[i]; }
   for(int i=0; i<9; i++){ // centrality
     delete hTrackPhi[i];
     delete hTrackEta[i];
@@ -336,16 +348,16 @@ Int_t StMyAnalysisMaker3::Finish() {
 
     // track QA
     if(doWriteTrackQAHist) {
-      fQAout->mkdir(Form("TrackQA"));
-      fQAout->cd(Form("TrackQA"));
+      fQAout->mkdir(Form("TrackQA_bin%i", fTPCptAssocBin));
+      fQAout->cd(Form("TrackQA_bin%i", fTPCptAssocBin));
       WriteTrackQAHistograms();
       fQAout->cd();
     }
 
     // jet QA
     if(doWriteJetQAHist) {
-      fQAout->mkdir(Form("JetEPQA"));
-      fQAout->cd(Form("JetEPQA"));
+      fQAout->mkdir(Form("JetEPQA_bin%i", fTPCptAssocBin));
+      fQAout->cd(Form("JetEPQA_bin%i", fTPCptAssocBin));
       WriteJetEPQAHistograms();
       fQAout->cd();
     }
@@ -381,6 +393,17 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
   // QA histos
+  hdEPReactionPlaneFnc = new TH1F("hdEPReactionPlaneFnc", "jets relative to EP from reaction plane function", 3, 0.0, 0.5*pi);
+  hdEPEventPlaneFncN2 = new TH1F("hdEPEventPlaneFncN2", "jets relative to EP from event plane function SUB1 meth2", 3, 0.0, 0.5*pi);
+  hdEPEventPlaneFncP2 = new TH1F("hdEPEventPlaneFncP2", "jets relative to EP from event plane function SUB2 meth2", 3, 0.0, 0.5*pi);
+  hdEPEventPlaneFnc2 = new TH1F("hdEPEventPlaneFnc2", "jets relative to EP from event plane function meth2", 3, 0.0, 0.5*pi);
+  hdEPEventPlaneClass = new TH1F("hdEPEventPlaneClass", "jets relative to EP from event plane class", 3, 0.0, 0.5*pi);
+  hReactionPlaneFnc = new TH1F("hReactionPlaneFnc", "Event plane distribution from reaction plane function", 72, 0.0, 1.0*pi);
+  hEventPlaneFncN2 = new TH1F("hEventPlaneFncN2", "Event plane distribution from event plane function SUB1 meth2", 72, 0.0, 1.0*pi);
+  hEventPlaneFncP2 = new TH1F("hEventPlaneFncP2", "Event plane distribution from event plane function SUB2 meth2", 72, 0.0, 1.0*pi);
+  hEventPlaneFnc2 = new TH1F("hEventPlaneFnc2", "Event plane distribution from event plane function meth2", 72, 0.0, 1.0*pi);
+  hEventPlaneClass = new TH1F("hEventPlaneClass", "Event plane distribution from event plane class", 72, 0.0, 1.0*pi);
+
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   fHistEPTPCn = new TH2F("fHistEPTPCn", "", 20, 0., 100., 72, -pi, pi);
@@ -392,6 +415,9 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
   hRhovsCent = new TH2F("hRhovsCent", "#rho vs centrality", 20, 0, 100, 200, 0, 200);
 
+  for(int i=0; i<5; i++) { // pt bins
+    hdEPtrk[i] = new TH1F(Form("hdEPtrk%i", i), Form("tracks relative to event plane, p_{T} bin=%i", i), 72, 0, 0.5*pi);
+  }
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
@@ -611,6 +637,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
 //_____________________________________________________________________________
 void StMyAnalysisMaker3::WriteTrackQAHistograms() {
   // track phi distribution for centrality
+  for(int i=0; i<5; i++) { hdEPtrk[i]->Write(); }
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Write();
     hTrackEta[i]->Write();
@@ -622,6 +649,17 @@ void StMyAnalysisMaker3::WriteTrackQAHistograms() {
 // write Jet event plane QA histograms
 //______________________________________________________________________________
 void StMyAnalysisMaker3::WriteJetEPQAHistograms() {
+  hdEPReactionPlaneFnc->Write();
+  hdEPEventPlaneFncN2->Write();
+  hdEPEventPlaneFncP2->Write();
+  hdEPEventPlaneFnc2->Write();
+  hdEPEventPlaneClass->Write();
+  hReactionPlaneFnc->Write();
+  hEventPlaneFncN2->Write();
+  hEventPlaneFncP2->Write();
+  hEventPlaneFnc2->Write();
+  hEventPlaneClass->Write();
+
   hJetPtIn->Write();
   hJetPhiIn->Write();
   hJetEtaIn->Write();
@@ -833,7 +871,8 @@ Int_t StMyAnalysisMaker3::Make() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fEmcTriggerEventType]) {
+      //if(fEmcTriggerArr[fEmcTriggerEventType]) {
+      if(fHaveEmcTrigger) {
         doJetAnalysis = kTRUE;
         doEPAnalysis = kTRUE;
       }
@@ -902,102 +941,96 @@ Int_t StMyAnalysisMaker3::Make() {
   // set up event plane maker here..
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
-/*  
-  EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
-  const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
-  if(!EventPlaneMaker) {
-    LOG_WARN << Form(" No %s! Skip! ", fEventPlaneMakerNameCh) << endm;
-    return kStWarn;
-  }
-*/
-
-  // get event plane maker
-  StEventPlaneMaker *EventPlaneMaker0, *EventPlaneMaker1, *EventPlaneMaker2, *EventPlaneMaker3, *EventPlaneMaker4; 
+  double angle2, angle2n, angle2p, angle2comb, angle1, angle4;
+  StEventPlaneMaker *EventPlaneMaker0, *EventPlaneMaker1, *EventPlaneMaker2, *EventPlaneMaker3, *EventPlaneMaker4;
   double tpc2EP_bin0, tpc2EP_bin1, tpc2EP_bin2, tpc2EP_bin3, tpc2EP_bin4;
-  if(!doTPCptassocBin) {
-    EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
-    const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
-    if(!EventPlaneMaker) {
-      LOG_WARN << Form(" No %s! Skip! ", fEventPlaneMakerNameCh) << endm;
-      return kStWarn;
+  if(doEPAnalysis) {
+    if(!doTPCptassocBin) {
+      EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
+      const char *fEventPlaneMakerNameCh = fEventPlaneMakerName;
+      if(!EventPlaneMaker) {
+        LOG_WARN << Form(" No %s! Skip! ", fEventPlaneMakerNameCh) << endm;
+        return kStWarn;
+      }
+
+      // set event plane
+      double tpc2EP = (double)EventPlaneMaker->GetTPCEP();
+      TPC_PSI2 = tpc2EP;
+
+    } else { // pt-dependent bin mode
+      const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
+      EventPlaneMaker0 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 0)));
+      EventPlaneMaker1 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 1)));
+      EventPlaneMaker2 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 2)));
+      EventPlaneMaker3 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 3)));
+      EventPlaneMaker4 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4)));
+
+      // check for requested EventPlaneMaker pointer
+      if((fTPCptAssocBin == 0) && (!EventPlaneMaker0)) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+      if((fTPCptAssocBin == 1) && (!EventPlaneMaker1)) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+      if((fTPCptAssocBin == 2) && (!EventPlaneMaker2)) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+      if((fTPCptAssocBin == 3) && (!EventPlaneMaker3)) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+      if((fTPCptAssocBin == 4) && (!EventPlaneMaker4)) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+
+      // get event plane angle for different pt bins
+      // could also write this as:  tpc2EP_bin = (EventPlaneMaker) ? (double)EventPlaneMaker->GetTPCEP() : -999;
+      if(EventPlaneMaker0) { tpc2EP_bin0 = (double)EventPlaneMaker0->GetTPCEP(); } else { tpc2EP_bin0 = -999; }
+      if(EventPlaneMaker1) { tpc2EP_bin1 = (double)EventPlaneMaker1->GetTPCEP(); } else { tpc2EP_bin1 = -999; }
+      if(EventPlaneMaker2) { tpc2EP_bin2 = (double)EventPlaneMaker2->GetTPCEP(); } else { tpc2EP_bin2 = -999; }
+      if(EventPlaneMaker3) { tpc2EP_bin3 = (double)EventPlaneMaker3->GetTPCEP(); } else { tpc2EP_bin3 = -999; }
+      if(EventPlaneMaker4) { tpc2EP_bin4 = (double)EventPlaneMaker4->GetTPCEP(); } else { tpc2EP_bin4 = -999; }
+
+      // assign global event plane to selected pt-dependent bin
+      if(fTPCptAssocBin == 0) TPC_PSI2 = tpc2EP_bin0;
+      if(fTPCptAssocBin == 1) TPC_PSI2 = tpc2EP_bin1;
+      if(fTPCptAssocBin == 2) TPC_PSI2 = tpc2EP_bin2;
+      if(fTPCptAssocBin == 3) TPC_PSI2 = tpc2EP_bin3;
+      if(fTPCptAssocBin == 4) TPC_PSI2 = tpc2EP_bin4;
+
+      //cout<<"New event!"<<endl;
+      //cout<<"EP angles:  "<<tpc2EP_bin0<<"   "<<tpc2EP_bin1<<"   "<<tpc2EP_bin2<<"   "<<tpc2EP_bin3<<"   "<<tpc2EP_bin4<<endl;
     }
 
-    // set event plane
-    double tpc2EP = (double)EventPlaneMaker->GetTPCEP();
-    TPC_PSI2 = tpc2EP;
+    // fill histogram with angle from GetReactionPlane() function
+    angle1 = GetReactionPlane();
+    hReactionPlaneFnc->Fill(angle1);
 
-  } else { // pt-dependent bin mode
-    // TODO - add pt dependent check - because may want 1 bin but not ALL
-    const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
-    //StEventPlaneMaker *
-    EventPlaneMaker0 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 0)));
-    //StEventPlaneMaker *
-    EventPlaneMaker1 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 1)));
-    //StEventPlaneMaker *
-    EventPlaneMaker2 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 2)));
-    //StEventPlaneMaker *
-    EventPlaneMaker3 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 3)));
-    //StEventPlaneMaker *
-    EventPlaneMaker4 = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4)));
-/*
-    // TODO delete this soon as the below should cover it
-    if((!EventPlaneMaker0) || (!EventPlaneMaker1) || (!EventPlaneMaker2) || (!EventPlaneMaker3) || (!EventPlaneMaker4)) {
-      LOG_WARN << "Missing one of the pt-dependent event plane maker pointers... check things!" << endm;
-      return kStWarn;
-    }
-*/
+    // fill histogram with angle from GetEventPlane() function
+    GetEventPlane(kFALSE, 2, fTPCEPmethod, 2.0, fTPCptAssocBin); // 2nd to last param not used (ptcut)
+    angle2     = fEPTPC;
+    angle2n    = fEPTPCn;
+    angle2p    = fEPTPCp;
+    hEventPlaneFncN2->Fill(angle2n);
+    hEventPlaneFncP2->Fill(angle2p);
+    hEventPlaneFnc2->Fill(angle2);
 
-    // check for requested EventPlaneMaker pointer
-    if((fTPCptAssocBin == 0) && (!EventPlaneMaker0)) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn; }
-    if((fTPCptAssocBin == 1) && (!EventPlaneMaker1)) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn; }
-    if((fTPCptAssocBin == 2) && (!EventPlaneMaker2)) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn; }
-    if((fTPCptAssocBin == 3) && (!EventPlaneMaker3)) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn; }
-    if((fTPCptAssocBin == 4) && (!EventPlaneMaker4)) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn; }
+    // fill histogram with angle from StEventPlaneMaker class
+    angle4 = TPC_PSI2;
+    hEventPlaneClass->Fill(angle4);
 
-    // get event plane angle for different pt bins
-    // could also write this as:  tpc2EP_bin = (EventPlaneMaker) ? (double)EventPlaneMaker->GetTPCEP() : -999;
-    if(EventPlaneMaker0) { tpc2EP_bin0 = (double)EventPlaneMaker0->GetTPCEP(); } else { tpc2EP_bin0 = -999; }
-    if(EventPlaneMaker1) { tpc2EP_bin1 = (double)EventPlaneMaker1->GetTPCEP(); } else { tpc2EP_bin1 = -999; }
-    if(EventPlaneMaker2) { tpc2EP_bin2 = (double)EventPlaneMaker2->GetTPCEP(); } else { tpc2EP_bin2 = -999; }
-    if(EventPlaneMaker3) { tpc2EP_bin3 = (double)EventPlaneMaker3->GetTPCEP(); } else { tpc2EP_bin3 = -999; }
-    if(EventPlaneMaker4) { tpc2EP_bin4 = (double)EventPlaneMaker4->GetTPCEP(); } else { tpc2EP_bin4 = -999; }
-
-    // assign global event plane to selected pt-dependent bin
-    if(fTPCptAssocBin == 0) TPC_PSI2 = tpc2EP_bin0;
-    if(fTPCptAssocBin == 1) TPC_PSI2 = tpc2EP_bin1;
-    if(fTPCptAssocBin == 2) TPC_PSI2 = tpc2EP_bin2;
-    if(fTPCptAssocBin == 3) TPC_PSI2 = tpc2EP_bin3;
-    if(fTPCptAssocBin == 4) TPC_PSI2 = tpc2EP_bin4;
-
-    //cout<<"EP angles:  "<<tpc2EP_bin0<<"   "<<tpc2EP_bin1<<"   "<<tpc2EP_bin2<<"   "<<tpc2EP_bin3<<"   "<<tpc2EP_bin4<<endl;
+    //cout<<"1: "<<angle1<<"  2: "<<angle2<<"  2n: "<<angle2n<<"  2p: "<<angle2p<<"  4: "<<angle4<<endl;
   }
 
   // switch to require specific trigger (for Event Plane corrections + Resolution)
-  //if(doEPAnalysis) { 
-  bool doTHIS = kFALSE;
-  if(doTHIS) {
-    // get BBC, ZDC, TPC event planes
-
+  if(doEPAnalysis) {
     // compare BBC, ZDC, TPC event planes
     // only truely relevant for STEP3 - when both recentering and shifting corrections are read in
     hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
     hTPCvsZDCep->Fill(ZDC_PSI2, TPC_PSI2);
     hBBCvsZDCep->Fill(ZDC_PSI2, BBC_PSI2);
  
-  //if(doEPAnalysis) {
     // calculate / fill event plane resolution histograms
     if(doEventPlaneRes){
       // corrected event planes used for Resolution
       // MAKE sure for meaningful results to be in mode: STEP3
       CalculateEventPlaneResolution(BBC_PSI2, ZDC_PSI2, TPC_PSI2, TPCA_PSI2, TPCB_PSI2, BBC_PSI1, ZDC_PSI1);
     }
-
   } // have Emc HT trigger - process event plane calculation/ corrections / resolutions
 
   // ===================================================================================
 
   // run Track QA and fill histograms
-  if(doWriteTrackQAHist) TrackQA();
+  if((doWriteTrackQAHist) && (doJetAnalysis)) TrackQA();
 
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
@@ -1029,9 +1062,19 @@ Int_t StMyAnalysisMaker3::Make() {
     double jetEta = jet->Eta();
     double jetPhi = jet->Phi();    
     double jetNEF = jet->NEF();
-    //dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+    //double dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
+    double dEP1      = RelativeEPJET(jetPhi, angle1);       // from Reaction Plane function
+    double dEP2p     = RelativeEPJET(jetPhi, angle2p);      // from Event Plane function: sub event 1 - method 2
+    double dEP2n     = RelativeEPJET(jetPhi, angle2n);      // from Event Plane function: sub event 2 - method 2
+    double dEP2      = RelativeEPJET(jetPhi, angle2);       // from Event Plane function - method 2
+    double dEP4      = RelativeEPJET(jetPhi, angle4);       // from Event Plane class
+    hdEPReactionPlaneFnc->Fill(dEP1);
+    hdEPEventPlaneFncN2->Fill(dEP2n);
+    hdEPEventPlaneFncP2->Fill(dEP2p);
+    hdEPEventPlaneFnc2->Fill(dEP2);
+    hdEPEventPlaneClass->Fill(dEP4);
+
     double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
-    //double dEP0, dEP1, dEP2, dEP3, dEP4;
     if(doTPCptassocBin) {
       // z = if(condition) then(?) <do this> else(:) <do this>  
       double dEP0 = (EventPlaneMaker0) ? RelativeEPJET(jetPhi, tpc2EP_bin0) : -999;
@@ -1045,15 +1088,12 @@ Int_t StMyAnalysisMaker3::Make() {
       if(fTPCptAssocBin == 3) dEP = dEP3;
       if(fTPCptAssocBin == 4) dEP = dEP4;
 
-      // this is a double check - should not happen, but if it does -> kill the job so it can be fixed - most likely in the runPico macro
-      if(dEP < -900) return kStFatal;
-
-      double tempRP = GetReactionPlane();
-      double tempdRP = RelativeEPJET(jetPhi, tempRP);
-      if(fDebugLevel == kDebugJetvsEPtype) cout<<"jetPhi = "<<jetPhi<<"  RP = "<<tempRP<<"  bin0 = "<<tpc2EP_bin0<<"  bin1 = "<<tpc2EP_bin1<<"  bin2 = "<<tpc2EP_bin2<<"  bin3 = "<<tpc2EP_bin3<<"  bin4 = "<<tpc2EP_bin4<<endl;
-      if(fDebugLevel == kDebugJetvsEPtype) cout<<"tempdRP = "<<tempdRP<<"  dEP0: "<<dEP0<<"  dEP1: "<<dEP1<<"  dEP2: "<<dEP2<<"  dEP3: "<<dEP3<<"  dEP4: "<<dEP4<<endl;
+      if(fDebugLevel == kDebugJetvsEPtype) cout<<"jetPhi = "<<jetPhi<<"  RP = "<<angle1<<"  bin0 = "<<tpc2EP_bin0<<"  bin1 = "<<tpc2EP_bin1<<"  bin2 = "<<tpc2EP_bin2<<"  bin3 = "<<tpc2EP_bin3<<"  bin4 = "<<tpc2EP_bin4<<endl;
+      if(fDebugLevel == kDebugJetvsEPtype) cout<<"dRP = "<<dEP1<<"  dEP0: "<<dEP0<<"  dEP1: "<<dEP1<<"  dEP2: "<<dEP2<<"  dEP3: "<<dEP3<<"  dEP4: "<<dEP4<<endl;
     }
-    //cout<<"jet phi = "<<jetPhi<<"  TPC_PSI2 = "<<TPC_PSI2<<endl; // - test statement
+
+    // this is a double check - should not happen, but if it does -> kill the job so it can be fixed - most likely in the runPico macro
+    if(dEP < -900) return kStFatal;
 
     // some threshold cuts
     if(fCorrJetPt) {  // background subtracted jet pt
@@ -1124,7 +1164,7 @@ Int_t StMyAnalysisMaker3::Make() {
     hJetPhivsEP->Fill(jetPhi, TPC_PSI2);
 
     // fill some jet QA plots for each orientation
-    if(dEP >= 0 && dEP < 1.0*pi/6.0) {
+    if(dEP >= 0.0*pi/6.0 && dEP < 1.0*pi/6.0) {
       hJetPtIn->Fill(jetpt);
       hJetPhiIn->Fill(jetPhi);
       hJetEtaIn->Fill(jetEta);
@@ -1298,19 +1338,22 @@ Int_t StMyAnalysisMaker3::Make() {
         double MixjetPhi = jet->Phi();
         //double dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
         double dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
-        //double dMixEP0, dMixEP1, dMixEP2, dMixEP3, dMixEP4;
         if(doTPCptassocBin) {
-          double dMixEP0 = RelativeEPJET(MixjetPhi, tpc2EP_bin0);
-          double dMixEP1 = RelativeEPJET(MixjetPhi, tpc2EP_bin1);
-          double dMixEP2 = RelativeEPJET(MixjetPhi, tpc2EP_bin2);
-          double dMixEP3 = RelativeEPJET(MixjetPhi, tpc2EP_bin3);
-          double dMixEP4 = RelativeEPJET(MixjetPhi, tpc2EP_bin4);
+          // z = if(condition) then(?) <do this> else(:) <do this>  
+          double dMixEP0 = (EventPlaneMaker0) ? RelativeEPJET(MixjetPhi, tpc2EP_bin0) : -999;
+          double dMixEP1 = (EventPlaneMaker1) ? RelativeEPJET(MixjetPhi, tpc2EP_bin1) : -999;
+          double dMixEP2 = (EventPlaneMaker2) ? RelativeEPJET(MixjetPhi, tpc2EP_bin2) : -999;
+          double dMixEP3 = (EventPlaneMaker3) ? RelativeEPJET(MixjetPhi, tpc2EP_bin3) : -999;
+          double dMixEP4 = (EventPlaneMaker4) ? RelativeEPJET(MixjetPhi, tpc2EP_bin4) : -999;
           if(fTPCptAssocBin == 0) dMixEP = dMixEP0;
           if(fTPCptAssocBin == 1) dMixEP = dMixEP1;
           if(fTPCptAssocBin == 2) dMixEP = dMixEP2;
           if(fTPCptAssocBin == 3) dMixEP = dMixEP3;
           if(fTPCptAssocBin == 4) dMixEP = dMixEP4;
         }
+
+        // this is a double check - should not happen, but if it does -> kill the job so it can be fixed - most likely in the runPico macro
+        if(dMixEP < -900) return kStFatal;
 
         // some threshold cuts - do mixing only if we have a jet meeting our pt threshold and bias
         if(fCorrJetPt) {
@@ -1910,7 +1953,10 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
     if(phi > 2*pi) phi -= 2*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
-    if(fExcludeLeadingJetsFromFit > 0 && fLeadingJet && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    if((fLeadingJet) && 
+       (fExcludeLeadingJetsFromFit > 0) && 
+       ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit) || 
+       (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
 
     // configure track weight when performing Q-vector summation
     double trackweight;
@@ -2072,6 +2118,17 @@ physics
 // __________________________________________________________________________________
 void StMyAnalysisMaker3::SetSumw2() {
   // set sum weights
+  hdEPReactionPlaneFnc->Sumw2();
+  hdEPEventPlaneFncN2->Sumw2();
+  hdEPEventPlaneFncP2->Sumw2();
+  hdEPEventPlaneFnc2->Sumw2();
+  hdEPEventPlaneClass->Sumw2();
+  hReactionPlaneFnc->Sumw2();
+  hEventPlaneFncN2->Sumw2();
+  hEventPlaneFncP2->Sumw2();
+  hEventPlaneFnc2->Sumw2();
+  hEventPlaneClass->Sumw2();
+
   hEventPlane->Sumw2();
   hEventPlaneWeighted->Sumw2();
   fHistEPTPCn->Sumw2();
@@ -2082,6 +2139,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
   //hRhovsCent->Sumw2();
+  for(int i=0; i<5; i++) { hdEPtrk[i]->Sumw2(); }
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Sumw2();
     hTrackEta[i]->Sumw2();
@@ -2181,7 +2239,6 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
 
   // loop over tracks
   TRandom3 *rand = new TRandom3();
-  //TRandom *rand = new TRandom();
   int nTOT = 0, nA = 0, nB = 0;
   int nTrack = mPicoDst->numberOfTracks();
   for(int i=0; i<nTrack; i++) {
@@ -2210,15 +2267,9 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
-    // FIXME - temp - but fill before pt max cut
-    //if(method == 1) {
-      hTrackPhi[ref9]->Fill(phi);
-      hTrackPt[ref9]->Fill(pt);
-    //}
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    ////if(pt > ptcut) continue; // == TEST == //
+    if(phi < 0)    phi += 2*pi;
+    if(phi > 2*pi) phi -= 2*pi;
 
     // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
@@ -2235,58 +2286,49 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
 
     // remove strip only when we have a leading jet
     // Method1: kRemoveEtaStrip
-    //if(fTPCEPmethod == 1){
-    if(method == 1){
+    if(fTPCEPmethod == 1){
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && 
         ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    //} else if(fTPCEPmethod == 2){
-    } else if(method == 2){
+    } else if(fTPCEPmethod == 2){
       // remove cone (in eta and phi) around leading jet
-      // Method2: kRemoveEtaPhiCone
+      // Method2: kRemoveEtaPhiCone - FIXME found bug May25
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    //} else if(fTPCEPmethod == 3){
-    } else if(method == 3){ 
+        ((deltaR < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+    } else if(fTPCEPmethod == 3){
       // remove tracks above 2 GeV in cone around leading jet
       // Method3: kRemoveLeadingJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-    //} else if(fTPCEPmethod == 4){
-    } else if(method == 4){
+        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+    } else if(fTPCEPmethod == 4){
       // remove strip only when we have a leading + subleading jet
       // Method4: kRemoveEtaStripLeadSubLead
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
+        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
         ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
         ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    //} else if(fTPCEPmethod == 5){
-    } else if(method == 5){
+    } else if(fTPCEPmethod == 5){
       // remove cone (in eta and phi) around leading + subleading jet
       // Method5: kRemoveEtaPhiConeLeadSubLead
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhi) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+      double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi-excludeInPhiSub)*(phi-excludeInPhiSub));
+      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) &&
+        ((deltaR    < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(phi - excludeInPhiSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-         (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    //} else if(fTPCEPmethod == 6){
-    } else if(method == 6){ 
+        ((deltaRSub < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
+    } else if(fTPCEPmethod == 6){
       // remove tracks above 2 GeV in cone around leading + subleading jet
       // Method6: kRemoveLeadingSubJetConstituents
-      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInEta));
+      double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
+      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-      double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInEtaSub));
+        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+        (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }
@@ -2361,6 +2403,11 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   mQtpcp.Set(mQtpcpx, mQtpcpy);
   mQtpc.Set(mQtpcX, mQtpcY);
 
+  // test..
+  TVector2 mQtpcComb;
+  mQtpcComb.Set(mQtpcnx + mQtpcpx, mQtpcny + mQtpcpy);
+  fEPTPCcomb = mQtpcComb.Phi() / order;
+
   // Calculate the Event Plane
   fEPTPCn = mQtpcn.Phi() / order;
   fEPTPCp = mQtpcp.Phi() / order;
@@ -2374,19 +2421,15 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   if(fEPTPCn <  0) fEPTPCn += pi;
   if(fEPTPCp > pi) fEPTPCp -= pi;
   if(fEPTPCp <  0) fEPTPCp += pi;
+  if(fEPTPC > pi) fEPTPC -= pi;
+  if(fEPTPC <  0) fEPTPC += pi;
 
   // combine x-y vectors for neg and pos Eta ranges (cross-check)
-  //double tpcn2 = (0.5*TMath::ATan2(mQtpcny, mQtpcnx));
-  //double tpcp2 = (0.5*TMath::ATan2(mQtpcpy, mQtpcpx));
   //double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
 
   // standard event plane distributions as function of centrality
-  //if (fEPTPCResolution!=-1) fHistEPTPCResolution->Fill(fCentrality, fEPTPCResolution);
   fHistEPTPCn->Fill(fCentralityScaled, fEPTPCn);
   fHistEPTPCp->Fill(fCentralityScaled, fEPTPCp);
-  fHistEPBBC->Fill(fCentralityScaled, fEPBBC);
-  fHistEPZDC->Fill(fCentralityScaled, fEPZDC);
-
 }
 
 // 1) get the binning for: ref9 and region_vz
@@ -2568,9 +2611,19 @@ void StMyAnalysisMaker3::TrackQA()
     if(phi < 0) phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
 
+    // get angle between tracks and event plane
+    double dEPtrk = RelativeEPJET(phi, TPC_PSI2);
+    //cout<<"dEPtrk = "<<dEPtrk<<"  phi = "<<phi<<"  EP2 = "<<TPC_PSI2<<endl;
+    if((pt > 0.25) && (pt <= 0.5)) hdEPtrk[0]->Fill(dEPtrk);
+    if((pt > 0.50) && (pt <= 1.0)) hdEPtrk[1]->Fill(dEPtrk);
+    if((pt > 1.00) && (pt <= 1.5)) hdEPtrk[2]->Fill(dEPtrk);
+    if((pt > 1.50) && (pt <= 2.0)) hdEPtrk[3]->Fill(dEPtrk);
+    if((pt > 2.00) && (pt <= 20.)) hdEPtrk[4]->Fill(dEPtrk);
+
     hTrackPhi[ref9]->Fill(phi);
     hTrackEta[ref9]->Fill(eta);
     hTrackPt[ref9]->Fill(pt);
     hTrackEtavsPhi->Fill(phi, eta);
+
   }
 }  
