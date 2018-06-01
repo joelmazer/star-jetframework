@@ -1243,6 +1243,8 @@ Int_t StMyAnalysisMaker3::Make() {
       double deta = jetEta - eta;               // eta betweeen jet and hadron
       double dphijh = RelativePhi(jetPhi, phi); // angle between jet and hadron
 
+      // === June 1, 2018 - these cuts should not be here!
+/*
       // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
       // when doing event plane calculation via pt assoc bin
       if(doTPCptassocBin) {
@@ -1255,7 +1257,8 @@ Int_t StMyAnalysisMaker3::Make() {
         if(fTPCptAssocBin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
       }
- 
+*/
+
       // fill jet sparse 
       double triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, (double)charge};
       double trefficiency = 1.0;
@@ -1406,7 +1409,9 @@ Int_t StMyAnalysisMaker3::Make() {
               double Mixjetptselected;
               if(fCorrJetPt) { Mixjetptselected = Mixcorrjetpt;
               } else { Mixjetptselected = Mixjetpt; }
- 
+
+              // === June 1, 2018 - these cuts should not be here!
+/*
               // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
               // when doing event plane calculation via pt assoc bin
               if(doTPCptassocBin) {
@@ -1419,6 +1424,7 @@ Int_t StMyAnalysisMaker3::Make() {
                 if(fTPCptAssocBin == 6) { if((Mixpt > 3.00) && (Mixpt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
                 if(fTPCptAssocBin == 7) { if((Mixpt > 4.00) && (Mixpt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
               }
+*/
 
               // create / fill mixed event sparse
               //double triggerEntries[8]; //i = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge};

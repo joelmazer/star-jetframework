@@ -162,6 +162,8 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
 StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
+  delete hCentrality;
+
   delete hEventPlane;
   delete hEventPlaneWeighted;
   delete fHistEPTPCn;
@@ -379,6 +381,8 @@ void StEventPlaneMaker::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
   // QA histos
+  hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100);
+
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   fHistEPTPCn = new TH2F("fHistEPTPCn", "", 20, 0., 100., 72, -pi, pi);
@@ -641,6 +645,8 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   hBBCDis_E->Write();
 
   // default histos
+  hCentrality->Write();
+
   hEventPlane->Write();
   hEventPlaneWeighted->Write();
   fHistEPTPCn->Write();
@@ -1134,6 +1140,8 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 // __________________________________________________________________________________
 void StEventPlaneMaker::SetEPSumw2() {
   // set sum weights
+  //hCentrality->Sumw2();
+
   hEventPlane->Sumw2();
   hEventPlaneWeighted->Sumw2();
   fHistEPTPCn->Sumw2();
@@ -2333,7 +2341,72 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
       if(doTPCptassocBin) {
         switch(fTPCEPmethod) {
-          case kRemoveEtaStrip:
+          case kRemoveEtaStrip: // added new usage to this switch on May31
+            if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+              if(fJetType == kFullJet) {
+                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin0_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin1_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin1_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin2_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin2_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin3_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin3_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin4_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin4_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              } // full jets
+
+/*
+              if(fJetType == kChargedJet) {
+                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin0_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin0_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin1_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin1_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin2_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin2_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin3_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin3_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                  tpc_delta_psi += (tpc_shift_N_bin4_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin4_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              } // charged jets
+*/
+            }
+
+/*
+            if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
+              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                  tpc_shift_P_bin0_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                tpc_delta_psi += (tpc_shift_N_bin1_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                  tpc_shift_P_bin1_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                tpc_delta_psi += (tpc_shift_N_bin2_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                  tpc_shift_P_bin2_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                tpc_delta_psi += (tpc_shift_N_bin3_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                  tpc_shift_P_bin3_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                tpc_delta_psi += (tpc_shift_N_bin4_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                  tpc_shift_P_bin4_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+            }
+*/
+
+/*
+            // OLD usage
             if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
               tpc_delta_psi += (tpc_shift_N_bin0_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                 tpc_shift_P_bin0_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
@@ -2350,6 +2423,8 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
               tpc_delta_psi += (tpc_shift_N_bin4_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                 tpc_shift_P_bin4_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
             } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+*/
+
             break;
 
           case kRemoveEtaPhiCone:
@@ -2692,23 +2767,49 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
       if(doTPCptassocBin) {
         if(randomNum >= 0.5) { // subevent A
           switch(fTPCEPmethod) {
+            // also have option of tpc_center_Qpx_bin0_Method1
             case kRemoveEtaStrip:
-              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-                x -= tpc_center_Qpx_bin0_Method1[ref9][region_vz];
-                y -= tpc_center_Qpy_bin0_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                x -= tpc_center_Qpx_bin1_Method1[ref9][region_vz];
-                y -= tpc_center_Qpy_bin1_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                x -= tpc_center_Qpx_bin2_Method1[ref9][region_vz];
-                y -= tpc_center_Qpy_bin2_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                x -= tpc_center_Qpx_bin3_Method1[ref9][region_vz];
-                y -= tpc_center_Qpy_bin3_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                x -= tpc_center_Qpx_bin4_Method1[ref9][region_vz];
-                y -= tpc_center_Qpy_bin4_Method1[ref9][region_vz];
-              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+                if(fJetType == kFullJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qpx_bin0_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin0_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qpx_bin1_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin1_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qpx_bin2_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin2_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qpx_bin3_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin3_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qpx_bin4_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin4_Method1_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // full jets
+
+/*
+                if(fJetType == kChargedJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qpx_bin0_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin0_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qpx_bin1_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin1_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qpx_bin2_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin2_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qpx_bin3_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin3_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qpx_bin4_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin4_Method1ch_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // charged jets
+*/
+              }
               break;
 
             case kRemoveEtaPhiCone:
@@ -2795,22 +2896,47 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
         if(randomNum < 0.5) { // subevent B             
           switch(fTPCEPmethod) {
             case kRemoveEtaStrip:
-              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
-                x -= tpc_center_Qnx_bin0_Method1[ref9][region_vz];
-                y -= tpc_center_Qny_bin0_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                x -= tpc_center_Qnx_bin1_Method1[ref9][region_vz];
-                y -= tpc_center_Qny_bin1_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                x -= tpc_center_Qnx_bin2_Method1[ref9][region_vz];
-                y -= tpc_center_Qny_bin2_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                x -= tpc_center_Qnx_bin3_Method1[ref9][region_vz];
-                y -= tpc_center_Qny_bin3_Method1[ref9][region_vz];
-              } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                x -= tpc_center_Qnx_bin4_Method1[ref9][region_vz];
-                y -= tpc_center_Qny_bin4_Method1[ref9][region_vz];
-              } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+              if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+                if(fJetType == kFullJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qnx_bin0_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin0_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qnx_bin1_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin1_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qnx_bin2_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin2_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qnx_bin3_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin3_Method1_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qnx_bin4_Method1_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin4_Method1_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // full jets
+
+/*
+                if(fJetType == kChargedJet) {
+                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                    x -= tpc_center_Qnx_bin0_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin0_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
+                    x -= tpc_center_Qnx_bin1_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin1_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
+                    x -= tpc_center_Qnx_bin2_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin2_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
+                    x -= tpc_center_Qnx_bin3_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin3_Method1ch_Run14[ref9][region_vz];
+                  } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
+                    x -= tpc_center_Qnx_bin4_Method1ch_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin4_Method1ch_Run14[ref9][region_vz];
+                  } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+                } // charged jets
+*/
+              }
               break;
 
             case kRemoveEtaPhiCone:

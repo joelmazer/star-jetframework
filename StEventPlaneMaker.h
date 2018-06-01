@@ -258,6 +258,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TFile        *fZDCcalibFile;
 
     // histograms
+    TH1F* hCentrality;//!
     TH1F* hEventPlane;//!   
     TH1F* hEventPlaneWeighted;//!
     TH2F* fHistEPTPCn;//!
