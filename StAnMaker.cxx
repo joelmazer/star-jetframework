@@ -49,15 +49,6 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-// classes
-//class StJetMakerTask;
-
-/*
-namespace fastjet {
-  class PseudoJet;
-}
-*/
-
 ClassImp(StAnMaker)
 
 //-----------------------------------------------------------------------------
@@ -77,11 +68,14 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fDebugLevel = 0;
   fRunFlag = 0;       // see StAnMaker::fRunFlagEnum
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
+  fRequireCentSelection = kFALSE;
+  fCentralitySelectionCut = -99;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   fMinPtJet = 0.0;
   fJetConstituentCut = 2.0;
   fTrackBias = 0.0;
+  fTowerBias = 0.0;
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
@@ -150,7 +144,7 @@ Int_t StAnMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
+        break;
 
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -273,9 +267,7 @@ Int_t StAnMaker::Make() {
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
-
   // ============================ end of CENTRALITY ============================== //
-
 
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
@@ -293,9 +285,7 @@ Int_t StAnMaker::Make() {
   // check for MB/HT event
   fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
-
   // ======================== end of Triggers ============================= //
-
 
   // ================= JetMaker ================ //
   // get JetMaker
@@ -336,7 +326,6 @@ Int_t StAnMaker::Make() {
   Int_t njets = fJets->GetEntries();
   const Int_t ntracks = mPicoDst->numberOfTracks();
   Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
-
 
   // run Jets:
   RunJets();
@@ -445,7 +434,7 @@ void StAnMaker::RunTracks()
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
-    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+//    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
     // primary track switch
     // get momentum vector of track - global or primary track

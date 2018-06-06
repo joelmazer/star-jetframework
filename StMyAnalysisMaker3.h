@@ -303,7 +303,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // jet histos
     TH1F* hJetPt;//!
     TH1F* hJetCorrPt;//!
-    TH1F* hJetPt2;//!
     TH1F* hJetE;//!
     TH1F* hJetEta;//!
     TH1F* hJetPhi;//!

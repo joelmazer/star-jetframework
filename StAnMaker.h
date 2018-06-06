@@ -54,10 +54,14 @@ class StAnMaker : public StJetFrameworkPicoBase {
     virtual void            SetPrintEventCounter(Bool_t c)     { doPrintEventCounter = c; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
+    virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
+    virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
+    // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
+    virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     
     // event setters
@@ -96,7 +100,6 @@ class StAnMaker : public StJetFrameworkPicoBase {
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
     void                    FillEmcTriggers();                          // EmcTrigger counter histo
     void                    FillEventTriggerQA();                           // filled event trigger QA plots
-    Bool_t                  AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
     Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                  DoComparison(int myarr[], int elems);
     void                    SetSumw2(); // set errors weights 

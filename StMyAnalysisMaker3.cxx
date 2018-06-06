@@ -211,7 +211,6 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
 
   delete hJetPt;
   delete hJetCorrPt;
-  delete hJetPt2;
   delete hJetE;
   delete hJetEta;
   delete hJetPhi;
@@ -429,7 +428,6 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
   hJetCorrPt = new TH1F("hJetCorrPt", "Corrected Jet p_{T}", 125, -25, 100);
-  hJetPt2 = new TH1F("hJetPt2", "Jet p_{T}", 100, 0, 100);
   hJetE = new TH1F("hJetE", "Jet energy distribution", 100, 0, 100);
   hJetEta = new TH1F("hJetEta", "Jet #eta distribution", 24, -1.2, 1.2);
   hJetPhi = new TH1F("hJetPhi", "Jet #phi distribution", 72, 0.0, 2.0*pi);
@@ -695,7 +693,6 @@ void StMyAnalysisMaker3::WriteHistograms() {
   // jet histos
   hJetPt->Write();
   hJetCorrPt->Write();
-  hJetPt2->Write();
   hJetE->Write();
   hJetEta->Write();
   hJetPhi->Write();
@@ -2155,7 +2152,6 @@ void StMyAnalysisMaker3::SetSumw2() {
 
   hJetPt->Sumw2();
   hJetCorrPt->Sumw2();
-  hJetPt2->Sumw2();
   hJetE->Sumw2();
   hJetEta->Sumw2();
   hJetPhi->Sumw2();
