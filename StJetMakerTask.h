@@ -220,6 +220,8 @@ class StJetMakerTask : public StMaker {
   Bool_t                 CheckForHT(int RunFlag, int type);
   Bool_t                 DoComparison(int myarr[], int elems);
   void                   FillEmcTriggersArr();
+  Double_t               GetMaxTrackPt();
+
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();

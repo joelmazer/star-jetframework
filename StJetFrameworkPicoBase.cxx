@@ -77,7 +77,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fJetRad(0.4),
   fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(30.0),
   fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
   fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
   fTrackDCAcut(3.0),
@@ -135,7 +135,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fJetRad(0.4),
   fEventZVtxMinCut(-40.0), fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  fTrackPtMinCut(0.2), fTrackPtMaxCut(20.0),
+  fTrackPtMinCut(0.2), fTrackPtMaxCut(30.0),
   fTrackPhiMinCut(0.0), fTrackPhiMaxCut(2.0*TMath::Pi()),
   fTrackEtaMinCut(-1.0), fTrackEtaMaxCut(1.0),
   fTrackDCAcut(3.0),
@@ -499,7 +499,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   }
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
-  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
+  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, (increased to 30.0) 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
   if(phi < 0)    phi += 2*pi;
   if(phi > 2*pi) phi -= 2*pi;
@@ -1172,4 +1172,81 @@ Bool_t StJetFrameworkPicoBase::AddDeadTowers(TString csvfile){
 void StJetFrameworkPicoBase::ResetDeadTowerList( ){
   deadTowers.clear();
 }
+*/
+
+//
+// function to convert 5% centrality to 10% bins
+// must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
+//__________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetCentBin10(Int_t cbin) const {
+  int cbin10;
+  if(cbin== 0 || cbin== 1) cbin10 = 0; //  0-10%
+  if(cbin== 2 || cbin== 3) cbin10 = 1; // 10-20%
+  if(cbin== 4 || cbin== 5) cbin10 = 2; // 20-30%
+  if(cbin== 6 || cbin== 7) cbin10 = 3; // 30-40%
+  if(cbin== 8 || cbin== 9) cbin10 = 4; // 40-50%
+  if(cbin==10 || cbin==11) cbin10 = 5; // 50-60%
+  if(cbin==12 || cbin==13) cbin10 = 6; // 60-70%
+  if(cbin==14 || cbin==15) cbin10 = 7; // 70-80%
+
+  return cbin10;
+}
+
+//
+// Returns pt of hardest track in the event
+//
+Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
+{
+  // get # of tracks
+  int nTrack = mPicoDst->numberOfTracks();
+  double fMaxTrackPt = -99;
+
+  // loop over all tracks
+  for(int i=0; i<nTrack; i++) {
+    // get tracks
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
+
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) {
+      // get primary track vector
+      mTrkMom = track->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
+    }
+
+    // track variables
+    double pt = mTrkMom.perp();
+
+    // get max track
+    if(pt > fMaxTrackPt) { fMaxTrackPt = pt; }
+  }
+
+  return fMaxTrackPt;
+}
+/*
+//
+//
+//___________________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::DidTowerConstituentFireTrigger(StJet *jet) const {
+  // ==== 
+
+  // loop over constituents towers
+  for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
+    int towerid = jet->ClusterAt(itow);
+    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
+    if(!tow){ continue; }
+
+    int towID = tow->id();
+
+  } // tower constituent loop
+
+}
+
 */

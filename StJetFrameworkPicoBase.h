@@ -5,6 +5,9 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 
+//#include "StRoot/StPicoEvent/StPicoDst.h"
+
+
 #include <set>
 
 // ROOT classes
@@ -98,10 +101,16 @@ class StJetFrameworkPicoBase : public StMaker {
       kPtLinear2Const5Weight
     };
 
-    // run flags for specifics - update this
+    // run flags for specifics - update this as needed: TODO
     enum fRunFlagEnum {
+      Run11_pp500, // 500
+      Run12_pp200, 
+      Run12_pp500, // 500
+      Run13_pp510, // 500
       Run14_AuAu200,
-      Run16_AuAu200
+      Run15_pp200,
+      Run16_AuAu200,
+      Run17_pp510  // 500
     };
 
     // run flags for specifics
@@ -246,6 +255,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+    Int_t                  GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
     Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
@@ -258,6 +268,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 CheckForMB(int RunFlag, int type);
     Bool_t                 CheckForHT(int RunFlag, int type);
     Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
+    Double_t               GetMaxTrackPt();
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch

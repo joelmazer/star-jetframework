@@ -101,15 +101,6 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
   fTPCEPmethod = 1;
-  tpc_recenter_read_switch = kFALSE; // TPC recenter switch
-  tpc_shift_read_switch = kFALSE;    // TPC shift switch
-  tpc_apply_corr_switch = kFALSE;    // TPC finall corrections
-  zdc_recenter_read_switch = kFALSE; // ZDC recenter switch
-  zdc_shift_read_switch = kFALSE;    // ZDC shift switch
-  zdc_apply_corr_switch = kFALSE;    // ZDC final corrections
-  bbc_recenter_read_switch = kFALSE; // BBC recenter switch
-  bbc_shift_read_switch = kFALSE;    // BBC shift switch 
-  bbc_apply_corr_switch = kFALSE;    // BBC final corrections
   fHistCentBinMin = 0;
   fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
   fHistZvertBinMin = 0;
@@ -125,7 +116,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   BBC_raw_comb = 0.; BBC_raw_east = 0.; BBC_raw_west = 0.;
   ZDC_raw_comb = 0.; ZDC_raw_east = 0.; ZDC_raw_west = 0.;
   fPoolMgr = 0x0;
-  fJets = 0x0; // added back May16 TODO
+  fJets = 0x0;
   fRunNumber = 0;
   fEPTPCn = 0.; fEPTPCp = 0.;
   fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
@@ -149,7 +140,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTowerBias = 0.2;
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
-  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
+  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fTrackDCAcut = 3.0; fTracknHitsFit = 15; fTracknHitsRatio = 0.52;
@@ -166,6 +157,11 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fDoFilterPtMixEvents = kFALSE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
+  for(int i=0; i<4801; i++) {
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
   doComments = mDoComments;
   fhnJH = 0x0;
   fhnMixedEvents = 0x0;
@@ -390,6 +386,9 @@ Int_t StMyAnalysisMaker3::Finish() {
 //-----------------------------------------------------------------------------
 void StMyAnalysisMaker3::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
+  int nHistCentBins;
+  if(fCentBinSize == 10) nHistCentBins = 10;
+  if(fCentBinSize ==  5) nHistCentBins = 20;
 
   // QA histos
   hdEPReactionPlaneFnc = new TH1F("hdEPReactionPlaneFnc", "jets relative to EP from reaction plane function", 3, 0.0, 0.5*pi);
@@ -410,7 +409,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEPBBC = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, -pi, pi);
   fHistEPZDC = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, -pi, pi);
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
-  hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100); 
+  hCentrality = new TH1F("hCentrality", "No. events vs centrality", nHistCentBins, 0, 100); 
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
   hRhovsCent = new TH2F("hRhovsCent", "#rho vs centrality", 20, 0, 100, 200, 0, 200);
 
@@ -421,7 +420,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
     hTrackEta[i] = new TH1F(Form("hTrackEta%d", i), Form("track distribution vs #eta, centr%d", i), 40, -1.0, 1.0);
-    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 80, 0., 20.0);
+    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 120, 0., 30.0);
   }
   hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
 
@@ -433,7 +432,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hJetPhi = new TH1F("hJetPhi", "Jet #phi distribution", 72, 0.0, 2.0*pi);
   hJetNEF = new TH1F("hJetNEF", "Jet NEF", 100, 0, 1);
   hJetArea = new TH1F("hJetArea", "Jet Area", 100, 0, 1);
-  hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 80, 0, 20.0);
+  hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 120, 0, 30.0);
   hJetTracksPhi = new TH1F("hJetTracksPhi", "Jet track constituent #phi", 72, 0, 2.0*pi);
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
   hJetTracksZ = new TH1F("hJetTracksZ", "Jet track fragmentation function", 144, 0, 1.44);
@@ -464,9 +463,9 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
-  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
-  hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", 20, 0, 100);
-  hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", 20, 0, 100, 20, -40.0, 40.0);
+  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", nHistCentBins, -40.0, 40.0);
+  hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", nHistCentBins, 0, 100);
+  hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
 
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
   // set binning for run based corrections - run dependent
@@ -601,18 +600,35 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   }
 
   // temp FIXME:  Currently 5% centrality bins 0-80%, 4cm z-vtx bins
-  Int_t nCentBins = 16;
-  Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // TEST added 16
+/*
+  Int_t nCentBins;
+  Double_t* centralityBin;
+  if(fCentBinSize == 10) {
+    // 10% bins - June13, 2018
+    nCentBins = 8;
+    Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    centralityBin = cenBins;
+  } else if(fCentBinSize == 5) {
+    nCentBins = 16;
+    Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    centralityBin = cenBins;
+  }
+*/
+
+  // this is temp as the above and various other implementation attempts would not work for both cases
+  // need to look into this, but a few hours already is too much.  Don't want to have to have this hard-coded
+  Int_t nCentBins = 8;
+  Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
   Double_t* centralityBin = cenBins;
+
+  // z-vertex bins for mixed events
   Int_t nZvBins  = 10+1+10;
   Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  //Int_t nZvBins  = 2+1+2;
-  //Double_t vBins[] = {-40, -20, -0, 20, 40};
   Double_t* zvbin = vBins;
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
-  Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implemented of AliEventPoolManager
+  Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinspp, centralityBinspp, nZvtxBins, zvtxbin);
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsAuAu, centralityBinsAuAu, nZvtxBins, zvtxbin);
   fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBin, nZvBins, (Double_t*)zvbin);
@@ -773,6 +789,9 @@ Int_t StMyAnalysisMaker3::Make() {
     return kStWarn;
   }
 
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
+
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
 
@@ -782,7 +801,7 @@ Int_t StMyAnalysisMaker3::Make() {
   
   // Z-vertex cut 
   // the Aj analysis cut on (-40, 40) for reference
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
@@ -813,10 +832,16 @@ Int_t StMyAnalysisMaker3::Make() {
   int cent9 = grefmultCorr->getCentralityBin9();
   ref9 = GetCentBin(cent9, 9);
   ref16 = GetCentBin(cent16, 16);  
-  Int_t centbin = GetCentBin(cent16, 16);
+  Int_t centbin = GetCentBin(cent16, 16);  // 0-16
   Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
   //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+
+  // bin-age to use for mixed event and sparses
+  Int_t centbin10 = GetCentBin10(centbin);
+  double centBinToUse;
+  if(fCentBinSize==10) { centBinToUse = (double)centbin10 * 10.0;
+  } else if(fCentBinSize==5) { centBinToUse = (double)centbin * 5.0; }
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
@@ -860,6 +885,9 @@ Int_t StMyAnalysisMaker3::Make() {
   // check for MB/HT event
   fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+
+  // fill arrays for towers that fired trigger
+  FillTowerTriggersArr();
 
   // switches for Jet and Event Plane analysis
   Bool_t doJetAnalysis = kFALSE; // set false by default
@@ -1098,6 +1126,9 @@ Int_t StMyAnalysisMaker3::Make() {
     } else { if(jetpt < fMinPtJet) continue; }
     if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
 
+    // TODO TODO new TODO TODO check that jet contains a tower that fired the trigger
+    if(!DidTowerConstituentFireTrigger(jet)) { continue; }
+
     // test QA stuff...
     //cout<<"ij = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
 
@@ -1137,16 +1168,18 @@ Int_t StMyAnalysisMaker3::Make() {
       hJetTracksZ->Fill(jetZ);
     }
 
+/*
     // loop over constituent towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int ArrayIndex = jet->ClusterAt(itow);
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
-      //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
-      //int containsTower = jet->ContainsTower(ArrayIndex);
-      //cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
+      int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      int containsTower = jet->ContainsTower(ArrayIndex);
+      cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
     }
+*/
 
     // fill some jet histograms
     hJetPt->Fill(jetpt);
@@ -1201,8 +1234,8 @@ Int_t StMyAnalysisMaker3::Make() {
     if(fCorrJetPt) { jetptselected = corrjetpt; 
     } else { jetptselected = jetpt; }
 
-    Double_t CorrEntries[4] = {centbin*5.0, jetptselected, dEP, zVtx};
-    //Double_t CorrEntries[8] = {centbin*5.0, jetptselected, dEP0, dEP1, dEP2, dEP3, dEP4, zVtx};
+    // fill jet sparse for trigger normalization
+    Double_t CorrEntries[4] = {centBinToUse, jetptselected, dEP, zVtx};
     if(fReduceStatsCent > 0) {
       if(cbin == fReduceStatsCent) fhnCorr->Fill(CorrEntries);    // fill Sparse Histo with trigger Jets entries
     } else fhnCorr->Fill(CorrEntries);    // fill Sparse Histo with trigger Jets entries
@@ -1242,14 +1275,14 @@ Int_t StMyAnalysisMaker3::Make() {
 
       // === June 1, 2018 - these cuts should not be here!
 /*
-      // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+      // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
       // when doing event plane calculation via pt assoc bin
       if(doTPCptassocBin) {
-        if(fTPCptAssocBin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+        if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(fTPCptAssocBin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+        if(fTPCptAssocBin == 4) { if((pt > 2.00) && (pt <= 30.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
         if(fTPCptAssocBin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
         if(fTPCptAssocBin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
@@ -1257,7 +1290,7 @@ Int_t StMyAnalysisMaker3::Make() {
 */
 
       // fill jet sparse 
-      double triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, (double)charge};
+      double triggerEntries[8] = {centBinToUse, jetptselected, pt, deta, dphijh, dEP, zVtx, (double)charge};
       double trefficiency = 1.0;
       //if(fDoEventMixing) {
         if(fReduceStatsCent > 0) {
@@ -1301,12 +1334,17 @@ Int_t StMyAnalysisMaker3::Make() {
     // get the trigger bit, need to change trigger bits between different runs
 
     //Double_t mycentbin = (Double_t)centbin + 0.001;
+    // mixed event centbin
+    Int_t mixcentbin;
+    if(fCentBinSize==10) { mixcentbin = centbin10;          // 10% bins (0,  7)
+    } else if(fCentBinSize==5) { mixcentbin = centbin; }    //  5% bins (0, 15)
+    //cout<<"mixcentbin = "<<mixcentbin<<"  centbin = "<<centbin<<" centbin10 = "<<centbin10<<"  zvtx = "<<zVtx<<endl;
 
     // initialize event pools
     StEventPool* pool = 0x0;
-    pool = fPoolMgr->GetEventPool(centbin, zVtx); //FIXME AuAu fcent: cent bin? cent16
+    pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); //FIXME AuAu fcent: cent bin? cent16
     if(!pool) {
-      Form("No pool found for centrality = %i, zVtx = %f", centbin, zVtx); // FIXME if cent changes to double
+      Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
       return kTRUE; //FIXME
     }
 
@@ -1365,6 +1403,10 @@ Int_t StMyAnalysisMaker3::Make() {
         // get number of current events in pool
         int nMix = pool->GetCurrentNEvents();
 
+        // TODO TODO new TODO TODO FIXME may want this inside below if??
+        // check that jet contains a tower that fired the trigger
+        if( !DidTowerConstituentFireTrigger(jet) ) continue;
+
         // Fill for biased jet triggers only
         if((jet->GetMaxTrackPt() > fTrackBias) || (jet->GetMaxTowerE() > fTowerBias)) {
           // Fill mixed-event histos here: loop over nMix events
@@ -1409,10 +1451,10 @@ Int_t StMyAnalysisMaker3::Make() {
 
               // === June 1, 2018 - these cuts should not be here!
 /*
-              // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+              // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
               // when doing event plane calculation via pt assoc bin
               if(doTPCptassocBin) {
-                if(fTPCptAssocBin == 0) { if((Mixpt > 0.25) && (Mixpt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+                if(fTPCptAssocBin == 0) { if((Mixpt > 0.20) && (Mixpt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
                 if(fTPCptAssocBin == 1) { if((Mixpt > 0.50) && (Mixpt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
                 if(fTPCptAssocBin == 2) { if((Mixpt > 1.00) && (Mixpt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
                 if(fTPCptAssocBin == 3) { if((Mixpt > 1.50) && (Mixpt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -1423,9 +1465,8 @@ Int_t StMyAnalysisMaker3::Make() {
               }
 */
 
-              // create / fill mixed event sparse
-              //double triggerEntries[8]; //i = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge};
-              double triggerEntries[8] = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge};
+              // create / fill mixed event sparse  (centbin*5.0)
+              double triggerEntries[8] = {centBinToUse, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge};
 
               if(fReduceStatsCent > 0) {
                 if(cbin == fReduceStatsCent) fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));
@@ -1449,8 +1490,8 @@ Int_t StMyAnalysisMaker3::Make() {
 
       // fill QA histo's
       hMixEvtStatZVtx->Fill(zVtx);
-      hMixEvtStatCent->Fill(centbin*5.0);
-      hMixEvtStatZvsCent->Fill(centbin*5.0, zVtx);
+      hMixEvtStatCent->Fill(centBinToUse);
+      hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);
     } // MB (and Central and Semi-Central events ?)
 
   } // end of event mixing
@@ -1509,7 +1550,11 @@ void StMyAnalysisMaker3::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins
 
    case 0:
       label = "centrality 5% bin";
-      nbins = 20; //16;
+      if(fCentBinSize==10) {
+        nbins = 10;
+      } else {
+        nbins = 20; //16;
+      } 
       xmin = 0.;
       xmax = 100.; //16.;     
       break;
@@ -1630,7 +1675,11 @@ void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &n
 
     case 0:
       label = "centrality 5% bin";
-      nbins = 20; //16;
+      if(fCentBinSize==10) {
+        nbins = 10;
+      } else {
+        nbins = 20; //16;
+      }
       xmin = 0.;
       xmax = 100.; //16.;
       break;
@@ -1714,11 +1763,11 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
     //double eta = mTrkMom.pseudoRapidity();
     //short charge = trk->charge();
 
-    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     // this is TEMP, it will filter track by the pt bin used for analysis
     if(doTPCptassocBin && fDoFilterPtMixEvents) {
-      if(fTPCptAssocBin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(fTPCptAssocBin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(fTPCptAssocBin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -2273,10 +2322,10 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
     if(phi < 0)    phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
 
-    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations - FIXME why is this 0.25??
       if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -2616,7 +2665,7 @@ void StMyAnalysisMaker3::TrackQA()
     // get angle between tracks and event plane
     double dEPtrk = RelativeEPJET(phi, TPC_PSI2);
     //cout<<"dEPtrk = "<<dEPtrk<<"  phi = "<<phi<<"  EP2 = "<<TPC_PSI2<<endl;
-    if((pt > 0.25) && (pt <= 0.5)) hdEPtrk[0]->Fill(dEPtrk);
+    if((pt > 0.20) && (pt <= 0.5)) hdEPtrk[0]->Fill(dEPtrk);
     if((pt > 0.50) && (pt <= 1.0)) hdEPtrk[1]->Fill(dEPtrk);
     if((pt > 1.00) && (pt <= 1.5)) hdEPtrk[2]->Fill(dEPtrk);
     if((pt > 1.50) && (pt <= 2.0)) hdEPtrk[3]->Fill(dEPtrk);
@@ -2628,4 +2677,82 @@ void StMyAnalysisMaker3::TrackQA()
     hTrackEtavsPhi->Fill(phi, eta);
 
   }
-}  
+}
+
+//_________________________________________________________________________
+void StMyAnalysisMaker3::FillTowerTriggersArr() {
+  // tower - HT trigger types array
+  // zero these out - so they are refreshed for each event
+  for(int i = 0; i < 4801; i++) {
+    fTowerToTriggerTypeHT1[i] = kFALSE;
+    fTowerToTriggerTypeHT2[i] = kFALSE;
+    fTowerToTriggerTypeHT3[i] = kFALSE;
+  }
+
+  // get number of Emc triggers
+  int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+
+  // loop over valid EmcalTriggers
+  for(int i = 0; i < nEmcTrigger; i++) {
+    StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
+    if(!emcTrig) continue;
+
+    // emc trigger parameters
+    int emcTrigID = emcTrig->id();
+
+    // check if i'th trigger fired HT triggers by meeting threshold
+    bool isHT1 = emcTrig->isHT1();
+    bool isHT2 = emcTrig->isHT2();
+    bool isHT3 = emcTrig->isHT3();
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+
+    //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
+  }
+
+/*
+  // loop over towers and add input vectors to fastjet
+  int nTowers = mPicoDst->numberOfBTOWHits();
+  for(int itow = 0; itow < nTowers; itow++) {
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
+    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
+
+    // tower ID
+    int towerID = tower->id();
+    if(towerID < 0) continue; // double check these aren't still in the event list
+
+    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
+    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT2: "<<fTowerToTriggerTypeHT2[towerID]<<"  adc = "<<tower->adc()<<endl;
+    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT3: "<<fTowerToTriggerTypeHT3[towerID]<<"  adc = "<<tower->adc()<<endl;
+  }
+*/
+
+}
+
+//
+//
+//___________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {  
+  // tower constituent fired trigger
+  Bool_t mFiredTrigger = kFALSE;
+
+  // loop over constituents towers
+  for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
+    int towerid = jet->ClusterAt(itow);
+    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
+    if(!tow){ continue; }
+    
+    int towID = tow->id();
+
+    //cout<<"towerID = "<<towerID<<"  towID = "<<towID<<endl;
+
+    // change flag to true if jet tower fired trigger
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID]) mFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID]) mFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID]) mFiredTrigger = kTRUE;
+  
+  } // tower constituent loop
+
+  return mFiredTrigger;
+}   

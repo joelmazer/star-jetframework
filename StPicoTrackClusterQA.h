@@ -172,6 +172,7 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t                 DoComparison(int myarr[], int elems);
   Bool_t                 CheckForMB(int RunFlag, int type);
   Bool_t                 CheckForHT(int RunFlag, int type);
+  Double_t               GetMaxTrackPt();
 
   void                   SetSumw2(); // set errors weights 
 

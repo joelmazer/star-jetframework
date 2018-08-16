@@ -99,6 +99,7 @@ class StJet : public StVParticle
   Int_t             TowerAt(Int_t idx)           const { return fClusterIDs.At(idx)      ; }  // this stores ID of tower constituents
   Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; }  // this stores ID of track constituents
   UShort_t          GetNumberOfClusters()        const { return fClusterIDs.GetSize()    ; }  // # of tower constituents
+  UShort_t          GetNumberOfTowers()          const { return fClusterIDs.GetSize()    ; }  // # of tower constituents // TODO Cluster->Tower
   UShort_t          GetNumberOfTracks()          const { return fTrackIDs.GetSize()      ; }  // # of track constituents
   UShort_t          GetNumberOfConstituents()    const { return GetNumberOfClusters()+GetNumberOfTracks(); } // towers + tracks
   Bool_t            IsMC()                       const { return (Bool_t)(MCPt() > 0)     ; }

@@ -110,7 +110,7 @@ StJetMakerTask::StJetMakerTask() :
   fJetEtaMax(0.6),
   fGhostArea(0.005), 
   fMinJetTrackPt(0.2),
-  fMaxJetTrackPt(20.0),
+  fMaxJetTrackPt(30.0),
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
   fMinJetTowerE(0.2),
@@ -195,7 +195,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetEtaMax(0.6),
   fGhostArea(0.005),
   fMinJetTrackPt(mintrackPt), //0.20
-  fMaxJetTrackPt(20.0), 
+  fMaxJetTrackPt(30.0), 
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
   fMinJetTowerE(0.2),
@@ -445,7 +445,7 @@ void StJetMakerTask::DeclareHistograms() {
     //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
     fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", 20, 0, 100);    
 
-    fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 100, 0., 20.);
+    fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
     fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
     fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
@@ -539,6 +539,9 @@ int StJetMakerTask::Make()
     return kStWarn;
   }
 
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
+
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
 
@@ -562,6 +565,7 @@ int StJetMakerTask::Make()
   grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
   grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
   int cent16 = grefmultCorr->getCentralityBin16();
+//  int cent16 = 0;
   if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
   int centbin = GetCentBin(cent16, 16);
   double centralityScaled = centbin*5.0;
@@ -649,7 +653,9 @@ void StJetMakerTask::FindJets()
       double pz = mTrkMom.z();
       double p = mTrkMom.mag();
       double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-      //short charge = trk->charge();         
+      short charge = trk->charge();         
+
+      //cout<<"Charge: "<<charge<<"  nHitsFit: "<<trk->nHitsFit()<<endl;
 
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
@@ -698,8 +704,7 @@ void StJetMakerTask::FindJets()
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
-      // TODO should check this FIXME
-      //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; } // FIXME - do I want to apply quality cuts to matched track?
+      // apply quality cut to matched tracks
       if(AcceptJetTrack(trk, Bfield, mVertex)) {
 
         // tower status set - towerID is matched to track passing quality cuts
@@ -741,9 +746,8 @@ void StJetMakerTask::FindJets()
         StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
-        // TODO want to process tower on its own if track did not meet quality cut
+        // want to process tower on its own if track did not meet quality cut
         // this should already be done above
-        //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
         if(AcceptJetTrack(trk, Bfield, mVertex)) {
 
           // get track variables to matched tower
@@ -1698,3 +1702,41 @@ void StJetMakerTask::FillEmcTriggersArr() {
 */
 //==========
 
+//
+// Returns pt of hardest track in the event
+//
+Double_t StJetMakerTask::GetMaxTrackPt()
+{
+  // get # of tracks
+  int nTrack = mPicoDst->numberOfTracks();
+  double fMaxTrackPt = -99;
+
+  // loop over all tracks
+  for(int i=0; i<nTrack; i++) {
+    // get tracks
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptJetTrack(track, Bfield, mVertex))) { continue; }
+
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) {
+      // get primary track vector
+      mTrkMom = track->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
+    }
+
+    // track variables
+    double pt = mTrkMom.perp();
+
+    // get max track
+    if(pt > fMaxTrackPt) { fMaxTrackPt = pt; }
+  }
+
+  return fMaxTrackPt;
+}

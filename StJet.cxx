@@ -536,8 +536,8 @@ Int_t StJet::ContainsTrack(Int_t it) const
  */
 // TODO update 
 TString StJet::toString() const {
-  return TString::Format("Jet pT = %.2f, eta = %.2f, phi = %.2f, max charged pT = %.2f, max neutral pT = %.2f, N tracks = %d, N clusters = %d, Area = %.2f, NEF = %.2f",
-         Pt(), Eta(), Phi(), MaxChargedPt(), MaxNeutralPt(), GetNumberOfTracks(), GetNumberOfClusters(), Area(), NEF());
+  return TString::Format("Jet pT = %.2f, eta = %.2f, phi = %.2f, max charged pT = %.2f, max neutral pT = %.2f, N tracks = %d, N towers = %d, Area = %.2f, NEF = %.2f",
+         Pt(), Eta(), Phi(), MaxChargedPt(), MaxNeutralPt(), GetNumberOfTracks(), GetNumberOfTowers(), Area(), NEF());
 }
 
 /**

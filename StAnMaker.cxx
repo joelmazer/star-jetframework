@@ -20,7 +20,9 @@
 
 // STAR includes
 #include "StThreeVectorF.hh"
-#include "StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoDstMaker/StPicoDst.h"
+//#include "StRoot/StPicoEvent/StPicoDst.h"
+
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
 
@@ -78,7 +80,7 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fTowerBias = 0.0;
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
-  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
+  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fTrackDCAcut = 3.0;
@@ -221,6 +223,9 @@ Int_t StAnMaker::Make() {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
   }
+
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

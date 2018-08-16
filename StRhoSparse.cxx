@@ -194,6 +194,9 @@ Int_t StRhoSparse::Make()
     return kStWarn;
   }
 
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
+
   // get vertex 3 vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
@@ -245,7 +248,6 @@ Int_t StRhoSparse::Make()
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
   Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
   else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%

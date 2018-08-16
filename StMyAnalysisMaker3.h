@@ -141,16 +141,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetEventPlaneTrackWeight(Int_t weight)          {fTrackWeight = weight; }
     virtual void            SetEventPlaneMaxTrackPtCut(Double_t m)          {fEventPlaneMaxTrackPtCut = m; }  
     virtual void            SetTPCEventPlaneMethod(Int_t tm)                {fTPCEPmethod = tm; }
-    virtual void            SetPhiShift(Bool_t ps)                          {phi_shift_switch = ps; }
-    virtual void            SetTPCRecenterRead(Bool_t trc)                  {tpc_recenter_read_switch = trc; }
-    virtual void            SetTPCShiftRead(Bool_t ts)                      {tpc_shift_read_switch = ts; }
-    virtual void            SetTPCApplyCorrections(Bool_t tac)              {tpc_apply_corr_switch = tac; }
-    virtual void            SetZDCrecentering(Bool_t zrc)                   {zdc_recenter_read_switch = zrc; }
-    virtual void            SetZDCShiftRead(Bool_t zs)                      {zdc_shift_read_switch = zs; }
-    virtual void            SetZDCApplyCorrections(Bool_t zac)              {zdc_apply_corr_switch = zac; }
-    virtual void            SetBBCrecentering(Bool_t brc)                   {bbc_recenter_read_switch = brc; }
-    virtual void            SetBBCShiftRead(Bool_t bs)                      {bbc_shift_read_switch = bs; }
-    virtual void            SetBBCApplyCorrections(Bool_t bac)              {bbc_apply_corr_switch = bac; }
     virtual void            SetHistBinLimitsCenZvert(Int_t cmin, Int_t cmax, Int_t zmin, Int_t zmax)   { fHistCentBinMin = cmin; fHistCentBinMax = cmax; fHistZvertBinMin = zmin; fHistZvertBinMax = zmax; }
     virtual void            SetdoEventPlaneRes(Bool_t depr)                 {doEventPlaneRes = depr; }
     virtual void            SetdoEPTPCptAssocMethod(Bool_t ptbin)           {doTPCptassocBin = ptbin; }
@@ -174,14 +164,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
     static Double_t         CalculateEventPlaneChi(Double_t res);
     void                    TrackQA();
+    void                    FillTowerTriggersArr();
+    Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
 
     // Added from Liang
-    void                    QvectorCal(int ref9, int region_vz, int n, int ptbin);
-    Int_t                   EventPlaneCal(int ref9, int region_vz, int n, int ptbin);
-    Int_t                   BBC_EP_Cal(int ref9, int region_vz, int n); //refmult, the region of vz, and order of EP
-    Int_t                   ZDC_EP_Cal(int ref9, int region_vz, int n);
-    Double_t                BBC_GetPhi(int e_w,int iTile); //east == 0
-    Double_t                ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
     Int_t                   GetRunNo(int runid);
     Int_t                   GetVzRegion(double Vz);
 
@@ -213,21 +199,16 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
     Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
+    // tower to firing trigger type matched array
+    Bool_t         fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+    Bool_t         fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+    Bool_t         fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+
     // used for event plane calculation and resolution
     //Float_t        fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
     //Int_t          fTrackWeight;                // track weight for Q-vector summation
     Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
     Int_t          fTPCEPmethod;                // TPC event plane calculation method
-    Bool_t         phi_shift_switch;            // phi shift - for TPC: NOT USING!
-    Bool_t         tpc_recenter_read_switch;    // tpc recenter reader
-    Bool_t         tpc_shift_read_switch;       // tpc shift reader
-    Bool_t         tpc_apply_corr_switch;       // tpc apply final corrections
-    Bool_t         zdc_recenter_read_switch;    // zdc recentering switch
-    Bool_t         zdc_shift_read_switch;       // zdc shift reader
-    Bool_t         zdc_apply_corr_switch;       // zdc apply final corrections
-    Bool_t         bbc_recenter_read_switch;    // bbc recentering switch
-    Bool_t         bbc_shift_read_switch;       // bbc shift reader
-    Bool_t         bbc_apply_corr_switch;       // bbc apply final corrections
     Int_t          fHistCentBinMin;             // min centrality bin for histogram loop
     Int_t          fHistCentBinMax;             // max centrality bin for histogram loop
     Int_t          fHistZvertBinMin;            // min z-vertex bin for histogram loop

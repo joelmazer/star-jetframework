@@ -94,7 +94,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fTracksName(""),
   fCaloName(""),
   fTrackPtMinCut(0.2),
-  fTrackPtMaxCut(20.0),
+  fTrackPtMaxCut(30.0),
   fClusterPtMinCut(0.2),
   fClusterPtMaxCut(1000.0),
   fTrackPhiMinCut(0.0),
@@ -166,7 +166,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fTracksName("Tracks"),
   fCaloName("Clusters"),
   fTrackPtMinCut(0.2), //0.20
-  fTrackPtMaxCut(20.0), 
+  fTrackPtMaxCut(30.0), 
   fClusterPtMinCut(0.2),
   fClusterPtMaxCut(1000.0),
   fTrackPhiMinCut(0.0),
@@ -357,7 +357,7 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     double pi = 1.0*TMath::Pi();
 
     // track histograms
-    fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 100, 0., 20.);
+    fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 150, 0., 30.);
     fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "Ntracks vs #phi", 72, 0., 2*pi);
     fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "Ntracks vs #eta", 40, -1.0, 1.0);
     fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "Ntrack vs #phi vs #eta", 144, 0, 2*pi, 20, -1.0, 1.0);
@@ -487,6 +487,9 @@ int StPicoTrackClusterQA::Make()
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
   }
+
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -934,7 +937,7 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
   }
 
   // track pt, eta, phi cuts
-  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
+  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR -> 30.0 GeV, 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
   if(phi < 0)    phi += 2*pi;
   if(phi > 2*pi) phi -= 2*pi;
@@ -1220,9 +1223,9 @@ void StPicoTrackClusterQA::GetDimParamsTracks(Int_t iEntry, TString &label, Int_
 
     case 1:
       label = "track p_{T}";
-      nbins = 200;
+      nbins = 300;
       xmin = 0.;
-      xmax = 20.;
+      xmax = 30.;
       break;
 
     case 2:
@@ -1942,4 +1945,43 @@ Bool_t StPicoTrackClusterQA::AddDeadTowers(TString csvfile){
 //____________________________________________________________________________
 void StPicoTrackClusterQA::ResetDeadTowerList( ){
   deadTowers.clear();
+}
+
+//
+// Returns pt of hardest track in the event
+//
+Double_t StPicoTrackClusterQA::GetMaxTrackPt()
+{
+  // get # of tracks
+  int nTrack = mPicoDst->numberOfTracks();
+  double fMaxTrackPt = -99;
+
+  // loop over all tracks
+  for(int i=0; i<nTrack; i++) {
+    // get tracks
+    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    if(!track) { continue; }
+
+    // apply standard track cuts - (can apply more restrictive cuts below)
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
+
+    // primary track switch
+    // get momentum vector of track - global or primary track
+    StThreeVectorF mTrkMom;
+    if(doUsePrimTracks) {
+      // get primary track vector
+      mTrkMom = track->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = track->gMom(mVertex, Bfield);
+    }
+
+    // track variables
+    double pt = mTrkMom.perp();
+
+    // get max track
+    if(pt > fMaxTrackPt) { fMaxTrackPt = pt; }
+  }
+
+  return fMaxTrackPt;
 }

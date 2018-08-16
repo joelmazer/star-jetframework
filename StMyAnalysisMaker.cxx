@@ -161,7 +161,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fTowerBias = 0.2;
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
-  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 20.0;
+  fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
   fTrackDCAcut = 3.0;
@@ -563,7 +563,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
     hTrackEta[i] = new TH1F(Form("hTrackEta%d", i), Form("track distribution vs #eta, centr%d", i), 40, -1.0, 1.0);
-    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 80, 0., 20.0);
+    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 120, 0., 30.0);
   }
   hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
 
@@ -576,7 +576,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   hJetPhi = new TH1F("hJetPhi", "Jet #phi distribution", 72, 0.0, 2*pi);
   hJetNEF = new TH1F("hJetNEF", "Jet NEF", 100, 0, 1);
   hJetArea = new TH1F("hJetArea", "Jet Area", 100, 0, 1);
-  hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 80, 0, 20.0);
+  hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 120, 0, 30.0);
   hJetTracksPhi = new TH1F("hJetTracksPhi", "Jet track constituent #phi", 72, 0, 2*pi);
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
   hJetTracksZ = new TH1F("hJetTracksZ", "Jet track fragmentation function", 144, 0, 1.44);
@@ -1200,6 +1200,9 @@ Int_t StMyAnalysisMaker::Make() {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
   }
+
+  // cut event on max track pt > 35.0 GeV
+  if(GetMaxTrackPt() > 35.0) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -2333,7 +2336,7 @@ Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVector
   }
 
   // track pt, eta, phi cuts
-  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, 100.0 ALICE
+  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR -> 30.0 GeV, 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
   if(phi < 0) phi+= 2*pi;
   if(phi > 2*pi) phi-= 2*pi;
@@ -3045,10 +3048,10 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     ////if(pt > ptcut) continue; // == TEST == //
 
-    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -4028,7 +4031,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
           case kRemoveEtaStrip:
             if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
               if(fJetType == kFullJet) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                     tpc_shift_P_bin0_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4048,7 +4051,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
 /*
               if(fJetType == kChargedJet) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   tpc_delta_psi += (tpc_shift_N_bin0_Method1ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                     tpc_shift_P_bin0_Method1ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4071,7 +4074,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
 /*
             if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+              if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                 tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run16[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                   tpc_shift_P_bin0_Method1_Run16[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
               } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4092,7 +4095,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
 /*
             // OLD usage
-            if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+            if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
               tpc_delta_psi += (tpc_shift_N_bin0_Method1[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                 tpc_shift_P_bin0_Method1[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
             } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4115,7 +4118,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
           case kRemoveEtaPhiCone:
             if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
               if(fJetType == kFullJet) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   tpc_delta_psi += (tpc_shift_N_bin0_Method2_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                     tpc_shift_P_bin0_Method2_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4134,7 +4137,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
               } // full jets
 
               if(fJetType == kChargedJet) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   tpc_delta_psi += (tpc_shift_N_bin0_Method2ch_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                     tpc_shift_P_bin0_Method2ch_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4154,7 +4157,7 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
             }
 
             if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-              if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+              if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                 tpc_delta_psi += (tpc_shift_N_bin0[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
                                   tpc_shift_P_bin0[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
               } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4328,10 +4331,10 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 //    if(phi < -2*pi) phi += 2*pi; // comment out Dec13
     if(phi > 2*pi) phi -= 2*pi;
 
-    // 0.25-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
+    // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.25) && (pt <= 0.5)) continue; }  // 0.25 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -4460,7 +4463,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             case kRemoveEtaStrip:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qpx_bin0_Method1_Run14[ref9][region_vz];
                     y -= tpc_center_Qpy_bin0_Method1_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4480,7 +4483,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
 /*
                 if(fJetType == kChargedJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qpx_bin0_Method1ch_Run14[ref9][region_vz];
                     y -= tpc_center_Qpy_bin0_Method1ch_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4504,7 +4507,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             case kRemoveEtaPhiCone:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qpx_bin0_Method2_Run14[ref9][region_vz];
                     y -= tpc_center_Qpy_bin0_Method2_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4523,7 +4526,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
                 } // full jets
 
                 if(fJetType == kChargedJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qpx_bin0_Method2ch_Run14[ref9][region_vz];
                     y -= tpc_center_Qpy_bin0_Method2ch_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4543,7 +4546,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
               }
 
               if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   x -= tpc_center_Qpx_bin0[ref9][region_vz];
                   y -= tpc_center_Qpy_bin0[ref9][region_vz];
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4587,7 +4590,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             case kRemoveEtaStrip:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qnx_bin0_Method1_Run14[ref9][region_vz];
                     y -= tpc_center_Qny_bin0_Method1_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4607,7 +4610,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
 /*
                 if(fJetType == kChargedJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qnx_bin0_Method1ch_Run14[ref9][region_vz];
                     y -= tpc_center_Qny_bin0_Method1ch_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4631,7 +4634,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             case kRemoveEtaPhiCone:
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qnx_bin0_Method2_Run14[ref9][region_vz];
                     y -= tpc_center_Qny_bin0_Method2_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4650,7 +4653,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
                 } // full jets
 
                 if(fJetType == kChargedJet) {
-                  if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                  if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     x -= tpc_center_Qnx_bin0_Method2ch_Run14[ref9][region_vz];
                     y -= tpc_center_Qny_bin0_Method2ch_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
@@ -4670,7 +4673,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
               }
 
               if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-                if(fTPCptAssocBin == 0) {         // 0.25-0.50 GeV
+                if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                   x -= tpc_center_Qnx_bin0[ref9][region_vz];
                   y -= tpc_center_Qny_bin0[ref9][region_vz];
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
