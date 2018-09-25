@@ -115,11 +115,12 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   mPicoEvent = 0x0;
   JetMaker = 0;
   RhoMaker = 0;
-  grefmultCorr = 0;
+  grefmultCorr = 0x0;
   mOutNameEP = "";
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   fRunFlag = 0;       // see StMyAnalysisMaker::fRunFlagEnum
+  doppAnalysis = kFALSE;
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
@@ -328,6 +329,25 @@ Int_t StEventPlaneMaker::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break; // added May20
+
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
+        // this is the default for Run17 pp - don't set anything for pp
+        break;
 
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -772,6 +792,9 @@ Int_t StEventPlaneMaker::Make() {
   bool fHaveEmcTrigger = kFALSE;
   bool fHaveMBevent = kFALSE;
 
+  // just get out of Dodge if we are trying to run of pp collisions
+  if(doppAnalysis) return kStOK; // use kStOK to not create tons of warning printouts
+
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -831,17 +854,24 @@ Int_t StEventPlaneMaker::Make() {
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-  else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); } 
+  Int_t centbin, cent9, cent16;
+  Double_t refCorr2;
 
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t cent9 = grefmultCorr->getCentralityBin9();
-  ref9 = GetCentBin(cent9, 9);
-  ref16 = GetCentBin(cent16, 16);  
-  Int_t centbin = GetCentBin(cent16, 16);
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+  if(!doppAnalysis) {
+    grefmultCorr->init(RunId);
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); } 
+
+    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+    cent16 = grefmultCorr->getCentralityBin16();
+    cent9 = grefmultCorr->getCentralityBin9();
+    ref9 = GetCentBin(cent9, 9);
+    ref16 = GetCentBin(cent16, 16);  
+    centbin = GetCentBin(cent16, 16);
+    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+  } else { // for pp
+    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  }
 
   // centrality / multiplicity histograms
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }

@@ -1,5 +1,5 @@
-#ifndef STJETMAKERTASK_H
-#define STJETMAKERTASK_H
+#ifndef STJETMAKERTASKBGSUB_H
+#define STJETMAKERTASKBGSUB_H
 
 // $Id$
 
@@ -15,7 +15,6 @@
 class StEmcGeom;
 class StEmcCluster;
 class StEmcCollection;
-class StBemcTables; //v3.14
 
 // ROOT classes
 class TClonesArray;
@@ -45,29 +44,7 @@ namespace fastjet {
   class PseudoJet;
 }
 
-/**
- * @brief General jet finder task implementing a wrapper for FastJet
- * 
- * after getting a bunch of the functionality working, have added some code 
- * directly from the ALICE version of AliEmcalJetTask written by:
- * 
- * @author Constantin Lozides <cloizides@lbl.gov>, Lawrence Berkeley National Laboratory
- * @author Marta Verweij
- * @author Salvatore Aiola <salvatore.aiola@cern.ch>, Yale University
- *
- * This class implements a wrapper for the FastJet jet finder. It allows
- * to set a jet definition (jet algorithm, recombination scheme) and the
- * list of jet constituents. The jet finding is delegated to
- * the class StFJWrapper which implements an interface to FastJet.
- *
- * The below is not functional yet:
- * The FastJet contrib utilities are available via the StJetUtility base class
- * and its derived classes. Utilities can be added via the AddUtility(StJetUtility*) method.
- * All the utilities added in the list will be executed. Users can implement new utilities
- * deriving a new class from StJetUtility to interface functionalities of the FastJet contribs.
- */
-
-class StJetMakerTask : public StMaker {
+class StJetMakerTaskBGsub : public StMaker {
  public:
 
   // jet type enumerator
@@ -77,20 +54,9 @@ class StJetMakerTask : public StMaker {
     kNeutralJet
   };
 
-/*
-  typedef StMyAnalysisMaker::EJetType_t EJetType_t;
-  typedef StMyAnalysisMaker::EJetAlgo_t EJetAlgo_t;
-  typedef StMyAnalysisMaker::ERecoScheme_t ERecoScheme_t;
-
-#if !defined(__CINT__) && !defined(__MAKECINT__)
-  typedef fastjet::JetAlgorithm FJJetAlgo;
-  typedef fastjet::RecombinationScheme FJRecoScheme;
-#endif
-*/
-
-  StJetMakerTask();
-  StJetMakerTask(const char *name, double mintrackPt, bool dohistos, const char* outName);
-  virtual ~StJetMakerTask();
+  StJetMakerTaskBGsub();
+  StJetMakerTaskBGsub(const char *name, double mintrackPt, bool dohistos, const char* outName);
+  virtual ~StJetMakerTaskBGsub();
 
   // needed class functions
   virtual Int_t Init();
@@ -132,9 +98,6 @@ class StJetMakerTask : public StMaker {
   void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
   void         SetJetType(Int_t t)                        { fJetType          = t     ; }
   void         SetRecombScheme(Int_t scheme)              { fRecombScheme     = scheme; }
-//  void                   SetJetAlgo(EJetAlgo_t a)                   { fJetAlgo          = a     ; }
-//  void                   SetJetType(EJetType_t t)                   { fJetType          = t     ; }
-//  void                   SetRecombScheme(ERecoScheme_t scheme)      { fRecombScheme     = scheme; }
   void         SetMinJetArea(Double_t a)                  { fMinJetArea       = a     ; }
   void         SetMinJetPt(Double_t j)                    { fMinJetPt         = j     ; }
   void         SetRadius(Double_t r)                      { fRadius        = r;  }
@@ -168,8 +131,8 @@ class StJetMakerTask : public StMaker {
   // jets
   TClonesArray*          GetJets()                        { return fJets; }
   TClonesArray*          GetJetsBGsub()                   { return fJetsBGsub; }
-  TClonesArray*          GetJetConstit()                  { return fJetsConstit; } 
-
+  TClonesArray*          GetJetConstit()                  { return fJetsConstit; }
+ 
   // getters
   Double_t               GetGhostArea()                   { return fGhostArea         ; }
   const char*            GetJetsName()                    { return fJetsName.Data()   ; }
@@ -197,13 +160,6 @@ class StJetMakerTask : public StMaker {
 
   Bool_t                 IsLocked() const;
 
-/*
-#if !defined(__CINT__) && !defined(__MAKECINT__)
-  static FJJetAlgo       ConvertToFJAlgo(EJetAlgo_t algo);
-  static FJRecoScheme    ConvertToFJRecoScheme(ERecoScheme_t reco);
-#endif
-*/
-
   // set hadronic correction fraction for matched tracks to towers
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
 
@@ -211,7 +167,6 @@ class StJetMakerTask : public StMaker {
   // this 1st version is deprecated as the parameters are global for the class and already set
   void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
   void                   FindJets();
-  //Int_t FindJets(); // use this if want to return NJets found
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
@@ -224,6 +179,7 @@ class StJetMakerTask : public StMaker {
   Bool_t                 DoComparison(int myarr[], int elems);
   void                   FillEmcTriggersArr();
   Double_t               GetMaxTrackPt();
+  Int_t                  FastJetBGsub();
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
@@ -274,17 +230,12 @@ class StJetMakerTask : public StMaker {
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection
 
-  // need to tweak type of next 3
-/*
-  EJetType_t             fJetType;                // jet type (full, charged, neutral)
-  EJetAlgo_t             fJetAlgo;                // jet algorithm (kt, akt, etc)
-  ERecoScheme_t          fRecombScheme;           // recombination scheme used by fastjet
-*/
   Int_t                  fJetAlgo;                // jet algorithm (kt, akt, etc)
   Int_t                  fJetType;                // jet type (full, charged, neutral)
   Int_t                  fRecombScheme;           // recombination scheme used by fastjet
 
-  StFJWrapper            fjw; //!fastjet wrapper
+  StFJWrapper            fjw;//!fastjet wrapper
+  //StFJWrapper            fjwBG;//!fastjet wrapper for background
 
   // jet attributes
   Double_t               fRadius;                 // jet radius
@@ -336,7 +287,10 @@ class StJetMakerTask : public StMaker {
   vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
   TClonesArray          *fJetsConstit;            //!jet constituents ClonesArray
   TClonesArray          *fJetsConstitBGsub;       //!jet constituents background subtracted ClonesArray  
-  
+
+  // fastjet definitions
+  // might add..
+
   // TEST ---
   StEmcGeom       *mGeom;
   StEmcCollection *mEmcCol;
@@ -390,9 +344,9 @@ class StJetMakerTask : public StMaker {
   // maker names
   //TString         fJetMakerName;
 
-  StJetMakerTask(const StJetMakerTask&);            // not implemented
-  StJetMakerTask &operator=(const StJetMakerTask&); // not implemented
+  StJetMakerTaskBGsub(const StJetMakerTaskBGsub&);            // not implemented
+  StJetMakerTaskBGsub &operator=(const StJetMakerTaskBGsub&); // not implemented
 
-  ClassDef(StJetMakerTask, 1) // Jet producing task
+  ClassDef(StJetMakerTaskBGsub, 1) // Jet producing task
 };
 #endif

@@ -109,6 +109,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
   virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
   virtual void         SetRunFlag(Int_t f)              { fRunFlag              = f; }
+  virtual void         SetdoppAnalysis(Bool_t pp)       { doppAnalysis          = pp;}
   virtual void         SetCentralityDef(Int_t c)        { fCentralityDef        = c; }
   virtual void         SetTurnOnCentSelection(Bool_t o) { fRequireCentSelection = o; }
   virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
@@ -181,6 +182,7 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t                 doUsePrimTracks;         // primary track switch
   Int_t                  fDebugLevel;             // debug printout level
   Int_t                  fRunFlag;                // Run Flag numerator value
+  Bool_t                 doppAnalysis;            // use pp analysis data
   Int_t                  fCentralityDef;          // Centrality Definition enumerator value
   Bool_t                 fDoEffCorr;              // efficiency correction to tracks
   Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp

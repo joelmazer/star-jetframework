@@ -134,14 +134,15 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   mPicoEvent = 0x0;
   JetMaker = 0;
   RhoMaker = 0;
-  grefmultCorr = 0;
+  grefmultCorr = 0x0;
   mOutName = outName;
   mOutNameEP = "";
   mOutNameQA = "";
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   doPrintEventCounter = kFALSE;
-  fRunFlag = 0;  // see StMyAnalysisMaker::fRunFlagEnum
+  fRunFlag = 0;       // see StJetFrameworkPicoBase::fRunFlagEnum
+  doppAnalysis = kFALSE;  
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
@@ -439,6 +440,25 @@ Int_t StMyAnalysisMaker::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break; // added May20
+
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
+        // this is the default for Run17 pp - don't set anything for pp
+        break;
 
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -1241,21 +1261,28 @@ Int_t StMyAnalysisMaker::Make() {
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-//  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//  if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//  if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//  if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int cent16 = grefmultCorr->getCentralityBin16();
-  int cent9 = grefmultCorr->getCentralityBin9();
-  ref9 = GetCentBin(cent9, 9);
-  ref16 = GetCentBin(cent16, 16);  
-  Int_t centbin = GetCentBin(cent16, 16);
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-  //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+  Int_t centbin, cent9, cent16;
+  Double_t refCorr2;
+
+  if(!doppAnalysis) {
+    grefmultCorr->init(RunId);
+    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
+//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
+//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
+//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
+    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+    cent16 = grefmultCorr->getCentralityBin16();
+    cent9 = grefmultCorr->getCentralityBin9();
+    ref9 = GetCentBin(cent9, 9);
+    ref16 = GetCentBin(cent16, 16);  
+    centbin = GetCentBin(cent16, 16);
+    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
+    //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+  } else {
+    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  }
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);

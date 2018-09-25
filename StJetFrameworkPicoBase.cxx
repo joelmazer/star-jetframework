@@ -61,6 +61,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   doUsePrimTracks(kFALSE),
   fDebugLevel(0),
   fRunFlag(0),
+  doppAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
@@ -98,9 +99,9 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   JetMakerBG(0x0),
   RhoMaker(0x0),
   EventPlaneMaker(0x0),
-  grefmultCorr(0),
-  refmultCorr(0),
-  refmult2Corr(0),
+  grefmultCorr(0x0),
+  refmultCorr(0x0),
+  refmult2Corr(0x0),
   mOutName(""),
   mOutNameEP(""),
   mOutNameQA(""),
@@ -125,6 +126,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   doUsePrimTracks(kFALSE),
   fDebugLevel(0),
   fRunFlag(0),
+  doppAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
@@ -156,9 +158,9 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   JetMakerBG(0x0),
   RhoMaker(0x0),
   EventPlaneMaker(0x0),
-  grefmultCorr(0),
-  refmultCorr(0),
-  refmult2Corr(0),
+  grefmultCorr(0x0),
+  refmultCorr(0x0),
+  refmult2Corr(0x0),
   mOutName(""),
   mOutNameEP(""),
   mOutNameQA(""),
@@ -238,6 +240,25 @@ Int_t StJetFrameworkPicoBase::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;  // added May20
+
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
+        // this is the default for Run17 pp - don't set anything for pp
+        break;
 
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -928,6 +949,17 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
   int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
 
+  // Run11 triggers:
+  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
+
+  // Run13 triggers:
+  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
+
+  // Run17 triggers:
+  int arrMB30_Run17[] = {570001, 590001};
+  int arrMB100_Run17[] = {590002};
+  int arrMBnovtx_Run17[] = {55, 570004};
+
   // run flag selection to check for MB firing
   switch(RunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -961,6 +993,44 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
         break; // added May20
+
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
+        switch(type) {
+          case StJetFrameworkPicoBase::kVPDMB :
+              if((DoComparison(arrMB_Run11, sizeof(arrMB_Run11)/sizeof(*arrMB_Run11)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run11, sizeof(arrMB_Run11)/sizeof(*arrMB_Run11)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13 pp
+        switch(type) {
+          case StJetFrameworkPicoBase::kVPDMB :
+              if((DoComparison(arrMB_Run13, sizeof(arrMB_Run13)/sizeof(*arrMB_Run13)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run13, sizeof(arrMB_Run13)/sizeof(*arrMB_Run13)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+        switch(type) {
+          case StJetFrameworkPicoBase::kVPDMB30 :
+              if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB100 :
+              if((DoComparison(arrMB100_Run17, sizeof(arrMB100_Run17)/sizeof(*arrMB100_Run17)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMBnovtx :
+              if((DoComparison(arrMBnovtx_Run17, sizeof(arrMBnovtx_Run17)/sizeof(*arrMBnovtx_Run17)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
+        }
+        break; 
+
+
   } // RunFlag switch
 
   // return status
@@ -981,6 +1051,11 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
   int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
   int arrHT2_Run16[] = {530202, 540203};
   int arrHT3_Run16[] = {520203, 530213};
+
+  // Run17 triggers: (HT1 and HT2 not exclusive)
+  int arrHT1_Run17[] = {29, 570204, 570214};
+  int arrHT2_Run17[] = {30, 31, 570205, 570215};
+  int arrHT3_Run17[] = {16, 570201, 590201};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1015,6 +1090,22 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
         }
         break; // added May20
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run17, sizeof(arrHT1_Run17)/sizeof(*arrHT1_Run17)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run17, sizeof(arrHT2_Run17)/sizeof(*arrHT2_Run17)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run17)/sizeof(*arrHT3_Run17)))) { return kTRUE; }
+              break;
+          default : // HT3
+              if((DoComparison(arrHT3_Run17, sizeof(arrHT3_Run17)/sizeof(*arrHT3_Run17)))) { return kTRUE; }
+        }
+        break; 
 
   } // RunFlag switch
 

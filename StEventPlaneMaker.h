@@ -90,6 +90,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp;}
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }

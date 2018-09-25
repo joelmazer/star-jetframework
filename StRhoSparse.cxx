@@ -233,12 +233,20 @@ Int_t StRhoSparse::Make()
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
-  grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  Int_t centbin = GetCentBin(cent16, 16);
-  if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  Int_t centbin, cent16;
+  Double_t refCorr2;
+
+  if(!doppAnalysis) { 
+    grefmultCorr->init(RunId);
+    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    cent16 = grefmultCorr->getCentralityBin16();
+    centbin = GetCentBin(cent16, 16);
+    if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  } else {
+    centbin = 0, cent16 = 0, refCorr2 = 0.0;
+  }
+
   Double_t fCent = centbin * 5.0;
 
   // cut on centrality for analysis before doing anything

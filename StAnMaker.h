@@ -53,6 +53,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetPrintEventCounter(Bool_t c)     { doPrintEventCounter = c; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp;}
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }

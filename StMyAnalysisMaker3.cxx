@@ -91,6 +91,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
   fRunFlag = 0;
+  doppAnalysis = kFALSE;
   fCorrJetPt = kFALSE;
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection = kFALSE;
@@ -125,7 +126,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   mPicoEvent = 0x0;
   JetMaker = 0;
   RhoMaker = 0;
-  grefmultCorr = 0;
+  grefmultCorr = 0x0;
   mOutName = outName;
   mOutNameEP = "";
   mOutNameQA = "";
@@ -306,6 +307,25 @@ Int_t StMyAnalysisMaker3::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break; // added May20
+
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
+        // this is the default for Run17 pp - don't set anything for pp
+        break;
 
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -819,23 +839,30 @@ Int_t StMyAnalysisMaker3::Make() {
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-  else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-//  if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//  if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//  if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//  if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int cent16 = grefmultCorr->getCentralityBin16();
-  int cent9 = grefmultCorr->getCentralityBin9();
-  ref9 = GetCentBin(cent9, 9);
-  ref16 = GetCentBin(cent16, 16);  
-  Int_t centbin = GetCentBin(cent16, 16);  // 0-16
-  Double_t refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-  //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-  //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+  Int_t centbin, cent9, cent16;
+  Double_t refCorr2;
+
+  if(!doppAnalysis) {
+    grefmultCorr->init(RunId);
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
+//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
+//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
+//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
+//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
+    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+    cent16 = grefmultCorr->getCentralityBin16();
+    cent9 = grefmultCorr->getCentralityBin9();
+    ref9 = GetCentBin(cent9, 9);
+    ref16 = GetCentBin(cent16, 16);  
+    centbin = GetCentBin(cent16, 16);  // 0-16
+    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
+    //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+    //grefmultCorr->isCentralityOk(cent16)
+  } else { // for pp
+    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  }
 
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
@@ -845,7 +872,6 @@ Int_t StMyAnalysisMaker3::Make() {
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
-  //grefmultCorr->isCentralityOk(cent16)
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
@@ -909,7 +935,12 @@ Int_t StMyAnalysisMaker3::Make() {
         doEPAnalysis = kTRUE;
       }
       break;
-  }
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+      if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
+      break;
+
+  } // fRunFlag switch
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
@@ -960,7 +991,8 @@ Int_t StMyAnalysisMaker3::Make() {
   hEventPlane->Fill(rpAngle);
 
   // this is not meaningful, was part of a past test
-  double eventWeight = grefmultCorr->getWeight();
+  double eventWeight = 0;
+  if(!doppAnalysis) eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
   // set up event plane maker here..
@@ -1088,19 +1120,22 @@ Int_t StMyAnalysisMaker3::Make() {
     double jetPhi = jet->Phi();    
     double jetNEF = jet->NEF();
     //double dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
-    double dEP1      = RelativeEPJET(jetPhi, angle1);       // from Reaction Plane function
-    double dEP2p     = RelativeEPJET(jetPhi, angle2p);      // from Event Plane function: sub event 1 - method 2
-    double dEP2n     = RelativeEPJET(jetPhi, angle2n);      // from Event Plane function: sub event 2 - method 2
-    double dEP2      = RelativeEPJET(jetPhi, angle2);       // from Event Plane function - method 2
-    double dEP4      = RelativeEPJET(jetPhi, angle4);       // from Event Plane class
-    hdEPReactionPlaneFnc->Fill(dEP1);
-    hdEPEventPlaneFncN2->Fill(dEP2n);
-    hdEPEventPlaneFncP2->Fill(dEP2p);
-    hdEPEventPlaneFnc2->Fill(dEP2);
-    hdEPEventPlaneClass->Fill(dEP4);
+    if(!doppAnalysis) {
+      double dEPmethod1      = RelativeEPJET(jetPhi, angle1);       // from Reaction Plane function
+      double dEPmethod2p     = RelativeEPJET(jetPhi, angle2p);      // from Event Plane function: sub event 1 - method 2
+      double dEPmethod2n     = RelativeEPJET(jetPhi, angle2n);      // from Event Plane function: sub event 2 - method 2
+      double dEPmethod2      = RelativeEPJET(jetPhi, angle2);       // from Event Plane function - method 2
+      double dEPmethod4      = RelativeEPJET(jetPhi, angle4);       // from Event Plane class
+      hdEPReactionPlaneFnc->Fill(dEPmethod1);
+      hdEPEventPlaneFncN2->Fill(dEPmethod2n);
+      hdEPEventPlaneFncP2->Fill(dEPmethod2p);
+      hdEPEventPlaneFnc2->Fill(dEPmethod2);
+      hdEPEventPlaneClass->Fill(dEPmethod4);
+    }
 
-    double dEP = RelativeEPJET(jetPhi, TPC_PSI2); // CORRECTED event plane angle - STEP3
-    if(doTPCptassocBin) {
+    // FIXME, double check, might want to code this nicer
+    double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, TPC_PSI2) : 0; // CORRECTED event plane angle - STEP3
+    if(doTPCptassocBin && !doppAnalysis) {
       // z = if(condition) then(?) <do this> else(:) <do this>  
       double dEP0 = (EventPlaneMaker0) ? RelativeEPJET(jetPhi, tpc2EP_bin0) : -999;
       double dEP1 = (EventPlaneMaker1) ? RelativeEPJET(jetPhi, tpc2EP_bin1) : -999;
@@ -1375,8 +1410,8 @@ Int_t StMyAnalysisMaker3::Make() {
         double MixjetEta = jet->Eta();
         double MixjetPhi = jet->Phi();
         //double dMixEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
-        double dMixEP = RelativeEPJET(jet->Phi(), TPC_PSI2); // CORRECTED event plane angle - STEP3
-        if(doTPCptassocBin) {
+        double dMixEP = (!doppAnalysis) ? RelativeEPJET(jet->Phi(), TPC_PSI2) : 0; // CORRECTED event plane angle - STEP3
+        if(doTPCptassocBin && !doppAnalysis) {
           // z = if(condition) then(?) <do this> else(:) <do this>  
           double dMixEP0 = (EventPlaneMaker0) ? RelativeEPJET(MixjetPhi, tpc2EP_bin0) : -999;
           double dMixEP1 = (EventPlaneMaker1) ? RelativeEPJET(MixjetPhi, tpc2EP_bin1) : -999;
@@ -1897,7 +1932,6 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
  
     // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
     h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
     h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
     h->GetXaxis()->SetBinLabel(4, "BHT3");
@@ -1938,7 +1972,6 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
     // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
     h->GetXaxis()->SetBinLabel(2, "BHT1");
     h->GetXaxis()->SetBinLabel(3, "BHT2");
     h->GetXaxis()->SetBinLabel(4, "BHT3");
@@ -1949,6 +1982,9 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
     h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
   }
+
+  // set general label
+  h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
 
   // set x-axis labels vertically
   h->LabelsOption("v");
@@ -2662,8 +2698,9 @@ void StMyAnalysisMaker3::TrackQA()
     if(phi < 0) phi += 2*pi;
     if(phi > 2*pi) phi -= 2*pi;
 
+    // for heavy ion collisions, get EP and fill QA plots
     // get angle between tracks and event plane
-    double dEPtrk = RelativeEPJET(phi, TPC_PSI2);
+    double dEPtrk = (!doppAnalysis) ? RelativeEPJET(phi, TPC_PSI2) : 0;
     //cout<<"dEPtrk = "<<dEPtrk<<"  phi = "<<phi<<"  EP2 = "<<TPC_PSI2<<endl;
     if((pt > 0.20) && (pt <= 0.5)) hdEPtrk[0]->Fill(dEPtrk);
     if((pt > 0.50) && (pt <= 1.0)) hdEPtrk[1]->Fill(dEPtrk);
@@ -2671,6 +2708,7 @@ void StMyAnalysisMaker3::TrackQA()
     if((pt > 1.50) && (pt <= 2.0)) hdEPtrk[3]->Fill(dEPtrk);
     if((pt > 2.00) && (pt <= 20.)) hdEPtrk[4]->Fill(dEPtrk);
 
+    // fill other track QA plots
     hTrackPhi[ref9]->Fill(phi);
     hTrackEta[ref9]->Fill(eta);
     hTrackPt[ref9]->Fill(pt);

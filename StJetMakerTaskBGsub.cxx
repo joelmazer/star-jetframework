@@ -10,7 +10,7 @@
 // ################################################################
 // $Id$
 
-#include "StJetMakerTask.h"
+#include "StJetMakerTaskBGsub.h"
 
 // root classes
 #include <TChain.h>
@@ -48,13 +48,13 @@
 #include "StEmcCluster.h"
 #include "StEmcPoint.h"
 #include "StEmcUtil/geometry/StEmcGeom.h"
-////#include "StEmcUtil/others/emcDetectorName.h" ?
 #include "StEmcUtil/projection/StEmcPosition.h"
 class StEmcPosition;
 class StEEmcCluster;
 
 // jet class and fastjet wrapper
 #include "StJet.h"
+#include "FJ_includes.h"
 #include "StFJWrapper.h"
 #include "StJetFrameworkPicoBase.h"
 
@@ -69,12 +69,12 @@ class StChain;
 class StPicoDstMaker;
 class StPicoEvent;
 
-const Int_t StJetMakerTask::fgkConstIndexShift = 100000;
+const Int_t StJetMakerTaskBGsub::fgkConstIndexShift = 100000;
 
-ClassImp(StJetMakerTask)
+ClassImp(StJetMakerTaskBGsub)
 
 //________________________________________________________________________
-StJetMakerTask::StJetMakerTask() : 
+StJetMakerTaskBGsub::StJetMakerTaskBGsub() : 
   StMaker(),
   doWriteHistos(kFALSE),
   doUsePrimTracks(kFALSE), 
@@ -83,7 +83,7 @@ StJetMakerTask::StJetMakerTask() :
   doppAnalysis(kFALSE), 
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
-  doConstituentSubtr(kFALSE),
+  doConstituentSubtr(kFALSE), 
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -101,8 +101,9 @@ StJetMakerTask::StJetMakerTask() :
   fJetsName(""),
   fJetAlgo(1), 
   fJetType(0), 
-  fRecombScheme(fastjet::BIpt2_scheme), // was BIpt_scheme
-  fjw("StJetMakerTask", "StJetMakerTask"),
+  fRecombScheme(fastjet::BIpt2_scheme),
+  fjw("StJetMakerTaskBGsub", "StJetMakerTaskBGsub"),
+  //fjwBG("StJetMakerTaskBGsub2", "StJetMakerTaskBGsub2"),
   fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
@@ -147,11 +148,9 @@ StJetMakerTask::StJetMakerTask() :
   mPicoDst(0x0),
   mPicoEvent(0x0),
   grefmultCorr(0x0)
-//  fJetMakerName("")
 {
   // Default constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
-
   for(int i=0; i<4801; i++) { 
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -160,11 +159,10 @@ StJetMakerTask::StJetMakerTask() :
     mTowerMatchTrkIndex[i] = 0;
     mTowerStatusArr[i] = kFALSE;
   }
-
 }
 
 //________________________________________________________________________
-StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool doHistos = kFALSE, const char* outName = "") : 
+StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0.20, bool doHistos = kFALSE, const char* outName = "") : 
   StMaker(name),
   doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
@@ -191,8 +189,10 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetsName("Jets"),
   fJetAlgo(1), 
   fJetType(0),
-  fRecombScheme(fastjet::BIpt2_scheme), // was BIpt2_scheme
+  fRecombScheme(fastjet::BIpt_scheme),
   fjw(name, name),
+  //fjwBG(name, name), 
+  //fjwBG("fjwBG", "fjwBG"),
   fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
@@ -237,11 +237,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   mPicoDst(0x0),
   mPicoEvent(0x0),
   grefmultCorr(0x0)
-//  fJetMakerName("")
 {
   // Standard constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
-
   for(int i=0; i<4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -250,16 +248,14 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
     mTowerMatchTrkIndex[i] = 0;
     mTowerStatusArr[i] = kFALSE;
   }
-
   if (!name) return;
   SetName(name);
 }
 
 //________________________________________________________________________
-StJetMakerTask::~StJetMakerTask()
+StJetMakerTaskBGsub::~StJetMakerTaskBGsub()
 {
   // Destructor
-  //fJets->Clear(); delete fJets;
   if(fHistCentrality)          delete fHistCentrality;
 
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
@@ -288,10 +284,9 @@ StJetMakerTask::~StJetMakerTask()
 
 //
 //________________________________________________________________________
-Int_t StJetMakerTask::Init() {
+Int_t StJetMakerTaskBGsub::Init() {
   DeclareHistograms();
 
-  //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
   // Add dead + bad tower lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -332,8 +327,6 @@ Int_t StJetMakerTask::Init() {
   fJetsConstit = new TClonesArray("StPicoTrack");
   fJetsConstit->SetName("JetConstituents");
 
-  // FIXME maybe add BGsub?
-
   // ============================ set jet parameters for fastjet wrapper  =======================
   // recombination schemes:
   // E_scheme, pt_scheme, pt2_scheme, Et_scheme, Et2_scheme, BIpt_scheme, BIpt2_scheme, WTA_pt_scheme, WTA_modp_scheme
@@ -369,14 +362,22 @@ Int_t StJetMakerTask::Init() {
   fjw.SetR(fRadius);
   fjw.SetAlgorithm(algorithm);        //fJetAlgo);
   fjw.SetRecombScheme(recombScheme);  //fRecombScheme);
-  fjw.SetMaxRap(1.2);
+  fjw.SetMaxRap(1.2); // WAS 1.0 (FIXME)
 
   double ghost_maxrap = 1.2;
   fastjet::GhostedAreaSpec area_spec(ghost_maxrap);
   fastjet::AreaDefinition area_def(fastjet::active_area_explicit_ghosts, area_spec);
 
-  // setting legacy mode
-  //if(fLegacyMode) { fjw.SetLegacyMode(kTRUE); }
+/*
+  // setup fj wrapper for background - constituent subtractor uses this
+  fjwBG.SetAreaType(fastjet::active_area_explicit_ghosts);
+  fjwBG.SetStrategy(strategy); //=
+  fjwBG.SetGhostArea(fGhostArea);
+  fjwBG.SetR(fRadius); //=
+  fjwBG.SetAlgorithm(algorithm);        //fJetAlgo);
+  fjwBG.SetRecombScheme(recombScheme);  //fRecombScheme);
+  fjwBG.SetMaxRap(1.0);
+*/
 
   // may not need, used for old RUNS
   // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
@@ -436,18 +437,8 @@ Int_t StJetMakerTask::Init() {
 
 //
 //_______________________________________________________________________________________
-Int_t StJetMakerTask::Finish() {
+Int_t StJetMakerTaskBGsub::Finish() {
   //  Summarize the run.
-/*
-  cout<<"StJetMakerTask::Finish()\n";
-  cout<<"##### Jet parameters overview #####"<<endl;
-  cout<<"type = "<<"   algorithm = "<<"  recombination scheme = "<<endl;
-  cout<<"R = "<<fRadius<<"   ghostArea = "<<fGhostArea<<"  minJetArea = "<<fMinJetArea<<endl;
-  cout<<"minTrackPt = "<<fMinJetTrackPt<<"  minClusterPt = "<<fMinJetClusPt<<"  maxTrackPt = "<<fMaxJetTrackPt<<endl;
-  cout<<"minJetPhi = "<<fJetPhiMin<<"  maxJetPhi = "<<fJetPhiMax<<"  minJetEta = "<<fJetEtaMin<<"  maxJetEta = "<<fJetEtaMax<<endl;
-  cout<<"End of StJetMakerTask::Finish"<<endl;
-*/
-
   if(doWriteHistos && mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
@@ -459,24 +450,11 @@ Int_t StJetMakerTask::Finish() {
     fout->Close();
   }
 
-/*   ===== test ======
-  if(mOutName!="") {
-    cout<<"checking output file in StJetMakerTask::Finish().."<<endl;
-    TFile *fout = new TFile(mOutName.Data(),"UPDATE");
-    fout->cd();
-    fout->mkdir(GetName());
-    fout->cd(GetName());
-    WriteHistograms();
-    fout->cd();
-    fout->Close();
-  }
-*/
-
   return kStOK;
 }
 
 //________________________________________________________________________
-void StJetMakerTask::DeclareHistograms() {
+void StJetMakerTaskBGsub::DeclareHistograms() {
     // declare histograms
     double pi = 1.0*TMath::Pi();
 
@@ -509,7 +487,7 @@ void StJetMakerTask::DeclareHistograms() {
 
 //________________________________________________________________________
 
-void StJetMakerTask::WriteHistograms() {
+void StJetMakerTaskBGsub::WriteHistograms() {
   // write histograms
   fHistCentrality->Write();
 
@@ -538,13 +516,14 @@ void StJetMakerTask::WriteHistograms() {
 }
 
 //-----------------------------------------------------------------------------
-void StJetMakerTask::Clear(Option_t *opt) {
+void StJetMakerTaskBGsub::Clear(Option_t *opt) {
   // clear or delete objects after running
   fJets->Clear();
+  fJetsBGsub->Clear();
 }
 
 //________________________________________________________________________
-int StJetMakerTask::Make()
+int StJetMakerTaskBGsub::Make()
 {
   // Main loop, called for each event.
   // ZERO's out the jet array
@@ -578,7 +557,7 @@ int StJetMakerTask::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
+  // cut event on max track pt > 35.0 GeV - FIXME
   if(GetMaxTrackPt() > 35.0) return kStOK;
 
   // get event B (magnetic) field
@@ -589,7 +568,6 @@ int StJetMakerTask::Make()
   zVtx = mVertex.z();
 
   // Z-vertex cut - - per the Aj analysis (-40, 40)
-  // TEST: kStOk -> kStErr // Error, drop this and go to the next event
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //Pico::kSkipThisEvent;
 
   // ============================ CENTRALITY ============================== //
@@ -631,6 +609,8 @@ int StJetMakerTask::Make()
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
 
+  //FastJetBGsub();
+
   // Find jets:  deprecated version -> FindJets(tracks, clus, fJetAlgo, fRadius);
   FindJets();
 
@@ -645,7 +625,7 @@ int StJetMakerTask::Make()
 // old class to FindJets - it is deprecated, but kept for backwards compatibility
 // the parameters are global so they don't do anything here
 //________________________________________________________________________
-void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius)
+void StJetMakerTaskBGsub::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius)
 {
   // call main (new) FindJets function
   FindJets();
@@ -654,7 +634,7 @@ void StJetMakerTask::FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Do
 //
 // Main class to FindJets from tracks + towers
 //________________________________________________________________________
-void StJetMakerTask::FindJets()
+void StJetMakerTaskBGsub::FindJets()
 {
   // Find jets.
   // clear out existing wrapper object
@@ -690,9 +670,6 @@ void StJetMakerTask::FindJets()
       }
 
       // track variables
-      //double pt = mTrkMom.perp();
-      //double phi = mTrkMom.phi();
-      //double eta = mTrkMom.pseudoRapidity();
       double px = mTrkMom.x();
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
@@ -700,18 +677,14 @@ void StJetMakerTask::FindJets()
       double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
       short charge = trk->charge();         
 
-      //cout<<"Charge: "<<charge<<"  nHitsFit: "<<trk->nHitsFit()<<endl;
-
       // send track info to FJ wrapper
       //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
       fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
 
-      // if running constituent subtractor, do this in parallel
-      if(doConstituentSubtr) {
-        fastjet::PseudoJet particle_Track(px, py, pz, energy);
-        particle_Track.set_user_index(iTracks);
-        fFull_Event.push_back(particle_Track);
-      }
+      fastjet::PseudoJet particle_Track(px, py, pz, energy);
+      particle_Track.set_user_index(iTracks);
+      fFull_Event.push_back(particle_Track);
+
     } // track loop
   } // if full/charged jets
 
@@ -722,34 +695,17 @@ void StJetMakerTask::FindJets()
     //float mTowerMatchTrkIndex[4801] = { 0 };
     //bool mTowerStatusArr[4801] = { 0 };
     int matchedTowerTrackCounter = 0;
-
-    // print
-    //int nTracks = mPicoDst->numberOfTracks();
-    //int nTrigs = mPicoDst->numberOfEmcTriggers();
-    //int nBTowHits = mPicoDst->numberOfBTOWHits();
     int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
-    //cout<<"nTracks = "<<nTracks<<"  nTrigs = "<<nTrigs<<"  nBTowHits = "<<nBTowHits<<"  nBEmcPidTraits = "<<nBEmcPidTraits<<endl;
   
     // loop over ALL clusters in PicoDst to get track<->tower matches saved to arrays for hadronic correction
     for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
       StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
       if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
-      // cluster and tower ID
-      // ID's are calculated as such:
+      // cluster and tower ID -  ID's are calculated as such:
       // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
-      // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-      // commented out clusID, towID2, towID3 on May20
-      //int clusID = cluster->bemcId();  // index in bemc point array
       int towID = cluster->btowId();   // projected tower Id: 1 - 4800
-      //int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      //int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       if(towID < 0) continue;
-
-      // cluster and tower position - from vertex and ID - shouldn't need to correct via this method
-      ///StThreeVectorF towPosition = mPosition->getPosFromVertex(mVertex, towID);
-      ///double towPhi = towPosition.phi();
-      ///double towEta = towPosition.pseudoRapidity();
 
       // matched track index
       int trackIndex = cluster->trackIndex();
@@ -782,19 +738,12 @@ void StJetMakerTask::FindJets()
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
       double towerEta = towerPosition.pseudoRapidity();
-      //int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
-
-      // tower matched to firing trigger - DON'T DO HERE!!! - done in AnalysisTask:  StMyAnalysisMaker3
-      //if(fTowerToTriggerTypeHT1[emcTrigID])
-      //if(fTowerToTriggerTypeHT2[emcTrigID])
-      //if(fTowerToTriggerTypeHT3[emcTrigID])
 
       // perform tower cuts
       // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
       if(mTowerStatusArr[towerID]) {
-        //if(mTowerMatchTrkIndex[towerID] > 0) 
         StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
@@ -813,9 +762,6 @@ void StJetMakerTask::FindJets()
           }
 
           // track variables
-          //double pt = mTrkMom.perp();
-          //double phi = mTrkMom.phi();
-          //double eta = mTrkMom.pseudoRapidity();
           double p = mTrkMom.mag();
           double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
@@ -838,8 +784,6 @@ void StJetMakerTask::FindJets()
       }
       //if(TowerDead) continue;
 
-      //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || towerID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"towerID = "<<towerID<<"  E = "<<towerE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
-
       // get components from Energy (p - momentum)
       // the below lines 'converts' the tower energy to momentum
       StThreeVectorF mom;
@@ -853,15 +797,12 @@ void StJetMakerTask::FindJets()
       int uidTow = -(itow + 2);  
       fjw.AddInputVector(towerPx, towerPy, towerPz, towerE, uidTow); // includes E
 
-      // if running constituent subtractor, do this in parallel
-      if(doConstituentSubtr) {
-        fastjet::PseudoJet particle_Tower(towerPx, towerPy, towerPz, towerE);
-        particle_Tower.set_user_index(uidTow);
-        fFull_Event.push_back(particle_Tower);
-      }
+      fastjet::PseudoJet particle_Tower(towerPx, towerPy, towerPz, towerE);
+      particle_Tower.set_user_index(uidTow);
+      fFull_Event.push_back(particle_Tower);
+
     } // tower loop
 
-// ====================
   } // neutral/full jets
 
   // run jet finder
@@ -874,7 +815,7 @@ void StJetMakerTask::FindJets()
  * wrapper. Before filling the jet branch, the utilities are prepared. Then the utilities are
  * called for each jet and finally after jet finding the terminate method of all utilities is called.
  */
-void StJetMakerTask::FillJetBranch()
+void StJetMakerTaskBGsub::FillJetBranch()
 {
   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
   // sort jets according to jet pt
@@ -913,11 +854,6 @@ void StJetMakerTask::FillJetBranch()
     jet->SetAreaPhi(area.phi());
     jet->SetAreaE(area.E());
 
-    // March 8, 2018 - probably don't need this anymore after coming up with method to pass and extract constituents via index!
-    // get constituents of jets
-    fConstituents = fjw.GetJetConstituents(ij);
-    jet->SetJetConstituents(fConstituents);
-
     // fill jet constituents
     vector<fastjet::PseudoJet> constituents = fjw.GetJetConstituents(ij);
     FillJetConstituents(jet, constituents, constituents);
@@ -938,7 +874,7 @@ void StJetMakerTask::FillJetBranch()
  * @param flag If kTRUE it means that the argument "constituents" is a list of subtracted constituents
  * @param particles_sub Array containing subtracted constituents - not used
  */
-void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
+void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
     std::vector<fastjet::PseudoJet>& constituents_unsub, Int_t flag, TString particlesSubName)
 {
   // initialize some variables/counters
@@ -1038,7 +974,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
           if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
           // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
-          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }  // comment in April10
           if(AcceptJetTrack(trk, Bfield, mVertex)) {
 
             // get track variables to matched tower
@@ -1071,9 +1006,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         // find max tower E and neutral E total
         if(towE > maxTower) maxTower = towE;
         neutralE += towE;
-
-        //if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
-        //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || toweirID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"Adding to jet now.. towerID = "<<towerID<<"  E = "<<towE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
@@ -1120,7 +1052,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
  * @param[in] array Vector containing the list of jets obtained by the FastJet wrapper
  * @return kTRUE if at least one jet was found in array; kFALSE otherwise
  */
-Bool_t StJetMakerTask::GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const
+Bool_t StJetMakerTaskBGsub::GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const
 {
   static Float_t pt[9999] = {0};
   const Int_t n = (Int_t)array.size();
@@ -1140,7 +1072,7 @@ Bool_t StJetMakerTask::GetSortedArray(Int_t indexes[], std::vector<fastjet::Pseu
  * fatal and stop the execution of the program. This method checks whether the instance
  * is locked and throw a fatal if it is locked.
  */
-Bool_t StJetMakerTask::IsLocked() const
+Bool_t StJetMakerTaskBGsub::IsLocked() const
 {
   if (fLocked) {
     Form("Jet finder task is locked! Changing properties is not allowed."); 
@@ -1151,76 +1083,8 @@ Bool_t StJetMakerTask::IsLocked() const
   }
 }
 
-/**
- * Converts the internal enum values representing jet algorithms in
- * the corresponding values accepted by the FastJet wrapper.
- * @param algo Algorithm represented in the EJetAlgo_t enum
- * @return Algortithm represented in the fastjet::JetAlgorithm enum
- */
-/*
-fastjet::JetAlgorithm StJetMakerTask::ConvertToFJAlgo(EJetAlgo_t algo)
-{
-  switch(algo) {
-  case StJetFrameworkPicoBase::kt_algorithm:
-    return fastjet::kt_algorithm;
-  case StJetFrameworkPicoBase::antikt_algorithm:
-    return fastjet::antikt_algorithm;
-  case StJetFrameworkPicoBase::cambridge_algorithm:
-    return fastjet::cambridge_algorithm;
-  case StJetFrameworkPicoBase::genkt_algorithm:
-    return fastjet::genkt_algorithm;
-  case StJetFrameworkPicoBase::cambridge_for_passive_algorithm:
-    return fastjet::cambridge_for_passive_algorithm;
-  case StJetFrameworkPicoBase::genkt_for_passive_algorithm:
-    return fastjet::genkt_for_passive_algorithm;
-  case StJetFrameworkPicoBase::plugin_algorithm:
-    return fastjet::plugin_algorithm;
-  case StJetFrameworkPicoBase::undefined_jet_algorithm:
-    return fastjet::undefined_jet_algorithm;
-
-  default:
-    ::Error("StJetMakerTask::ConvertToFJAlgo", "Jet algorithm %d not recognized!!!", algo);
-    return fastjet::undefined_jet_algorithm;
-  }
-}
-*/
-
-/**
- * Converts the internal enum values representing jet recombination schemes in
- * the corresponding values accepted by the FastJet wrapper.
- * @param reco Recombination scheme represented in the EJetAlgo_t enum
- * @return Recombination scheme represented in the fastjet::JetAlgorithm enum
- */
-/*
-fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t reco)
-{
-  switch(reco) {
-  case StJetFrameworkPicoBase::E_scheme:
-    return fastjet::E_scheme;
-  case StJetFrameworkPicoBase::pt_scheme:
-    return fastjet::pt_scheme;
-  case StJetFrameworkPicoBase::pt2_scheme:
-    return fastjet::pt2_scheme;
-  case StJetFrameworkPicoBase::Et_scheme:
-    return fastjet::Et_scheme;
-  case StJetFrameworkPicoBase::Et2_scheme:
-    return fastjet::Et2_scheme;
-  case StJetFrameworkPicoBase::BIpt_scheme:
-    return fastjet::BIpt_scheme;
-  case StJetFrameworkPicoBase::BIpt2_scheme:
-    return fastjet::BIpt2_scheme;
-  case StJetFrameworkPicoBase::external_scheme:
-    return fastjet::external_scheme;
-
-  default:
-    ::Error("StJetMakerTask::ConvertToFJRecoScheme", "Recombination scheme %d not recognized!!!", reco);
-    return fastjet::external_scheme;
-  }
-}
-*/
-
 //________________________________________________________________________
-Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
+Bool_t StJetMakerTaskBGsub::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
   // constants: assume neutral pion mass
   ///double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
@@ -1240,12 +1104,6 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   double pt = mTrkMom.perp();
   double phi = mTrkMom.phi();
   double eta = mTrkMom.pseudoRapidity();
-  //double px = mTrkMom.x();
-  //double py = mTrkMom.y();
-  //double pz = mTrkMom.z();
-  //double p = mTrkMom.mag();
-  //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  //short charge = trk->charge();
   double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
   int nHitsFit = trk->nHitsFit();
   int nHitsMax = trk->nHitsMax();
@@ -1254,7 +1112,7 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
   // pt cut
   if(pt < fMinJetTrackPt) return kFALSE;
 
-  // jet track acceptance cuts now
+  // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) return kFALSE;
   if(phi < 0)    phi+= 2*pi;
@@ -1273,7 +1131,7 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVector
 //
 // Tower Quality Cuts
 //________________________________________________________________________
-Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower) {
+Bool_t StJetMakerTaskBGsub::AcceptJetTower(StPicoBTowHit *tower) {
   // get EMCal position
   StEmcPosition *mPosition = new StEmcPosition();
 
@@ -1310,7 +1168,7 @@ Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower) {
 }
 
 //________________________________________________________________________
-Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
+Int_t StJetMakerTaskBGsub::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
   Int_t centbin = -1;
 
@@ -1321,7 +1179,7 @@ Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
 }
 
 //__________________________________________________________________________________________
-Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
+Bool_t StJetMakerTaskBGsub::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
   // this function is written to cut on centrality in a task for a given range
   // STAR centrality is written in re-verse binning (0,15) where lowest bin is highest centrality
   // -- this is a very poor approach
@@ -1429,7 +1287,7 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
 }
 
 //________________________________________________________________________________________________________
-Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const {
+Bool_t StJetMakerTaskBGsub::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const {
   // initialize Emc position objects
   StEmcPosition *Position = new StEmcPosition();
 
@@ -1467,10 +1325,10 @@ Bool_t StJetMakerTask::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tow
 }
 
 //____________________________________________________________________________________________
-Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
+Bool_t StJetMakerTaskBGsub::IsTowerOK( Int_t mTowId ){
   //if( badTowers.size()==0 ){
   if( badTowers.empty() ){
-    __ERROR("StJetMakerTask::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    __ERROR("StJetMakerTaskBGsub::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
   if( badTowers.count( mTowId )>0 ){
@@ -1483,10 +1341,10 @@ Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
 }
 
 //____________________________________________________________________________________________
-Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
+Bool_t StJetMakerTaskBGsub::IsTowerDead( Int_t mTowId ){
   //if( deadTowers.size()==0 ){
   if( deadTowers.empty() ){
-    __ERROR("StJetMakerTask::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    __ERROR("StJetMakerTaskBGsub::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
     throw ( -1 );
   }
   if( deadTowers.count( mTowId )>0 ){
@@ -1499,14 +1357,14 @@ Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
 }
 
 //____________________________________________________________________________
-void StJetMakerTask::ResetBadTowerList( ){
+void StJetMakerTaskBGsub::ResetBadTowerList( ){
   badTowers.clear();
 }
 
 // Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
-Bool_t StJetMakerTask::AddBadTowers(TString csvfile){  
+Bool_t StJetMakerTaskBGsub::AddBadTowers(TString csvfile){  
   // open infile
   std::string line;
   std::ifstream inFile ( csvfile );
@@ -1540,7 +1398,7 @@ Bool_t StJetMakerTask::AddBadTowers(TString csvfile){
 // Add dead towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
-Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
+Bool_t StJetMakerTaskBGsub::AddDeadTowers(TString csvfile){
   // open infile
   std::string line;
   std::ifstream inFile ( csvfile );
@@ -1572,12 +1430,12 @@ Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
 }
 
 //____________________________________________________________________________
-void StJetMakerTask::ResetDeadTowerList( ){
+void StJetMakerTaskBGsub::ResetDeadTowerList( ){
   deadTowers.clear();
 }
 
 //_________________________________________________________________________
-Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
+Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
   // Run14 triggers:
   int arrMB_Run14[] = {450014};
   int arrMB30_Run14[] = {450010, 450020};
@@ -1683,7 +1541,7 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
 //
 // check to see if the event was EMC triggered for High Towers
 //____________________________________________________________________________
-Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
+Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
 
   // Run14 triggers:
   int arrHT1_Run14[] = {450201, 450211, 460201};
@@ -1756,7 +1614,7 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
 }
 
 //________________________________________________________________________
-Bool_t StJetMakerTask::DoComparison(int myarr[], int elems) {
+Bool_t StJetMakerTaskBGsub::DoComparison(int myarr[], int elems) {
   //std::cout << "Length of array = " << (sizeof(myarr)/sizeof(*myarr)) << std::endl;
   bool match = kFALSE;
 
@@ -1771,7 +1629,7 @@ Bool_t StJetMakerTask::DoComparison(int myarr[], int elems) {
 }
 
 //_________________________________________________________________________
-void StJetMakerTask::FillEmcTriggersArr() {
+void StJetMakerTaskBGsub::FillEmcTriggersArr() {
   // zero out trigger array and get number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = kFALSE; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -1807,33 +1665,11 @@ void StJetMakerTask::FillEmcTriggersArr() {
   }
 
 }
-//========
-/*
-      // get tower location - from ID: need to correct eta (when using this method)
-      float tEta, tPhi;    // need to be floats
-      StEmcGeom *mGeom3 = (StEmcGeom::instance("bemc"));
-      double radius = mGeom3->Radius();
-      mGeom3->getEtaPhi(towerID,tEta,tPhi);
-      if(tPhi < 0)    tPhi += 2*pi;
-      if(tPhi > 2*pi) tPhi -= 2*pi;
-
-     // correct eta for Vz position 
-     double theta;
-     theta = 2 * atan(exp(-tEta)); // getting theta from eta 
-     double z = 0;
-     if(tEta != 0) z = radius / tan(theta);  // 231 cm = radius of SMD 
-     double zNominal = z - mVertex.z();
-     double thetaCorr = atan2(radius, zNominal); // theta with respect to primary vertex
-     double etaCorr =-log(tan(thetaCorr / 2.0)); // eta with respect to primary vertex 
-
-     cout<<"tEta = "<<tEta<<"  etaCorr = "<<etaCorr<<"  towerEta = "<<towerEta<<"  tPhi = "<<tPhi<<"  towerPhi = "<<towerPhi<<endl;
-*/
-//==========
 
 //
 // Returns pt of hardest track in the event
 //
-Double_t StJetMakerTask::GetMaxTrackPt()
+Double_t StJetMakerTaskBGsub::GetMaxTrackPt()
 {
   // get # of tracks
   int nTrack = mPicoDst->numberOfTracks();
@@ -1869,11 +1705,177 @@ Double_t StJetMakerTask::GetMaxTrackPt()
   return fMaxTrackPt;
 }
 
+//
+// FastJet Constituent Subtractor method
+//______________________________________________________________________
+Int_t StJetMakerTaskBGsub::FastJetBGsub(){
+   //================================================================================
+   // E_scheme, pt_scheme, pt2_scheme, Et_scheme, Et2_scheme, BIpt_scheme, BIpt2_scheme, WTA_pt_scheme, WTA_modp_scheme
+   fastjet::RecombinationScheme    recombScheme;
+   if (fRecombScheme == 0)     recombScheme = fastjet::E_scheme;
+   if (fRecombScheme == 1)     recombScheme = fastjet::pt_scheme;
+   if (fRecombScheme == 2)     recombScheme = fastjet::pt2_scheme;
+   if (fRecombScheme == 3)     recombScheme = fastjet::Et_scheme;
+   if (fRecombScheme == 4)     recombScheme = fastjet::Et2_scheme;
+   if (fRecombScheme == 5)     recombScheme = fastjet::BIpt_scheme;
+   if (fRecombScheme == 6)     recombScheme = fastjet::BIpt2_scheme;
+
+   // jet algorithm
+   fastjet::JetAlgorithm          algorithm;
+   if (fJetAlgo == 1)      algorithm = fastjet::antikt_algorithm;
+   if (fJetAlgo == 0)      algorithm = fastjet::kt_algorithm;
+   if (fJetAlgo == 2)      algorithm = fastjet::cambridge_algorithm;
+   if (fJetAlgo == 11)     algorithm = fastjet::cambridge_for_passive_algorithm;
+   fastjet::Strategy              strategy = fastjet::Best;
+
+   double jetAbsRapMax = 1.0;
+ 
+   // create a jet definition for the clustering: We use the anti-kt algorithm with a radius of 0.5
+   //----------------------------------------------------------
+   fastjet::JetDefinition jet_def(algorithm, fRadius, recombScheme, strategy);
+ 
+   // create an area definition for the clustering
+   // ----------------------------------------------------------
+   // ghosts should go up to the acceptance of the detector or (with infinite acceptance) at least 2R beyond the region where you plan to investigate jets.
+   double ghost_maxrap = 1.2;
+   fastjet::GhostedAreaSpec area_spec(ghost_maxrap, 1, fGhostArea);
+   fastjet::AreaDefinition area_def(fastjet::active_area_explicit_ghosts, area_spec);
+
+   // run the jet clustering with the above jet and area definitions for both the hard and full event
+   //
+   // We retrieve the jets above 7 GeV in both case (note that the 7-GeV cut we be applied again later on after we subtract the jets from the full event)
+   // ----------------------------------------------------------
+   fastjet::ClusterSequenceArea clust_seq_full(fFull_Event, jet_def, area_def);
+
+   // minimum jet pt for inclusive jets 
+   double ptmin = fMinJetPt;
+   //Selector sel_jets = SelectorNHardest(2) * SelectorAbsRapMax(3.0);
+   vector<fastjet::PseudoJet> full_jets = sorted_by_pt(clust_seq_full.inclusive_jets(ptmin));
+   //vector<fastjet::PseudoJet> full_jets = fjw.GetInclusiveJets();
+ 
+   // Now turn to the estimation of the background (for the full event)
+   //
+   // There are different ways to do that. In general, this also requires clustering the particles that will be handled internally in FastJet. 
+   //
+   // The suggested way to proceed is to use a BackgroundEstimator constructed from the following 3 arguments:
+   //  - a jet definition used to cluster the particles.
+   //    . We strongly recommend using the kt or Cambridge/Aachen algorithm (a warning will be issued otherwise)
+   //    . The choice of the radius is a bit more subtle. R=0.4 has been chosen to limit the impact of hard jets; in samples of
+   //      dominantly sparse events it may cause the UE/pileup to be underestimated a little, a slightly larger value (0.5 or 0.6) may be better.
+   //  - An area definition for which we recommend the use of explicit ghosts (i.e. active_area_explicit_ghosts) As mentionned in the area example (06-area.cc), ghosts should
+   //    extend sufficiently far in rapidity to cover the jets used in the computation of the background (see also the comment below)
+   //  - A Selector specifying the range over which we will keep the jets entering the estimation of the background (you should
+   //    thus make sure the ghosts extend far enough in rapidity to cover the range, a warning will be issued otherwise).
+   //    In this particular example, the two hardest jets in the event are removed from the background estimation
+   // ----------------------------------------------------------
+
+//=================================================
+//=================================================
+  // create what we need for the background estimation
+  //----------------------------------------------------------
+  fastjet::JetDefinition jet_def_for_rho(fastjet::kt_algorithm, fRadius, recombScheme, strategy);
+  //fastjet::Selector selector = fastjet::SelectorAbsRapMax(jetAbsRapMax) * (!fastjet::SelectorNHardest(2));
+  fastjet::Selector rho_range =  fastjet::SelectorAbsRapMax(3.0); // 3.0
+  fastjet::ClusterSequenceArea clust_seq_rho(fFull_Event, jet_def, area_def); // not used FIXME 
+
+  fastjet::JetMedianBackgroundEstimator bge_rho(rho_range, jet_def_for_rho, area_def);
+  fastjet::BackgroundJetScalarPtDensity *scalarPtDensity = new fastjet::BackgroundJetScalarPtDensity();
+  bge_rho.set_jet_density_class(scalarPtDensity); // this changes the computation of pt of patches from vector sum to scalar sum. Theor., the scalar sum seems more reasonable.
+  bge_rho.set_particles(fFull_Event);
+
+  // subtractor:
+  //----------------------------------------------------------
+  fastjet::contrib::ConstituentSubtractor subtractor(&bge_rho);
+
+  // this sets the same background estimator to be used for deltaMass density, rho_m, as for pt density, rho:
+  //subtractor.use_common_bge_for_rho_and_rhom(true); // for massless input particles it does not make any difference (rho_m is always zero)
+  cout << subtractor.description() << endl;
+  cout << "  Giving, for the full event" << "    rho     = " << bge_rho.rho() << "    sigma   = " << bge_rho.sigma() << endl;
+
+//=================================================
+//=================================================
+  // subtract and print the result
+  //----------------------------------------------------------
+  // unsubtracted jets
+  cout << setprecision(4);
+  cout << "# unsubtracted full jets" << endl;
+  for (unsigned int i=0; i<full_jets.size(); i++){
+    const fastjet::PseudoJet &jet = full_jets[i];
+    cout << "pt = " << jet.pt() << ", rap = " << jet.rap() << ", phi = " << jet.phi()
+         << ", nConstituents = " << jet.constituents().size() << ", area = " << jet.area() << ", bg sub = "<< jet.area() * bge_rho.rho() << ", mass = " << jet.m() << endl;
+
+         // ==========================================
+         vector<fastjet::PseudoJet> constituents1 = jet.constituents();
+         for(UInt_t ic = 0; ic < constituents1.size(); ++ic) {
+           // get user defined index
+           Int_t uid = constituents1[ic].user_index();
+           double cpt = constituents1[ic].perp();
+           double ceta = constituents1[ic].eta();
+           double cphi = constituents1[ic].phi();
+//           cout<<"ic = "<<ic<<", uid = "<<uid<<", cpt = "<<cpt<<", ceta = "<<ceta<<", cphi = "<<cphi<<endl;
+         }
+  }
+  cout << endl;
+
+  // get cluster sequence to filter inclusive jets about pt threshold
+  //vector<fastjet::PseudoJet> fjets2 = fjw.GetInclusiveJets();
+  //vector<fastjet::PseudoJet> full_jets2 = fjets2.inclusive_jets(fMinJetPt);
+  static Int_t indexes[9999] = {-1};
+  fastjet::ClusterSequenceArea* fClusterSequence = fjw.GetClusterSequence();
+  vector<fastjet::PseudoJet> full_jets2 = fClusterSequence->inclusive_jets(fMinJetPt);
+  GetSortedArray(indexes, full_jets2);
+  for (unsigned int ij=0; ij<full_jets2.size(); ij++){
+    Int_t i = indexes[ij];
+    const fastjet::PseudoJet &jet2 = full_jets2[i];
+    cout << "pt = " << jet2.pt() << ", rap = " << jet2.rap() << ", phi = " << jet2.phi()
+         << ", nConstituents = " << jet2.constituents().size() << ", area = " << jet2.area() << ", bg sub = "<< jet2.area() * bge_rho.rho() << ", mass = " << jet2.m() << endl;
+
+         // ==========================================
+         vector<fastjet::PseudoJet> constituents2 = jet2.constituents();
+         for(UInt_t ic = 0; ic < constituents2.size(); ++ic) {
+           // get user defined index
+           Int_t uid = constituents2[ic].user_index();
+           double cpt = constituents2[ic].perp();
+           double ceta = constituents2[ic].eta();
+           double cphi = constituents2[ic].phi();
+//           cout<<"ic = "<<ic<<", uid = "<<uid<<", cpt = "<<cpt<<", ceta = "<<ceta<<", cphi = "<<cphi<<endl;
+         }
+  }
+  cout << endl;
+  cout << endl;
+
+  // subtracted jets
+  cout << "# subtracted full jets" << endl;
+  for (unsigned int i=0; i<full_jets.size(); i++){
+    const fastjet::PseudoJet &jet = full_jets[i];
+    fastjet::PseudoJet subtracted_jet = subtractor(jet);
+
+    cout << "pt = " << subtracted_jet.pt() << ", rap = " << subtracted_jet.rap() << ", phi = " << subtracted_jet.phi()
+         << ", nConstituents = " << subtracted_jet.constituents().size() 
+         //<< ", area = " << subtracted_jet.area()
+         << ", mass = " << subtracted_jet.m() << endl;
+
+         // ==========================================
+         vector<fastjet::PseudoJet> constituents = subtracted_jet.constituents();
+         for(UInt_t ic = 0; ic < constituents.size(); ++ic) {
+           // get user defined index
+           Int_t uid = constituents[ic].user_index();
+           double cpt = constituents[ic].perp();
+           double ceta = constituents[ic].eta();
+           double cphi = constituents[ic].phi();
+           cout<<"ic = "<<ic<<", uid = "<<uid<<", cpt = "<<cpt<<", ceta = "<<ceta<<", cphi = "<<cphi<<endl;
+         }
+  }
+  cout << endl;
+
+  return 0;
+}
+
 /**
  * This method fills the jet output branch (TClonesArray) with the jet found by the FastJet wrapper.
  * This is for constituent subtractor performed to jets
  */
-void StJetMakerTask::FillJetBGBranch()
+void StJetMakerTaskBGsub::FillJetBGBranch()
 {
    // E_scheme, pt_scheme, pt2_scheme, Et_scheme, Et2_scheme, BIpt_scheme, BIpt2_scheme, WTA_pt_scheme, WTA_modp_scheme
    fastjet::RecombinationScheme    recombScheme;
@@ -1978,7 +1980,7 @@ void StJetMakerTask::FillJetBGBranch()
 
      // apply subtractor here
      fastjet::PseudoJet subtracted_jet = subtractor(jets_incl[ij]);
-
+    
      // need to figure out how to get m or E from STAR tracks
      StJet *jet = new ((*fJetsBGsub)[jetCount])
        StJet(subtracted_jet.perp(), subtracted_jet.eta(), subtracted_jet.phi(), subtracted_jet.m());
@@ -2007,4 +2009,3 @@ void StJetMakerTask::FillJetBGBranch()
    } // jet loop 
 
 }
-

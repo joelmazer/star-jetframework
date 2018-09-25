@@ -124,9 +124,12 @@ class StJetFrameworkPicoBase : public StMaker {
     enum fMBFlagEnum {
       kRun14main = 0,
       kRun16main = 1,
-      kVPDMB5    = 2,
-      kVPDMB10   = 3,
-      kVPDMB30   = 4,
+      kVPDMB     = 2,
+      kVPDMB5    = 3,
+      kVPDMB10   = 4,
+      kVPDMB30   = 5,
+      kVPDMB100  = 6,
+      kVPDMBnovtx= 7
     };
 
     // trigger type used to run specific part of analysis
@@ -197,6 +200,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
+    virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp;}
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
@@ -274,6 +278,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
     Int_t                  fRunFlag;                // Run Flag enumerator value
+    Bool_t                 doppAnalysis;            // use pp analysis data
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fRequireCentSelection;   // require particular centrality bin

@@ -225,6 +225,25 @@ Int_t StRhoBase::Init()
         }
         break; // added May20
 
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
+        // this is the default for Run17 pp - don't set anything for pp
+        break;
+
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -487,11 +506,17 @@ Int_t StRhoBase::Make()
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
-  grefmultCorr->init(RunId);
-  grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-  Int_t cent16 = grefmultCorr->getCentralityBin16();
-  //Int_t cent9 = grefmultCorr->getCentralityBin9();
-  Int_t fCentBin = GetCentBin(cent16, 16); // centbin
+  Int_t fCentBin, cent16; // cent9
+
+  if(!doppAnalysis) {
+    grefmultCorr->init(RunId);
+    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+    cent16 = grefmultCorr->getCentralityBin16();
+    //cent9 = grefmultCorr->getCentralityBin9();
+    fCentBin = GetCentBin(cent16, 16); // centbin
+  } else { // for pp
+    fCentBin = 0, cent16 = 0; 
+  }
 
   // test for now //FIXME
   double fCent = 0.0;
