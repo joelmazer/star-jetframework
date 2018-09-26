@@ -261,6 +261,7 @@ StJetMakerTask::~StJetMakerTask()
   // Destructor
   //fJets->Clear(); delete fJets;
   if(fHistCentrality)          delete fHistCentrality;
+  if(fHistFJRho)               delete fHistFJRho;
 
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
@@ -482,6 +483,7 @@ void StJetMakerTask::DeclareHistograms() {
 
     //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
     fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", 20, 0, 100);    
+    fHistFJRho = new TH1F("fHistFJRho", "Underlying event energy density via FastJet", 200, 0, 50);
 
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
@@ -512,6 +514,7 @@ void StJetMakerTask::DeclareHistograms() {
 void StJetMakerTask::WriteHistograms() {
   // write histograms
   fHistCentrality->Write();
+  fHistFJRho->Write();
 
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
@@ -1942,18 +1945,23 @@ void StJetMakerTask::FillJetBGBranch()
    fastjet::ClusterSequenceArea clust_seq_rho(fFull_Event, jet_def, area_def); // not used FIXME 
 
    fastjet::JetMedianBackgroundEstimator bge_rho(rho_range, jet_def_for_rho, area_def);
-   fastjet::BackgroundJetScalarPtDensity *scalarPtDensity = new fastjet::BackgroundJetScalarPtDensity();
-   bge_rho.set_jet_density_class(scalarPtDensity); // this changes computation of pt of patches from vector sum to scalar sum. Theor., the scalar sum seems more reasonable.
+   // TODO next 2 lines commented out to suppress warnings, doesn't affect results - Sept26, 2018
+   //fastjet::BackgroundJetScalarPtDensity *scalarPtDensity = new fastjet::BackgroundJetScalarPtDensity();
+   //bge_rho.set_jet_density_class(scalarPtDensity); // this changes computation of pt of patches from vector sum to scalar sum. Theor., the scalar sum seems more reasonable.
    bge_rho.set_particles(fFull_Event);
 
    // subtractor:
    //----------------------------------------------------------
    fastjet::contrib::ConstituentSubtractor subtractor(&bge_rho);
+   subtractor.set_common_bge_for_rho_and_rhom(true); // TODO - need this to omit warning, same results Sept26, 2018
 
    // this sets the same background estimator to be used for deltaMass density, rho_m, as for pt density, rho:
    //subtractor.use_common_bge_for_rho_and_rhom(true); // for massless input particles it does not make any difference (rho_m is always zero)
    ////cout << subtractor.description() << endl;
    ////cout << "  Giving, for the full event" << "    rho     = " << bge_rho.rho() << "    sigma   = " << bge_rho.sigma() << endl;
+
+   // fill histogram with FastJet calculated rho
+   fHistFJRho->Fill(bge_rho.rho());
 
    std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
    // sort jets according to jet pt
@@ -1979,7 +1987,7 @@ void StJetMakerTask::FillJetBGBranch()
      // apply subtractor here
      fastjet::PseudoJet subtracted_jet = subtractor(jets_incl[ij]);
 
-     // need to figure out how to get m or E from STAR tracks
+     // need to figure out how to get m or E from STAR tracks - FIXME - may want to just make this 'fJets'
      StJet *jet = new ((*fJetsBGsub)[jetCount])
        StJet(subtracted_jet.perp(), subtracted_jet.eta(), subtracted_jet.phi(), subtracted_jet.m());
 
@@ -1987,7 +1995,7 @@ void StJetMakerTask::FillJetBGBranch()
      jet->SetLabel(ij);
 
      // area vector and components
-     fastjet::PseudoJet area(fjw.GetJetAreaVector(ij)); // FIXME - this MAY not be correct after subtraction
+     fastjet::PseudoJet area(fjw.GetJetAreaVector(ij)); // FIXME - this MAY not be correct after subtraction, double check
      jet->SetArea(area.perp());  // same as fjw.GetJetArea(ij)
      jet->SetAreaEta(area.eta());
      jet->SetAreaPhi(area.phi());
@@ -2007,4 +2015,3 @@ void StJetMakerTask::FillJetBGBranch()
    } // jet loop 
 
 }
-

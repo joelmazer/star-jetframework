@@ -357,6 +357,7 @@ class StJetMakerTask : public StMaker {
 
   // histograms
   TH1F           *fHistCentrality;//!
+  TH1F           *fHistFJRho;//!
 
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
