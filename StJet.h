@@ -200,6 +200,7 @@ class StJet : public StVParticle
   void SetJetConstituents(std::vector<fastjet::PseudoJet> n)        { fJetConstit = n;                         }
   //const std::vector<fastjet::PseudoJet>&  GetInputVectors()    const { return fInputVectors;               }
   const std::vector<fastjet::PseudoJet>& GetMyJets()  const { return fJetConstit; }
+  const std::vector<fastjet::PseudoJet>& GetJetConstituents()  const { return fJetConstit; }
 
   // Debug printouts
   void Print(Option_t* /*opt*/ = "") const;

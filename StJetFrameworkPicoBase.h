@@ -201,6 +201,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp;}
+    virtual void            SetdoJetShapeAnalysis(Bool_t js)   { doJetShapeAnalysis = js; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
@@ -273,12 +274,17 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 CheckForHT(int RunFlag, int type);
     Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
     Double_t               GetMaxTrackPt();
+    Int_t                  GetAnnuliBin(Double_t deltaR) const;
+    Int_t                  GetJetPtBin(Double_t jetpt) const;
+    Int_t                  GetJetEPBin(Double_t dEP) const;
+    Int_t                  Get4CentBin(Double_t scaledCent) const;
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
     Int_t                  fDebugLevel;             // debug printout level
     Int_t                  fRunFlag;                // Run Flag enumerator value
     Bool_t                 doppAnalysis;            // use pp analysis data
+    Bool_t                 doJetShapeAnalysis;      // perform jet shape analysis
     Bool_t                 fCorrJetPt;              // correct jet pt by rho
     Int_t                  fCentralityDef;          // Centrality Definition enumerator value
     Bool_t                 fRequireCentSelection;   // require particular centrality bin

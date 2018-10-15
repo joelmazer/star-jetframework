@@ -544,6 +544,7 @@ void StJetMakerTask::WriteHistograms() {
 void StJetMakerTask::Clear(Option_t *opt) {
   // clear or delete objects after running
   fJets->Clear();
+  fJetsBGsub->Clear();
 }
 
 //________________________________________________________________________
@@ -1968,6 +1969,10 @@ void StJetMakerTask::FillJetBGBranch()
    static Int_t indexes[9999] = {-1};
    GetSortedArray(indexes, jets_incl);
 
+   // ===================================
+   // clear constituent array
+   fConstituents.clear();
+
    // loop over FastJet jets
    __DEBUG(StJetFrameworkPicoBase::kDebugFillJets, Form("%d jets found", (Int_t)jets_incl.size()));
    for(UInt_t ijet = 0, jetCount = 0; ijet < jets_incl.size(); ++ijet) {
@@ -2002,11 +2007,12 @@ void StJetMakerTask::FillJetBGBranch()
      jet->SetAreaE(area.E());
 
      // get constituents of jets - these should have the background (fraction) subtracted
-     fConstituents = fjw.GetJetConstituents(ij);
-     jet->SetJetConstituents(fConstituents);
+     //fConstituents = fjw.GetJetConstituents(ij);
+     //jet->SetJetConstituents(fConstituents);
 
      // fill jet constituents - these are identified by their index
      vector<fastjet::PseudoJet> constituents = subtracted_jet.constituents();
+     jet->SetJetConstituents(constituents);  // constituents are the corrected pseudojet objects
      FillJetConstituents(jet, constituents, constituents);
 
      __DEBUG(StJetFrameworkPicoBase::kDebugFillJets, Form("Added jet n. %d, pt = %f, area = %f, constituents = %d", jetCount, jet->Pt(), jet->Area(), jet->GetNumberOfConstituents()));

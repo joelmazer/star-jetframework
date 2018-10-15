@@ -62,6 +62,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fDebugLevel(0),
   fRunFlag(0),
   doppAnalysis(kFALSE),
+  doJetShapeAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
@@ -127,6 +128,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fDebugLevel(0),
   fRunFlag(0),
   doppAnalysis(kFALSE),
+  doJetShapeAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
@@ -310,6 +312,8 @@ double StJetFrameworkPicoBase::GetRhoValue(TString fRhoMakerNametemp)
   return fRhoVal;
 }
 
+//
+// get centrality bin
 //________________________________________________________________________
 Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
@@ -321,7 +325,85 @@ Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
   return centbin;
 }
 
+//
+// get centrality bin in 4 different bins
+//________________________________________________________________________
+Int_t StJetFrameworkPicoBase::Get4CentBin(Double_t scaledCent) const
+{
+  // initialize centrality bin
+  int centbin = -99;
+
+  // get centrality bin number
+  if(scaledCent <  10.0)      { centbin = 0; }
+  else if(scaledCent <  20.0) { centbin = 1; }
+  else if(scaledCent <  50.0) { centbin = 2; }
+  else if(scaledCent <= 80.0) { centbin = 3; }
+
+  return centbin;
+}
+
+//
+// function to get annuli bin
+//___________________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetAnnuliBin(Double_t deltaR) const
+{
+  // initialize annuli bin
+  int annuliBin = -99;
+
+  // get annuli bin number
+  if(deltaR <= 0.05) {                       annuliBin = 0; }
+  else if(deltaR > 0.05 && deltaR <= 0.10) { annuliBin = 1; }
+  else if(deltaR > 0.10 && deltaR <= 0.15) { annuliBin = 2; }
+  else if(deltaR > 0.15 && deltaR <= 0.20) { annuliBin = 3; } 
+  else if(deltaR > 0.20 && deltaR <= 0.25) { annuliBin = 4; }
+  else if(deltaR > 0.25 && deltaR <= 0.30) { annuliBin = 5; }
+  else if(deltaR > 0.30 && deltaR <= 0.35) { annuliBin = 6; }
+  else if(deltaR > 0.35 && deltaR <= 0.40) { annuliBin = 7; }
+  else if(deltaR > 0.40 && deltaR <= 0.45) { annuliBin = 8; }
+  else if(deltaR > 0.45 && deltaR <= 0.50) { annuliBin = 9; }
+
+  return annuliBin;
+}
+
+//
+// function to jet pt bin
+//___________________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetJetPtBin(Double_t jetpt) const
+{
+  // initialize jet pt bin
+  int jetPtBin = -99;
+
+  // get jet pt bin number
+  if(jetpt >= 10.0 && jetpt < 15.0) {      jetPtBin = 0; } 
+  else if(jetpt >= 15.0 && jetpt < 20.0) { jetPtBin = 1; }
+  else if(jetpt >= 20.0 && jetpt < 40.0) { jetPtBin = 2; } 
+  else if(jetpt >= 40.0 && jetpt < 60.0) { jetPtBin = 3; }
+
+  return jetPtBin;
+}
+
+//
+// function to jet event plane bin
+//___________________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
+{
+  // constants
+  double pi = 1.0*TMath::Pi();
+
+  // initialize jet event plane bin
+  int jetEPBin = -99;
+
+  // get jet event plane bin number
+  if(dEP >= 0.0*pi/6.0 && dEP <= 1.0*pi/6.0) {     jetEPBin = 0; }
+  else if(dEP > 1.0*pi/6.0 && dEP <= 2.0*pi/6.0) { jetEPBin = 1; }
+  else if(dEP > 2.0*pi/6.0 && dEP <= 3.0*pi/6.0) { jetEPBin = 2; }
+
+  return jetEPBin;
+}
+
+//
 // this function generate a jet name based on input
+//___________________________________________________________________________________________
 TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag)
 {
   TString algoString;

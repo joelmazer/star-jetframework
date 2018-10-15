@@ -410,6 +410,19 @@ void StAnMaker::RunJets()
       highestjetpt=jetpt;
     }
 
+/*
+    // TEST
+    vector<fastjet::PseudoJet> fConstituents = jet->GetJetConstituents();
+    for(UInt_t ic = 0; ic < fConstituents.size(); ++ic) {
+      // get user defined index
+      Int_t uid = fConstituents[ic].user_index();
+      double cpt = fConstituents[ic].perp();
+      double ceta = fConstituents[ic].eta();
+      double cphi = fConstituents[ic].phi();
+      cout<<"ic = "<<ic<<", uid = "<<uid<<", cpt = "<<cpt<<", ceta = "<<ceta<<", cphi = "<<cphi<<endl;
+    }
+*/
+
     // get jet constituents
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
