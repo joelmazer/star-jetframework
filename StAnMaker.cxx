@@ -383,8 +383,13 @@ void StAnMaker::RunJets()
 {
   // cache the leading + subleading jets within acceptance
   // first parameter is Jet Maker name, 2nd is Rho Parameter: fRho
-  fLeadingJet = GetLeadingJet(fJetMakerName);
-  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  if(fCorrJetPt) {
+    fLeadingJet = GetLeadingJet(fJetMakerName, fRho);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName, fRho);
+  } else {
+    fLeadingJet = GetLeadingJet(fJetMakerName);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  }
 
   // ====================== Jet loop below ============================
   // loop over Jets in the event: initialize some parameter variables

@@ -959,8 +959,13 @@ Int_t StEventPlaneMaker::Make() {
 
   // =========== Event Plane Angle ============= //
   // cache the leading jet within acceptance
-  fLeadingJet = GetLeadingJet(fJetMakerName);
-  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  if(fCorrJetPt) {
+    fLeadingJet = GetLeadingJet(fJetMakerName, fRho);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName, fRho);
+  } else {
+    fLeadingJet = GetLeadingJet(fJetMakerName);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  }
 
   //cout<<"print1:  TPC_PSI2: "<<TPC_PSI2<<"  TPCA_PSI2: "<<TPCA_PSI2<<"  TPCB_PSI2: "<<TPCB_PSI2<<endl;
   // ==================================================================

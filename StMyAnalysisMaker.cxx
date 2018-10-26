@@ -1398,8 +1398,13 @@ Int_t StMyAnalysisMaker::Make() {
   // =========== Event Plane Angle ============= //
   // cache the leading + subleading jets within acceptance
   // first parameter is Jet Maker name, 2nd is Rho Parameter: fRho
-  fLeadingJet = GetLeadingJet(fJetMakerName);
-  fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  if(fCorrJetPt) {
+    fLeadingJet = GetLeadingJet(fJetMakerName, fRho);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName, fRho);
+  } else {
+    fLeadingJet = GetLeadingJet(fJetMakerName);
+    fSubLeadingJet = GetSubLeadingJet(fJetMakerName);
+  }
 
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
