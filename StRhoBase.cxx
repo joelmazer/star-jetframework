@@ -40,6 +40,7 @@ ClassImp(StRhoBase)
 //________________________________________________________________________
 StRhoBase::StRhoBase() : 
   StJetFrameworkPicoBase(),
+  fMaxEventTrackPt(30.0),
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -89,6 +90,7 @@ StRhoBase::StRhoBase() :
 //________________________________________________________________________
 StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const char *jetMakerName) :
   StJetFrameworkPicoBase(name),
+  fMaxEventTrackPt(30.0),
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -202,8 +204,13 @@ Int_t StRhoBase::Init()
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -473,8 +480,8 @@ Int_t StRhoBase::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get vertex 3 vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();

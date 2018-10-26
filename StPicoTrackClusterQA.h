@@ -116,6 +116,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+  virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
   // track / cluster setters 
   virtual void         SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;}   // min track cut
@@ -186,6 +187,9 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                  fCentralityDef;          // Centrality Definition enumerator value
   Bool_t                 fDoEffCorr;              // efficiency correction to tracks
   Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
+
+  // event
+  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
 
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut

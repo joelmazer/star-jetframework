@@ -149,6 +149,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   doWriteTrackQAHist = kTRUE;
   doWriteJetQAHist = kTRUE;
   doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
+  fMaxEventTrackPt = 30.0;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -418,8 +419,13 @@ Int_t StMyAnalysisMaker::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -1221,8 +1227,8 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -1231,8 +1237,7 @@ Int_t StMyAnalysisMaker::Make() {
   mVertex = mPicoEvent->primaryVertex();
   zVtx = mVertex.z();
   
-  // Z-vertex cut 
-  // the Aj analysis cut on (-40, 40) for reference
+  // Z-vertex cut - the Aj analysis cut on (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
   hEventZVertex->Fill(zVtx);
 

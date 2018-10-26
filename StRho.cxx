@@ -169,15 +169,14 @@ Int_t StRho::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get vertex 3 vector and declare variables
   StThreeVectorF mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
-  // z-vertex cut
-  // per the Aj analysis (-40, 40) for reference
+  // z-vertex cut - per the Aj analysis (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // get JetMaker

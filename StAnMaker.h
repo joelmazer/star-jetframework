@@ -67,6 +67,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
     
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut

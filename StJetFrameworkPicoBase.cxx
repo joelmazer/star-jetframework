@@ -72,6 +72,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
+  fMaxEventTrackPt(30.0),
   fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
@@ -133,6 +134,13 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
   doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
+  fCentralityScaled(0.),
+  ref16(-99), ref9(-99),
+  Bfield(0.0),
+  mVertex(0x0),
+  zVtx(0.0),
+  fMaxEventTrackPt(30.0),
+  fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
   fTowerBias(0.2),
@@ -220,8 +228,13 @@ Int_t StJetFrameworkPicoBase::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -748,7 +761,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
-  // return pointer to the highest pt jet (before background subtraction) within acceptance
+  // return pointer to the highest pt jet (before/after background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of
   // the framework
 
@@ -790,7 +803,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
       //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
-      // loop over jets
+      // loop over corrected jets
       for(Int_t i(0); i < iJets; i++) {
         StJet* jet = static_cast<StJet*>(fJets->At(i));
         //if(!AcceptJet(jet)) continue;
@@ -808,7 +821,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
 
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
-  // return pointer to the second highest pt jet (before background subtraction) within acceptance
+  // return pointer to the second highest pt jet (before/after background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
 
   // ================= JetMaker ================ //
@@ -859,11 +872,12 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
       return subleadingJet;
 
     } else { // rho parameter provided
-      // return leading jet after background subtraction
+      // return subleading jet after background subtraction
+      // FIXME: Fixed October 26, 2018: returned leadingjet, and didn't subtract bg from subleading
       //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
-      // loop over jets
+      // loop over corrected jets
       for(Int_t i(0); i < iJets; i++) {
         StJet* jet = static_cast<StJet*>(fJets->At(i));
         // leading jet
@@ -873,12 +887,12 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
         }
 
         // subleading jet
-        if((jet->Pt() > pt2) && (jet->Pt() < pt)) {
+        if((jet->Pt() - jet->Area()*fRhoValtemp > pt2) && (jet->Pt() - jet->Area()*fRhoValtemp < pt)) {
           subleadingJet = jet;
-          pt2 = subleadingJet->Pt();
+          pt2 = subleadingJet->Pt() - jet->Area()*fRhoValtemp;
         }
       }
-      return leadingJet;
+      return subleadingJet;
     }
   }
 

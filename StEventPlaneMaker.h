@@ -96,6 +96,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
     // jet switches
     virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
@@ -179,6 +180,9 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Bool_t                 doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                  fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                 doReadCalibFile;         // read calibration file switch
+
+    // event
+    Double_t       fMaxEventTrackPt;            // max track pt in the event (to cut on)     
 
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal

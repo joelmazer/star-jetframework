@@ -81,6 +81,7 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fTowerBias = 0.0;
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
+  fMaxEventTrackPt = 30.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
@@ -126,8 +127,13 @@ Int_t StAnMaker::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -244,8 +250,8 @@ Int_t StAnMaker::Make() {
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

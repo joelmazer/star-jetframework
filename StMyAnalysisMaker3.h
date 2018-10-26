@@ -31,6 +31,7 @@ class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPoolManager;
+class StEventPool;
 //class StEventPlaneMaker;
 
 //class StMyAnalysisMaker3 : public StMaker {
@@ -46,17 +47,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
       kDebugCentrality,
       kDebugEventPlaneCalc,
       kDebugJetvsEPtype
-    };
-
-    // enumerator for TPC event plane method
-    enum fTPCEPmethodEnum {
-      kRemoveNothing,
-      kRemoveEtaStrip,
-      kRemoveEtaPhiCone,
-      kRemoveLeadingJetConstituents, // greater than 2 GeV
-      kRemoveEtaStripLeadSub,
-      kRemoveEtaPhiConeLeadSub,
-      kRemoveLeadingSubJetConstituents // greater than 2 GeV
     };
 
     // enumerator for TPC event plane method
@@ -114,6 +104,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -135,6 +126,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetNMixedTr(Int_t nmt)             { fNMIXtracks = nmt; }
     virtual void            SetNMixedEvt(Int_t nme)            { fNMIXevents = nme; }
     virtual void            SetCentBinSize(Int_t centbins)     { fCentBinSize = centbins; }
+    virtual void            SetCentBinSizeJS(Int_t centbins)     { fCentBinSizeJS = centbins; }
     virtual void            SetReduceStatsCent(Int_t red)      { fReduceStatsCent = red; }
     virtual void            SetDoFilterPtMixEvents(Int_t fil)  { fDoFilterPtMixEvents = fil; }
 
@@ -180,7 +172,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
-    Int_t                   JetShapeAnalysis(StJet *jet);
+    Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool);
 
     // Added from Liang
     Int_t                   GetRunNo(int runid);
@@ -197,10 +189,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
 
     // cuts
-    //Double_t                fMinPtJet;               // min jet pt to keep jet in output
-    //Double_t                fJetConstituentCut;      // min jet constituent
-    Double_t                fJetShapeTrackPtMax;     // jet shape analysis - max track pt
-    Int_t                   fJetShapePtAssocBin;     // jet shape analysis - pt associated bin
+    //Double_t       fMinPtJet;               // min jet pt to keep jet in output
+    //Double_t       fJetConstituentCut;      // min jet constituent
+    Double_t       fJetShapeTrackPtMax;     // jet shape analysis - max track pt  FIXME should be min
+    Int_t          fJetShapePtAssocBin;     // jet shape analysis - pt associated bin
 
     // event mixing
     Int_t          fDoEventMixing;              // switch ON/off event mixing
@@ -208,6 +200,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t          fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
     Int_t          fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
     Int_t          fCentBinSize;                // centrality bin size of mixed event pools
+    Int_t          fCentBinSizeJS;              // centrality bin size of mixed event pools for jet shape analysis
     Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
     Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
 
@@ -354,6 +347,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetShapeBG[4][4][4];//! jet shape backround histograms in annuli bins
     TH1F *hJetShapeBGCase1[4][4][4];//! jet shape case1 histograms in annuli bins
     TH1F *hJetShapeBGCase2[4][4][4];//! jet shape case2 histograms in annuli bins
+    TH1F *hJetShapeBGCase3[4][4][4];//! jet shape case3 histograms in annuli bins
     TH1F *hJetCounter[4][4][4];//! jet shape and pt profile histogram - jet counter
     TH1F *hJetCounterCase1[4][4][4];//! jet shape and pt profile case1 histogram - jet counter
     TH1F *hJetCounterCase2[4][4][4];//! jet shape and pt profile case2 histogram - jet counter
@@ -365,6 +359,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetPtProfileBG[4][4][4];//! jet pt profile backround histograms in annuli bins
     TH1F *hJetPtProfileBGCase1[4][4][4];//! jet profile case1 histograms in annuli bins
     TH1F *hJetPtProfileBGCase2[4][4][4];//! jet profile case2 histograms in annuli bins
+    TH1F *hJetPtProfileBGCase3[4][4][4];//! jet profile case3 histograms in annuli bins
 
     // EP resoltuion profiles
     TProfile              *fProfV2Resolution[9];//! resolution parameters for v2

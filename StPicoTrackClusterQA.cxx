@@ -86,6 +86,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
+  fMaxEventTrackPt(30.0),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -159,6 +160,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
+  fMaxEventTrackPt(30.0),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -298,8 +300,13 @@ Int_t StPicoTrackClusterQA::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -509,8 +516,8 @@ int StPicoTrackClusterQA::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();

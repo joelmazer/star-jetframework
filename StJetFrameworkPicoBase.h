@@ -4,9 +4,7 @@
 // some includes
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
-
 //#include "StRoot/StPicoEvent/StPicoDst.h"
-
 
 #include <set>
 
@@ -145,12 +143,14 @@ class StJetFrameworkPicoBase : public StMaker {
     //getTofTrayMultCorr();        // For TOF tray multiplicity
     //getgRefMultCorr();           // For grefmult //Run14 AuAu200GeV
     //getgRefMultCorr_P16id();     // For grefmult //Run14 AuAu200GeV, P16id
+    //getgRefMultCorr_P17id_VpdMB30();// For grefmult //Run14 AuAu200GeV, P17id for VPDMB-30; |vz| < 30
     //getgRefMultCorr_VpdMB30();   // for VPDMB-30; |vz| < 30
     //getgRefMultCorr_VpdMBnoVtx();// for VPDMB-noVtx; |vz| < 100
     // centrality enum
     enum fCentralityDefEnum {
       krefmult, krefmult2, krefmult3,
-      kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30
+      kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30,
+      kgrefmult_P17id_VpdMB30      
     };    
 
     // centrality bin range
@@ -216,6 +216,7 @@ class StJetFrameworkPicoBase : public StMaker {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -299,6 +300,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               Bfield;                  // event Bfield
     StThreeVectorF         mVertex;                 // event vertex 3-vector
     Double_t               zVtx;                    // z-vertex component
+    Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
 
     // cuts
     Int_t                  fJetType;                // jet type (full, charged, neutral)

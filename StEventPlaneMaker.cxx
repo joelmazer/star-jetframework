@@ -125,6 +125,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
   doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
+  fMaxEventTrackPt = 30.0;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -307,8 +308,13 @@ Int_t StEventPlaneMaker::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -816,8 +822,8 @@ Int_t StEventPlaneMaker::Make() {
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -2397,7 +2403,6 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
                   } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
                 } // R=0.4
 
-/*
                 if(fJetRad == 0.3) { // Jet radius: R=0.3
                   if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     tpc_delta_psi += (tpc_shift_N_bin0_Method1_R03_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
@@ -2416,7 +2421,6 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
                                       tpc_shift_P_bin4_Method1_R03_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                   } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
                 } // R=0.3
-*/
 
                 if(fJetRad == 0.2) { // Jet radius: R=0.2
                   if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV

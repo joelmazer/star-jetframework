@@ -88,6 +88,7 @@ StJetMakerTask::StJetMakerTask() :
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kTRUE),
+  fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
@@ -178,6 +179,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kTRUE),
+  fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
@@ -384,8 +386,13 @@ Int_t StJetMakerTask::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -582,8 +589,8 @@ int StJetMakerTask::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
