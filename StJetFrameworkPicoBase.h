@@ -232,9 +232,10 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetTowerEtaRange(Double_t temi, Double_t temx) { fTowerEtaMinCut = temi; fTowerEtaMaxCut = temx; }
     virtual void            SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
 
-    // leading jet
-    StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
-    StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho = 0x0);
+    // leading/subleading jets
+    Double_t                GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParameter *eventRho = 0x0, Bool_t doCorrJetPt = kFALSE);
+    StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
+    StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
  
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)   {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)      {fTrackWeight = weight; }

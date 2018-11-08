@@ -86,6 +86,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp; }
     virtual void            SetdoJetShapeAnalysis(Bool_t js)   { doJetShapeAnalysis = js; }
     virtual void            SetJetShapeJetType(Int_t t)        { fJetShapeJetType  = t; }
+    virtual void            SetdoRequireAjSelection(Bool_t d)  { doRequireAjSelection = d; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
@@ -126,7 +127,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetNMixedTr(Int_t nmt)             { fNMIXtracks = nmt; }
     virtual void            SetNMixedEvt(Int_t nme)            { fNMIXevents = nme; }
     virtual void            SetCentBinSize(Int_t centbins)     { fCentBinSize = centbins; }
-    virtual void            SetCentBinSizeJS(Int_t centbins)     { fCentBinSizeJS = centbins; }
+    virtual void            SetCentBinSizeJS(Int_t centbins)   { fCentBinSizeJS = centbins; }
     virtual void            SetReduceStatsCent(Int_t red)      { fReduceStatsCent = red; }
     virtual void            SetDoFilterPtMixEvents(Int_t fil)  { fDoFilterPtMixEvents = fil; }
 
@@ -172,7 +173,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
-    Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool);
+    Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
 
     // Added from Liang
     Int_t                   GetRunNo(int runid);
@@ -181,6 +182,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
     Int_t                   fJetShapeJetType;        // type of jets to use for jet shape analysis
+    Bool_t                  doRequireAjSelection;    // requirement of Aj selection on jets for Jet Shape Analysis
     Bool_t                  doWriteTrackQAHist;      // write track QA histograms
     Bool_t                  doWriteJetQAHist;        // write jet QA histograms
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
@@ -295,6 +297,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // jet histos
     TH1F* hJetPt;//!
     TH1F* hJetCorrPt;//!
+    TH1F* hJetLeadingPt;//!
+    TH1F* hJetSubLeadingPt;//!
+    TH1F* hJetLeadingPtAj;//!
+    TH1F* hJetSubLeadingPtAj;//!
+    TH1F* hJetDiJetAj;//!
     TH1F* hJetE;//!
     TH1F* hJetEta;//!
     TH1F* hJetPhi;//!
@@ -335,6 +342,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!
+    TH1  *hMBvsMult;//!
+    TH1  *hMB5vsMult;//!
+    TH1  *hMB30vsMult;//!
+    TH1  *hHTvsMult;//!
+    TH1  *hNMixEvents;//!
 
     TH2F *hTPCvsBBCep;//!
     TH2F *hTPCvsZDCep;//!
@@ -351,6 +363,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetCounter[4][4][4];//! jet shape and pt profile histogram - jet counter
     TH1F *hJetCounterCase1[4][4][4];//! jet shape and pt profile case1 histogram - jet counter
     TH1F *hJetCounterCase2[4][4][4];//! jet shape and pt profile case2 histogram - jet counter
+    TH1F *hJetCounterCase3BG[4][4][4];//! jet shape and pt profile case3 histograms - jet counter FOR BG only!
 
     // jet pt profile histos - in jetpt and centrality arrays
     TH1F *hJetPtProfile[4][4][4];//! jet pt profile histograms in annuli bins

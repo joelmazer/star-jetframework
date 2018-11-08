@@ -347,10 +347,10 @@ Int_t StJetFrameworkPicoBase::Get4CentBin(Double_t scaledCent) const
   int centbin = -99;
 
   // get centrality bin number
-  if(scaledCent <  10.0)      { centbin = 0; }
-  else if(scaledCent <  20.0) { centbin = 1; }
-  else if(scaledCent <  50.0) { centbin = 2; }
-  else if(scaledCent <= 80.0) { centbin = 3; }
+  if(scaledCent >= 0 && scaledCent <  10.0)  { centbin = 0; }
+  else if(scaledCent <  20.0)                { centbin = 1; }
+  else if(scaledCent <  50.0)                { centbin = 2; }
+  else if(scaledCent <= 80.0)                { centbin = 3; }
 
   return centbin;
 }
@@ -364,7 +364,7 @@ Int_t StJetFrameworkPicoBase::GetAnnuliBin(Double_t deltaR) const
   int annuliBin = -99;
 
   // get annuli bin number
-  if(deltaR <= 0.05) {                       annuliBin = 0; }
+  if(deltaR >= 0.00 && deltaR <= 0.05)     { annuliBin = 0; }
   else if(deltaR > 0.05 && deltaR <= 0.10) { annuliBin = 1; }
   else if(deltaR > 0.10 && deltaR <= 0.15) { annuliBin = 2; }
   else if(deltaR > 0.15 && deltaR <= 0.20) { annuliBin = 3; } 
@@ -387,7 +387,7 @@ Int_t StJetFrameworkPicoBase::GetJetPtBin(Double_t jetpt) const
   int jetPtBin = -99;
 
   // get jet pt bin number
-  if(jetpt >= 10.0 && jetpt < 15.0) {      jetPtBin = 0; } 
+  if(jetpt >= 10.0 && jetpt < 15.0)      { jetPtBin = 0; } 
   else if(jetpt >= 15.0 && jetpt < 20.0) { jetPtBin = 1; }
   else if(jetpt >= 20.0 && jetpt < 40.0) { jetPtBin = 2; } 
   else if(jetpt >= 40.0 && jetpt < 60.0) { jetPtBin = 3; }
@@ -407,7 +407,7 @@ Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
   int jetEPBin = -99;
 
   // get jet event plane bin number
-  if(dEP >= 0.0*pi/6.0 && dEP <= 1.0*pi/6.0) {     jetEPBin = 0; }
+  if(dEP >= 0.0*pi/6.0 && dEP <= 1.0*pi/6.0)     { jetEPBin = 0; }
   else if(dEP > 1.0*pi/6.0 && dEP <= 2.0*pi/6.0) { jetEPBin = 1; }
   else if(dEP > 2.0*pi/6.0 && dEP <= 3.0*pi/6.0) { jetEPBin = 2; }
 
@@ -760,7 +760,30 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 }
 
 // _____________________________________________________________________________________________
-StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
+Double_t StJetFrameworkPicoBase::GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParameter *eventRho, Bool_t doCorrJetPt) {
+  // returns dijet asymmetry Aj of 2 jets
+  // - meant for leading/subleading jets
+  // - jet1 should have pt > jet2 pt
+
+  // get jet1 and jet2 pt's
+  double jetPt1, jetPt2;
+  if(doCorrJetPt) {
+    jetPt1 = jet1->Pt() - jet1->Area()*eventRho->GetVal();
+    jetPt2 = jet2->Pt() - jet2->Area()*eventRho->GetVal();
+  } else {
+    jetPt1 = jet1->Pt();
+    jetPt2 = jet2->Pt();
+  }
+
+  // calculate dijet imbalance Aj
+  double Aj = (jetPt1 - jetPt2) / (jetPt1 + jetPt2);
+
+  // return absolute value in case user input wrong
+  return 1.0*TMath::Abs(Aj);
+}
+
+// _____________________________________________________________________________________________
+StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho) {
   // return pointer to the highest pt jet (before/after background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of
   // the framework
@@ -820,7 +843,7 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
 }
 
 // _____________________________________________________________________________________________
-StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter* eventRho) {
+StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho) {
   // return pointer to the second highest pt jet (before/after background subtraction) within acceptance
   // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
 

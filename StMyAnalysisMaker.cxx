@@ -932,7 +932,7 @@ void StMyAnalysisMaker::DeclareHistograms() {
   Int_t nCentBins = 16;
   Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // TEST added 16
   Double_t* centralityBin = cenBins;
-  Int_t nZvBins  = 10+1+10;
+  Int_t nZvBins  = 20; //10+1+10;
   Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
   //Int_t nZvBins  = 2+1+2;
   //Double_t vBins[] = {-40, -20, -0, 20, 40};
@@ -1486,7 +1486,6 @@ Int_t StMyAnalysisMaker::Make() {
 
   // run Track QA and fill histograms
   if(doWriteTrackQAHist) TrackQA();
-
 
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
