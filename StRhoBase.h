@@ -46,7 +46,8 @@ class StRhoBase : public StJetFrameworkPicoBase {
   void    WriteHistograms();
 
   void                   SetEventZVtxRange(Double_t zmi, Double_t zma)         { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma;     }
-  virtual void           SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+  virtual void           SetUseBBCCoincidenceRate(Bool_t b)                    { doUseBBCCoincidenceRate = b; }
+  virtual void           SetMaxEventTrackPt(Double_t mxpt)                     { fMaxEventTrackPt = mxpt; }
 
   void                   SetOutRhoName(const char *name)                       { fOutRhoName           = name    ;
                                                                                  fOutRhoScaledName     = Form("%s_Scaled",name);     }
@@ -73,6 +74,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
 
+  Bool_t                 doUseBBCCoincidenceRate;        // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
   Double_t               fMaxEventTrackPt;               // max track pt in the event (to cut on) 
 
   TString                fOutRhoName;                    // name of output rho object

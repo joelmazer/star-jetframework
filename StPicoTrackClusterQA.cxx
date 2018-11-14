@@ -86,6 +86,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
+  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fMaxEventTrackPt(30.0),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -160,6 +161,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
+  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fMaxEventTrackPt(30.0),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -303,6 +305,9 @@ Int_t StPicoTrackClusterQA::Init() {
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -533,13 +538,20 @@ int StPicoTrackClusterQA::Make()
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int RunId = mPicoEvent->runId();
   float fBBCCoincidenceRate = mPicoEvent->BBCx();
+  float fZDCCoincidenceRate = mPicoEvent->ZDCx();
   int grefMult = mPicoEvent->grefMult();
   Int_t centbin, cent16;
 
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
-    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-    grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
     cent16 = grefmultCorr->getCentralityBin16();
     if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
     centbin = GetCentBin(cent16, 16);

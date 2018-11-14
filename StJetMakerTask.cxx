@@ -87,7 +87,7 @@ StJetMakerTask::StJetMakerTask() :
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  doUseBBCCoincidenceRate(kTRUE),
+  doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
@@ -178,7 +178,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  doUseBBCCoincidenceRate(kTRUE),
+  doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
@@ -389,6 +389,9 @@ Int_t StJetMakerTask::Init() {
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -615,10 +618,13 @@ int StJetMakerTask::Make()
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-    grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+
+    if(doUseBBCCoincidenceRate) { grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2); }
+    else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); } 
     cent16 = grefmultCorr->getCentralityBin16();
     if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
     centbin = GetCentBin(cent16, 16);
+
   } else { // for pp
     centbin = 0, cent16 = 0;
   }

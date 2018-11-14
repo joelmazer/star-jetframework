@@ -66,7 +66,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fCorrJetPt(kFALSE),
   fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
-  doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
+  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
@@ -232,6 +232,9 @@ Int_t StJetFrameworkPicoBase::Init() {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
         }
@@ -278,10 +281,10 @@ Int_t StJetFrameworkPicoBase::Init() {
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
-*/
 
   refmultCorr = CentralityMaker::instance()->getRefMultCorr(); // OLD
   refmult2Corr = CentralityMaker::instance()->getRefMult2Corr();  // OLD 
+*/
 
   return kStOK;
 }
@@ -1092,7 +1095,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
           case kVPDMB30 :
               if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
               break;
-          default :
+          default : // kRun14Main or kVPDMB
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
         break; // added May20

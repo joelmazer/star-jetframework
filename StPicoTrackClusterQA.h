@@ -116,6 +116,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
+  virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
   // track / cluster setters 
@@ -188,14 +189,13 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t                 fDoEffCorr;              // efficiency correction to tracks
   Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
 
-  // event
-  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
-
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Bool_t                 fRequireCentSelection;   // require particular centrality bin
+  Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
+  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
 
   // names
   TString                mOutName;                // name of output file

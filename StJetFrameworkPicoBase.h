@@ -111,7 +111,7 @@ class StJetFrameworkPicoBase : public StMaker {
       Run17_pp510  // 500
     };
 
-    // run flags for specifics
+    // trigger flags
     enum fEmcTriggerFlagEnum {
       kAny,
       kIsHT0, kIsHT1, kIsHT2, kIsHT3,

@@ -124,7 +124,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
-  doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
+  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
@@ -311,6 +311,9 @@ Int_t StEventPlaneMaker::Init() {
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -864,17 +867,25 @@ Int_t StEventPlaneMaker::Make() {
   Double_t refCorr2;
 
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); } 
-
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
     // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+
+    // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
     cent9 = grefmultCorr->getCentralityBin9();
+
+    // re-order binning to be from central -> peripheral
     ref9 = GetCentBin(cent9, 9);
-    ref16 = GetCentBin(cent16, 16);  
-    centbin = GetCentBin(cent16, 16);
-    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    ref16 = GetCentBin(cent16, 16);
+    centbin = GetCentBin(cent16, 16);  // 0-16
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
   } else { // for pp
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }

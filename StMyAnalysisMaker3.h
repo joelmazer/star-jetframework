@@ -174,6 +174,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
+    Double_t                TestBool();
+
 
     // Added from Liang
     Int_t                   GetRunNo(int runid);
@@ -342,6 +344,9 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!
+    TH1  *hTriggerEvtStatZVtx;//!
+    TH1  *hTriggerEvtStatCent;//!
+    TH2  *hTriggerEvtStatZvsCent;//!
     TH1  *hMBvsMult;//!
     TH1  *hMB5vsMult;//!
     TH1  *hMB30vsMult;//!

@@ -148,7 +148,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralitySelectionCut = -99;
   doWriteTrackQAHist = kTRUE;
   doWriteJetQAHist = kTRUE;
-  doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
+  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
@@ -422,6 +422,9 @@ Int_t StMyAnalysisMaker::Init() {
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -1247,7 +1250,7 @@ Int_t StMyAnalysisMaker::Make() {
   int fillId = mPicoEvent->fillId();
   int eventId = mPicoEvent->eventId();
   double fBBCCoincidenceRate = mPicoEvent->BBCx();
-  //double fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?i
 
   // ================= Event Plane flattening container ==============
@@ -1270,19 +1273,29 @@ Int_t StMyAnalysisMaker::Make() {
   Double_t refCorr2;
 
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
-    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
 //    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
 //    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
 //    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
 //    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
     // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+
+    // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
     cent9 = grefmultCorr->getCentralityBin9();
+
+    // re-order binning to be from central -> peripheral
     ref9 = GetCentBin(cent9, 9);
-    ref16 = GetCentBin(cent16, 16);  
-    centbin = GetCentBin(cent16, 16);
-    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    ref16 = GetCentBin(cent16, 16);
+    centbin = GetCentBin(cent16, 16);  // 0-16
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
     //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
     //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
   } else {

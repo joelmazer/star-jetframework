@@ -13,7 +13,7 @@
 //      - event plane corrections with BBC, ZDC, TPC
 //      - access to jet constituents
 //      - general QA
-//      
+
 // can get a pointer to:
 // 1) collection of jets  	
 // 2) event wise rho parameter
@@ -101,7 +101,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fCentralitySelectionCut = -99;
   doWriteTrackQAHist = kTRUE;
   doWriteJetQAHist = kTRUE;
-  doUseBBCCoincidenceRate = kTRUE; // kFALSE = use ZDC
+  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
@@ -132,6 +132,8 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   JetMaker = 0;
   RhoMaker = 0;
   grefmultCorr = 0x0;
+  refmultCorr = 0x0; // FIXME TEST
+  refmult2Corr = 0x0; // FIXME TEST
   mOutName = outName;
   mOutNameEP = "";
   mOutNameQA = "";
@@ -156,7 +158,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTowerEtaMinCut = -1.0; fTowerEtaMaxCut = 1.0;
   fTowerPhiMinCut = 0.0; fTowerPhiMaxCut = 2.0*TMath::Pi();
   fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
-  fCentBinSize = 5; fCentBinSizeJS = 20; fReduceStatsCent = -1;
+  fCentBinSize = 5; fCentBinSizeJS = 10; fReduceStatsCent = -1;
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
@@ -257,6 +259,9 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   delete hMixEvtStatZVtx;
   delete hMixEvtStatCent;
   delete hMixEvtStatZvsCent;
+  delete hTriggerEvtStatZVtx;
+  delete hTriggerEvtStatCent;
+  delete hTriggerEvtStatZvsCent;
   delete hMBvsMult;
   delete hMB5vsMult;
   delete hMB30vsMult;
@@ -334,8 +339,13 @@ Int_t StMyAnalysisMaker3::Init() {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              refmult2Corr = CentralityMaker::instance()->getgRefMultCorr();
+              refmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;
 
@@ -550,14 +560,17 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
-  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", nHistCentBins, -40.0, 40.0);
+  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
   hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", nHistCentBins, 0, 100);
   hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
+  hTriggerEvtStatZVtx = new TH1F("hTriggerEvtStatZVtx", "no of trigger events used vs zvtx", 20, -40.0, 40.0);
+  hTriggerEvtStatCent = new TH1F("hTriggerEvtStatCent", "no of trigger events used vs Centrality", nHistCentBins, 0, 100);
+  hTriggerEvtStatZvsCent = new TH2F("hTriggerEvtStatZvsCent", "no of trigger events used: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
   hMBvsMult = new TH1F("hMBvsMult", "# MB events vs multiplicity", 350, 0, 700);
   hMB5vsMult = new TH1F("hMB5vsMult", "# MB5 events vs multiplicity", 350, 0, 700);
   hMB30vsMult = new TH1F("hMB30vsMult", "# MB30 events vs multiplicity", 350, 0, 700);
   hHTvsMult = new TH1F("hHTvsMult", "# HT events vs multiplicity", 350, 0, 700);
-  hNMixEvents = new TH1F("hNMixEvents", "number of mixing events", 100, 0, 100);
+  hNMixEvents = new TH1F("hNMixEvents", "number of mixing events", 200, 0, 200);
 
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
   // set binning for run based corrections - run dependent
@@ -914,6 +927,9 @@ void StMyAnalysisMaker3::WriteHistograms() {
   hMixEvtStatZVtx->Write();
   hMixEvtStatCent->Write();
   hMixEvtStatZvsCent->Write();
+  hTriggerEvtStatZVtx->Write();
+  hTriggerEvtStatCent->Write();
+  hTriggerEvtStatZvsCent->Write();
   hMBvsMult->Write();
   hMB5vsMult->Write();
   hMB30vsMult->Write();
@@ -1008,7 +1024,9 @@ Int_t StMyAnalysisMaker3::Make() {
   Int_t centbin, cent9, cent16;
   Double_t refCorr2;
 
+  // check for AuAu analyses
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
@@ -1017,12 +1035,23 @@ Int_t StMyAnalysisMaker3::Make() {
 //    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
 //    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
     // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+
+    // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
     cent9 = grefmultCorr->getCentralityBin9();
+
+    // re-order binning to be from central -> peripheral
     ref9 = GetCentBin(cent9, 9);
     ref16 = GetCentBin(cent16, 16);  
     centbin = GetCentBin(cent16, 16);  // 0-16
-    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+
+    // calculate corrected multiplicity
+    // refCorr2 = grefmultCorr->getRefMultCorr();  // already initialized
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
     //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
     //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
     //grefmultCorr->isCentralityOk(cent16)
@@ -1076,6 +1105,7 @@ Int_t StMyAnalysisMaker3::Make() {
 
   // check for MB/HT event
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30); 
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
@@ -1312,7 +1342,6 @@ Int_t StMyAnalysisMaker3::Make() {
     // require event mixing
     if(fDoEventMixing > 0) {
       // convert back to integer bins for mixed event pool - 10% bins (0, 7), 5% bins (0, 15)
-      //Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSize);            // 10% bins (0,  7)
       Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSizeJS);
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
 
@@ -1357,14 +1386,15 @@ Int_t StMyAnalysisMaker3::Make() {
     if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
-    if(fDoEventMixing > 0 && (fHaveMBevent || fHaveMB30event)) { // kMB
+    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB or kMB30
+    //if(fDoEventMixing > 0 && (fHaveMBevent)) { // kMB
       //cout<<"Have a MB event!!"<<endl;
 
       // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       // update pool if jet in event or not
       pool->UpdatePool(CloneAndReduceTrackList());
       hMBvsMult->Fill(refCorr2);
-      if(fHaveMBevent)   hMB5vsMult->Fill(refCorr2);
+      if(fHaveMB5event)   hMB5vsMult->Fill(refCorr2);
       if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);
 
       // fill QA histo's
@@ -2241,7 +2271,12 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
     if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
- 
+
+    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 13; h->Fill(bin); } // HT2 && MB
+    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 14; h->Fill(bin); } // HT2 && MB30
+    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 15; h->Fill(bin); } // HT1 && MB
+    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 16; h->Fill(bin); } // HT1 && MB30
+
     // label bins of the analysis trigger selection summary
     h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
     h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
@@ -2252,6 +2287,10 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
     h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
     h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
+    h->GetXaxis()->SetBinLabel(13, "HT2*VPDMB30 && MB");
+    h->GetXaxis()->SetBinLabel(14, "HT2*VPDMB30 && MB30");
+    h->GetXaxis()->SetBinLabel(15, "HT1*VPDMB30 && MB");
+    h->GetXaxis()->SetBinLabel(16, "HT1*VPDMB30 && MB30");
   }
 
   // Run16 AuAu
@@ -2587,9 +2626,12 @@ void StMyAnalysisMaker3::SetSumw2() {
   //fHistEventSelectionQAafterCuts->Sumw2();
   //hTriggerIds->Sumw2();
   //hEmcTriggers->Sumw2();
-  //hMixEvtStatZVtx->Sumw2();
-  //hMixEvtStatCent->Sumw2();
-  //hMixEvtStatZvsCent->Sumw2();
+  hMixEvtStatZVtx->Sumw2();
+  hMixEvtStatCent->Sumw2();
+  hMixEvtStatZvsCent->Sumw2();
+  hTriggerEvtStatZVtx->Sumw2();
+  hTriggerEvtStatCent->Sumw2();
+  hTriggerEvtStatZvsCent->Sumw2();
   hMBvsMult->Sumw2();
   hMB5vsMult->Sumw2();
   hMB30vsMult->Sumw2();
@@ -3145,7 +3187,7 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
 }  
 
 //
-// function to require that a jet constituent tower fired a HT trigger
+// function to calcuate delta R between a jet centroid and a track
 //___________________________________________________________________________________________
 Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   // delta r
@@ -3155,7 +3197,7 @@ Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   // get track momentum vector 
   StThreeVectorF mTrkMom;
   if(doUsePrimTracks) {
-    if(!(trk->isPrimary())) return kFALSE; // check if primary
+    if(!(trk->isPrimary())) return -99.; // check if primary
     // get primary track vector
     mTrkMom = trk->pMom();
   } else {
@@ -3186,9 +3228,6 @@ Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
 // function that does jet shape analysis
 //___________________________________________________________________________________________
 Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2) {
-    // QA histogram
-    hHTvsMult->Fill(refCorr2);
-
     // constants
     double pi = 1.0*TMath::Pi();
     double rbinSize = 0.05;
@@ -3295,6 +3334,12 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       rsum[annuliBin] += tpt;
 
     } // track loop
+
+    // QA histograms
+    hHTvsMult->Fill(refCorr2);
+    hTriggerEvtStatZVtx->Fill(zVtx);
+    hTriggerEvtStatCent->Fill(fCentralityScaled);
+    hTriggerEvtStatZvsCent->Fill(fCentralityScaled, zVtx);
 
     // fill jet shape histograms
     for(int i=0; i<10; i++) { 
@@ -3504,7 +3549,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
         // QA histogram
         hNMixEvents->Fill(nMix);
 
-        // reset annuli sums here
+        // reset annuli sums here - do this inside loop over mixed events
         //double rsumBG3[10] = {0.0};
 
         // Fill mixed-event histos here: loop over nMix events
@@ -3563,8 +3608,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
             //FIXME mixefficiency = EffCorrection(part->Eta(), part->Pt(), fDoEffCorr);                           
           } // end of background track loop
 
-          // fill histo here... FIXME
-          // if filling here, don't normalize by nMix
+          // fill BG histos here
           for(int i=0; i<10; i++) {
             hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
             hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
@@ -3595,3 +3639,8 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     return kStOK;
 }
+
+Double_t StMyAnalysisMaker3::TestBool() {
+  return kFALSE;
+}
+

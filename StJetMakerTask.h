@@ -124,6 +124,7 @@ class StJetMakerTask : public StMaker {
   virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
   virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
   virtual void         SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
+  virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
   // common setters

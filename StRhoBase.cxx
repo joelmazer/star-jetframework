@@ -40,6 +40,7 @@ ClassImp(StRhoBase)
 //________________________________________________________________________
 StRhoBase::StRhoBase() : 
   StJetFrameworkPicoBase(),
+  doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
   fOutRhoName(),
   fOutRhoScaledName(),
@@ -90,6 +91,7 @@ StRhoBase::StRhoBase() :
 //________________________________________________________________________
 StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const char *jetMakerName) :
   StJetFrameworkPicoBase(name),
+  doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
   fOutRhoName(),
   fOutRhoScaledName(),
@@ -207,6 +209,9 @@ Int_t StRhoBase::Init()
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -507,7 +512,7 @@ Int_t StRhoBase::Make()
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  //Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
@@ -516,8 +521,11 @@ Int_t StRhoBase::Make()
   Int_t fCentBin, cent16; // cent9
 
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
-    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
+
     cent16 = grefmultCorr->getCentralityBin16();
     //cent9 = grefmultCorr->getCentralityBin9();
     fCentBin = GetCentBin(cent16, 16); // centbin
