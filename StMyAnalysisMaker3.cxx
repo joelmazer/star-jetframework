@@ -147,7 +147,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTrackBias = trkbias;
   fTowerBias = 0.2;
   fJetRad = 0.4;
-  fJetShapeTrackPtMax = 1.0;
+  fJetShapeTrackPtMin = 0.2;  fJetShapeTrackPtMax = 30.0;
   fJetShapePtAssocBin = 4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
@@ -165,6 +165,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   mVertex = 0x0;
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
+  fDoUseMultBins = kFALSE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   for(int i=0; i<4801; i++) {
@@ -336,6 +337,9 @@ Int_t StMyAnalysisMaker3::Init() {
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
@@ -771,6 +775,11 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   //Double_t cenBinsJS20[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
   //Double_t* centralityBinJS20 = cenBinsJS20;
 
+  Int_t nMultBinsJS = 29; 
+  Double_t multBinsJS[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+  Double_t *multiplicityBinsJS = multBinsJS;
+
+
   // z-vertex bins for mixed events - FIXED Oct29, 2019
   //Int_t nZvBinsJS  = 16; // FOR THE BELOW
   //Double_t vBinsJS[] = {-40,-35,-30,-25,-20,-15,-10,-5,0,5,10,15,20,25,30,35,40};
@@ -785,7 +794,11 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinspp, centralityBinspp, nZvtxBins, zvtxbin);
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsAuAu, centralityBinsAuAu, nZvtxBins, zvtxbin);
   if(doJetShapeAnalysis) { 
-    fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBinsJS, (Double_t*)zvbinJS);
+    if(fDoUseMultBins) { 
+      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBinsJS, (Double_t*)zvbinJS);
+    } else {   
+      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBinsJS, (Double_t*)zvbinJS);
+    }
   } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBin, nZvBins, (Double_t*)zvbin); }
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBin, nZvBins, (Double_t*)zvbin);
 
@@ -1346,7 +1359,8 @@ Int_t StMyAnalysisMaker3::Make() {
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
 
       // initialize event pools
-      pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); // FIXME AuAu fcent: cent bin? cent16
+      if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(refCorr2, zVtx); 
+      } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); } // FIXME AuAu fcent: cent bin? cent16
       if(!pool) {
         Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
         return kTRUE;
@@ -3307,8 +3321,9 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
       double teta = mTrkMom.pseudoRapidity();
 
-      // cut on track pt - FIXME I believe this should be TrackPtMin
-      if(tpt < fJetShapeTrackPtMax) { continue; }
+      // cut on track pt
+      if(tpt < fJetShapeTrackPtMin) { continue; }
+      if(tpt > fJetShapeTrackPtMax) { continue; }
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
@@ -3443,7 +3458,8 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       double teta = mTrkMom.pseudoRapidity();
 
       // cut on track pt
-      if(tpt < fJetShapeTrackPtMax) { continue; }
+      if(tpt < fJetShapeTrackPtMin) { continue; }
+      if(tpt > fJetShapeTrackPtMax) { continue; }
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
@@ -3575,7 +3591,8 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
             if(Mphi > 2*pi) Mphi -= 2*pi;
 
             // cut on track pt
-            if(Mpt < fJetShapeTrackPtMax) { continue; }
+            if(Mpt < fJetShapeTrackPtMin) { continue; }
+            if(Mpt > fJetShapeTrackPtMax) { continue; }
 
             // additional pt selection when doing pt associated bin method
             if(doTPCptassocBin) {

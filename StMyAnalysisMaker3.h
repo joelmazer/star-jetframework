@@ -99,7 +99,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
     virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
-    virtual void            SetJetShapeTrackPtMax(Double_t p)  { fJetShapeTrackPtMax = p; }  // max track pt to use for jet pt analysis   
+    virtual void            SetJetShapeTrackPtRange(Double_t min, Double_t max)  { fJetShapeTrackPtMin = min; fJetShapeTrackPtMax = max; }  // jet shape analysis pt range
     virtual void            SetJetShapePtAssocBin(Int_t p)     { fJetShapePtAssocBin = p; }  // pt associated bin used in jet shape analysis 
 
     // event setters
@@ -129,7 +129,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetCentBinSize(Int_t centbins)     { fCentBinSize = centbins; }
     virtual void            SetCentBinSizeJS(Int_t centbins)   { fCentBinSizeJS = centbins; }
     virtual void            SetReduceStatsCent(Int_t red)      { fReduceStatsCent = red; }
-    virtual void            SetDoFilterPtMixEvents(Int_t fil)  { fDoFilterPtMixEvents = fil; }
+    virtual void            SetDoFilterPtMixEvents(Bool_t fil) { fDoFilterPtMixEvents = fil; }
+    virtual void            SetDoUseMultBins(Bool_t mult)      { fDoUseMultBins = mult; }
 
     // event selection - setters
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
@@ -195,7 +196,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // cuts
     //Double_t       fMinPtJet;               // min jet pt to keep jet in output
     //Double_t       fJetConstituentCut;      // min jet constituent
-    Double_t       fJetShapeTrackPtMax;     // jet shape analysis - max track pt  FIXME should be min
+    Double_t       fJetShapeTrackPtMin;     // jet shape analysis - min track pt
+    Double_t       fJetShapeTrackPtMax;     // jet shape analysis - max track pt
     Int_t          fJetShapePtAssocBin;     // jet shape analysis - pt associated bin
 
     // event mixing
@@ -207,6 +209,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t          fCentBinSizeJS;              // centrality bin size of mixed event pools for jet shape analysis
     Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
     Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
+    Bool_t         fDoUseMultBins;              // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
 
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal

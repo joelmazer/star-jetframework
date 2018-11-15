@@ -420,6 +420,9 @@ Int_t StMyAnalysisMaker::Init() {
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
@@ -937,8 +940,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
   Double_t* centralityBin = cenBins;
   Int_t nZvBins  = 20; //10+1+10;
   Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  //Int_t nZvBins  = 2+1+2;
-  //Double_t vBins[] = {-40, -20, -0, 20, 40};
   Double_t* zvbin = vBins;
 
   // Event Mixing
@@ -960,7 +961,6 @@ void StMyAnalysisMaker::DeclareHistograms() {
 
   UInt_t bitcodeEP = 0; // bit coded, see GetDimparamsEP() below
   bitcodeEP = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7;
-  // fhnEP = NewTHnSparseF("fhnEP", bitcodeEP); // bug found May14 - this was not even used
   fhnEP = NewTHnSparseEP("fhnEP", bitcodeEP);
 
   // Switch on Sumw2 for all histos - (except profiles)
