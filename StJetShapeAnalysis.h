@@ -252,8 +252,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
 
     // histograms
     TH1F* hEventPlane;//!   
-    TH2F* fHistEPTPCn;//!
-    TH2F* fHistEPTPCp;//!
     TH1F* hEventZVertex;//!
     TH1F* hCentrality;//!
     TH1F* hMultiplicity;//!

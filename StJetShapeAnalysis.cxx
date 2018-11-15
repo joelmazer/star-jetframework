@@ -564,8 +564,6 @@ void StJetShapeAnalysis::WriteJetShapeHistograms() {
 void StJetShapeAnalysis::WriteHistograms() {
   // default histos
   hEventPlane->Write();
-  fHistEPTPCn->Write();
-  fHistEPTPCp->Write();
   hEventZVertex->Write();
   hCentrality->Write();
   hMultiplicity->Write();
@@ -1398,8 +1396,6 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
 void StJetShapeAnalysis::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
-  fHistEPTPCn->Sumw2();
-  fHistEPTPCp->Sumw2();
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
