@@ -140,5 +140,59 @@ class StJetShapeOpeningAngle_kt : public fastjet::FunctionOfPseudoJet<Double32_t
   Double32_t result(const fastjet::PseudoJet &jet) const;
 };
 
+class StJetShape1subjettiness_ca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "1subJettiness ca exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShape2subjettiness_ca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "2subJettiness ca exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShapeOpeningAngle_ca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "Opening Angle of Subjet Axes ca exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShape1subjettiness_akt02 : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "1subJettiness akt02 exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShape2subjettiness_akt02 : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "2subJettiness akt02 exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShapeOpeningAngle_akt02 : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "Opening Angle of Subjet Axes akt02 exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShape1subjettiness_onepassca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "1subJettiness ca sd exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShape2subjettiness_onepassca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "2subJettiness ca sd exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
+class StJetShapeOpeningAngle_onepassca : public fastjet::FunctionOfPseudoJet<Double32_t>{
+ public:
+  virtual std::string description() const{return "Opening Angle of Subjet Axes ca sd exclusive";}
+  Double32_t result(const fastjet::PseudoJet &jet) const;
+};
+
 #endif
 #endif

@@ -858,7 +858,7 @@ Int_t StFJWrapper::CreateConstituentSub() {
   // see ConstituentSubtractor.hh signatures
   // ConstituentSubtractor(double rho, double rhom=0, double alpha=0, double maxDeltaR=-1)
   if (fUseExternalBkg) { fConstituentSubtractor = new fj::contrib::ConstituentSubtractor(fRho,fRhom); }
-  ////else                 { fConstituentSubtractor = new fj::contrib::ConstituentSubtractor(fBkrdEstimator); }
+  else                 { fConstituentSubtractor = new fj::contrib::ConstituentSubtractor(fBkrdEstimator); }  // FIXME Nov15, 2018 commented back in
 
   #endif
   return 0;

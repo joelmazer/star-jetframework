@@ -261,4 +261,96 @@ Double32_t StJetShapeOpeningAngle_kt::result(const fastjet::PseudoJet &jet) cons
   delete fFastjetWrapper;
   return Result;
 }
+
+// =====
+Double32_t StJetShape1subjettiness_ca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(1,1,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShape2subjettiness_ca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,1,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShapeOpeningAngle_ca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,1,0.2,1.0,0.4,jet,1);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShape1subjettiness_akt02::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(1,2,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShape2subjettiness_akt02::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,2,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShapeOpeningAngle_akt02::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,2,0.2,1.0,0.4,jet,1);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShape1subjettiness_onepassca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(1,6,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShape2subjettiness_onepassca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,6,0.2,1.0,0.4,jet,0);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
+Double32_t StJetShapeOpeningAngle_onepassca::result(const fastjet::PseudoJet &jet) const {
+  if (!jet.has_constituents()) 
+    return 0;
+  StFJWrapper *fFastjetWrapper = new StFJWrapper("FJWrapper", "FJWrapper");
+  Double32_t Result = fFastjetWrapper->StFJWrapper::NSubjettinessDerivativeSub(2,6,0.2,1.0,0.4,jet,1);
+  fFastjetWrapper->Clear();
+  delete fFastjetWrapper;
+  return Result;
+}
+
 #endif
