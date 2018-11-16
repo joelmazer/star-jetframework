@@ -227,7 +227,7 @@ Int_t StRhoSparse::Make()
   // get run # for centrality correction
   Int_t RunId = mPicoEvent->runId();
   Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  //Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // Centrality correction calculation
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
@@ -235,17 +235,29 @@ Int_t StRhoSparse::Make()
   Int_t centbin, cent16;
   Double_t refCorr2;
 
-  if(!doppAnalysis) { 
+  // check for AuAu analyses
+  if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
-    grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate);
-    refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    cent16 = grefmultCorr->getCentralityBin16();
-    centbin = GetCentBin(cent16, 16);
-    if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-  } else {
-    centbin = 0, cent16 = 0, refCorr2 = 0.0;
-  }
+    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
 
+    // get centrality bin: either 0-7 or 0-15
+    cent16 = grefmultCorr->getCentralityBin16();
+
+    // re-order binning to be from central -> peripheral
+    centbin = GetCentBin(cent16, 16);  // 0-16
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
+  } else { // for pp
+    centbin = 0, cent16 = 0, refCorr2 = 0.0;
+  } 
+
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   Double_t fCent = centbin * 5.0;
 
   // cut on centrality for analysis before doing anything

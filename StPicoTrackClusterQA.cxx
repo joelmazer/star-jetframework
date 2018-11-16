@@ -556,12 +556,13 @@ int StPicoTrackClusterQA::Make()
     } else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
 
     cent16 = grefmultCorr->getCentralityBin16();
-    if(cent16 == -1) return kStOk; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
     centbin = GetCentBin(cent16, 16);
   } else {
     centbin = 0, cent16 = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything

@@ -316,7 +316,9 @@ Int_t StAnMaker::Make() {
   } else {
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }
- 
+
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them 
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything

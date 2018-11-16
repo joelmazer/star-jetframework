@@ -1032,6 +1032,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
   Int_t centbin, cent9, cent16;
@@ -1047,7 +1048,6 @@ Int_t StMyAnalysisMaker3::Make() {
 //    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
 //    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
 //    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
@@ -1072,6 +1072,9 @@ Int_t StMyAnalysisMaker3::Make() {
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+ 
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
   double centBinToUse;
@@ -1081,7 +1084,6 @@ Int_t StMyAnalysisMaker3::Make() {
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
 
@@ -1093,7 +1095,6 @@ Int_t StMyAnalysisMaker3::Make() {
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
   else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
-  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
   else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
   else cbin = -99;
 

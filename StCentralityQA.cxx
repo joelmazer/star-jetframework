@@ -359,10 +359,12 @@ Int_t StCentralityQA::Make() {
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+
   // centrality / multiplicity histograms
   ///hMultiplicity->Fill(refCorr2);
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
   ///hCentrality->Fill(fCentralityScaled);
 
@@ -405,10 +407,12 @@ Int_t StCentralityQA::Make() {
     centbinNEW = 0, cent9NEW = 0, cent16NEW = 0, refCorr2NEW = 0.0, ref9NEW = 0, ref16NEW = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16NEW == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+
   // centrality / multiplicity histograms
   ///hMultiplicityNEW->Fill(refCorr2NEW);
   if(fDebugLevel == kDebugCentrality) { if(centbinNEW > 15) cout<<"centbin = "<<centbinNEW<<"  mult = "<<refCorr2NEW<<"  CentbinNEW*5.0 = "<<centbinNEW*5.0<<"  cent16NEW = "<<cent16NEW<<endl; }
-  if(cent16NEW == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaledNEW = centbinNEW*5.0;
   ///hCentralityNEW->Fill(fCentralityScaledNEW);
 

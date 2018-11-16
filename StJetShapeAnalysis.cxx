@@ -329,8 +329,12 @@ Int_t StJetShapeAnalysis::Finish() {
     // jet shape analysis
     if(doJetShapeAnalysis) {
       fout->cd();
-      fout->mkdir(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
-      fout->cd(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
+      //fout->mkdir(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
+      //fout->cd(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
+      //fout->mkdir(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
+      //fout->cd(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
+      fout->mkdir(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
+      fout->cd(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
       WriteJetShapeHistograms();
     }
 
@@ -340,12 +344,12 @@ Int_t StJetShapeAnalysis::Finish() {
   }
 
   //  Write QA histos to file and close it.
-  if(mOutNameQA!="") {
+  if(mOutNameQA!="" && fJetShapePtAssocBin < 5) {
     TFile *fQAout = new TFile(mOutNameQA.Data(), "UPDATE");
     fQAout->cd();
 
     // track QA
-    if(doWriteTrackQAHist) {
+    if(doWriteTrackQAHist && (fJetShapePtAssocBin < 5)) {
       fQAout->mkdir(Form("TrackQA_bin%i", fTPCptAssocBin));
       fQAout->cd(Form("TrackQA_bin%i", fTPCptAssocBin));
       WriteTrackQAHistograms();
@@ -699,6 +703,9 @@ Int_t StJetShapeAnalysis::Make() {
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them 
+
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
   double centBinToUse;
@@ -708,7 +715,6 @@ Int_t StJetShapeAnalysis::Make() {
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
 

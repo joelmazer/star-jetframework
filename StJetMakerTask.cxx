@@ -625,12 +625,14 @@ int StJetMakerTask::Make()
     if(doUseBBCCoincidenceRate) { grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2); }
     else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); } 
     cent16 = grefmultCorr->getCentralityBin16();
-    if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
     centbin = GetCentBin(cent16, 16);
 
   } else { // for pp
     centbin = 0, cent16 = 0;
   }
+
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
 
   double centralityScaled = centbin*5.0;
   fHistCentrality->Fill(centralityScaled);
