@@ -1,14 +1,18 @@
 # star-jetframework
 *this will be updated...*
 This is a framework for:
-* a FastJet wrapper
+* a FastJet wrapper, with various functionality 
 * jet-finding
-* event rho calculation
+* underlying event rho calculation
 * QA 
+* creating reduced track ojbects (FemtoTracks)
 * event mixing (for acceptance and detector effects via event pool manager)
 * a base class use for inheritance
 * studyng jet shapes
-* calculating the event plane using multiple detectors
+* calculating the event plane using multiple detectors + all included corrections
+* jet-hadron corrrelations
+* dummy analysis class to get started
+
 
 Additionally contained are multiple other classes useful for the main correlation analysis
 
