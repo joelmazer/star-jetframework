@@ -90,6 +90,7 @@ class StJetMakerTaskBGsub : public StMaker {
   virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
   virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
   virtual void         SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
+  virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -206,6 +207,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
+  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
 
   // event variables
   Double_t               Bfield;                  // event Bfield
@@ -311,6 +313,7 @@ class StJetMakerTaskBGsub : public StMaker {
 
   // histograms
   TH1F           *fHistCentrality;//!
+  TH1F           *fHistFJRho;//!
 
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!

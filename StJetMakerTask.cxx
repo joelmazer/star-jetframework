@@ -29,9 +29,9 @@
 #include "StThreeVectorF.hh"
 
 // StRoot classes
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-#include "StRoot/StPicoDstMaker/StPicoArrays.h"
+#include "StRoot/StPicoEvent/StPicoArrays.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StPicoEvent/StPicoEmcTrigger.h"

@@ -13,7 +13,7 @@
 
 // STAR includes
 #include "StThreeVectorF.hh"
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
 

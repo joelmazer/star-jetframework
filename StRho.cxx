@@ -21,7 +21,7 @@ class TH2F;
 #include "StJetMakerTask.h"
 
 // STAR includes
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 

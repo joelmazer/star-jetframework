@@ -29,9 +29,9 @@
 #include "StThreeVectorF.hh"
 
 // StRoot classes
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-#include "StRoot/StPicoDstMaker/StPicoArrays.h"
+#include "StRoot/StPicoEvent/StPicoArrays.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StPicoEvent/StPicoEmcTrigger.h"
@@ -87,7 +87,8 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  doUseBBCCoincidenceRate(kTRUE),
+  doUseBBCCoincidenceRate(kFALSE),
+  fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
@@ -175,7 +176,8 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
-  doUseBBCCoincidenceRate(kTRUE),
+  doUseBBCCoincidenceRate(kFALSE),
+  fMaxEventTrackPt(30.0),
   Bfield(0.0),
   mVertex(0x0),
   zVtx(0.0),
@@ -257,6 +259,7 @@ StJetMakerTaskBGsub::~StJetMakerTaskBGsub()
 {
   // Destructor
   if(fHistCentrality)          delete fHistCentrality;
+  if(fHistFJRho)               delete fHistFJRho;
 
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
@@ -384,8 +387,19 @@ Int_t StJetMakerTaskBGsub::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        // this is the default for Run14
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();        
+        switch(fCentralityDef) {
+          case StJetFrameworkPicoBase::kgrefmult :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P16id :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              break;
+          default: // this is the default for Run14
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+        }
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -460,6 +474,7 @@ void StJetMakerTaskBGsub::DeclareHistograms() {
 
     //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
     fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", 20, 0, 100);    
+    fHistFJRho = new TH1F("fHistFJRho", "Underlying event energy density via FastJet", 200, 0, 50);
 
     fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
     fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2*pi);
@@ -490,6 +505,7 @@ void StJetMakerTaskBGsub::DeclareHistograms() {
 void StJetMakerTaskBGsub::WriteHistograms() {
   // write histograms
   fHistCentrality->Write();
+  fHistFJRho->Write();
 
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
@@ -557,8 +573,8 @@ int StJetMakerTaskBGsub::Make()
     return kStWarn;
   }
 
-  // cut event on max track pt > 35.0 GeV - FIXME
-  if(GetMaxTrackPt() > 35.0) return kStOK;
+  // cut event on max track pt > 30.0 GeV
+  if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -579,17 +595,28 @@ int StJetMakerTaskBGsub::Make()
   Int_t centbin, cent16;
 
   if(!doppAnalysis) {
+    // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-    grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+
+    // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
     if(cent16 == -1) return kStOk; // - this is for lowest multiplicity events 80%+ centrality, cut on them
-    centbin = GetCentBin(cent16, 16);
+
+    // re-order binning to be from central -> peripheral
+    centbin = GetCentBin(cent16, 16);  // 0-16
+
+    // calculate corrected multiplicity
+    if(doUseBBCCoincidenceRate) { grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+
   } else { // for pp
     centbin = 0, cent16 = 0;
   }
 
+  // cut on unset centrality, > 80%
+  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
   double centralityScaled = centbin*5.0;
   fHistCentrality->Fill(centralityScaled);
 
@@ -1936,6 +1963,9 @@ void StJetMakerTaskBGsub::FillJetBGBranch()
    //    In this particular example, the two hardest jets in the event are removed from the background estimation
    // ----------------------------------------------------------
 
+   // WARNING from FastJet: JetMedianBackgroundEstimator::set_jet_density_class: density classes are still preliminary in FastJet 3.1. Their interface may differ in future releases (without guaranteeing backward compatibility). Note that since FastJet 3.1, rho_m and sigma_m are accessible direclty in JetMedianBackgroundEstimator and GridMedianBackgroundEstimator(with no need for a density class).
+   //WARNING from FastJet: ConstituentSubtractor:: Background estimator indicates non-zero rho_m, but the constituent subtractor does not use rho_m information; consider calling set_common_bge_for_rho_and_rhom(true) to include the rho_m information 
+
    // create what we need for the background estimation
    //----------------------------------------------------------
    fastjet::JetDefinition jet_def_for_rho(fastjet::kt_algorithm, fRadius, recombScheme, strategy);
@@ -1944,18 +1974,23 @@ void StJetMakerTaskBGsub::FillJetBGBranch()
    fastjet::ClusterSequenceArea clust_seq_rho(fFull_Event, jet_def, area_def); // not used FIXME 
 
    fastjet::JetMedianBackgroundEstimator bge_rho(rho_range, jet_def_for_rho, area_def);
-   fastjet::BackgroundJetScalarPtDensity *scalarPtDensity = new fastjet::BackgroundJetScalarPtDensity();
-   bge_rho.set_jet_density_class(scalarPtDensity); // this changes computation of pt of patches from vector sum to scalar sum. Theor., the scalar sum seems more reasonable.
+   // TODO next 2 lines commented out to suppress warnings, doesn't affect results - Sept26, 2018
+   //fastjet::BackgroundJetScalarPtDensity *scalarPtDensity = new fastjet::BackgroundJetScalarPtDensity();
+   //bge_rho.set_jet_density_class(scalarPtDensity); // this changes computation of pt of patches from vector sum to scalar sum. Theor., the scalar sum seems more reasonable.
    bge_rho.set_particles(fFull_Event);
 
    // subtractor:
    //----------------------------------------------------------
    fastjet::contrib::ConstituentSubtractor subtractor(&bge_rho);
+   subtractor.set_common_bge_for_rho_and_rhom(true); // TODO - need this to omit warning, same results Sept26, 2018
 
    // this sets the same background estimator to be used for deltaMass density, rho_m, as for pt density, rho:
    //subtractor.use_common_bge_for_rho_and_rhom(true); // for massless input particles it does not make any difference (rho_m is always zero)
    ////cout << subtractor.description() << endl;
    ////cout << "  Giving, for the full event" << "    rho     = " << bge_rho.rho() << "    sigma   = " << bge_rho.sigma() << endl;
+
+   // fill histogram with FastJet calculated rho
+   fHistFJRho->Fill(bge_rho.rho());
 
    std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
    // sort jets according to jet pt

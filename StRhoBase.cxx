@@ -27,7 +27,7 @@
 #include "StMyAnalysisMaker.h"
 #include "StMaker.h"
 
-#include "StRoot/StPicoDstMaker/StPicoDst.h"
+#include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
