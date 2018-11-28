@@ -801,10 +801,7 @@ void StEventPlaneMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPlaneMaker::Make() {
-  bool fHaveEmcTrigger = kFALSE;
-  bool fHaveMBevent = kFALSE;
-
-  // just get out of Dodge if we are trying to run of pp collisions
+  // just get out of Dodge if we are trying to run on pp collisions
   if(doppAnalysis) return kStOK; // use kStOK to not create tons of warning printouts
 
   // get PicoDstMaker 
@@ -913,8 +910,8 @@ Int_t StEventPlaneMaker::Make() {
   FillEmcTriggersHist(hEmcTriggers);
  
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
-  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // switches for Event Plane analysis
   Bool_t doEPAnalysis = kFALSE;  // set false by default

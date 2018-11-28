@@ -181,9 +181,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Int_t                  fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                 doReadCalibFile;         // read calibration file switch
 
-    // event
-    Double_t       fMaxEventTrackPt;            // max track pt in the event (to cut on)     
-
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
     UInt_t         fMBEventType;                // Physics selection of event used for MB

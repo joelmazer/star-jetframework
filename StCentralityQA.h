@@ -102,9 +102,6 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     // switches
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
 
-    // event
-    Double_t       fMaxEventTrackPt;            // max track pt in the event (to cut on) 
-
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
     UInt_t         fMBEventType;                // Physics selection of event used for MB

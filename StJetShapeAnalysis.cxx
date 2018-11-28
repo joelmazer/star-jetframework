@@ -484,7 +484,8 @@ void StJetShapeAnalysis::DeclareHistograms() {
   // set bin edges for centrality mixed events
   Double_t centralityBinsJS[nCentralityBinsJS +1];
   for(Int_t ic = 0; ic < nCentralityBinsJS + 1; ic++){
-   centralityBinsJS[ic] = multJS*ic;
+    //centralityBinsJS[ic] = multJS*ic;
+    centralityBinsJS[ic] = 1.0*ic;
   }
 
   // centrality bins for mixed events
@@ -923,8 +924,8 @@ Int_t StJetShapeAnalysis::Make() {
 
     // Aj selection for Jet Shape Analysis
     bool doAjSelection = (isBackToBack && ljpttemp > 20. && sljpttemp > 10.) ? kTRUE : kFALSE;
-    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);
-    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);
+    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);      // leading jets
+    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);  // sub-leading jets
 
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
@@ -943,9 +944,10 @@ Int_t StJetShapeAnalysis::Make() {
       pool->UpdatePool(CloneAndReduceTrackList());
 
       // fill QA histo's
-      hMBvsMult->Fill(refCorr2);
-      if(fHaveMB5event)   hMB5vsMult->Fill(refCorr2);
-      if(fHaveMB30event)  hMB30vsMult->Fill(refCorr2);
+      hMBvsMult->Fill(refCorr2);                        // MB5 || MB30
+      if(fHaveMB5event)   hMB5vsMult->Fill(refCorr2);   // MB5
+      if(fHaveMB30event)  hMB30vsMult->Fill(refCorr2);  // MB30
+
       hMixEvtStatZVtx->Fill(zVtx);
       hMixEvtStatCent->Fill(centBinToUse);
       hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);

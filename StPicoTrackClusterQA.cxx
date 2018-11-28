@@ -499,8 +499,6 @@ void StPicoTrackClusterQA::Clear(Option_t *opt) {
 //________________________________________________________________________
 int StPicoTrackClusterQA::Make()
 {  // Main loop, called for each event.
-  bool fHaveEmcTrigger = kFALSE;
-  bool fHaveMBevent = kFALSE;
   fGoodTrackCounter = 0;
 
   // get PicoDstMaker 
@@ -611,13 +609,14 @@ int StPicoTrackClusterQA::Make()
 
   // switches for QA analysis
   bool doQAAnalysis = kFALSE; // set false by default
-  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fEmcTriggerArr[fEmcTriggerEventType]) { doQAAnalysis = kTRUE; }
+      //if(fEmcTriggerArr[fEmcTriggerEventType]) { doQAAnalysis = kTRUE; }
+      if(fHaveEmcTrigger) { doQAAnalysis = kTRUE; }
       break;
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
       if(fHaveEmcTrigger) { doQAAnalysis = kTRUE; }

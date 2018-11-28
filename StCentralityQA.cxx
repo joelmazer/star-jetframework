@@ -218,7 +218,6 @@ Int_t StCentralityQA::Finish() {
 
 //-----------------------------------------------------------------------------
 void StCentralityQA::DeclareHistograms() {
-  double pi = 1.0*TMath::Pi();
   int nHistCentBins;
   int fCentBinSize = 5;
   if(fCentBinSize == 10) nHistCentBins = 10;
@@ -272,7 +271,6 @@ void StCentralityQA::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StCentralityQA::Make() {
-  const double pi = 1.0*TMath::Pi();
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
   // get PicoDstMaker 

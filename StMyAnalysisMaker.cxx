@@ -1199,8 +1199,6 @@ void StMyAnalysisMaker::Clear(Option_t *opt) {
 Int_t StMyAnalysisMaker::Make() {
   const double pi = 1.0*TMath::Pi();
   //bool printInfo = kFALSE, firstEvent = kFALSE;
-  bool fHaveEmcTrigger = kFALSE;
-  bool fHaveMBevent = kFALSE;
 
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
@@ -1345,8 +1343,9 @@ Int_t StMyAnalysisMaker::Make() {
   if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
 
   // check for MB/HT event
-  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // switches for Jet and Event Plane analysis
   Bool_t doJetAnalysis = kFALSE; // set false by default

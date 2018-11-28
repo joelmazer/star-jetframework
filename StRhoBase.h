@@ -74,8 +74,9 @@ class StRhoBase : public StJetFrameworkPicoBase {
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
 
-  Bool_t                 doUseBBCCoincidenceRate;        // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
-  Double_t               fMaxEventTrackPt;               // max track pt in the event (to cut on) 
+  // added
+  Bool_t                 doUseBBCCoincidenceRate;
+  Double_t               fMaxEventTrackPt;
 
   TString                fOutRhoName;                    // name of output rho object
   TString                fOutRhoScaledName;              // name of output scaled rho object

@@ -190,12 +190,12 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
 
   // event cuts
+  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Bool_t                 fRequireCentSelection;   // require particular centrality bin
   Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
-  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
 
   // names
   TString                mOutName;                // name of output file

@@ -132,7 +132,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   JetMaker = 0;
   RhoMaker = 0;
   grefmultCorr = 0x0;
-  refmultCorr = 0x0; // FIXME TEST
+  refmultCorr = 0x0;  // FIXME TEST
   refmult2Corr = 0x0; // FIXME TEST
   mOutName = outName;
   mOutNameEP = "";
@@ -713,40 +713,19 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   //int nCentralityBinspp = 8;
   //double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
 
-  // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
-  int nCentralityBinsAuAu = 100;
-  double mult = 1.0;
-  if(fCentBinSize==1) { 
-    nCentralityBinsAuAu = 100;
-    mult = 1.0;  
-  } else if(fCentBinSize==2){
-    nCentralityBinsAuAu = 50;
-    mult = 2.0;
-  } else if(fCentBinSize==5){ // will be most commonly used
-    nCentralityBinsAuAu = 20;
-    mult = 5.0;
-  } else if(fCentBinSize==10){
-    nCentralityBinsAuAu = 10;
-    mult = 10.0;
-  }
-
-  // not used right now
-  Double_t centralityBinsAuAu[nCentralityBinsAuAu + 1]; // nCentralityBinsAuAu
-  for(Int_t ic = 0; ic < nCentralityBinsAuAu + 1; ic++){
-   centralityBinsAuAu[ic] = mult*ic;
-  }
-
-  // FIXME
   // this is temp as the above and various other implementation attempts would not work for both cases
   // need to look into this, but a few hours already is too much.  Don't want to have to have this hard-coded
   Int_t nCentBins = 8;
   Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  Double_t* centralityBin = cenBins;
+  Double_t* centralityBins = cenBins;
 
   // z-vertex bins for mixed events
-  Int_t nZvBins  = 20; //10+1+10;
-  Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  Double_t* zvbin = vBins;
+  //Int_t nZvBins  = 20; //10+1+10;
+  //Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
+  Int_t nZvBins  = 40;
+  Double_t vBins[] = {-40,-38,-36,-34,-32, -30,-28,-26,-24,-22, -20,-18,-16,-14,-12, -10,-8,-6,-4,-2, 0,2,4,6,8, 10,12,14,16,18, 20,22,24,26,28, 30,32,34,36,38, 40};
+  Double_t* zvbins = vBins;
+  //Int_t nbinsjetMIX = sizeof(vBinsJS)/sizeof(Double_t) - 1;
   // =================================================================================================
 
   // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
@@ -767,40 +746,36 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   // set bin edges for centrality mixed events
   Double_t centralityBinsJS[nCentralityBinsJS +1];
   for(Int_t ic = 0; ic < nCentralityBinsJS + 1; ic++){
-   centralityBinsJS[ic] = multJS*ic;
+    //centralityBinsJS[ic] = multJS*ic; 
+    centralityBinsJS[ic] = 1.0*ic;
   }
 
-  // centrality bins for mixed events
-  //Int_t nCentBinsJS20 = 8;
-  //Double_t cenBinsJS20[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  //Double_t* centralityBinJS20 = cenBinsJS20;
+/*
+Centrality_def_grefmult.txt               - OLD (16)
+ 10 14 21 29 40 54 | 71 92 116 145 179 218 | 263 315 | 373 441  
+Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
+ 10 15 22 31 43 58 | 76 97 123 154 189 230 | 276 329 | 390 459  
+*/
 
-  Int_t nMultBinsJS = 29; 
-  Double_t multBinsJS[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+//  Int_t nMultBinsJS = 29; 
+//  Double_t multBinsJS[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+//  Int_t nMultBinsJS = 24;  // Alt-1: Best Yet
+//  Double_t multBinsJS[] = {10,16,24,34,46,61,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+  Int_t nMultBinsJS = 25;  // Alt-2
+  Double_t multBinsJS[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
   Double_t *multiplicityBinsJS = multBinsJS;
-
-
-  // z-vertex bins for mixed events - FIXED Oct29, 2019
-  //Int_t nZvBinsJS  = 16; // FOR THE BELOW
-  //Double_t vBinsJS[] = {-40,-35,-30,-25,-20,-15,-10,-5,0,5,10,15,20,25,30,35,40};
-  Int_t nZvBinsJS = 20;
-  Double_t vBinsJS[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  Double_t* zvbinJS = vBinsJS;
-  //Int_t nbinsjetMIX = sizeof(vBinsJS)/sizeof(Double_t) - 1;
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
   Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
   //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinspp, centralityBinspp, nZvtxBins, zvtxbin);
-  //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsAuAu, centralityBinsAuAu, nZvtxBins, zvtxbin);
   if(doJetShapeAnalysis) { 
     if(fDoUseMultBins) { 
-      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBinsJS, (Double_t*)zvbinJS);
+      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins);
     } else {   
-      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBinsJS, (Double_t*)zvbinJS);
+      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins);
     }
-  } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBin, nZvBins, (Double_t*)zvbin); }
-  //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBin, nZvBins, (Double_t*)zvbin);
+  } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvbins); }
 
   // set up event mixing sparse
   //if(fDoEventMixing){
@@ -1090,7 +1065,6 @@ Int_t StMyAnalysisMaker3::Make() {
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
   Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
   // this is actually not used since the below line does the cut:  if(fRequireCentSelection)
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
@@ -1358,7 +1332,7 @@ Int_t StMyAnalysisMaker3::Make() {
       // convert back to integer bins for mixed event pool - 10% bins (0, 7), 5% bins (0, 15)
       Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSizeJS);
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
-
+      
       // initialize event pools
       if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(refCorr2, zVtx); 
       } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); } // FIXME AuAu fcent: cent bin? cent16
@@ -1384,33 +1358,33 @@ Int_t StMyAnalysisMaker3::Make() {
         ljpttemp = fLeadingJet->Pt();
         sljpttemp = fSubLeadingJet->Pt(); 
       }
-    }
+
+    } // lj + sublj
 
     // Aj selection for Jet Shape Analysis
     bool doAjSelection = (isBackToBack && ljpttemp > 20. && sljpttemp > 10.) ? kTRUE : kFALSE;
-    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);
-    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);
+    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);      // leading jet
+    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);  // sub-leading jet
 
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
     if(doRequireAjSelection) {
       if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
-    } else {
+    } else { // don't require back-to-back jets
       if(fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
     }
     if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
-    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB or kMB30
+    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30
     //if(fDoEventMixing > 0 && (fHaveMBevent)) { // kMB
       //cout<<"Have a MB event!!"<<endl;
 
-      // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
-      // update pool if jet in event or not
+      // update pool: create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       pool->UpdatePool(CloneAndReduceTrackList());
-      hMBvsMult->Fill(refCorr2);
-      if(fHaveMB5event)   hMB5vsMult->Fill(refCorr2);
-      if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);
+      hMBvsMult->Fill(refCorr2);                       // MB5 || MB30
+      if(fHaveMB5event)  hMB5vsMult->Fill(refCorr2);   // MB5
+      if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);  // MB30
 
       // fill QA histo's
       hMixEvtStatZVtx->Fill(zVtx);
@@ -1725,7 +1699,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // get the trigger bit, need to change trigger bits between different runs
 
     //Double_t mycentbin = (Double_t)centbin + 0.001;
-    // mixed event centbin
+    // mixed event centbin - FIXME
     Int_t mixcentbin;
     if(fCentBinSize==10) { mixcentbin = centbin10;          // 10% bins (0,  7)
     } else if(fCentBinSize==5) { mixcentbin = centbin; }    //  5% bins (0, 15)
@@ -1872,6 +1846,7 @@ Int_t StMyAnalysisMaker3::Make() {
 
     // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
+    //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30 - TODO probably want to use to use this line in future, may not matter
     if(fHaveMBevent) { // kMB
       if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 

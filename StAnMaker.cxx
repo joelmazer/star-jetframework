@@ -233,9 +233,6 @@ void StAnMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StAnMaker::Make() {
-  bool fHaveEmcTrigger = kFALSE;
-  bool fHaveMBevent = kFALSE;
-
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -339,8 +336,8 @@ Int_t StAnMaker::Make() {
   if(fDebugLevel == StJetFrameworkPicoBase::kDebugEmcTrigger) cout<<endl;
 
   // check for MB/HT event
-  fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
