@@ -234,7 +234,7 @@ Int_t StRho::Make()
 
   // get event multiplicity - TODO is this correct? same as that used for centrality
   //const int multiplicity = mPicoDst->numberOfTracks(); // this is total tracks not multiplicity
-  const int multiplicity = refCorr2;
+  const double multiplicity = refCorr2;
 
   // ============================ end of CENTRALITY ============================== //
 
