@@ -335,6 +335,8 @@ Int_t StAnMaker::Make() {
 
   // check for MB/HT event
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   // ======================== end of Triggers ============================= //
 

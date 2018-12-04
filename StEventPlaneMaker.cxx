@@ -911,6 +911,8 @@ Int_t StEventPlaneMaker::Make() {
  
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
   // switches for Event Plane analysis
@@ -933,8 +935,8 @@ Int_t StEventPlaneMaker::Make() {
   }
 
   // no need for switch for few checks
-  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMBevent))   return kStOK;  // MB triggered event
-  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMB5event) && (!fHaveMB30event)) return kStOK;  // MB triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))                    return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
   // ======================== end of Triggers ============================= //
 
@@ -2398,10 +2400,14 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       //                  tpc_shift_P[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
 
       if(doTPCptassocBin) {
+        // TPC event plane calculation method
         switch(fTPCEPmethod) {
           case kRemoveEtaStrip: // added new usage to this switch on May31
+            // run flag switch
             if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+              // jet type switch
               if(fJetType == kFullJet) {
+                // jet size switch
                 if(fJetRad == 0.4) { // Jet radius: R=0.4
                   if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
                     tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +

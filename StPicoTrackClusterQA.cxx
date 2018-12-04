@@ -610,6 +610,8 @@ int StPicoTrackClusterQA::Make()
   // switches for QA analysis
   bool doQAAnalysis = kFALSE; // set false by default
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   
   // switch on Run Flag to look for firing trigger specifically requested for given run period
@@ -625,10 +627,12 @@ int StPicoTrackClusterQA::Make()
 
   // run tower QA for specific conditions
   if(fDoTowerQAforHT && doQAAnalysis)  RunFiredTriggerQA();  //cout<<"HT.."<<endl; } // HT triggered
-  if(!fDoTowerQAforHT && fHaveMBevent) RunFiredTriggerQA();  //cout<<"MB.."<<endl; } // MB triggered
+  ///if(!fDoTowerQAforHT && fHaveMBevent) RunFiredTriggerQA();  //cout<<"MB.."<<endl; } // MB triggered
+  if(!fDoTowerQAforHT && (fHaveMB5event || fHaveMB30event)) RunFiredTriggerQA();  //cout<<"MB.."<<endl; } // MB triggered - updated MB type Dec4, 2018
 
   if(fDoTowerQAforHT && doQAAnalysis)  { RunQA(); RunTowerTest(); }
-  if(!fDoTowerQAforHT && fHaveMBevent) { RunQA(); RunTowerTest(); }
+  ///if(!fDoTowerQAforHT && fHaveMBevent) { RunQA(); RunTowerTest(); }
+  if(!fDoTowerQAforHT && (fHaveMB5event || fHaveMB30event)) { RunQA(); RunTowerTest(); } // - updated MB type Dec4, 2018
 
   return kStOK;
 

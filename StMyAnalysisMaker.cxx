@@ -1345,6 +1345,7 @@ Int_t StMyAnalysisMaker::Make() {
 
   // check for MB/HT event
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
 
@@ -1845,6 +1846,7 @@ Int_t StMyAnalysisMaker::Make() {
 
     // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
+    //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30 - TODO probably want to use to use this line in future, may not matter
     if(fHaveMBevent) { // kMB
       if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 

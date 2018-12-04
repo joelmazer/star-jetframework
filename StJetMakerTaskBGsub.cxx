@@ -300,6 +300,7 @@ Int_t StJetMakerTaskBGsub::Init() {
         if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
         if(fBadTowerListVers ==  79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
         if(fBadTowerListVers == 122) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79_ALT.txt");
+        if(fBadTowerListVers == 136) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_136.txt");
         if(fBadTowerListVers == 283) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_283.txt");
 
         if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
@@ -625,6 +626,8 @@ int StJetMakerTaskBGsub::Make()
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
   //bool fHaveAnyEvent = kTRUE;
 
@@ -632,8 +635,8 @@ int StJetMakerTaskBGsub::Make()
   FillEmcTriggersArr();
 
   // no need for switch for few checks
-  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMBevent))   return kStOK;  // MB triggered event
-  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))return kStOK;  // HT triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMB5event) && (!fHaveMB30event)) return kStOK;  // MB triggered event
+  if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))                    return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
 
   //FastJetBGsub();
