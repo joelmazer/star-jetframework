@@ -330,7 +330,7 @@ Int_t StJetMakerTask::Init() {
   fJets->SetName(fJetsName);
 
   fJetsBGsub = new TClonesArray("StJet");
-  fJets->SetName(fJetsName+"BGsub");
+  fJetsBGsub->SetName(fJetsName+"BGsub");
 
   // may need array (name hard-coded, Feb20, 2018)
   fJetsConstit = new TClonesArray("StPicoTrack");
@@ -646,7 +646,6 @@ int StJetMakerTask::Make()
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
-
   //bool fHaveAnyEvent = kTRUE;
 
   // fill trigger array

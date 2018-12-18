@@ -123,10 +123,14 @@ class StAnMaker : public StJetFrameworkPicoBase {
     // Rho objects
     StRhoParameter         *GetRhoFromEvent(const char *name);
 
+    // jet histos
+    TH1F* hJetPt;//!
+    TH1F* hJetCorrPt;//!
+
     // maker names
     TString                 fAnalysisMakerName;
     TString                 fEventMixerMakerName;
 
-    ClassDef(StAnMaker, 1)
+    ClassDef(StAnMaker, 2)
 };
 #endif

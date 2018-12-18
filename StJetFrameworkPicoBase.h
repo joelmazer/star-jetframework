@@ -341,6 +341,9 @@ class StJetFrameworkPicoBase : public StMaker {
     TClonesArray   *fTracksME;//! track collection to slim down for mixed events
     TClonesArray   *fJets;//!  jet array
     TClonesArray   *fBGJets;//! background jets array
+    // added for Thomas - multiple jet collections
+    TClonesArray   *fJets1;//! jet array
+    TClonesArray   *fJets2;//! jet array
 
     // PicoDstMaker and PicoDst object pointer
     StPicoDstMaker *mPicoDstMaker;
@@ -348,7 +351,11 @@ class StJetFrameworkPicoBase : public StMaker {
     StPicoEvent    *mPicoEvent;
     StJetMakerTask *JetMaker;
     StJetMakerTask *JetMakerBG;
+    StJetMakerTask *JetMaker1; // for thomas, multiple jet collections
+    StJetMakerTask *JetMaker2; // for thomas, multiple jet collection
     StRho          *RhoMaker;
+    StRho          *RhoMaker1; // for thomas, multiple jet collections
+    StRho          *RhoMaker2; // for thomas, multiple jet collections
     StEventPlaneMaker *EventPlaneMaker;
 
     // centrality objects
@@ -371,6 +378,8 @@ class StJetFrameworkPicoBase : public StMaker {
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
     StRhoParameter        *fRho;//!<!          // event rho
+    StRhoParameter        *fRho1;//!<!         // temp for thomas
+    StRhoParameter        *fRho2;//!<!         // temp for thomas
     Double_t               fRhoVal;//!<!       // event rho value, same for local rho
     TString                fRhoName;///<       // rho name
 

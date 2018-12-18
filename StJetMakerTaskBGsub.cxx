@@ -325,7 +325,7 @@ Int_t StJetMakerTaskBGsub::Init() {
   fJets->SetName(fJetsName);
 
   fJetsBGsub = new TClonesArray("StJet");
-  fJets->SetName(fJetsName+"BGsub");
+  fJetsBGsub->SetName(fJetsName+"BGsub");
 
   // may need array (name hard-coded, Feb20, 2018)
   fJetsConstit = new TClonesArray("StPicoTrack");

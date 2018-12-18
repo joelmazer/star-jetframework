@@ -163,6 +163,10 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     void                   CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
     static Double_t        CalculateEventPlaneChi(Double_t res);
     Double_t               GetEventPlaneAngle(TString det, Int_t order, Int_t correctin, TString subevt);
+    Double_t               GetTPCRecenterValue(Double_t randomNum, TString coordinate, Int_t ref9, Int_t region_vz);
+    Double_t               GetTPCRecenterValueNEW(Double_t randomNum, TString coordinate, Int_t ref9, Int_t region_vz);
+    Double_t               GetTPCShiftingValue(Double_t tPhi_rcd, Int_t nharm, Int_t ref9, Int_t region_vz);
+    Double_t               GetTPCShiftingValueNEW(Double_t tPhi_rcd, Int_t nharm, Int_t ref9, Int_t region_vz);
 
     // Added from Liang
     void                   QvectorCal(int ref9, int region_vz, int n, int ptbin);

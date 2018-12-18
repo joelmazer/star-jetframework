@@ -108,6 +108,8 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
 StAnMaker::~StAnMaker()
 { /*  */
   // destructor
+  delete hJetPt;
+  delete hJetCorrPt;
 }
 
 //-----------------------------------------------------------------------------
@@ -211,14 +213,19 @@ Int_t StAnMaker::Finish() {
 
 //-----------------------------------------------------------------------------
 void StAnMaker::DeclareHistograms() {
-  // initialization of histograms done here
+  // initialization of histograms done here + global object setup
+
+  // jet QA histos
+  hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
+  hJetCorrPt = new TH1F("hJetCorrPt", "Corrected Jet p_{T}", 125, -25, 100);
 }
 
 // write histograms
 //_____________________________________________________________________________
 void StAnMaker::WriteHistograms() {
   // writing of histograms done here
-
+  hJetPt->Write();
+  hJetCorrPt->Write();
 }
 
 // OLD user code says: //  Called every event after Make(). 
@@ -275,8 +282,6 @@ Int_t StAnMaker::Make() {
   Double_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
 
   // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
   int refMult = mPicoEvent->refMult();
@@ -288,11 +293,6 @@ Int_t StAnMaker::Make() {
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
@@ -435,8 +435,12 @@ void StAnMaker::RunJets()
       highestjetpt=jetpt;
     }
 
+    // fill some basic histos
+    hJetPt->Fill(jetpt);
+    hJetCorrPt->Fill(corrjetpt);
+
 /*
-    // TEST
+    // TEST - when using constituent subtractor
     vector<fastjet::PseudoJet> fConstituents = jet->GetJetConstituents();
     for(UInt_t ic = 0; ic < fConstituents.size(); ++ic) {
       // get user defined index
@@ -458,7 +462,6 @@ void StAnMaker::RunJets()
       StThreeVectorF mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) continue; // check if primary
-
         // get primary track vector
         mTrkMom = trk->pMom();
       } else {
@@ -505,7 +508,7 @@ void StAnMaker::RunTracks()
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
-//    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
     // primary track switch
     // get momentum vector of track - global or primary track
@@ -526,7 +529,6 @@ void StAnMaker::RunTracks()
     double py = mTrkMom.y();
     double pz = mTrkMom.z();
     short charge = trk->charge();
-
 
   } // track loop
 
@@ -591,6 +593,13 @@ void StAnMaker::RunTowers()
   } // tower loop
 
 }  // run towers function
+
+//
+// __________________________________________________________________________________
+void StAnMaker::SetSumw2() {
+  hJetPt->Sumw2();
+  hJetCorrPt->Sumw2();
+}
 
 //
 //________________________________________________________________________

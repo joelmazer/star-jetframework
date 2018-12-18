@@ -1846,7 +1846,8 @@ Int_t StMyAnalysisMaker::Make() {
 
     // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
-    //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30 - TODO probably want to use to use this line in future, may not matter
+    ////if(fHaveMB5event || fHaveMB30event) { // kMB5 or kMB30 (don't exclude HT)
+    //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - TODO probably want to use to use this line in future, may not matter
     if(fHaveMBevent) { // kMB
       if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 

@@ -992,6 +992,8 @@ Int_t StMyAnalysisMaker3::Make() {
   
   // Z-vertex cut - the Aj analysis cut on (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
+  // cut on (-30, 30) when using NEW centrality definitions - perhaps cut on (-28, 28)
+  //if((fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30) && ((zVtx < -28.) || (zVtx > 28.))) return kStOk;
   hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
@@ -1363,20 +1365,22 @@ Int_t StMyAnalysisMaker3::Make() {
 
     // Aj selection for Jet Shape Analysis
     bool doAjSelection = (isBackToBack && ljpttemp > 20. && sljpttemp > 10.) ? kTRUE : kFALSE;
-    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);      // leading jet
-    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);  // sub-leading jet
+    if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);      // leading jet w/ Aj cut
+    if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);  // sub-leading jet w/ Aj cut
 
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
     if(doRequireAjSelection) {
       if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
     } else { // don't require back-to-back jets
       if(fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
     }
-    if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
-    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30
+    //if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB5 or kMB30 (excluding HT)
+    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB5 or kMB30 (don't exclude HT)
     //if(fDoEventMixing > 0 && (fHaveMBevent)) { // kMB
       //cout<<"Have a MB event!!"<<endl;
 
@@ -1444,6 +1448,7 @@ Int_t StMyAnalysisMaker3::Make() {
       hdEPEventPlaneClass->Fill(dEPmethod4);
     }
 
+    // get pt dependent event plane calculation
     // FIXME, double check, might want to code this nicer
     double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, TPC_PSI2) : 0; // CORRECTED event plane angle - STEP3
     if(doTPCptassocBin && !doppAnalysis) {
@@ -1847,6 +1852,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
     //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30 - TODO probably want to use to use this line in future, may not matter
+    //if((fHaveMB5event) || (fHaveMB30event)) { // kMB or kMB30 (don't exclude HT)
     if(fHaveMBevent) { // kMB
       if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
 
