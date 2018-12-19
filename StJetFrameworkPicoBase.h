@@ -5,6 +5,7 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 //#include "StRoot/StPicoEvent/StPicoDst.h"
+//#include "StThreeVectorF.hh"
 
 #include <set>
 
@@ -20,6 +21,7 @@ class THnSparse;
 class TString;
 
 // STAR classes
+//class StThreeVectorF;
 class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;

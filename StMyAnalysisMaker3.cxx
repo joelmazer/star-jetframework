@@ -36,6 +36,9 @@
 #include "TRandom.h"
 #include "TRandom3.h"
 
+#include <sstream>
+#include <fstream>
+
 // STAR includes
 #include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
@@ -1146,6 +1149,11 @@ Int_t StMyAnalysisMaker3::Make() {
     return kStWarn;
   }
 
+  // check if bad/dead towers fired trigger and kill event if true
+  badTowers = JetMaker->GetBadTowers();
+  deadTowers = JetMaker->GetDeadTowers();
+  if(DidBadTowerFireTrigger()) return kStWarn;
+
 /*
   // TEST: the below is snippet of code for getting jets and their cosntituents using
   // constituent subtractor method in StJetMakerTask
@@ -1233,7 +1241,6 @@ Int_t StMyAnalysisMaker3::Make() {
   if(!doppAnalysis) eventWeight = grefmultCorr->getWeight();
   hEventPlaneWeighted->Fill(rpAngle, eventWeight);
 
-  // set up event plane maker here..
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
   double angle2, angle2n, angle2p, angle2comb, angle1, angle4;
@@ -1281,8 +1288,6 @@ Int_t StMyAnalysisMaker3::Make() {
       if(fTPCptAssocBin == 2) TPC_PSI2 = tpc2EP_bin2;
       if(fTPCptAssocBin == 3) TPC_PSI2 = tpc2EP_bin3;
       if(fTPCptAssocBin == 4) TPC_PSI2 = tpc2EP_bin4;
-
-      //cout<<"New event!"<<endl;
       //cout<<"EP angles:  "<<tpc2EP_bin0<<"   "<<tpc2EP_bin1<<"   "<<tpc2EP_bin2<<"   "<<tpc2EP_bin3<<"   "<<tpc2EP_bin4<<endl;
     }
 
@@ -1381,9 +1386,6 @@ Int_t StMyAnalysisMaker3::Make() {
     // use only tracks from MB events
     //if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB5 or kMB30 (excluding HT)
     if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB5 or kMB30 (don't exclude HT)
-    //if(fDoEventMixing > 0 && (fHaveMBevent)) { // kMB
-      //cout<<"Have a MB event!!"<<endl;
-
       // update pool: create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       pool->UpdatePool(CloneAndReduceTrackList());
       hMBvsMult->Fill(refCorr2);                       // MB5 || MB30
@@ -2417,137 +2419,7 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
 
   return psi;
 }
-
-/*
-Trigger information for Physics stream:
-
-Run14: AuAu
-physics	
-5	BHT1*VPDMB-30	15076087	15076099
-10	BHT3-L2Gamma	15076089	15077035
-13	BHT2*BBC	15171058	15174040
-14	BHT3*BBC	15171058	15174040
-15	BHT1*BBC	15171058	15174040
-15	Central-mon	15079048	15167014
-16	VPDMB-5-p-nobsmd	15077042	15081025
-20	VPDMB-30	15074070	15076099
-26	Central-5	15075071	15079046
-27	VPDMB-5-p-nobsmd-hltheavyfrag	15083024	15083024
-28	Central-5-hltheavyfrag	15083024	15083024
-30	Central-5-hltDiElectron	15083024	15083024
-31	BHT3-hltDiElectron	15076089	15076092
-32	VPDMB-5-ssd	15080029	15083062
-88	VPDMB-5-p-nobsmd-hltDiElectron	15083024	15083024
-450005	VPDMB-5-p-nobsmd	15081026	15086018
-450008	VPDMB-5	15076101	15167014
-450009	VPDMB-5-p-nobsmd-ssd-hlt	15143032	15167014
-450010	VPDMB-30	15076101	15167014
-450014	VPDMB-5-nobsmd	15077056	15167014
-450015	VPDMB-5-p-nobsmd	15086042	15097029
-450018	VPDMB-5	15153036	15167007
-450020	VPDMB-30	15153036	15167007
-450024	VPDMB-5-nobsmd	15153036	15167007
-450025	VPDMB-5-p-nobsmd	15097030	15167014
-450050	VPDMB-5-p-nobsmd-hlt	15097030	15112023
-450060	VPDMB-5-p-nobsmd-hlt	15112024	15167014
-450103	Central-5	15079047	15167014
-450201	BHT1*VPDMB-30	15076101	15167014
-450202	BHT2*VPDMB-30	15076101	15167014
-450203	BHT3	15076101	15167014
-450211	BHT1*VPDMB-30	15153036	15167007
-450212	BHT2*VPDMB-30	15153036	15167007
-450213	BHT3	15153036	15167007
-460101	Central	15170104	15174040
-460111	Central	15174041	15187006
-460201	BHT1*VPD	15174041	15174041
-460202	BHT2*BBC	15174041	15175041
-460203	BHT3	15174041	15187006
-460212	BHT2*ZDCE	15175042	15187006
-
-Run16: AuAu
-physics	
-15	BHT1-VPD-10	17132061	17142053
-15	BHT1-VPD-30	17142054	17142058
-16	BHT2-VPD-30	17134025	17142053
-17	BHT2	17142054	17142058
-17	BHT3	17132061	17169117
-43	VPDMB-5-hlt	17169022	17170041
-45	VPDMB-5-p-hlt	17038047	17041016
-56	vpdmb-10	17038047	17038047
-520001	VPDMB-5-p-sst	17039044	17056036
-520002	VPDMB-5-p-nosst	17043050	17056017
-520003	VPDMB-5	17038047	17039043
-520007	vpdmb-10	17038050	17057056
-520011	VPDMB-5-p-sst	17056051	17057056
-520012	VPDMB-5-p-nosst	17056050	17056050
-520013	VPDMB-5	17039044	17057056
-520017	vpdmb-10	17058002	17076012
-520021	VPDMB-5-p-sst	17058002	17076012
-520022	VPDMB-5-p-nosst	17058022	17076010
-520023	VPDMB-5	17058002	17076012
-520027	vpdmb-10	17076040	17100024
-520031	VPDMB-5-p-sst	17076043	17100024
-520032	VPDMB-5-p-nosst	17076042	17099014
-520033	VPDMB-5	17076040	17100024
-520037	vpdmb-10	17100030	17130013
-520041	VPDMB-5-p-sst	17100030	17130013
-520042	VPDMB-5-p-nosst	17102032	17128029
-520043	VPDMB-5	17100030	17130013
-520051	VPDMB-5-p-sst	17109050	17111019
-520051	VPDMB-5-sst	17169020	17169021
-520052	VPDMB-5-nosst	17169020	17169021
-520101	central-5	17040052	17056036
-520103	central-novtx	17041033	17056036
-520111	central-5	17056050	17057056
-520113	central-novtx	17056050	17057056
-520121	central-5	17058002	17076012
-520123	central-novtx	17058002	17130013
-520131	central-5	17076040	17100024
-520141	central-5	17100030	17130013
-520201	BHT1*VPDMB-10	17038050	17039043
-520203	BHT3	17038047	17169021
-520211	BHT1*VPDMB-10	17039044	17042044
-520221	BHT1*VPDMB-10	17042074	17057056
-520231	BHT1*VPDMB-10	17058002	17060034
-520241	BHT1*VPDMB-10	17060035	17076012
-520251	BHT1*VPDMB-10	17076042	17100024
-520261	BHT1*VPDMB-10	17100030	17130013
-520601	dimuon*VPDMB-10	17041033	17045018
-520605	e-muon-BHT1	17041033	17042044
-520606	e-muon-BHT0	17041033	17045011
-520611	dimuon*VPDMB-10	17045039	17057056
-520615	e-muon-BHT1	17042074	17057056
-520616	e-muon-BHT0	17045039	17056036
-520621	dimuon*VPDMB-10	17058002	17076012
-520625	e-muon-BHT1	17058002	17060034
-520626	e-muon-BHT0	17056050	17057056
-520631	dimuon*VPDMB-10	17076040	17100024
-520635	e-muon-BHT1	17060035	17076012
-520636	e-muon-BHT0	17058002	17076012
-520641	dimuon*VPDMB-10	17100030	17110037
-520645	e-muon-BHT1	17076042	17100024
-520646	e-muon-BHT0	17076042	17100024
-520655	e-muon-BHT1	17100030	17130013
-520656	e-muon-BHT0	17100030	17130013
-520802	VPDMB-5-p-hlt	17041033	17057056
-520812	VPDMB-5-p-hlt	17058002	17076012
-520822	VPDMB-5-p-hlt	17076042	17100024
-520832	VPDMB-5-hlt	17169020	17169021
-520832	VPDMB-5-p-hlt	17100030	17130013
-520842	VPDMB-5-p-hlt	17109050	17111019
-530201	BHT1-VPD-10	17133038	17141005
-530202	BHT2-VPD-30	17136037	17141005
-530213	BHT3	17133038	17141005
-540201	BHT1-VPD-30	17142059	17148003
-540203	BHT2	17142059	17148003
-550201	BHT1	17149053	17160009
-560201	BHT1	17161024	17169018
-560202	BHT1_rhic_feedback	17161024	17169018
-570203	BHT3	17169118	17170012
-570802	VPDMB-5-hlt	17169118	17172018
-}
-*/
-
+//
 // Set the bin errors on histograms
 // __________________________________________________________________________________
 void StMyAnalysisMaker3::SetSumw2() {
@@ -3047,7 +2919,6 @@ Double_t StMyAnalysisMaker3::CalculateEventPlaneChi(Double_t res) {
 
 //
 // track QA function to fill some histograms with track information
-//
 //_____________________________________________________________________________
 void StMyAnalysisMaker3::TrackQA()
 {
@@ -3103,7 +2974,8 @@ void StMyAnalysisMaker3::TrackQA()
 
   }
 }
-
+//
+// function filling trigger arrays with booleans set to kTRUE for fired triggers
 //_________________________________________________________________________
 void StMyAnalysisMaker3::FillTowerTriggersArr() {
   // tower - HT trigger types array
@@ -3181,7 +3053,50 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
 
   return mFiredTrigger;
 }  
+//
+// function to require that a jet constituent tower fired a HT trigger
+//___________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
+  // bad/dead tower fired trigger
+  Bool_t mBadTowerFiredTrigger = kFALSE;
 
+  // loop over towers
+  int nTowers = mPicoDst->numberOfBTOWHits();
+  for(int itow = 0; itow < nTowers; itow++) {
+    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
+    if(!tow) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
+
+    // tower ID
+    //int towID = tow->id();
+    int towID = -1;
+
+    cout<<"classVersion: "<<gROOT->GetClass("StPicoBTowHit")->GetClassVersion()<<endl;
+/*
+    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+    if( gROOT->GetClass("StPicoBTowHit")->GetStreamerInfo()->GetClassVersion() < 3) {
+      towID = tow->id();
+      cout<<" < 3"<<endl;
+    } else { 
+      towID = tow->numericIndex2SoftId(itow); 
+      cout<<" not < 3"<<endl;
+    }
+*/
+
+    if(towID < 0) continue; // double check these aren't still in the event list
+
+    // check if tower is bad or dead - functions return kTRUE if ok and kFALSE if NOT dead 
+    // isTowOK = kTRUE if tower is OK and not dead
+    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID));
+
+    // change flag to true if jet tower fired trigger
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
+
+  } // tower constituent loop
+
+  return mBadTowerFiredTrigger;
+}
 //
 // function to calcuate delta R between a jet centroid and a track
 //___________________________________________________________________________________________
@@ -3642,4 +3557,35 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 Double_t StMyAnalysisMaker3::TestBool() {
   return kFALSE;
 }
-
+//
+//____________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::IsTowerOK( Int_t mTowId ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
+    __ERROR("StMyAnalysisMaker3::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }
+}
+//
+//____________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::IsTowerDead( Int_t mTowId ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
+    __ERROR("StMyAnalysisMaker3::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
+}

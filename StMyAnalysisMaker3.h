@@ -4,6 +4,9 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
+
+#include <set>
+
 class StJetFrameworkPicoBase;
 
 // ROOT classes
@@ -173,10 +176,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    TrackQA();
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
+    Bool_t                  DidBadTowerFireTrigger();
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
     Double_t                TestBool();
-
 
     // Added from Liang
     Int_t                   GetRunNo(int runid);
@@ -400,6 +403,12 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // maker names
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
+
+    // bad and dead tower list functions and arrays
+    Bool_t IsTowerOK( Int_t mTowId );
+    Bool_t IsTowerDead( Int_t mTowId );
+    std::set<Int_t> badTowers;
+    std::set<Int_t> deadTowers;
 
     ClassDef(StMyAnalysisMaker3, 1)
 };

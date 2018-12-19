@@ -110,6 +110,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fFlatContainer = 0x0;
   fTPCnFlat = 0x0; fTPCpFlat = 0x0; fBBCFlat = 0x0; fZDCFlat = 0x0;
   fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
+  fCalibFile = 0x0; fCalibFile2 = 0x0;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
@@ -295,9 +296,13 @@ Int_t StEventPlaneMaker::Init() {
   // initialize calibration file for event plane
   //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
   ////fCalibFile = new TFile(fEPcalibFileName.Data(), "READ");
-  fCalibFile = new TFile("StRoot/StMyAnalysisMaker/corrections/recenter_calib_file.root", "READ");
+
+//  fCalibFile = new TFile("StRoot/StMyAnalysisMaker/corrections/recenter_calib_file.root", "READ");
+  fCalibFile = new TFile("./recenter_calib_file.root", "READ");
   if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
-  fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/corrections/shift_calib_file.root", "READ");
+
+//  fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/corrections/shift_calib_file.root", "READ");
+  fCalibFile2 = new TFile("./shift_calib_file.root", "READ");
   if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
 
   // Jet TClonesArray
@@ -371,7 +376,7 @@ Int_t StEventPlaneMaker::Init() {
 //----------------------------------------------------------------------------- 
 Int_t StEventPlaneMaker::Finish() { 
   // close event plane calibration files (if open)
-  if(fCalibFile->IsOpen()) fCalibFile->Close();
+  if(fCalibFile->IsOpen())  fCalibFile->Close();
   if(fCalibFile2->IsOpen()) fCalibFile2->Close();
 
 /*
@@ -1725,20 +1730,25 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
     }
 
 /*
+    // read from file
     if(fCalibFile && doReadCalibFile){
       // Method 2: reading values from *.root files
       TProfile* htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
       htempBBC_center_ex->SetName("htempBBC_center_ex");
       sumcos_E -= htempBBC_center_ex->GetBinContent(RunId_Order + 1);
+
       TProfile* htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
       htempBBC_center_ey->SetName("htempBBC_center_ey");
       sumsin_E -= htempBBC_center_ey->GetBinContent(RunId_Order + 1);
+
       TProfile* htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
       htempBBC_center_wx->SetName("htempBBC_center_wx");
       sumcos_W -= htempBBC_center_wx->GetBinContent(RunId_Order + 1);
+
       TProfile* htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
       htempBBC_center_wy->SetName("htempBBC_center_wy");
       sumsin_W -= htempBBC_center_wy->GetBinContent(RunId_Order + 1);
+
       // test statement
       //cout<<"RunID_Order = "<<RunId_Order + 1<<"  hBBC_center_ex max = "<<htempBBC_center_ex->GetMaximum()<<"  bin# = "<<htempBBC_center_ex->GetMaximumBin()<<endl;
       // delete temp histos
@@ -1748,6 +1758,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       delete htempBBC_center_wy;
     }
 */
+
   }
 
   // fill east/west BBC angles
@@ -1791,7 +1802,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   // STEP3: read shift correction for BBC event plane (read in from file)
   double bbc_delta_psi = 0.;	
-  //double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; // comment in with code chunk below
+  double bbc_shift_Aval = 0., bbc_shift_Bval = 0.; // comment in with code chunk below
   if(bbc_apply_corr_switch) { // need to have ran recentering + shift prior
     for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
@@ -1810,14 +1821,17 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       }
 
 /*
+      // reading in from file
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
         TProfile* htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
         htempBBC_ShiftA->SetName(Form("htempBBC_ShiftA%i_%i", ref9, region_vz));
         bbc_shift_Aval = htempBBC_ShiftA->GetBinContent(nharm);
+
         TProfile* htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
         htempBBC_ShiftB->SetName(Form("htempBBC_ShiftB%i_%i", ref9, region_vz));
         bbc_shift_Bval = htempBBC_ShiftB->GetBinContent(nharm);
+
         // perform 'shift' to BBC event plane angle
         bbc_delta_psi += (bbc_shift_Aval * cos(2*nharm*bPhi_rcd) + bbc_shift_Bval * sin(2*nharm*bPhi_rcd));
         // delete temp histos
@@ -1825,6 +1839,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
         delete htempBBC_ShiftB;
       }
 */
+
     }
 
   }
@@ -2033,7 +2048,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // STEP3: read shift correction for BBC event plane (read in from file or header)
   double zdc_delta_psi = 0.;
-  //double zdc_shift_Aval = 0., zdc_shift_Bval = 0.; // comment in with below code chunk
+  double zdc_shift_Aval = 0., zdc_shift_Bval = 0.; // comment in with below code chunk
   if(zdc_apply_corr_switch) { // need to have ran recentering + shift prior
     for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
@@ -2050,14 +2065,17 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
       }
 
 /*
+      // reading in from file
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
         TProfile* htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
         htempZDC_ShiftA->SetName(Form("htempZDC_ShiftA%i_%i", ref9, region_vz));
         zdc_shift_Aval = htempZDC_ShiftA->GetBinContent(nharm);
+
         TProfile* htempZDC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_B%i_%i", ref9, region_vz));
         htempZDC_ShiftB->SetName(Form("htempZDC_ShiftB%i_%i", ref9, region_vz));
         zdc_shift_Bval = htempZDC_ShiftB->GetBinContent(nharm);
+
         // perform 'shift' to ZDC event plane angle
         zdc_delta_psi += (zdc_shift_Aval * cos(2*nharm*zPhi_rcd) + zdc_shift_Bval * sin(2*nharm*zPhi_rcd));
         // delete temp histos
@@ -2065,6 +2083,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
         delete htempZDC_ShiftB;
       }      
 */
+
     }
   }
 
@@ -2201,26 +2220,32 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
     }
 
 /*
+    // reading in from file
     if(fCalibFile && doReadCalibFile){
       // get corrections from histograms of calibration .root file
       TProfile* htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
       htempZDC_center_ex->SetName("htempZDC_center_ex");
       mZDCSMDCenterex = htempZDC_center_ex->GetBinContent(id_order + 1);
+
       TProfile* htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
       htempZDC_center_ey->SetName("htempZDC_center_ey");
       mZDCSMDCenterey = htempZDC_center_ey->GetBinContent(id_order + 1);
+
       TProfile* htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
       htempZDC_center_wx->SetName("htempZDC_center_wx");
       mZDCSMDCenterwx = htempZDC_center_wx->GetBinContent(id_order + 1);
+
       TProfile* htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
       htempZDC_center_wy->SetName("htempZDC_center_wy");
       mZDCSMDCenterwy = htempZDC_center_wy->GetBinContent(id_order + 1);
+
       delete htempZDC_center_ex;
       delete htempZDC_center_ey;
       delete htempZDC_center_wx;
       delete htempZDC_center_wy;
     }
 */
+
   }
 
   // perform re-centering of ZDC event plane angle
@@ -2386,7 +2411,7 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   //=================================shift correction
   // STEP3: read shift correction fo TPC event plane (read in from file)
   double tpc_delta_psi = 0.;
-  //double tpc_shift_Aval = 0., tpc_shift_Bval = 0.; // comment in with code chunk below
+  double tpc_shift_Aval = 0., tpc_shift_Bval = 0.; // comment in with code chunk below
   if(tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
     // loop over harmonics
     for(int nharm = 1; nharm < 21; nharm++){
@@ -2409,15 +2434,18 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       }
 
 /*
+      // reading in from file
       // started correcting names..
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
         TProfile* htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
         htempTPC_ShiftA->SetName(Form("htempTPC_ShiftA%i_%i", ref9, region_vz));
         tpc_shift_Aval = htempTPC_ShiftA->GetBinContent(nharm);
+
         TProfile* htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
         htempTPC_ShiftB->SetName(Form("htempTPC_ShiftB%i_%i", ref9, region_vz));
         tpc_shift_Bval = htempTPC_ShiftB->GetBinContent(nharm);
+
         // perform 'shift' to TPC event plane angle
         tpc_delta_psi += (tpc_shift_Aval * cos(2*nharm*tPhi_rcd) + tpc_shift_Bval * sin(2*nharm*tPhi_rcd));
         // delete temp histos
@@ -2425,6 +2453,7 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
         delete htempTPC_ShiftB;
       }
 */
+
     } // nharm loop
   } // correction switch
 
@@ -2669,6 +2698,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
           x -= tpc_center_Qpx[ref9][region_vz];
           y -= tpc_center_Qpy[ref9][region_vz];
 
+            // reading in from file
 //          if(fCalibFile && doReadCalibFile){
 //            // Method 2: from *.root calibration file
 //            TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
@@ -2684,6 +2714,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
           x -= tpc_center_Qnx[ref9][region_vz];
           y -= tpc_center_Qny[ref9][region_vz];
 
+            // reading in from file
 //          if(fCalibFile && doReadCalibFile){
 //            // Method 2: from *.root calibration file
 //            TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));

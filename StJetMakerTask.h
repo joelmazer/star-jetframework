@@ -199,6 +199,9 @@ class StJetMakerTask : public StMaker {
 
   Bool_t                 IsLocked() const;
 
+  std::set<Int_t>        GetBadTowers()                   { return badTowers          ; }
+  std::set<Int_t>        GetDeadTowers()                  { return deadTowers         ; }
+
 /*
 #if !defined(__CINT__) && !defined(__MAKECINT__)
   static FJJetAlgo       ConvertToFJAlgo(EJetAlgo_t algo);
