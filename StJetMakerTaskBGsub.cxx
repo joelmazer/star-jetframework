@@ -672,7 +672,7 @@ void StJetMakerTaskBGsub::FindJets()
   fFull_Event.clear();
 
   // initialize Emc position objects
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // assume neutral pion mass
   // additional parameters constructed
@@ -763,7 +763,7 @@ void StJetMakerTaskBGsub::FindJets()
       if(towerID < 0) continue; // double check these aren't still in the event list
 
       // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-      StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+      StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
       double towerPhi = towerPosition.phi();
       if(towerPhi < 0)    towerPhi += 2.0*pi;
       if(towerPhi > 2*pi) towerPhi -= 2.0*pi;
@@ -916,7 +916,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
   double pi0mass = Pico::mMass[0]; // GeV
 
   // get EMCal position
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // initially set track and cluster constituent sizes
   jet->SetNumberOfTracks(constituents.size());
@@ -986,7 +986,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
 
         // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
         int towerID = tower->id();
-        StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+        StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
         double towerPhi = towerPosition.phi();
         double towerEta = towerPosition.pseudoRapidity();
         double towEuncorr = tower->energy();
@@ -1163,7 +1163,7 @@ Bool_t StJetMakerTaskBGsub::AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeV
 //________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::AcceptJetTower(StPicoBTowHit *tower) {
   // get EMCal position
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // constants:
   double pi = 1.0*TMath::Pi();
@@ -1175,7 +1175,7 @@ Bool_t StJetMakerTaskBGsub::AcceptJetTower(StPicoBTowHit *tower) {
   if(towerID < 0) return kFALSE; 
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-  StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+  StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
   double phi = towerPosition.phi();
   if(phi < 0)    phi += 2.0*pi;
   if(phi > 2*pi) phi -= 2.0*pi;
@@ -1319,7 +1319,7 @@ Bool_t StJetMakerTaskBGsub::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCe
 //________________________________________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const {
   // initialize Emc position objects
-  StEmcPosition *Position = new StEmcPosition();
+  StEmcPosition Position;
 
   // vertex components - only need if below method is used
   // mGeom3->getEtaPhi(towerID,tEta,tPhi);
@@ -1334,7 +1334,7 @@ Bool_t StJetMakerTaskBGsub::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit
   int towerID = tower->id();
 
   // get tower position
-  StThreeVectorF towerPosition = Position->getPosFromVertex(mVertex, towerID);
+  StThreeVectorF towerPosition = Position.getPosFromVertex(mVertex, towerID);
   double posX = towerPosition.x();
   double posY = towerPosition.y();
   double posZ = towerPosition.z();

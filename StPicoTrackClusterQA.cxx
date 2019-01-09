@@ -730,8 +730,8 @@ void StPicoTrackClusterQA::RunQA()
   // get # of clusters and set variables
   unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
   StThreeVectorF  towPosition, clusPosition;
-  StEmcPosition *mPosition = new StEmcPosition();
-  StEmcPosition *mPosition2 = new StEmcPosition();
+  StEmcPosition mPosition;
+  StEmcPosition mPosition2;
 
   // print EMCal cluster info
   if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
@@ -755,8 +755,8 @@ void StPicoTrackClusterQA::RunQA()
     if(towID < 0) continue;
 
     // cluster and tower position - from vertex and ID
-    towPosition = mPosition->getPosFromVertex(mVertex, towID);
-    clusPosition = mPosition2->getPosFromVertex(mVertex, clusID);
+    towPosition = mPosition.getPosFromVertex(mVertex, towID);
+    clusPosition = mPosition2.getPosFromVertex(mVertex, clusID);
 
     // index of associated track in the event
     int trackIndex = cluster->trackIndex();
@@ -1011,7 +1011,7 @@ Bool_t StPicoTrackClusterQA::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVec
 //________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AcceptTower(StPicoBTowHit *tower) {
   // get EMCal position
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // constants:
   double pi = 1.0*TMath::Pi();
@@ -1023,7 +1023,7 @@ Bool_t StPicoTrackClusterQA::AcceptTower(StPicoBTowHit *tower) {
   if(towerID < 0) return kFALSE;
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-  StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+  StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
   double phi = towerPosition.phi();
   if(phi < 0)    phi += 2.0*pi;
   if(phi > 2*pi) phi -= 2.0*pi;
@@ -1539,7 +1539,7 @@ void StPicoTrackClusterQA::RunTowerTest()
   // set / initialize some variables
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // towerStatus array
   float mTowerMatchTrkIndex[4801] = { 0 };
@@ -1567,7 +1567,7 @@ void StPicoTrackClusterQA::RunTowerTest()
 
     // cluster and tower position - from vertex and ID
     StThreeVectorF  towPosition;
-    towPosition = mPosition->getPosFromVertex(mVertex, towID);
+    towPosition = mPosition.getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.phi();
     if(towPhi < 0)    towPhi += 2*pi;
     if(towPhi > 2*pi) towPhi -= 2*pi;
@@ -1629,7 +1629,7 @@ void StPicoTrackClusterQA::RunTowerTest()
     if(towerID < 0) continue; // double check these aren't still in the event list
 
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+    StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
     double towerPhi = towerPosition.phi();
     if(towerPhi < 0)    towerPhi += 2*pi;
     if(towerPhi > 2*pi) towerPhi -= 2*pi;
@@ -1700,7 +1700,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
 
   // initialize Emc position objects
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
@@ -1741,7 +1741,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     if(towerID < 0) { cout<<"tower ID < 0, tower ID = "<<towerID<<endl; continue; } // double check these aren't still in the event list
 
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+    StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
     //double towerPhi = towerPosition.phi();
     double towerEta = towerPosition.pseudoRapidity();
     double towerE = tower->energy();

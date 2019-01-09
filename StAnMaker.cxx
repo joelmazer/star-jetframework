@@ -545,7 +545,7 @@ void StAnMaker::RunTowers()
   // looping over clusters - STAR: matching already done
   // get # of clusters and set variables
   unsigned int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
-  StEmcPosition *mPosition = new StEmcPosition();
+  StEmcPosition mPosition;
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
   for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
@@ -561,7 +561,7 @@ void StAnMaker::RunTowers()
 
     // cluster and tower position - from vertex and ID
     StThreeVectorF  towPosition;
-    towPosition = mPosition->getPosFromVertex(mVertex, towID);
+    towPosition = mPosition.getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.phi();
     double towEta = towPosition.pseudoRapidity();
 
@@ -584,7 +584,7 @@ void StAnMaker::RunTowers()
     if(towerID < 0) continue; // double check these aren't still in the event list
 
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+    StThreeVectorF towerPosition = mPosition.getPosFromVertex(mVertex, towerID);
     double towerPhi = towerPosition.phi();
     double towerEta = towerPosition.pseudoRapidity();
     int towerADC = tower->adc();

@@ -1256,7 +1256,7 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
 //________________________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const {
   // initialize Emc position objects
-  StEmcPosition *Position = new StEmcPosition();
+  StEmcPosition Position;
 
   // vertex components
   StThreeVectorF fVertex = PicoEvent->primaryVertex();
@@ -1271,7 +1271,7 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTow
   int towerID = tower->id();
 
   // get tower position
-  StThreeVectorF towerPosition = Position->getPosFromVertex(fVertex, towerID);
+  StThreeVectorF towerPosition = Position.getPosFromVertex(fVertex, towerID);
   double posX = towerPosition.x();
   double posY = towerPosition.y();
   double posZ = towerPosition.z();
