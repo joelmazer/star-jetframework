@@ -3,12 +3,13 @@
 This is a framework for:
 * a FastJet wrapper, with various functionality 
 * jet-finding
-* underlying event rho calculation
-* QA 
-* creating reduced track ojbects (FemtoTracks)
+* underlying event rho calculation, for both 'normal' and very 'sparse' events
+* QA of jets, towers, events, tracks, triggers
+* code for generating dead and bad tower lists
+* creating reduced track objects (FemtoTracks)
 * event mixing (for acceptance and detector effects via event pool manager)
-* a base class use for inheritance
-* studyng jet shapes
+* a base class used for inheritance
+* studying jet shapes
 * calculating the event plane using multiple detectors + all included corrections
 * jet-hadron corrrelations
 * dummy analysis class to get started
@@ -18,7 +19,7 @@ Additionally contained are multiple other classes useful for the main correlatio
 
 # Getting started
 ## Prequisites / also needed
-inside your StRoot director you will need to copy the contents of this git repository into the directory
+inside your StRoot directory you will need to copy the contents of this git repository into the directory
 ```
 StMyAnalysisMaker/
 ```
