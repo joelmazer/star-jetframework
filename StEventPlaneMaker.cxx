@@ -29,9 +29,9 @@
 #include <TProfile.h>
 #include "TRandom.h"
 #include "TRandom3.h"
+#include "TVector3.h"
 
 // STAR includes
-#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -41,14 +41,13 @@
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
-#include "StPicoTrk.h"
 #include "StFemtoTrack.h"
 #include "StEPFlattener.h"
 #include "StCalibContainer.h"
 
+#include "runlistP12id.h"
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-
 #include "StPicoEPCorrectionsIncludes.h"
 
 // new includes
@@ -62,9 +61,6 @@
 // centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
-
-// classes
-//class StJetMakerTask;
 
 ClassImp(StEventPlaneMaker)
 
@@ -151,7 +147,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
-  mVertex = 0x0;
+//  mVertex = 0x0;
   zVtx = 0.0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   fAnalysisMakerName = name;
@@ -160,13 +156,13 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
 
   InitParameters();
 }
-
-//----------------------------------------------------------------------------- 
+//
+//
+//_________________________________________________________________________________
 StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
   delete hCentrality;
-
   delete hEventPlane;
   delete hEventPlaneWeighted;
   delete fHistEPTPCn;
@@ -265,6 +261,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
   if(Psi2m) delete Psi2m;
   if(Psi2p) delete Psi2p;
   if(Delta_Psi2) delete Delta_Psi2;
+  if(Delta_Psi2old) delete Delta_Psi2old;
   if(Shift_delta_psi2) delete Shift_delta_psi2;
   if(Psi2_rcd) delete Psi2_rcd;
   if(Psi2_final) delete Psi2_final;
@@ -285,8 +282,9 @@ StEventPlaneMaker::~StEventPlaneMaker()
   }
 
 }
-
-//-----------------------------------------------------------------------------
+//
+//
+//_______________________________________________________________________________
 Int_t StEventPlaneMaker::Init() {
   //StJetFrameworkPicoBase::Init();
 
@@ -372,8 +370,9 @@ Int_t StEventPlaneMaker::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
+//
+//_______________________________________________________________________________________
 Int_t StEventPlaneMaker::Finish() { 
   // close event plane calibration files (if open)
   if(fCalibFile->IsOpen())  fCalibFile->Close();
@@ -412,8 +411,9 @@ Int_t StEventPlaneMaker::Finish() {
 
   return kStOK;
 }
-
-//-----------------------------------------------------------------------------
+//
+//
+//______________________________________________________________________________________
 void StEventPlaneMaker::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
@@ -469,7 +469,6 @@ void StEventPlaneMaker::DeclareHistograms() {
   hZDCepDebug->GetXaxis()->SetBinLabel(8, "w_eh <= 0");
   hZDCepDebug->GetXaxis()->SetBinLabel(9, "w_wh <= 0");
 
-  // Nov22, 2017 - Event plane histos added for corrections, calculations
   float range = 12.;
   float range_b = 2.;
   hZDCDis_W = new TH2F("hZDCDis_W","",400,-range,range,400,-range,range);
@@ -569,15 +568,16 @@ void StEventPlaneMaker::DeclareHistograms() {
   tpc_psi_fnl = new TH1F("tpc_psi_fnl", "tpc psi2 corrected", 288, -0.5*pi, 1.5*pi);
 
   // these were changed from [-2pi, 2pi] to [0, pi]
-  Psi2 = new TH1F("Psi2", "raw #Psi_{2} distribution", 144, 0., 1*pi);
-  Psi2m = new TH1F("Psi2m", "minus eta raw #Psi_{2} distribution", 144, 0., 1*pi);
-  Psi2p = new TH1F("Psi2p", "positive eta raw #Psi_{2} distribution", 144, 0., 1*pi);
-  Delta_Psi2 = new TH1F("Delta_Psi2", "#Delta #Psi_{2} distribution", 144, 0., 1*pi);
-  Shift_delta_psi2 = new TH1F("Shift_delta_psi2", "shift_delta_psi2 distribution", 4000, -8*pi, 8*pi);
-  Psi2_rcd = new TH1F("Psi2_rcd", "recentered #Psi_{2} distribution", 144, 0., 1*pi);
-  Psi2_final = new TH1F("Psi2_final", "final(shifted and recentered) #Psi_{2} distribution",2000,-4*pi, 4*pi);
-  Psi2_final_folded = new TH1F("Psi2_final_folded", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4*pi, 4*pi);
-  Psi2_final_raw = new TH1F("Psi2_final_raw", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4*pi, 4*pi);
+  Psi2 = new TH1F("Psi2", "raw #Psi_{2} distribution", 144, 0., 1.*pi);
+  Psi2m = new TH1F("Psi2m", "minus eta raw #Psi_{2} distribution", 144, 0., 1.*pi);
+  Psi2p = new TH1F("Psi2p", "positive eta raw #Psi_{2} distribution", 144, 0., 1.*pi);
+  Delta_Psi2 = new TH1F("Delta_Psi2", "#Delta #Psi_{2} distribution", 144, -1.*pi, 1.0*pi);
+  Delta_Psi2old = new TH1F("Delta_Psi2old", "#Delta #Psi_{2} distribution - old", 144, 0., 1.0*pi);
+  Shift_delta_psi2 = new TH1F("Shift_delta_psi2", "shift_delta_psi2 distribution", 4000, -8.*pi, 8.*pi);
+  Psi2_rcd = new TH1F("Psi2_rcd", "recentered #Psi_{2} distribution", 144, 0., 1.*pi);
+  Psi2_final = new TH1F("Psi2_final", "final(shifted and recentered) #Psi_{2} distribution",2000,-4.*pi, 4.*pi);
+  Psi2_final_folded = new TH1F("Psi2_final_folded", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4.*pi, 4.*pi);
+  Psi2_final_raw = new TH1F("Psi2_final_raw", "final(shifted and recentered) #Psi_{2} distribution", 2000, -4.*pi, 4.*pi);
 
   // 2-D event plane differences
   hTPCvsBBCep = new TH2F("hTPCvsBBCep", "TPC vs BBC 2nd order event plane", 144, -1*pi, 1*pi, 144, -1*pi, 1*pi);
@@ -672,7 +672,7 @@ void StEventPlaneMaker::DeclareHistograms() {
   // Switch on Sumw2 for all histos
   SetEPSumw2();
 }
-
+//
 // write event plane histograms
 //_____________________________________________________________________________
 void StEventPlaneMaker::WriteEventPlaneHistograms() {
@@ -775,6 +775,7 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   Psi2m->Write();
   Psi2p->Write();
   Delta_Psi2->Write();
+  Delta_Psi2old->Write();
   Shift_delta_psi2->Write();
   Psi2_rcd->Write();
   Psi2_final->Write();
@@ -796,13 +797,13 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   }
 
 }
-
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StEventPlaneMaker::Clear(Option_t *opt) {
   //fJets->Clear();
 }
- 
+//
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPlaneMaker::Make() {
@@ -909,7 +910,6 @@ Int_t StEventPlaneMaker::Make() {
 
   // ========================= Trigger Info =============================== //
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
-  // trigger information:  // cout<<"istrigger = "<<mPicoEvent->isTrigger(450021)<<endl; // NEW
   // fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
   FillEmcTriggersHist(hEmcTriggers);
@@ -923,23 +923,10 @@ Int_t StEventPlaneMaker::Make() {
   // switches for Event Plane analysis
   Bool_t doEPAnalysis = kFALSE;  // set false by default
 
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      //if(fEmcTriggerArr[fEmcTriggerEventType]) {
-      if(fHaveEmcTrigger) {
-        doEPAnalysis = kTRUE;
-      }
-      break;
+  // if trigger fired, turn on doEPAnalysis
+  if(fHaveEmcTrigger) doEPAnalysis = kTRUE;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-      if(fHaveEmcTrigger) {
-        doEPAnalysis = kTRUE;
-      }
-      break;
-  }
-
-  // no need for switch for few checks
+  // no need for switch for few checks - TODO will need to update depending on dataset used
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMB5event) && (!fHaveMB30event)) return kStOK;  // MB triggered event
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))                    return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
@@ -1051,7 +1038,7 @@ Int_t StEventPlaneMaker::Make() {
 
   return kStOK;
 }
-
+//
 /*
 //________________________________________________________________________
 Bool_t StEventPlaneMaker::AcceptJet(StJet *jet) { // for jets
@@ -1067,7 +1054,7 @@ Bool_t StEventPlaneMaker::AcceptJet(StJet *jet) { // for jets
   return kTRUE;
 }
 */
-
+//
 //_________________________________________________________________________
 TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
@@ -1111,11 +1098,41 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
 
   return h;
 }
-
+//
+// Trigger QA histogram, label bins
 //_____________________________________________________________________________
-// Trigger QA histogram, label bins 
 TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
+
+  // Run12 pp 200 GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    // Run12 (200 GeV pp) triggers:
+    int arrHT1[] = {370511, 370546};
+    int arrHT2[] = {370521, 370522, 370531, 370980};
+    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
+    int arrMB[] = {370001, 370011, 370983};
+
+    int bin = 0;
+
+    // fill for kAny 
+    bin = 1; h->Fill(bin);
+
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
+
+    // label bins of the analysis trigger selection summary
+    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+    h->GetXaxis()->SetBinLabel(2, "BHT1");
+    h->GetXaxis()->SetBinLabel(3, "BHT2");
+    h->GetXaxis()->SetBinLabel(4, "BHT3");
+    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
+    h->GetXaxis()->SetBinLabel(6, "");
+    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
+    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(10, "VPDMB");
+  }
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
@@ -1199,7 +1216,6 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
   
   return h;
 }
-
 //
 // set sumw2 for event plane histograms
 // __________________________________________________________________________________
@@ -1236,6 +1252,7 @@ void StEventPlaneMaker::SetEPSumw2() {
   hBBCDis_W->Sumw2();
   hBBCDis_E->Sumw2();
 
+  // don't turn on Sumw2 for profile plots
 /*
   for(int i=0; i<9; i++){ // centrality
     for(int j=0; j<20; j++){ // vz (15)
@@ -1300,6 +1317,7 @@ void StEventPlaneMaker::SetEPSumw2() {
   Psi2m->Sumw2();
   Psi2p->Sumw2();
   Delta_Psi2->Sumw2();
+  Delta_Psi2old->Write();
   Shift_delta_psi2->Sumw2();
   Psi2_rcd->Sumw2();
   Psi2_final->Sumw2();
@@ -1322,7 +1340,6 @@ void StEventPlaneMaker::SetEPSumw2() {
 */
 
 }
-
 //
 // Initialize parameters
 // __________________________________________________________________________________
@@ -1333,7 +1350,7 @@ void StEventPlaneMaker::InitParameters()
   fFlatContainer = new StCalibContainer("eventplaneFlat");
   fFlatContainer->InitFromFile("$STROOT_CALIB/eventplaneFlat.root", "eventplaneFlat");
 }  
-
+//
 // TPC negative eta region event plane flattening
 // __________________________________________________________________________________
 Double_t StEventPlaneMaker::ApplyFlatteningTPCn(Double_t phi, Double_t c)
@@ -1341,7 +1358,7 @@ Double_t StEventPlaneMaker::ApplyFlatteningTPCn(Double_t phi, Double_t c)
   if (fTPCnFlat) return fTPCnFlat->MakeFlat(phi,c);
   return phi;
 }
-
+//
 // TPC positive eta region event plane flattening
 // __________________________________________________________________________________
 Double_t StEventPlaneMaker::ApplyFlatteningTPCp(Double_t phi, Double_t c)
@@ -1349,7 +1366,7 @@ Double_t StEventPlaneMaker::ApplyFlatteningTPCp(Double_t phi, Double_t c)
   if (fTPCpFlat) return fTPCpFlat->MakeFlat(phi,c);
   return phi;
 }
-
+//
 // BBC event plane flattening
 // __________________________________________________________________________________
 Double_t StEventPlaneMaker::ApplyFlatteningBBC(Double_t phi, Double_t c)
@@ -1357,7 +1374,7 @@ Double_t StEventPlaneMaker::ApplyFlatteningBBC(Double_t phi, Double_t c)
   if (fBBCFlat) return fBBCFlat->MakeFlat(phi,c);
   return phi;
 }
-
+//
 // ZDC event plane flattening
 // __________________________________________________________________________________
 Double_t StEventPlaneMaker::ApplyFlatteningZDC(Double_t phi, Double_t c)
@@ -1365,7 +1382,8 @@ Double_t StEventPlaneMaker::ApplyFlatteningZDC(Double_t phi, Double_t c)
   if (fZDCFlat) return fZDCFlat->MakeFlat(phi,c);
   return phi;
 }
-
+//
+//
 // ________________________________________________________________________________________
 void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin)
 { 
@@ -1409,7 +1427,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -1419,9 +1437,9 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
@@ -1615,11 +1633,11 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   }
 
 }
-
+//
 // 1) get the binning for: ref9 and region_vz
 // 2) get function: GetRunNo( );
 // 3) 
-
+//
 // 
 // BBC event plane calculation
 // ______________________________________________________________________
@@ -1892,7 +1910,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   return kStOk;
 }
-
+//
 //
 // ZDC event plane calculation
 // ______________________________________________________________________
@@ -2123,7 +2141,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   return kStOk;
 }
-
+//
 //
 // get angle of BBC
 // ______________________________________________________________________
@@ -2193,7 +2211,7 @@ Double_t StEventPlaneMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west ==
 
   return bbc_phi;
 }
-
+//
 // 
 // get position of ZDCSMD
 // ______________________________________________________________________
@@ -2265,13 +2283,22 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 
   return kStOk;
 }
-
+//
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
 // _________________________________________________________________________________
 Int_t StEventPlaneMaker::GetRunNo(int runid){ 
   //1287 - Liang
+
+  // Run12 pp (200 GeV)
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    for(int i = 0; i < 857; i++) {
+      if(Run12pp_IdNo[i] == runid) {
+        return i;
+      }
+    }
+  }
 
   // Run14 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {  
@@ -2298,7 +2325,7 @@ Int_t StEventPlaneMaker::GetRunNo(int runid){
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
 }
-
+//
 //
 // this is code from Liang to get the Vz region for event plane corrections
 // __________________________________________________________________________________
@@ -2315,7 +2342,7 @@ Int_t StEventPlaneMaker::GetVzRegion(double Vz) // 0-14, 15          0-19, 20
 
   return regionvz;
 }
-
+//
 //
 // Calculate TPC event plane angle with correction
 // ___________________________________________________________________________________
@@ -2385,7 +2412,8 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   // fill TPC event plane histos
   Psi2->Fill(psi2);              // raw psi2
   Psi2_rcd->Fill(tPhi_rcd);      // recentered psi2
-  Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2
+  Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2 - full range
+  Delta_Psi2old->Fill(psi2m-psi2p); // raw delta psi2 - old
 
   double t_res = cos(2*(psi2m - psi2p)); // added
   res = 2.*(cos(2*(psi2m - psi2p)));
@@ -2542,7 +2570,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -2552,9 +2580,9 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV

@@ -10,9 +10,10 @@
 #include <TMath.h>
 #include "TH2.h"
 #include "TH2F.h"
+#include "TVector3.h"
 
 // STAR includes
-#include "StThreeVectorF.hh"
+///#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -198,7 +199,7 @@ Int_t StRhoSparse::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
   // z-vertex cut - per the Aj analysis (-40,40) for reference

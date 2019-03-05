@@ -191,7 +191,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t               GetReactionPlane();                                   // get reaction plane angle
     void                   GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
-    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
+    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
     Bool_t                 AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                 DoComparison(int myarr[], int elems);
     void                   SetSumw2(); // set errors weights 

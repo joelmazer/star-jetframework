@@ -17,6 +17,7 @@ class TH3;
 class THnSparse;
 class TProfile;
 class TString;
+class TVector3;
 
 // STAR classes
 class StPicoDst;
@@ -26,6 +27,7 @@ class StPicoTrack;
 class StRefMultCorr;
 
 // my STAR classes
+class StEmcPosition2;
 class StJetMakerTask;
 class StJet;
 class StRho;
@@ -122,6 +124,9 @@ class StAnMaker : public StJetFrameworkPicoBase {
 
     // Rho objects
     StRhoParameter         *GetRhoFromEvent(const char *name);
+
+    // position object
+    StEmcPosition2         *mEmcPosition;
 
     // jet histos
     TH1F* hJetPt;//!

@@ -11,6 +11,7 @@
 #include <TMath.h>
 #include "TH2.h"
 #include "TH2F.h"
+#include "TVector3.h"
 
 class TH2;
 class TH2F;
@@ -173,7 +174,7 @@ Int_t StRho::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
   // z-vertex cut - per the Aj analysis (-40, 40) for reference

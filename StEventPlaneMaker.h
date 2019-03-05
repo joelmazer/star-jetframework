@@ -346,6 +346,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH1F *Psi2m;//!
     TH1F *Psi2p;//!
     TH1F *Delta_Psi2;//!
+    TH1F *Delta_Psi2old;//!
     TH1F *Shift_delta_psi2;//!
     TH1F *Psi2_rcd;//!
     TH1F *Psi2_final;//!

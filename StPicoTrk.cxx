@@ -7,12 +7,13 @@
 
 //----------------------------------------------------------------------------------
 StPicoTrk::StPicoTrk() : TObject(),
-  mId(0), mPMomentum(0., 0., 0.), mGMomentum(0., 0., 0.), mOrigin(0., 0., 0.), mCharge(0)
+  mId(0), mPMomentumX(0), mPMomentumY(0), mPMomentumZ(0), mGMomentumX(0), mGMomentumY(0), mGMomentumZ(0),
+  mOriginX(0), mOriginY(0), mOriginZ(0), mCharge(0)
 {
 }
 
 //----------------------------------------------------------------------------------
-StPicoTrk::StPicoTrk(StMuTrack const* const gTrk, StMuTrack const* const pTrk, double const B, StThreeVectorD const& pVtx, StDcaGeometry const& dcaG)
+StPicoTrk::StPicoTrk(StMuTrack const* const gTrk, StMuTrack const* const pTrk, double const B, TVector3 const& pVtx, StDcaGeometry const& dcaG)
   : StPicoTrk()
 {
   if (!gTrk || gTrk->type() != global || (pTrk && (pTrk->type() != primary || pTrk->id() != gTrk->id())))
@@ -22,7 +23,17 @@ StPicoTrk::StPicoTrk(StMuTrack const* const gTrk, StMuTrack const* const pTrk, d
   }
 
   mId = (UShort_t)gTrk->id();
-  if(pTrk) { mPMomentum = pTrk->p(); }
+  if(pTrk) {
+    mPMomentumX = track.mPMomentumX;
+    mPMomentumY = track.mPMomentumY;
+    mPMomentumZ = track.mPMomentumZ;
+  } 
+  mGMomentumX = track.mGMomentumX;
+  mGMomentumY = track.mGMomentumY;
+  mGMomentumZ = track.mGMomentumZ;
+  mOriginX = track.mOriginX;
+  mOriginY = track.mOriginY;
+  mOriginZ = track.mOriginZ;
 
   // Calculate global momentum and position at point of DCA to the pVtx
   StPhysicalHelixD gHelix = dcaG.helix();

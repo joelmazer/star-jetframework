@@ -19,8 +19,7 @@
 // ################################################################
 
 #include "StJetShapeAnalysis.h"
-
-#include "StMemStat.h"
+#include "StRoot/StarRoot/StMemStat.h"
 
 // ROOT includes
 #include "TH1F.h"
@@ -31,9 +30,9 @@
 #include <TProfile.h>
 #include "TRandom.h"
 #include "TRandom3.h"
+#include "TVector3.h"
 
 // STAR includes
-#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -46,11 +45,9 @@
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
+#include "runlistP12id.h"
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-
-// include header that has all the event plane correction headers - with calibration/correction values
-//#include "StPicoEPCorrectionsIncludes.h"
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -68,7 +65,8 @@
 
 ClassImp(StJetShapeAnalysis)
 
-//-----------------------------------------------------------------------------
+//
+//______________________________________________________________________________________
 StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
@@ -136,7 +134,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
-  mVertex = 0x0;
+  //mVertex = 0x0;
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
@@ -152,8 +150,8 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fRhoMakerName = rhoMakerName;
   fEventPlaneMakerName = "";
 }
-
-//----------------------------------------------------------------------------- 
+//
+//__________________________________________________________________________________________
 StJetShapeAnalysis::~StJetShapeAnalysis()
 { /*  */
   // destructor
@@ -234,8 +232,8 @@ StJetShapeAnalysis::~StJetShapeAnalysis()
     }
   }
 }
-
-//-----------------------------------------------------------------------------
+//
+//_________________________________________________________________________________________
 Int_t StJetShapeAnalysis::Init() {
   //StJetFrameworkPicoBase::Init();
 
@@ -311,8 +309,8 @@ Int_t StJetShapeAnalysis::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
+//______________________________________________________________________________________________
 Int_t StJetShapeAnalysis::Finish() { 
   //  Summarize the run.
   cout << "StJetShapeAnalysis::Finish()\n";
@@ -365,8 +363,8 @@ Int_t StJetShapeAnalysis::Finish() {
 
   return kStOK;
 }
-
-//-----------------------------------------------------------------------------
+//
+//________________________________________________________________________________________________
 void StJetShapeAnalysis::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
   int nHistCentBins;
@@ -516,7 +514,7 @@ void StJetShapeAnalysis::DeclareHistograms() {
   // Switch on Sumw2 for all histos - (except profiles)
   SetSumw2();
 }
-
+//
 // write track QA histograms
 //_____________________________________________________________________________
 void StJetShapeAnalysis::WriteTrackQAHistograms() {
@@ -528,7 +526,6 @@ void StJetShapeAnalysis::WriteTrackQAHistograms() {
   }
   hTrackEtavsPhi->Write();
 }
-
 //
 // write jet shape histograms
 //________________________________________________________________________________
@@ -614,7 +611,7 @@ void StJetShapeAnalysis::WriteHistograms() {
   hHTvsMult->Write();
   hNMixEvents->Write();
 }
-
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StJetShapeAnalysis::Clear(Option_t *opt) {
@@ -755,6 +752,9 @@ Int_t StJetShapeAnalysis::Make() {
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
 
   // fill arrays for towers that fired trigger
   FillTowerTriggersArr();
@@ -765,8 +765,11 @@ Int_t StJetShapeAnalysis::Make() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+      if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
+      break;
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      //if(fEmcTriggerArr[fEmcTriggerEventType]) {
       if(fHaveEmcTrigger) {
         doJetAnalysis = kTRUE;
         doEPAnalysis = kTRUE;
@@ -825,7 +828,7 @@ Int_t StJetShapeAnalysis::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.4*0.4*fRhoVal<<endl;
+  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
   // cache the leading + subleading jets within acceptance
@@ -938,16 +941,15 @@ Int_t StJetShapeAnalysis::Make() {
     if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
-    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB or kMB30
-    //if(fDoEventMixing > 0 && (fHaveMBevent)) { // kMB
-      // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool - update pool if jet in event or not
+    //if(fDoEventMixing > 0 && fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - AuAu, kMB - pp (excluding HT)
+    if(fDoEventMixing > 0 && fRunForMB) { // kMB5 or kMB30 - AuAu, kMB - pp (don't exclude HT)
+      // update pool: create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       pool->UpdatePool(CloneAndReduceTrackList());
+      hMBvsMult->Fill(refCorr2);                       // MB5 || MB30
+      if(fHaveMB5event)  hMB5vsMult->Fill(refCorr2);   // MB5
+      if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);  // MB30
 
       // fill QA histo's
-      hMBvsMult->Fill(refCorr2);                        // MB5 || MB30
-      if(fHaveMB5event)   hMB5vsMult->Fill(refCorr2);   // MB5
-      if(fHaveMB30event)  hMB30vsMult->Fill(refCorr2);  // MB30
-
       hMixEvtStatZVtx->Fill(zVtx);
       hMixEvtStatCent->Fill(centBinToUse);
       hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);
@@ -1001,7 +1003,7 @@ Int_t StJetShapeAnalysis::Make() {
     } else { if(jetpt < fMinPtJet) continue; }
     if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
 
-    // TODO TODO new TODO TODO check that jet contains a tower that fired the trigger
+    // TODO check that jet contains a tower that fired the trigger
     if(!DidTowerConstituentFireTrigger(jet)) { continue; }
 
     // loop over constituent tracks
@@ -1010,7 +1012,7 @@ Int_t StJetShapeAnalysis::Make() {
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) return kFALSE; // check if primary
         // get primary track vector
@@ -1021,9 +1023,9 @@ Int_t StJetShapeAnalysis::Make() {
       }
 
       // track variables
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
-      double pt = mTrkMom.perp();
+      double phi = mTrkMom.Phi();
+      double eta = mTrkMom.PseudoRapidity();
+      double pt = mTrkMom.Perp();
       double px = mTrkMom.x();
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
@@ -1048,7 +1050,18 @@ Int_t StJetShapeAnalysis::Make() {
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
-      int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      int towID = -1;
+      if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+        //towID = tow->id();
+      } else {
+        //towID = tow->numericIndex2SoftId(ArrayIndex);
+      }
+
+      // tower ID: get from index of array shifted by +1
+      towID = ArrayIndex + 1;
+      if(towID < 0) continue;
+
       int containsTower = jet->ContainsTower(ArrayIndex);
       cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
     } // constituent tower loop
@@ -1096,7 +1109,8 @@ Int_t StJetShapeAnalysis::Make() {
 
   return kStOK;
 }
-
+//
+//
 //_________________________________________________________________________
 TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
@@ -1156,11 +1170,41 @@ TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
 
   return h;
 }
-
+//
 //_____________________________________________________________________________
 // Trigger QA histogram, label bins 
 TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
+
+  // Run12 pp 200 GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    // Run12 (200 GeV pp) triggers:
+    int arrHT1[] = {370511, 370546};
+    int arrHT2[] = {370521, 370522, 370531, 370980};
+    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
+    int arrMB[] = {370001, 370011, 370983};
+
+    int bin = 0;
+
+    // fill for kAny 
+    bin = 1; h->Fill(bin);
+
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
+
+    // label bins of the analysis trigger selection summary
+    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+    h->GetXaxis()->SetBinLabel(2, "BHT1");
+    h->GetXaxis()->SetBinLabel(3, "BHT2");
+    h->GetXaxis()->SetBinLabel(4, "BHT3");
+    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
+    h->GetXaxis()->SetBinLabel(6, "");
+    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
+    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(10, "VPDMB");
+  }
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
@@ -1178,7 +1222,6 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
@@ -1227,9 +1270,7 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
@@ -1254,8 +1295,9 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
   
   return h;
 }
-//_________________________________________________
+//
 // From CF event mixing code PhiCorrelations
+//_________________________________________________
 TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
@@ -1276,9 +1318,8 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       if(!(trk->isPrimary())) continue; // check if primary
       // get primary track vector
@@ -1289,7 +1330,7 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
     }
 
     // track variables - used with alt method below
-    double pt = mTrkMom.perp();
+    double pt = mTrkMom.Perp();
 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
@@ -1345,9 +1386,8 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
     // may change this back in future
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -1357,15 +1397,15 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 2.0 GeV (up to 5.0 GeV)
-    if(phi < 0)    phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
     if((fLeadingJet) && 
@@ -1398,7 +1438,7 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
 
   return psi;
 }
-
+//
 // Set the bin errors on histograms
 // __________________________________________________________________________________
 void StJetShapeAnalysis::SetSumw2() {
@@ -1481,11 +1521,11 @@ void StJetShapeAnalysis::SetSumw2() {
   }
 
 }
-
+//
 // 1) get the binning for: ref9 and region_vz
 // 2) get function: GetRunNo( );
 // 3) 
-
+//
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
@@ -1518,7 +1558,6 @@ Int_t StJetShapeAnalysis::GetRunNo(int runid){
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
 }
-
 //
 // track QA function to fill some histograms with track information
 //
@@ -1538,9 +1577,8 @@ void StJetShapeAnalysis::TrackQA()
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -1550,14 +1588,14 @@ void StJetShapeAnalysis::TrackQA()
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // fill other track QA plots
     hTrackPhi[ref9]->Fill(phi);
@@ -1567,7 +1605,7 @@ void StJetShapeAnalysis::TrackQA()
 
   }
 }
-
+//
 //_________________________________________________________________________
 void StJetShapeAnalysis::FillTowerTriggersArr() {
   // tower - HT trigger types array
@@ -1607,8 +1645,9 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
-    // tower ID
-    int towerID = tower->id();
+    // tower ID: get from index of array shifted by +1
+    //int towerID = tower->id();
+    int towerID = itow + 1;
     if(towerID < 0) continue; // double check these aren't still in the event list
 
     //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
@@ -1618,7 +1657,7 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
 */
 
 }
-
+//
 //
 // function to require that a jet constituent tower fired a HT trigger
 //___________________________________________________________________________________________
@@ -1628,13 +1667,21 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
 
   // loop over constituents towers
   for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-    int towerid = jet->ClusterAt(itow);
-    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
+    int ArrayIndex = jet->ClusterAt(itow);
+    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
     if(!tow){ continue; }
     
-    int towID = tow->id();
+    //int towID = tow->id();
+    int towID = -1;
+    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+      //towID = tow->id();
+    } else {
+      //towID = tow->numericIndex2SoftId(itow);
+    }
 
-    //cout<<"towerID = "<<towerID<<"  towID = "<<towID<<endl;
+    // tower ID: get from index of array shifted by +1
+    towID = ArrayIndex + 1;
+    if(towID < 0) kFALSE;
 
     // change flag to true if jet tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID]) mFiredTrigger = kTRUE;
@@ -1645,7 +1692,6 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
 
   return mFiredTrigger;
 }  
-
 //
 // function to calcuate delta R between a jet centroid and a track
 //___________________________________________________________________________________________
@@ -1655,7 +1701,7 @@ Double_t StJetShapeAnalysis::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   double pi = 1.0*TMath::Pi();
 
   // get track momentum vector 
-  StThreeVectorF mTrkMom;
+  TVector3 mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return -99.; // check if primary
     // get primary track vector
@@ -1666,10 +1712,10 @@ Double_t StJetShapeAnalysis::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   }
 
   // track variables
-  double tphi = mTrkMom.phi();
+  double tphi = mTrkMom.Phi();
   if(tphi > 2.0*pi) tphi -= 2.0*pi;
   if(tphi < 0.0   ) tphi += 2.0*pi;
-  double teta = mTrkMom.pseudoRapidity();
+  double teta = mTrkMom.PseudoRapidity();
 
   // jet variables
   double jphi = jet->Phi();
@@ -1678,12 +1724,11 @@ Double_t StJetShapeAnalysis::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   // calculate radial distance
   double deltaEta = 1.0*TMath::Abs(jeta - teta);
   double deltaPhi = 1.0*TMath::Abs(jphi - tphi);
-  if(deltaPhi > 1.0*pi) deltaPhi = 2*pi - deltaPhi;
+  if(deltaPhi > 1.0*pi) deltaPhi = 2.0*pi - deltaPhi;
   deltaR = 1.0*TMath::Sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
 
   return deltaR;
 }
-
 //
 // function that does jet shape analysis
 //___________________________________________________________________________________________
@@ -1752,7 +1797,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
       // primary track switch
       // get momentum vector of track - global or primary track
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
         mTrkMom = trk->pMom();
@@ -1762,10 +1807,10 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }
 
       // track variables
-      double tpt = mTrkMom.perp();
-      double tphi = mTrkMom.phi();
+      double tpt = mTrkMom.Perp();
+      double tphi = mTrkMom.Phi();
       if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
-      double teta = mTrkMom.pseudoRapidity();
+      double teta = mTrkMom.PseudoRapidity();
 
       // cut on track pt range 
       if(tpt < fJetShapeTrackPtMin) { continue; }
@@ -1888,7 +1933,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
       // primary track switch
       // get momentum vector of track - global or primary track
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
         mTrkMom = trk->pMom();
@@ -1898,10 +1943,10 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }
 
       // track variables
-      double tpt = mTrkMom.perp();
-      double tphi = mTrkMom.phi();
+      double tpt = mTrkMom.Perp();
+      double tphi = mTrkMom.Phi();
       if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
-      double teta = mTrkMom.pseudoRapidity();
+      double teta = mTrkMom.PseudoRapidity();
 
       // cut on track pt
       if(tpt < fJetShapeTrackPtMin) { continue; }

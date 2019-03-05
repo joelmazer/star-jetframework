@@ -5,7 +5,6 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 //#include "StRoot/StPicoEvent/StPicoDst.h"
-//#include "StThreeVectorF.hh"
 
 #include <set>
 
@@ -21,7 +20,6 @@ class THnSparse;
 class TString;
 
 // STAR classes
-//class StThreeVectorF;
 class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
@@ -30,11 +28,11 @@ class StRefMultCorr;
 class StPicoBTowHit;
 
 // my STAR classes
+class StEmcPosition2;
 class StJetMakerTask;
 class StJet;
 class StRho;
 class StRhoParameter;
-//class StEventPoolManager;
 class StEventPlaneMaker;
 
 class StJetFrameworkPicoBase : public StMaker {
@@ -129,7 +127,9 @@ class StJetFrameworkPicoBase : public StMaker {
       kVPDMB10   = 4,
       kVPDMB30   = 5,
       kVPDMB100  = 6,
-      kVPDMBnovtx= 7
+      kVPDMBnovtx= 7,
+      kRun12main = 8,
+      kRun12alt  = 9
     };
 
     // trigger type used to run specific part of analysis
@@ -187,8 +187,6 @@ class StJetFrameworkPicoBase : public StMaker {
     //virtual Int_t Make();
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
-
-    Bool_t AcceptTower(StPicoBTowHit *tower, StThreeVectorF Vertex);     // tower accept cuts function
 
     // Use one set to reject bad towers and another for hot towers
     //void ResetBadTowerList( );
@@ -268,20 +266,24 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
     Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
-    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
-    //Bool_t                 AcceptTower(StPicoBTowHit *tower, StThreeVectorF Vertex);     // tower accept cuts function
+    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
+    //Bool_t                 AcceptTower(StPicoBTowHit *tower, TVector3 Vertex, Int_t towerID);     // tower accept cuts function
     Double_t               GetReactionPlane(); // get reaction plane angle
     Int_t                  EventCounter();     // when called, provides Event #
     Double_t               GetRhoValue(TString fRhoMakerNametemp);
     Bool_t                 DoComparison(int myarr[], int elems);
     Bool_t                 CheckForMB(int RunFlag, int type);
     Bool_t                 CheckForHT(int RunFlag, int type);
-    Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const;
+    Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
     Double_t               GetMaxTrackPt();
     Int_t                  GetAnnuliBin(Double_t deltaR) const;
     Int_t                  GetJetPtBin(Double_t jetpt) const;
     Int_t                  GetJetEPBin(Double_t dEP) const;
     Int_t                  Get4CentBin(Double_t scaledCent) const;
+    Double_t               ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
+
+    static Double_t*       GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
+    static void            GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);
 
     // switches
     Bool_t                 doUsePrimTracks;         // primary track switch
@@ -301,7 +303,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // event
     Double_t               Bfield;                  // event Bfield
-    StThreeVectorF         mVertex;                 // event vertex 3-vector
+    TVector3               mVertex;                 // event vertex 3-vector
     Double_t               zVtx;                    // z-vertex component
     Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
 
@@ -360,6 +362,9 @@ class StJetFrameworkPicoBase : public StMaker {
     StRho          *RhoMaker2; // for thomas, multiple jet collections
     StEventPlaneMaker *EventPlaneMaker;
 
+    // position object
+    StEmcPosition2 *mEmcPosition;
+
     // centrality objects
     StRefMultCorr* grefmultCorr;
     StRefMultCorr* refmultCorr;
@@ -402,5 +407,39 @@ class StJetFrameworkPicoBase : public StMaker {
 
     ClassDef(StJetFrameworkPicoBase, 1)
 };
+
+/**
+ * Generate array with fixed binning within min and max with n bins. The parameter array
+ * will contain the bin edges set by this function. Attention, the array needs to be
+ * provided from outside with a size of n+1
+ * @param[in] n Number of bins
+ * @param[in] min Minimum value for the binning
+ * @param[in] max Maximum value for the binning
+ * @param[out] array Array containing the bin edges
+ */
+inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array)
+{
+  Double_t binWidth = (max-min)/n;
+  array[0] = min;
+  for (Int_t i = 1; i <= n; i++) {
+    array[i] = array[i-1]+binWidth;
+  }
+}
+
+/**
+ * Generate array with fixed binning within min and max with n bins. The array containing the bin
+ * edges set will be created by this function. Attention, this function does not take care about
+ * memory it allocates - the array needs to be deleted outside of this function
+ * @param[in] n Number of bins
+ * @param[in] min Minimum value for the binning
+ * @param[in] max Maximum value for the binning
+ * @return Array containing the bin edges created bu this function
+ */
+inline Double_t* StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max)
+{
+  Double_t *array = new Double_t[n+1];
+  GenerateFixedBinArray(n, min, max, array);
+  return array;
+}
 
 #endif

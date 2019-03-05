@@ -5,7 +5,6 @@
 // ################################################################
 
 #include "StAnMaker.h"
-
 #include "StMemStat.h"
 
 // ROOT includes
@@ -17,9 +16,10 @@
 #include <TProfile.h>
 #include "TRandom.h"
 #include "TRandom3.h"
+#include "TVector3.h"
 
 // STAR includes
-#include "StThreeVectorF.hh"
+//#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -44,6 +44,7 @@
 
 // old file kept
 #include "StPicoConstants.h"
+#include "StEmcPosition2.h"
 
 // centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -92,11 +93,12 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
-  mVertex = 0x0;
+//  mVertex = 0x0;
   zVtx = 0.0;
   fEmcTriggerEventType = 0; fMBEventType = 2;
   fRho = 0x0;
   fRhoVal = 0;
+  mEmcPosition = 0x0;
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
@@ -110,6 +112,8 @@ StAnMaker::~StAnMaker()
   // destructor
   delete hJetPt;
   delete hJetCorrPt;
+
+  delete mEmcPosition;
 }
 
 //-----------------------------------------------------------------------------
@@ -117,6 +121,9 @@ Int_t StAnMaker::Init() {
   StJetFrameworkPicoBase::Init();
 
   DeclareHistograms();
+
+  // position object for Emc
+  mEmcPosition = new StEmcPosition2();
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
@@ -459,7 +466,7 @@ void StAnMaker::RunJets()
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) continue; // check if primary
         // get primary track vector
@@ -470,9 +477,9 @@ void StAnMaker::RunJets()
       }
 
       // track variables
-      double pt = mTrkMom.perp();
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
+      double pt = mTrkMom.Perp();
+      double phi = mTrkMom.Phi();
+      double eta = mTrkMom.PseudoRapidity();
       double px = mTrkMom.x();
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
@@ -486,7 +493,8 @@ void StAnMaker::RunJets()
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
       if(!tow){ continue; }
 
-      int towID = tow->id();
+      // tower ID shifted by +1 from array index
+      int towID = itow + 1;
     
     } // tower constit loop
 
@@ -512,7 +520,7 @@ void StAnMaker::RunTracks()
 
     // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = trk->pMom();
@@ -522,9 +530,9 @@ void StAnMaker::RunTracks()
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
     double px = mTrkMom.x();
     double py = mTrkMom.y();
     double pz = mTrkMom.z();
@@ -545,7 +553,6 @@ void StAnMaker::RunTowers()
   // looping over clusters - STAR: matching already done
   // get # of clusters and set variables
   unsigned int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
-  StEmcPosition *mPosition = new StEmcPosition();
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
   for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
@@ -560,10 +567,10 @@ void StAnMaker::RunTowers()
     if(towID < 0) continue;
 
     // cluster and tower position - from vertex and ID
-    StThreeVectorF  towPosition;
-    towPosition = mPosition->getPosFromVertex(mVertex, towID);
-    double towPhi = towPosition.phi();
-    double towEta = towPosition.pseudoRapidity();
+    TVector3  towPosition;
+    towPosition = mEmcPosition->getPosFromVertex(mVertex, towID);
+    double towPhi = towPosition.Phi();
+    double towEta = towPosition.PseudoRapidity();
 
     // matched track index
     int trackIndex = cluster->trackIndex();
@@ -574,19 +581,21 @@ void StAnMaker::RunTowers()
   } // BEmc loop
 
   // loop over towers
-  int nTowers = mPicoDst->numberOfBTOWHits();
+  int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
     // tower ID
-    int towerID = tower->id();
+    //int towerID = tower->id();
+    // tower ID shifted by +1 from array index
+    int towerID = itow + 1;
     if(towerID < 0) continue; // double check these aren't still in the event list
 
     // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-    StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
-    double towerPhi = towerPosition.phi();
-    double towerEta = towerPosition.pseudoRapidity();
+    TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    double towerPhi = towerPosition.Phi();
+    double towerEta = towerPosition.PseudoRapidity();
     int towerADC = tower->adc();
     double towerE = tower->energy();
 
@@ -686,6 +695,14 @@ void StAnMaker::FillEmcTriggers() {
 //_____________________________________________________________________________
 // this function is not used in this class, but kept to keep track of the USEFUL triggers from various Runs 
 void StAnMaker::FillEventTriggerQA() {
+  // Run12 pp 200 GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    int arrHT1[] = {370511, 370546, 390203};
+    int arrHT2[] = {370521, 370522, 370531, 370980, 380204, 380205, 380207, 380208};
+    //int arrHT3[] = {380206, 380216}; // NO HT3 triggers in this dataset
+    int arrMB[] = {370001, 370011, 370983, 380001, 380002, 380005};
+  }
+
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
     int arrBHT1[] = {450201, 450211, 460201};

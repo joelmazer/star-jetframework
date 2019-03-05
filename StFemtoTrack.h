@@ -13,8 +13,8 @@
 #include <TLorentzVector.h>
 #include <TString.h>
 #include "TObject.h"
+#include "TVector3.h"
 
-#include "StThreeVectorF.hh"
 #include "StVParticle.h"
 #include "StMaker.h"
 class StVParticle;
@@ -24,7 +24,7 @@ class StMaker;
 class StFemtoTrack : public TObject //public StMaker //public StVParticle // FIXME
 {
  public:
-  StFemtoTrack(const StPicoTrack*, double Bfield, StThreeVectorF mVertex, bool prim);
+  StFemtoTrack(const StPicoTrack*, double Bfield, TVector3 mVertex, bool prim);
   StFemtoTrack();
   StFemtoTrack(Double_t px, Double_t py, Double_t pz);
   StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t charge);

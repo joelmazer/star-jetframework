@@ -7,7 +7,6 @@
 // ################################################################
 
 #include "StJetFrameworkPicoBase.h"
-
 #include "StMemStat.h"
 
 // ROOT includes
@@ -16,12 +15,12 @@
 #include "TFile.h"
 #include <THnSparse.h>
 #include "TParameter.h"
+#include "TVector3.h"
 
 #include <sstream>
 #include <fstream>
 
 // STAR includes
-#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -30,14 +29,14 @@
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
-#include "StEventPlaneMaker.h" // new
+#include "StEventPlaneMaker.h"
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h"
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"
 
 // old file, kept for useful constants
 #include "StPicoConstants.h"
@@ -46,16 +45,13 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-
-#include "StEmcUtil/projection/StEmcPosition.h"
-class StEmcPosition;
-
-// classes
-//class StJetMakerTask;
+//#include "StEmcUtil/projection/StEmcPosition.h" // old
+#include "StEmcPosition2.h"
 
 ClassImp(StJetFrameworkPicoBase)
 
-//-----------------------------------------------------------------------------
+//
+//________________________________________________________________________________________________
 StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   StMaker(),
   doUsePrimTracks(kFALSE),
@@ -70,7 +66,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
-  mVertex(0x0),
+//  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
   fJetType(0),
@@ -107,6 +103,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   RhoMaker1(0x0),
   RhoMaker2(0x0),
   EventPlaneMaker(0x0),
+  mEmcPosition(0x0),
   grefmultCorr(0x0),
   refmultCorr(0x0),
   refmult2Corr(0x0),
@@ -129,8 +126,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
 {
 
 }
-
-//-----------------------------------------------------------------------------
+//
+//______________________________________________________________________________________________
 StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   StMaker(name),
   doUsePrimTracks(kFALSE),
@@ -145,7 +142,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
-  mVertex(0x0),
+//  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
   fJetType(0),
@@ -182,6 +179,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   RhoMaker1(0x0),
   RhoMaker2(0x0),
   EventPlaneMaker(0x0),
+  mEmcPosition(0x0),
   grefmultCorr(0x0),
   refmultCorr(0x0),
   refmult2Corr(0x0),
@@ -204,14 +202,14 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
 {
 
 }
-
-//----------------------------------------------------------------------------- 
+//
+//___________________________________________________________________________________
 StJetFrameworkPicoBase::~StJetFrameworkPicoBase()
 { /*  */
   // destructor
 }
-
-//-----------------------------------------------------------------------------
+//
+//___________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::Init() {
   fAddToHistogramsName = "";
 
@@ -229,6 +227,8 @@ Int_t StJetFrameworkPicoBase::Init() {
         AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
         break;
+
+    // TODO - not sure, may want to add other runs? this base class may not be best place for reading in lists
 
     default :
       AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
@@ -307,20 +307,19 @@ Int_t StJetFrameworkPicoBase::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
+//_________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::Finish() { 
   //  Summarize the run.
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
 // OLD user code says: //  Called every event after Make(). 
+//_________________________________________________________________________________________
 void StJetFrameworkPicoBase::Clear(Option_t *opt) {
 
 }
-
 // 
 //  Get the event-wise rho value
 //_________________________________________________________________________________________
@@ -346,7 +345,6 @@ double StJetFrameworkPicoBase::GetRhoValue(TString fRhoMakerNametemp)
 
   return fRhoVal;
 }
-
 //
 // get centrality bin
 //________________________________________________________________________
@@ -359,7 +357,6 @@ Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
 
   return centbin;
 }
-
 //
 // get centrality bin in 4 different bins
 //________________________________________________________________________
@@ -376,7 +373,6 @@ Int_t StJetFrameworkPicoBase::Get4CentBin(Double_t scaledCent) const
 
   return centbin;
 }
-
 //
 // function to get annuli bin
 //___________________________________________________________________________________________
@@ -399,7 +395,6 @@ Int_t StJetFrameworkPicoBase::GetAnnuliBin(Double_t deltaR) const
 
   return annuliBin;
 }
-
 //
 // function to jet pt bin
 //___________________________________________________________________________________________
@@ -416,7 +411,6 @@ Int_t StJetFrameworkPicoBase::GetJetPtBin(Double_t jetpt) const
 
   return jetPtBin;
 }
-
 //
 // function to jet event plane bin
 //___________________________________________________________________________________________
@@ -435,7 +429,6 @@ Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
 
   return jetEPBin;
 }
-
 //
 // this function generate a jet name based on input
 //___________________________________________________________________________________________
@@ -514,7 +507,8 @@ TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t j
 
   return name;
 }
-
+//
+//
 //________________________________________________________________________
 Double_t StJetFrameworkPicoBase::RelativePhi(Double_t mphi,Double_t vphi) const
 { // function to calculate relative PHI
@@ -530,7 +524,8 @@ Double_t StJetFrameworkPicoBase::RelativePhi(Double_t mphi,Double_t vphi) const
 
   return dphi; // dphi in [-0.5Pi, 1.5Pi]                                                                                   
 }
-
+//
+// 
 //_________________________________________________________________________
 Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
 { // function to calculate angle between jet and EP in the 1st quadrant (0,Pi/2)
@@ -542,20 +537,20 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
     dphi = dphi + 1*TMath::Pi();
   } // this assumes we are doing full jets currently 
  
-  if(dphi > 1.5*pi) dphi -= 2*pi;
-  if((dphi > 1.0*pi) && (dphi < 1.5*pi)) dphi -= 1*pi;
-  if((dphi > 0.5*pi) && (dphi < 1.0*pi)) dphi -= 1*pi;
+  if(dphi > 1.5*pi) dphi -= 2.0*pi;
+  if((dphi > 1.0*pi) && (dphi < 1.5*pi)) dphi -= 1.0*pi;
+  if((dphi > 0.5*pi) && (dphi < 1.0*pi)) dphi -= 1.0*pi;
   dphi = 1.0*TMath::Abs(dphi);
 
   // test
-  if( dphi < 0 || dphi > TMath::Pi()/2 ) {
+  if( dphi < 0 || dphi > TMath::Pi()/2.0 ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
     cout<<"dEP not in range [0, 0.5*Pi]!"<<" jetAng: "<<jetAng<<"  EPang: "<<EPAng<<endl;
   }
 
   return dphi;   // dphi in [0, Pi/2]
 }
-
+//
 /*
 //_________________________________________________
 TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* tracksME)
@@ -569,7 +564,7 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
   Float_t Bfield = mPicoEvent->bField();
 
   // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
   Int_t nMixTracks = mPicoDst->numberOfTracks();
@@ -592,21 +587,19 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
   return tracksClone;
 }
 */
-
 //
 // Track Quality Cuts
 //________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert) {
+Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
   // constants: assume neutral pion mass
   //double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
   // primary track switch
   // get momentum vector of track - global or primary track
-  StThreeVectorF mTrkMom;
+  TVector3 mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return kFALSE; // check if primary
-
     // get primary track vector
     mTrkMom = trk->pMom();
   } else {
@@ -615,16 +608,17 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   }
 
   // track variables
-  double pt = mTrkMom.perp();
-  double phi = mTrkMom.phi();
-  double eta = mTrkMom.pseudoRapidity();
+  double pt = mTrkMom.Perp();
+  double phi = mTrkMom.Phi();
+  double eta = mTrkMom.PseudoRapidity();
   //double px = mTrkMom.x();
   //double py = mTrkMom.y();
   //double pz = mTrkMom.z();
-  //double p = mTrkMom.mag();
+  //double p = mTrkMom.Mag();
   //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
   //short charge = trk->charge();
-  double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  ////double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
+  double dca = trk->gDCA(Vert).Mag();
   int nHitsFit = trk->nHitsFit();
   int nHitsMax = trk->nHitsMax();
   double nHitsRatio = 1.0*nHitsFit/nHitsMax;
@@ -639,8 +633,8 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR, (increased to 30.0) 100.0 ALICE
   if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
-  if(phi < 0)    phi += 2*pi;
-  if(phi > 2*pi) phi -= 2*pi;
+  if(phi < 0.0)    phi += 2.0*pi;
+  if(phi > 2.0*pi) phi -= 2.0*pi;
   if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
     
   // additional quality cuts for tracks
@@ -651,30 +645,33 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, StThreeV
   // passed all above cuts - keep track
   return kTRUE;
 }
-
 /*
 //
 // Tower Quality Cuts
 //________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::AcceptTower(StPicoBTowHit *tower, StThreeVectorF Vertex) {
-  // get EMCal position
-  StEmcPosition *mPosition = new StEmcPosition();
+Bool_t StJetFrameworkPicoBase::AcceptTower(StPicoBTowHit *tower, TVector3 Vertex, Int_t towerID) {
+  // get EMCal position - FIXME if using
+  StEmcPosition2 *mPosition = new StEmcPosition2();
 
   // constants:
   double pi = 1.0*TMath::Pi();
 
-  // tower ID
-  int towerID = tower->id();
+  // tower ID - passed into function
+  //int towerID = tower->id();
 
   // make sure some of these aren't still in event array
   if(towerID < 0) return kFALSE; 
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-  StThreeVectorF towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
-  double phi = towerPosition.phi();
-  if(phi < 0)    phi += 2.0*pi;
-  if(phi > 2*pi) phi -= 2.0*pi;
-  double eta = towerPosition.pseudoRapidity();
+  TVector3 towerPosition = mPosition->getPosFromVertex(mVertex, towerID);
+
+  // free up memory
+  delete mPosition;
+
+  double phi = towerPosition.Phi();
+  if(phi < 0.0)    phi += 2.0*pi;
+  if(phi > 2.0*pi) phi -= 2.0*pi;
+  double eta = towerPosition.PseudoRapidity();
   int towerADC = tower->adc();
   double towerEunCorr = tower->energy();  // uncorrected energy
 
@@ -686,24 +683,22 @@ Bool_t StJetFrameworkPicoBase::AcceptTower(StPicoBTowHit *tower, StThreeVectorF 
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if((eta < fTowerEtaMinCut) || (eta > fTowerEtaMaxCut)) return kFALSE;
-  if(phi < 0)    phi+= 2*pi;
-  if(phi > 2*pi) phi-= 2*pi;
   if((phi < fTowerPhiMinCut) || (phi > fTowerPhiMaxCut)) return kFALSE;
 
   // passed all above cuts - keep tower and fill input vector to fastjet
   return kTRUE;
 }
 */
-
+//
+// general reaction plane function
 //________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetReactionPlane() { 
   // get event B (magnetic) field
   Float_t Bfield = mPicoEvent->bField();
 
   // get vertex 3-vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
 
-  //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
   TVector2 mQ;
   double mQx = 0., mQy = 0.;
   int order = 2;
@@ -722,9 +717,8 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
     StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       if(!(track->isPrimary())) return kFALSE; // check if primary
       // get primary track vector
@@ -735,9 +729,9 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // do pt cut here to accommadate either type
     if(doUsePrimTracks) { // primary  track
@@ -749,9 +743,9 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
     // more acceptance cuts now - after getting 3vector - hardcoded for now
     if(pt > 5.0) continue;   // 100.0
     if((1.0*TMath::Abs(eta)) > 1.0) continue;
-    if(phi < 0)    phi+= 2*pi;
-    if(phi > 2*pi) phi-= 2*pi;
-    if((phi < 0) || (phi > 2*pi)) continue;
+    if(phi < 0.0)    phi+= 2.0*pi;
+    if(phi > 2.0*pi) phi-= 2.0*pi;
+    if((phi < 0) || (phi > 2.0*pi)) continue;
 
     // check for leading jet removal
     if(fExcludeLeadingJetsFromFit > 0 && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
@@ -780,7 +774,8 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
   //return psi*180/pi;  // converted to degrees
   return psi;
 }
-
+//
+// get dijet asymmetry
 // _____________________________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParameter *eventRho, Bool_t doCorrJetPt) {
   // returns dijet asymmetry Aj of 2 jets
@@ -803,7 +798,8 @@ Double_t StJetFrameworkPicoBase::GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParam
   // return absolute value in case user input wrong
   return 1.0*TMath::Abs(Aj);
 }
-
+//
+// get leading jet pointer
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho) {
   // return pointer to the highest pt jet (before/after background subtraction) within acceptance
@@ -863,7 +859,8 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
 
   return 0x0;
 }
-
+//
+// get subledaing jet pointer
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho) {
   // return pointer to the second highest pt jet (before/after background subtraction) within acceptance
@@ -943,15 +940,15 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
   return 0x0;
 }
-
-
+//
 //__________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::EventCounter() {
   mEventCounter++;
 
   return mEventCounter;
 }
-
+//
+//
 //__________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
   // this function is written to cut on centrality in a task for a given range
@@ -1059,7 +1056,7 @@ Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t 
 
   return doAnalysis;
 }
-
+//
 // elems: sizeof(myarr)/sizeof(*myarr) prior to passing to function
 // upon passing the array collapses to a pointer and can not get size anymore
 //________________________________________________________________________
@@ -1076,9 +1073,20 @@ Bool_t StJetFrameworkPicoBase::DoComparison(int myarr[], int elems) {
 
   return match;
 }
-
+//
+//
 //_________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
+  // Run11 triggers:
+  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
+
+  // Run12 (200 GeV pp) triggers:
+  // 1) VPDMB, 2) vpd-zdc-mb
+  int arrMB_Run12[] = {370001, 370011, 370983};
+
+  // Run13 triggers:
+  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
+
   // Run14 triggers:
   int arrMB_Run14[] = {450014};
   int arrMB30_Run14[] = {450010, 450020};
@@ -1089,12 +1097,6 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   int arrMB_Run16[] = {520021};
   int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
   int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
-  // Run11 triggers:
-  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
-
-  // Run13 triggers:
-  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
 
   // Run17 triggers:
   int arrMB30_Run17[] = {570001, 590001};
@@ -1145,6 +1147,19 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
         }
         break;
 
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        switch(type) {
+          case StJetFrameworkPicoBase::kRun12main :  // update if needed
+              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB :
+              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
+        }
+        break;
+
     case StJetFrameworkPicoBase::Run13_pp510 : // Run13 pp
         switch(type) {
           case StJetFrameworkPicoBase::kVPDMB :
@@ -1177,11 +1192,14 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   // return status
   return kFALSE;
 } // MB function
-
 //
 // check to see if the event was EMC triggered for High Towers
 //____________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
+  // Run12 (200 GeV pp) triggers:
+  int arrHT1_Run12[] = {370511, 370546};
+  int arrHT2_Run12[] = {370521, 370522, 370531, 370980};
+  int arrHT3_Run12[] = {380206, 380216}; // NO HT3 triggers in this dataset
 
   // Run14 triggers:
   int arrHT1_Run14[] = {450201, 450211, 460201};
@@ -1232,6 +1250,22 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
         }
         break; // added May20
 
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+        switch(type) {
+          case StJetFrameworkPicoBase::kIsHT1 :
+              if((DoComparison(arrHT1_Run12, sizeof(arrHT1_Run12)/sizeof(*arrHT1_Run12)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT2 :
+              if((DoComparison(arrHT2_Run12, sizeof(arrHT2_Run12)/sizeof(*arrHT2_Run12)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kIsHT3 :
+              if((DoComparison(arrHT3_Run12, sizeof(arrHT3_Run12)/sizeof(*arrHT3_Run12)))) { return kTRUE; }
+              break;
+          default :  
+              if((DoComparison(arrHT2_Run12, sizeof(arrHT2_Run12)/sizeof(*arrHT2_Run12)))) { return kTRUE; }
+        }
+        break; 
+
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
@@ -1252,14 +1286,15 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
 
   return kFALSE;
 }
-
+//
+//
 //________________________________________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent) const {
-  // initialize Emc position objects
-  StEmcPosition *Position = new StEmcPosition();
+Bool_t StJetFrameworkPicoBase::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const {
+  // initialize Emc position objects - FIXME if using
+  StEmcPosition2 *Position = new StEmcPosition2();
 
   // vertex components
-  StThreeVectorF fVertex = PicoEvent->primaryVertex();
+  TVector3 fVertex = PicoEvent->primaryVertex();
 //  double xVtx = fVertex.x();
 //  double yVtx = fVertex.y();
 //  double zVtx = fVertex.z();
@@ -1268,10 +1303,18 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTow
   if(mass < 0) mass = 0;
   Double_t energy = tower->energy();
   Double_t p = TMath::Sqrt(energy*energy - mass*mass);
-  int towerID = tower->id();
+
+  // tower ID - passed into function
+  //int towerID = tower->id();
+  //int towerID = -1;
+  if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+    //towerID = tower->id();
+  } else {
+    //towerID = tower->numericIndex2SoftId(itow);
+  }
 
   // get tower position
-  StThreeVectorF towerPosition = Position->getPosFromVertex(fVertex, towerID);
+  TVector3 towerPosition = Position->getPosFromVertex(fVertex, towerID);
   double posX = towerPosition.x();
   double posY = towerPosition.y();
   double posZ = towerPosition.z();
@@ -1284,14 +1327,18 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(StThreeVectorF &mom, const StPicoBTow
   // get r, set position components
   Double_t r = TMath::Sqrt(posX*posX + posY*posY + posZ*posZ) ;
   if(r > 1e-12) {
-    mom.setX( p*posX/r );
-    mom.setY( p*posY/r );
-    mom.setZ( p*posZ/r );
+    mom.SetX( p*posX/r );
+    mom.SetY( p*posY/r );
+    mom.SetZ( p*posZ/r );
     // energy) ;
   } else { return kFALSE; }
+
+  // free up memory
+  delete Position;
+
   return kTRUE;
 }
-
+//
 /*
 //____________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
@@ -1309,7 +1356,7 @@ Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
     return kTRUE;
   }
 }
-
+//
 //____________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
   //if( deadTowers.size()==0 ){
@@ -1326,12 +1373,12 @@ Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
     return kFALSE;
   }
 }
-
+//
 //____________________________________________________________________________
 void StJetFrameworkPicoBase::ResetBadTowerList( ){
   badTowers.clear();
 }
-
+//
 // Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
@@ -1365,7 +1412,7 @@ Bool_t StJetFrameworkPicoBase::AddBadTowers(TString csvfile){
  
   return kTRUE;
 }
-
+//
 // Add dead towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
@@ -1399,13 +1446,12 @@ Bool_t StJetFrameworkPicoBase::AddDeadTowers(TString csvfile){
 
   return kTRUE;
 }
-
+//
 //____________________________________________________________________________
 void StJetFrameworkPicoBase::ResetDeadTowerList( ){
   deadTowers.clear();
 }
 */
-
 //
 // function to convert 5% centrality to 10% bins
 // must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
@@ -1423,7 +1469,6 @@ Int_t StJetFrameworkPicoBase::GetCentBin10(Int_t cbin) const {
 
   return cbin10;
 }
-
 //
 // Returns pt of hardest track in the event
 //
@@ -1442,9 +1487,8 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -1454,7 +1498,7 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
     }
 
     // track variables
-    double pt = mTrkMom.perp();
+    double pt = mTrkMom.Perp();
 
     // get max track
     if(pt > fMaxTrackPt) { fMaxTrackPt = pt; }
@@ -1462,23 +1506,48 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
 
   return fMaxTrackPt;
 }
-/*
 //
+// Returns correction for tracking efficiency
 //
-//___________________________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::DidTowerConstituentFireTrigger(StJet *jet) const {
-  // ==== 
+//Double_t StJetFrameworkPicoBase::ApplyTrackingEffpp(StPicoTrack *trk)
+//Double_t StJetFrameworkPicoBase::ApplyTrackingEffAuAu(StPicoTrack *trk)
+Double_t StJetFrameworkPicoBase::ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff)
+{
+  // initialize effieciency
+  double trEff = 1.0;
+  if(!applyEff) return trEff;
 
-  // loop over constituents towers
-  for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-    int towerid = jet->ClusterAt(itow);
-    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
-    if(!tow){ continue; }
+  // get momentum vector of track - global or primary track
+  TVector3 mTrkMom;
+  if(doUsePrimTracks) {
+    // get primary track vector
+    mTrkMom = trk->pMom();
+  } else {
+    // get global track vector
+    mTrkMom = trk->gMom(mVertex, Bfield);
+  }
 
-    int towID = tow->id();
+  // track variables
+  double tpt = mTrkMom.Perp();
+  double teta = mTrkMom.PseudoRapidity();
+  double tphi = mTrkMom.Phi();
 
-  } // tower constituent loop
+  // track efficiency has pt and eta and centrality dependence 
+  //
+  // RunFlag switch
+  switch(fRunFlag) {
 
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        break; 
+
+  } // RunFlag switch
+
+  // return the single track reconstruction efficiency for the corresponding dataset
+  return trEff;
 }
-
-*/

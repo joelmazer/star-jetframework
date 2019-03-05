@@ -8,22 +8,21 @@
 // 	- jet-hadron correlations
 // 	- mixed events: use of an event pool to mix triggers with
 //      - Rho (underlying event) subtraction to jets
-//      - leading jet tag
+//      - leading jet and subleading tag
 //      - event plane calculation with BBC, ZDC, TPC
 //      - event plane corrections with BBC, ZDC, TPC
 //      - access to jet constituents
 //      - general QA
-
+//
 // can get a pointer to:
 // 1) collection of jets  	
 // 2) event wise rho parameter
 // 3) jet constituents (4 vectors)
 // 4) leading + subleading jets
-//
+// 5) event plane calculation for various pt bins
 // ################################################################
 
 #include "StMyAnalysisMaker3.h"
-
 #include "StMemStat.h"
 
 // ROOT includes
@@ -35,12 +34,12 @@
 #include <TProfile.h>
 #include "TRandom.h"
 #include "TRandom3.h"
+#include "TVector3.h"
 
 #include <sstream>
 #include <fstream>
 
 // STAR includes
-#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
@@ -52,13 +51,10 @@
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
-#include "StPicoTrk.h"
 #include "StFemtoTrack.h"
+#include "runlistP12id.h"
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-
-// include header that has all the event plane correction headers - with calibration/correction values
-//#include "StPicoEPCorrectionsIncludes.h"
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -78,16 +74,9 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-// classes
-//class StJetMakerTask;
-
-//namespace fastjet {
-//  class PseudoJet;
-//}
-
 ClassImp(StMyAnalysisMaker3)
 
-//-----------------------------------------------------------------------------
+//______________________________________________________________________________
 StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
@@ -145,6 +134,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doEventPlaneRes = kFALSE;
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
+  doUseMainEPAngle = kFALSE;  // kTRUE: use 0.2-2.0 GeV charged tracks for event plane
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -152,6 +142,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fJetRad = 0.4;
   fJetShapeTrackPtMin = 0.2;  fJetShapeTrackPtMax = 30.0;
   fJetShapePtAssocBin = 4;
+  fLeadJetPtMin = 20.0; fSubLeadJetPtMin = 10.0;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
@@ -165,7 +156,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
-  mVertex = 0x0;
+  //mVertex = 0x0;
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
   fDoUseMultBins = kFALSE;
@@ -185,8 +176,9 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fRhoMakerName = rhoMakerName;
   fEventPlaneMakerName = "";
 }
-
-//----------------------------------------------------------------------------- 
+//
+//
+//__________________________________________________________________________________
 StMyAnalysisMaker3::~StMyAnalysisMaker3()
 { /*  */
   // destructor
@@ -276,29 +268,40 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   if(hTPCvsZDCep) delete hTPCvsZDCep;
   if(hBBCvsZDCep) delete hBBCvsZDCep;
 
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        delete fProfJetV2[k][j][i];
+      }
+    }
+  }
+
   if(doJetShapeAnalysis) {
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) { 
-          delete hJetShape[k][j][i]; 
-          delete hJetShapeCase1[k][j][i];
-          delete hJetShapeCase2[k][j][i];
-          delete hJetShapeBG[k][j][i];
-          delete hJetShapeBGCase1[k][j][i];
-          delete hJetShapeBGCase2[k][j][i];
-          delete hJetShapeBGCase3[k][j][i];
+        for(int i=0; i<4; i++) {
           delete hJetCounter[k][j][i];
           delete hJetCounterCase1[k][j][i];
           delete hJetCounterCase2[k][j][i];
           delete hJetCounterCase3BG[k][j][i];
 
-          delete hJetPtProfile[k][j][i];
-          delete hJetPtProfileCase1[k][j][i];
-          delete hJetPtProfileCase2[k][j][i];
-          delete hJetPtProfileBG[k][j][i];
-          delete hJetPtProfileBGCase1[k][j][i];
-          delete hJetPtProfileBGCase2[k][j][i];
-          delete hJetPtProfileBGCase3[k][j][i];
+          for(int p=0; p<9; p++) {
+            delete hJetShape[k][j][i][p];
+            delete hJetShapeCase1[k][j][i][p];
+            delete hJetShapeCase2[k][j][i][p];
+            delete hJetShapeBG[k][j][i][p];
+            delete hJetShapeBGCase1[k][j][i][p];
+            delete hJetShapeBGCase2[k][j][i][p];
+            delete hJetShapeBGCase3[k][j][i][p];
+
+            delete hJetPtProfile[k][j][i][p];
+            delete hJetPtProfileCase1[k][j][i][p];
+            delete hJetPtProfileCase2[k][j][i][p];
+            delete hJetPtProfileBG[k][j][i][p];
+            delete hJetPtProfileBGCase1[k][j][i][p];
+            delete hJetPtProfileBGCase2[k][j][i][p];
+            delete hJetPtProfileBGCase3[k][j][i][p];
+          }
         }
       }
     }
@@ -321,8 +324,9 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
 //  fRho->Clear(); delete fRho; 
   fPoolMgr->Clear(); delete fPoolMgr;
 }
-
-//-----------------------------------------------------------------------------
+//
+//
+//_________________________________________________________________________________________
 Int_t StMyAnalysisMaker3::Init() {
   //StJetFrameworkPicoBase::Init();
 
@@ -400,8 +404,9 @@ Int_t StMyAnalysisMaker3::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
+//
+//______________________________________________________________________________________
 Int_t StMyAnalysisMaker3::Finish() { 
   //  Summarize the run.
   cout << "StMyAnalysisMaker3::Finish()\n";
@@ -420,14 +425,16 @@ Int_t StMyAnalysisMaker3::Finish() {
    
     // jet shape analysis
     if(doJetShapeAnalysis) {
-      fout->cd();
-      //fout->mkdir(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
-      //fout->cd(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
-      //fout->mkdir(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
-      //fout->cd(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
-      fout->mkdir(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
-      fout->cd(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
-      WriteJetShapeHistograms();
+      for(int j=0; j<9; j++) {
+        fout->cd();
+        //fout->mkdir(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
+        //fout->cd(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
+        //fout->mkdir(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
+        //fout->cd(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
+        fout->mkdir(Form("JetShapeAnalysis_bin%i", j));
+        fout->cd(Form("JetShapeAnalysis_bin%i", j));
+        WriteJetShapeHistograms(j);
+      }
     }
 
     fout->cd();
@@ -460,34 +467,28 @@ Int_t StMyAnalysisMaker3::Finish() {
     fQAout->Close();
   }
 
-/*
-  //  Write event plane histos to file and close it.
-  if(mOutNameEP!="") {
-    //TFile *foutEP = new TFile(mOutName.Data(), "UPDATE");
-    TFile *foutEP = new TFile(mOutNameEP.Data(), "RECREATE");
-    foutEP->cd();
-    //foutEP->mkdir(fAnalysisMakerName);
-    //foutEP->cd(fAnalysisMakerName);
-    WriteEventPlaneHistograms();
-
-    //foutEP->cd();
-    foutEP->Write();
-    foutEP->Close();
-  }
-*/
-
   cout<<"End of StMyAnalysisMaker3::Finish"<<endl;
   StMemStat::PrintMem("End of Finish...");
 
   return kStOK;
 }
-
-//-----------------------------------------------------------------------------
+//
+//
+//__________________________________________________________________________________________
 void StMyAnalysisMaker3::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
-  int nHistCentBins;
+  int nHistCentBins = 0;
   if(fCentBinSize == 10) nHistCentBins = 10;
   if(fCentBinSize ==  5) nHistCentBins = 20;
+
+  double kHistMultMax = 800.;
+  int kHistMultBins = 400;
+
+  // pp specific settings
+  if(doppAnalysis) {
+    kHistMultMax = 100.;
+    kHistMultBins = 100.;
+  }
 
   // QA histos
   hdEPReactionPlaneFnc = new TH1F("hdEPReactionPlaneFnc", "jets relative to EP from reaction plane function", 3, 0.0, 0.5*pi);
@@ -509,7 +510,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEPZDC = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, -pi, pi);
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", nHistCentBins, 0, 100); 
-  hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
+  hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", kHistMultBins, 0, kHistMultMax);
   hRhovsCent = new TH2F("hRhovsCent", "#rho vs centrality", 20, 0, 100, 200, 0, 200);
 
   for(int i=0; i<5; i++) { // pt bins
@@ -517,11 +518,11 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   }
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
-    hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
+    hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2.0*pi);
     hTrackEta[i] = new TH1F(Form("hTrackEta%d", i), Form("track distribution vs #eta, centr%d", i), 40, -1.0, 1.0);
     hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 120, 0., 30.0);
   }
-  hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
+  hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2.0*pi, 40, -1.0, 1.0);
 
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
@@ -542,23 +543,23 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hJetTracksZ = new TH1F("hJetTracksZ", "Jet track fragmentation function", 144, 0, 1.44);
   hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
   hJetEventEP = new TH1F("hJetEventEP", "no of jet events vs event plane", 72, 0.0, 1.0*pi);
-  hJetPhivsEP = new TH2F("hJetPhivsEP", "Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+  hJetPhivsEP = new TH2F("hJetPhivsEP", "Jet #phi vs event plane", 72, 0.0, 2.0*pi, 72, 0.0, 1.0*pi);
 
   hJetPtIn = new TH1F("hJetPtIn", "no of jets in-plane vs p_{T}", 100, 0.0, 100);
   hJetPhiIn = new TH1F("hJetPhiIn", "no of jets in-plane vs #phi", 72, 0.0, 2.0*pi);
   hJetEtaIn = new TH1F("hJetEtaIn", "no of jets in-plane vs #eta", 40, -1.0, 1.0);
   hJetEventEPIn = new TH1F("hJetEventEPIn", "no of in-plane jet events vs event plane", 72, 0.0, 1.0*pi);
-  hJetPhivsEPIn = new TH2F("hJetPhivsEPIn", "in-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+  hJetPhivsEPIn = new TH2F("hJetPhivsEPIn", "in-plane Jet #phi vs event plane", 72, 0.0, 2.0*pi, 72, 0.0, 1.0*pi);
   hJetPtMid = new TH1F("hJetPtMid", "no of jets mid-plane vs p_{T}", 100, 0.0, 100);
   hJetPhiMid = new TH1F("hJetPhiMid", "no of jets mid-plane vs #phi", 72, 0.0, 2.0*pi);
   hJetEtaMid = new TH1F("hJetEtaMid", "no of jets mid-plane vs #eta", 40, -1.0, 1.0);
   hJetEventEPMid = new TH1F("hJetEventEPMid", "no of mid-plane jet events vs event plane", 72, 0.0, 1.0*pi);
-  hJetPhivsEPMid = new TH2F("hJetPhivsEPMid", "mid-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+  hJetPhivsEPMid = new TH2F("hJetPhivsEPMid", "mid-plane Jet #phi vs event plane", 72, 0.0, 2.0*pi, 72, 0.0, 1.0*pi);
   hJetPtOut = new TH1F("hJetPtOut", "no of jets out-of-plane vs p_{T}", 100, 0.0, 100);
   hJetPhiOut = new TH1F("hJetPhiOut", "no of jets out-of-plane vs #phi", 72, 0.0, 2.0*pi);
   hJetEtaOut = new TH1F("hJetEtaOut", "no of jets out-of-plane vs #eta", 40, -1.0, 1.0);
   hJetEventEPOut = new TH1F("hJetEventEPOut", "no of out-of-plane jet events vs event plane", 72, 0.0, 1.0*pi);
-  hJetPhivsEPOut = new TH2F("hJetPhivsEPOut", "out-of-plane Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
+  hJetPhivsEPOut = new TH2F("hJetPhivsEPOut", "out-of-plane Jet #phi vs event plane", 72, 0.0, 2.0*pi, 72, 0.0, 1.0*pi);
 
   fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
@@ -573,10 +574,10 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hTriggerEvtStatZVtx = new TH1F("hTriggerEvtStatZVtx", "no of trigger events used vs zvtx", 20, -40.0, 40.0);
   hTriggerEvtStatCent = new TH1F("hTriggerEvtStatCent", "no of trigger events used vs Centrality", nHistCentBins, 0, 100);
   hTriggerEvtStatZvsCent = new TH2F("hTriggerEvtStatZvsCent", "no of trigger events used: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
-  hMBvsMult = new TH1F("hMBvsMult", "# MB events vs multiplicity", 350, 0, 700);
-  hMB5vsMult = new TH1F("hMB5vsMult", "# MB5 events vs multiplicity", 350, 0, 700);
-  hMB30vsMult = new TH1F("hMB30vsMult", "# MB30 events vs multiplicity", 350, 0, 700);
-  hHTvsMult = new TH1F("hHTvsMult", "# HT events vs multiplicity", 350, 0, 700);
+  hMBvsMult = new TH1F("hMBvsMult", "# MB events vs multiplicity", kHistMultBins, 0, kHistMultMax);
+  hMB5vsMult = new TH1F("hMB5vsMult", "# MB5 events vs multiplicity", kHistMultBins, 0, kHistMultMax);
+  hMB30vsMult = new TH1F("hMB30vsMult", "# MB30 events vs multiplicity", kHistMultBins, 0, kHistMultMax);
+  hHTvsMult = new TH1F("hHTvsMult", "# HT events vs multiplicity", kHistMultBins, 0, kHistMultMax);
   hNMixEvents = new TH1F("hNMixEvents", "number of mixing events", 200, 0, 200);
 
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
@@ -586,33 +587,44 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   //if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) nRunBins = 1359;
 
   // 2-D event plane differences - updated ranges on Feb7
-  hTPCvsBBCep = new TH2F("hTPCvsBBCep", "TPC vs BBC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
-  hTPCvsZDCep = new TH2F("hTPCvsZDCep", "TPC vs ZDC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
-  hBBCvsZDCep = new TH2F("hBBCvsZDCep", "BBC vs ZDC 2nd order event plane", 144, 0.*pi, 1*pi, 144, 0.*pi, 1.*pi);
+  hTPCvsBBCep = new TH2F("hTPCvsBBCep", "TPC vs BBC 2nd order event plane", 144, 0.*pi, 1.0*pi, 144, 0.*pi, 1.*pi);
+  hTPCvsZDCep = new TH2F("hTPCvsZDCep", "TPC vs ZDC 2nd order event plane", 144, 0.*pi, 1.0*pi, 144, 0.*pi, 1.*pi);
+  hBBCvsZDCep = new TH2F("hBBCvsZDCep", "BBC vs ZDC 2nd order event plane", 144, 0.*pi, 1.0*pi, 144, 0.*pi, 1.*pi);
+
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        fProfJetV2[k][j][i] = new TProfile(Form("fProfJetV2_%i_%i_%i", k, j, i), Form("fProfJetV2_%i_%i_%i", k, j, i), 11, -0.5, 10.5);
+      }
+    }
+  }
 
   if(doJetShapeAnalysis) {
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) { 
-          hJetShape[k][j][i] = new TH1F(Form("hJetShape_%i_%i_%i", k, j, i), Form("Jet shape #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50); 
-          hJetShapeCase1[k][j][i] = new TH1F(Form("hJetShapeCase1_%i_%i_%i", k, j, i), Form("Jet shape case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeCase2[k][j][i] = new TH1F(Form("hJetShapeCase2_%i_%i_%i", k, j, i), Form("Jet shape case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBG[k][j][i] = new TH1F(Form("hJetShapeBG_%i_%i_%i", k, j, i), Form("Jet shape BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase1[k][j][i] = new TH1F(Form("hJetShapeBGCase1_%i_%i_%i", k, j, i), Form("Jet shape BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase2[k][j][i] = new TH1F(Form("hJetShapeBGCase2_%i_%i_%i", k, j, i), Form("Jet shape BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase3[k][j][i] = new TH1F(Form("hJetShapeBGCase3_%i_%i_%i", k, j, i), Form("Jet shape BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        for(int i=0; i<4; i++) {
           hJetCounter[k][j][i] = new TH1F(Form("hJetCounter_%i_%i_%i", k, j, i), Form("Jet counter - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
           hJetCounterCase1[k][j][i] = new TH1F(Form("hJetCounterCase1_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
           hJetCounterCase2[k][j][i] = new TH1F(Form("hJetCounterCase2_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
           hJetCounterCase3BG[k][j][i] = new TH1F(Form("hJetCounterCase3BG_%i_%i_%i", k, j, i), Form("Jet counter case3 BG only - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
 
-          hJetPtProfile[k][j][i] = new TH1F(Form("hJetPtProfile_%i_%i_%i", k, j, i), Form("Jet pt profile #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileCase1[k][j][i] = new TH1F(Form("hJetPtProfileCase1_%i_%i_%i", k, j, i), Form("Jet pt profile case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileCase2[k][j][i] = new TH1F(Form("hJetPtProfileCase2_%i_%i_%i", k, j, i), Form("Jet pt profile case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBG[k][j][i] = new TH1F(Form("hJetPtProfileBG_%i_%i_%i", k, j, i), Form("Jet pt profile BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase1[k][j][i] = new TH1F(Form("hJetPtProfileBGCase1_%i_%i_%i", k, j, i), Form("Jet profile BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase2[k][j][i] = new TH1F(Form("hJetPtProfileBGCase2_%i_%i_%i", k, j, i), Form("Jet profile BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase3[k][j][i] = new TH1F(Form("hJetPtProfileBGCase3_%i_%i_%i", k, j, i), Form("Jet profile BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+          for(int p=0; p<9; p++) {
+            hJetShape[k][j][i][p] = new TH1F(Form("hJetShape_%i_%i_%i_%i", k, j, i, p), Form("Jet shape #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeCase1[k][j][i][p] = new TH1F(Form("hJetShapeCase1_%i_%i_%i_%i", k, j, i, p), Form("Jet shape case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeCase2[k][j][i][p] = new TH1F(Form("hJetShapeCase2_%i_%i_%i_%i", k, j, i, p), Form("Jet shape case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeBG[k][j][i][p] = new TH1F(Form("hJetShapeBG_%i_%i_%i_%i", k, j, i, p), Form("Jet shape BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeBGCase1[k][j][i][p] = new TH1F(Form("hJetShapeBGCase1_%i_%i_%i_%i", k, j, i, p), Form("Jet shape BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeBGCase2[k][j][i][p] = new TH1F(Form("hJetShapeBGCase2_%i_%i_%i_%i", k, j, i, p), Form("Jet shape BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetShapeBGCase3[k][j][i][p] = new TH1F(Form("hJetShapeBGCase3_%i_%i_%i_%i", k, j, i, p), Form("Jet shape BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+
+            hJetPtProfile[k][j][i][p] = new TH1F(Form("hJetPtProfile_%i_%i_%i_%i", k, j, i, p), Form("Jet pt profile #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileCase1[k][j][i][p] = new TH1F(Form("hJetPtProfileCase1_%i_%i_%i_%i", k, j, i, p), Form("Jet pt profile case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileCase2[k][j][i][p] = new TH1F(Form("hJetPtProfileCase2_%i_%i_%i_%i", k, j, i, p), Form("Jet pt profile case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileBG[k][j][i][p] = new TH1F(Form("hJetPtProfileBG_%i_%i_%i_%i", k, j, i, p), Form("Jet pt profile BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileBGCase1[k][j][i][p] = new TH1F(Form("hJetPtProfileBGCase1_%i_%i_%i_%i", k, j, i, p), Form("Jet profile BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileBGCase2[k][j][i][p] = new TH1F(Form("hJetPtProfileBGCase2_%i_%i_%i_%i", k, j, i, p), Form("Jet profile BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+            hJetPtProfileBGCase3[k][j][i][p] = new TH1F(Form("hJetPtProfileBGCase3_%i_%i_%i_%i", k, j, i, p), Form("Jet profile BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i, associated p_{T} bin %i", k, j, i, p), 10, 0.0, 0.50);
+          }
         }
       }
     }
@@ -706,30 +718,11 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   // set up jet-hadron sparse
   UInt_t bitcodeMESE = 0; // bit coded, see GetDimParams() below
   bitcodeMESE = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7; // | 1<<8 | 1<<9 | 1<<10;
-  //if(fDoEventMixing) {
-    fhnJH = NewTHnSparseF("fhnJH", bitcodeMESE);
-  //}
+  fhnJH = NewTHnSparseF("fhnJH", bitcodeMESE);
 
+  // =================================================================================================
   // set up centrality bins for mixed events
   // for pp we need mult bins for event mixing. Create binning here, to also make a histogram from it
-  // TODO needs updating for STAR multiplicities
-  //int nCentralityBinspp = 8;
-  //double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
-
-  // this is temp as the above and various other implementation attempts would not work for both cases
-  // need to look into this, but a few hours already is too much.  Don't want to have to have this hard-coded
-  Int_t nCentBins = 8;
-  Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  Double_t* centralityBins = cenBins;
-
-  // z-vertex bins for mixed events
-  Int_t nZvBins  = 20; //10+1+10;
-  Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  ///Int_t nZvBins  = 40;
-  ///Double_t vBins[] = {-40,-38,-36,-34,-32, -30,-28,-26,-24,-22, -20,-18,-16,-14,-12, -10,-8,-6,-4,-2, 0,2,4,6,8, 10,12,14,16,18, 20,22,24,26,28, 30,32,34,36,38, 40};
-  Double_t* zvbins = vBins;
-  //Int_t nbinsjetMIX = sizeof(vBinsJS)/sizeof(Double_t) - 1;
-  // =================================================================================================
 
   // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
   // centrality bins for mixed events
@@ -753,6 +746,11 @@ void StMyAnalysisMaker3::DeclareHistograms() {
     centralityBinsJS[ic] = 1.0*ic;
   }
 
+  // this is temp as the above and various other implementation attempts would not work for both cases
+  // need to look into this, but a few hours already is too much.  Don't want to have to have this hard-coded
+  Int_t nCentBins = 8;
+  Double_t* centralityBins = GenerateFixedBinArray(nCentBins, 0., 8.);
+
 /*
 Centrality_def_grefmult.txt               - OLD (16)
  10 14 21 29 40 54 | 71 92 116 145 179 218 | 263 315 | 373 441  
@@ -760,32 +758,48 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
  10 15 22 31 43 58 | 76 97 123 154 189 230 | 276 329 | 390 459  
 */
 
+  // for AuAu data
 //  Int_t nMultBinsJS = 29; 
 //  Double_t multBinsJS[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
 //  Int_t nMultBinsJS = 24;  // Alt-1: Best Yet
 //  Double_t multBinsJS[] = {10,16,24,34,46,61,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
-  Int_t nMultBinsJS = 25;  // Alt-2
-  Double_t multBinsJS[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+  ///Int_t nMultBinsJS = 25;  // Alt-2
+  ///Double_t multBinsJS[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+
+  // for AuAu data
+  // +1 to accomodate the fact that we dfine bins rather than array entries
+  const int nMultBinsJS = 26;  // Alt-2 - 27 values, 26 ranges
+  Double_t multBinsJS[nMultBinsJS + 1] = {0, 10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469, 800};
   Double_t *multiplicityBinsJS = multBinsJS;
+
+  // for pp data
+  const int nMultBinsJSpp = 7;
+  //Double_t multBinsJSpp[nMultBinsJSpp + 1] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  // 8 (9)
+  Double_t multBinsJSpp[nMultBinsJSpp + 1] = {0.0, 4.0, 6.0, 8.0, 10.0, 13.0, 30., 100.};   // 7 (8)
+  Double_t *multiplicityBinsJSpp = multBinsJSpp;
+
+  // z-vertex bins for mixed events
+  Int_t nZvBins  = 20; // 4 cm wide, 40 for 2 cm wide
+  Double_t* zvbins = GenerateFixedBinArray(nZvBins, -40., 40.);
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
   Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
-  //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinspp, centralityBinspp, nZvtxBins, zvtxbin);
   if(doJetShapeAnalysis) { 
     if(fDoUseMultBins) { 
-      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins);
-    } else {   
+      if(!doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins); // not pp
+      if( doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJSpp, (Double_t*)multiplicityBinsJSpp, nZvBins, (Double_t*)zvbins); // is pp
+
+    } else { // centrality binning 
       fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins);
-    }
+    } // correlation analysis setup
   } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvbins); }
 
   // set up event mixing sparse
-  //if(fDoEventMixing){
-    bitcodeMESE = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7; // | 1<<8 | 1<<9;
-    fhnMixedEvents = NewTHnSparseF("fhnMixedEvents", bitcodeMESE);
-  //} // end of do-eventmixing
+  bitcodeMESE = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7; // | 1<<8 | 1<<9;
+  fhnMixedEvents = NewTHnSparseF("fhnMixedEvents", bitcodeMESE);
 
+  // jet counter for normalizations in correlation analysis
   UInt_t bitcodeCorr = 0; // bit coded, see GetDimparamsCorr() below
   bitcodeCorr = 1<<0 | 1<<1 | 1<<2 | 1<<3; // | 1<<4;
   fhnCorr = NewTHnSparseFCorr("fhnCorr", bitcodeCorr);
@@ -793,7 +807,7 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
   // Switch on Sumw2 for all histos - (except profiles)
   SetSumw2();
 }
-
+//
 // write track QA histograms
 //_____________________________________________________________________________
 void StMyAnalysisMaker3::WriteTrackQAHistograms() {
@@ -806,7 +820,7 @@ void StMyAnalysisMaker3::WriteTrackQAHistograms() {
   }
   hTrackEtavsPhi->Write();
 }
-
+//
 // write Jet event plane QA histograms
 //______________________________________________________________________________
 void StMyAnalysisMaker3::WriteJetEPQAHistograms() {
@@ -840,31 +854,67 @@ void StMyAnalysisMaker3::WriteJetEPQAHistograms() {
 //
 // write jet shape histograms
 //________________________________________________________________________________
-void StMyAnalysisMaker3::WriteJetShapeHistograms() {
-  // jet shape histos
-  if(doJetShapeAnalysis) {
-    for(int k=0; k<4; k++) {
-      for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) {
-          hJetShape[k][j][i]->Write();
-          hJetShapeCase1[k][j][i]->Write();
-          hJetShapeCase2[k][j][i]->Write();
-          hJetShapeBG[k][j][i]->Write();
-          hJetShapeBGCase1[k][j][i]->Write();
-          hJetShapeBGCase2[k][j][i]->Write();
-          hJetShapeBGCase3[k][j][i]->Write();
-          hJetCounter[k][j][i]->Write();
-          hJetCounterCase1[k][j][i]->Write();
-          hJetCounterCase2[k][j][i]->Write();
-          hJetCounterCase3BG[k][j][i]->Write();
+void StMyAnalysisMaker3::WriteJetShapeHistograms(Int_t option) {
+  if(option >= 0) {
+    // jet shape histos
+    if(doJetShapeAnalysis) {
+      for(int k=0; k<4; k++) {
+        for(int j=0; j<4; j++) {
+          for(int i=0; i<4; i++) {
+            hJetCounter[k][j][i]->Write();
+            hJetCounterCase1[k][j][i]->Write();
+            hJetCounterCase2[k][j][i]->Write();
+            hJetCounterCase3BG[k][j][i]->Write();
 
-          hJetPtProfile[k][j][i]->Write();
-          hJetPtProfileCase1[k][j][i]->Write();
-          hJetPtProfileCase2[k][j][i]->Write();
-          hJetPtProfileBG[k][j][i]->Write();
-          hJetPtProfileBGCase1[k][j][i]->Write();
-          hJetPtProfileBGCase2[k][j][i]->Write();
-          hJetPtProfileBGCase3[k][j][i]->Write();
+            hJetShape[k][j][i][option]->Write();
+            hJetShapeCase1[k][j][i][option]->Write();
+            hJetShapeCase2[k][j][i][option]->Write();
+            hJetShapeBG[k][j][i][option]->Write();
+            hJetShapeBGCase1[k][j][i][option]->Write();
+            hJetShapeBGCase2[k][j][i][option]->Write();
+            hJetShapeBGCase3[k][j][i][option]->Write();
+
+            hJetPtProfile[k][j][i][option]->Write();
+            hJetPtProfileCase1[k][j][i][option]->Write();
+            hJetPtProfileCase2[k][j][i][option]->Write();
+            hJetPtProfileBG[k][j][i][option]->Write();
+            hJetPtProfileBGCase1[k][j][i][option]->Write();
+            hJetPtProfileBGCase2[k][j][i][option]->Write();
+            hJetPtProfileBGCase3[k][j][i][option]->Write();
+          }
+        }
+      }
+    }
+
+  } else {
+    // jet shape histos
+    if(doJetShapeAnalysis) {
+      for(int k=0; k<4; k++) {
+        for(int j=0; j<4; j++) {
+          for(int i=0; i<4; i++) {
+            hJetCounter[k][j][i]->Write();
+            hJetCounterCase1[k][j][i]->Write();
+            hJetCounterCase2[k][j][i]->Write();
+            hJetCounterCase3BG[k][j][i]->Write();
+
+            for(int p=0; p<9; p++) {
+              hJetShape[k][j][i][p]->Write();
+              hJetShapeCase1[k][j][i][p]->Write();
+              hJetShapeCase2[k][j][i][p]->Write();
+              hJetShapeBG[k][j][i][p]->Write();
+              hJetShapeBGCase1[k][j][i][p]->Write();
+              hJetShapeBGCase2[k][j][i][p]->Write();
+              hJetShapeBGCase3[k][j][i][p]->Write();
+
+              hJetPtProfile[k][j][i][p]->Write();
+              hJetPtProfileCase1[k][j][i][p]->Write();
+              hJetPtProfileCase2[k][j][i][p]->Write();
+              hJetPtProfileBG[k][j][i][p]->Write();
+              hJetPtProfileBGCase1[k][j][i][p]->Write();
+              hJetPtProfileBGCase2[k][j][i][p]->Write();
+              hJetPtProfileBGCase3[k][j][i][p]->Write();
+            }
+          }
         }
       }
     }
@@ -943,14 +993,24 @@ void StMyAnalysisMaker3::WriteHistograms() {
       fProfV5Resolution[i]->Write();
     }
   }
-}
 
+  // TODO - may decide to move elsewhere
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        fProfJetV2[k][j][i]->Write();
+      }
+    }
+  }
+
+}
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StMyAnalysisMaker3::Clear(Option_t *opt) {
   fJets->Clear();
 }
- 
+// 
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StMyAnalysisMaker3::Make() {
@@ -994,12 +1054,11 @@ Int_t StMyAnalysisMaker3::Make() {
   zVtx = mVertex.z();
   
   // Z-vertex cut - the Aj analysis cut on (-40, 40) for reference
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   // cut on (-30, 30) when using NEW centrality definitions - perhaps cut on (-28, 28)
-  //if((fCentralityDef == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30) && ((zVtx < -28.) || (zVtx > 28.))) return kStOk;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
-  // let me know the Run #, fill, and event ID
+  // get the Run #, fill, and event ID
   int RunId = mPicoEvent->runId();
   fRunNumber = mPicoEvent->runId();
   int fillId = mPicoEvent->fillId();
@@ -1041,12 +1100,14 @@ Int_t StMyAnalysisMaker3::Make() {
     // calculate corrected multiplicity
     // refCorr2 = grefmultCorr->getRefMultCorr();  // already initialized
 
-    // calculate corrected multiplicity
+    // calculate corrected multiplicity: 
+    // Double_t getRefMultCorr(const UShort_t RefMult, const Double_t z, const Double_t zdcCoincidenceRate, const UInt_t flag=2) const ;
+    // flag=0:  Luminosity only
+    // flag=1:  z-vertex only
+    // flag=2:  full correction (default)
     if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
     } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
 
-    //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-    //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
     //grefmultCorr->isCentralityOk(cent16)
   } else { // for pp
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
@@ -1062,7 +1123,9 @@ Int_t StMyAnalysisMaker3::Make() {
   } else if(fCentBinSize==5) { centBinToUse = (double)centbin * 5.0; }
 
   // centrality / multiplicity histograms
-  hMultiplicity->Fill(refCorr2);
+  // event activity - compensate for pp or AuAu
+  double kEventActivity = (doppAnalysis) ? (double)grefMult : refCorr2;
+  hMultiplicity->Fill(kEventActivity);
   if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
   fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
@@ -1101,6 +1164,9 @@ Int_t StMyAnalysisMaker3::Make() {
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30); 
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
 
   // fill arrays for towers that fired trigger
   FillTowerTriggersArr();
@@ -1109,28 +1175,14 @@ Int_t StMyAnalysisMaker3::Make() {
   Bool_t doJetAnalysis = kFALSE; // set false by default
   Bool_t doEPAnalysis = kFALSE;  // set false by default
 
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      //if(fEmcTriggerArr[fEmcTriggerEventType]) {
-      if(fHaveEmcTrigger) {
-        doJetAnalysis = kTRUE;
-        doEPAnalysis = kTRUE;
-      }
-      break;
+  // if we have trigger: perform jet analysis
+  if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-      if(fHaveEmcTrigger) {
-        doJetAnalysis = kTRUE;
-        doEPAnalysis = kTRUE;
-      }
-      break;
+  // if we have trigger && AuAu dataset: run event plane analysis
+  if(fHaveEmcTrigger && (fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200 || fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200)) {
+    doEPAnalysis = kTRUE;
+  }
 
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
-      if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
-      break;
-
-  } // fRunFlag switch
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
@@ -1149,10 +1201,16 @@ Int_t StMyAnalysisMaker3::Make() {
     return kStWarn;
   }
 
+/*
+  // February 7th, 2019 - FIXME, fix this chunk!
   // check if bad/dead towers fired trigger and kill event if true
   badTowers = JetMaker->GetBadTowers();
   deadTowers = JetMaker->GetDeadTowers();
-  if(DidBadTowerFireTrigger()) return kStWarn;
+  if(DidBadTowerFireTrigger()) { 
+    cout<<"FOUND PROBLEM.. a bad tower fired the trigger: "<<GetName()<<endl;  
+    return kStWarn;
+  }
+*/
 
 /*
   // TEST: the below is snippet of code for getting jets and their cosntituents using
@@ -1186,7 +1244,6 @@ Int_t StMyAnalysisMaker3::Make() {
 
   } // loop over jets
 
-  return kStOK;
 */
 
   // ================================================================================
@@ -1211,7 +1268,7 @@ Int_t StMyAnalysisMaker3::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*0.4*0.4*fRhoVal<<endl;
+  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
   // cache the leading + subleading jets within acceptance
@@ -1311,6 +1368,7 @@ Int_t StMyAnalysisMaker3::Make() {
     //cout<<"1: "<<angle1<<"  2: "<<angle2<<"  2n: "<<angle2n<<"  2p: "<<angle2p<<"  4: "<<angle4<<endl;
   }
 
+  // FIXME FIXME - March 3, 2019 - this is outdated at this point, need to recode below chunk if doing ptbin approach
   // switch to require specific trigger (for Event Plane corrections + Resolution)
   if(doEPAnalysis) {
     // compare BBC, ZDC, TPC event planes
@@ -1332,6 +1390,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // ========================== Jet Shape Analysis ===================================== //
   int jsret = -99;
   if(doJetShapeAnalysis) {
+    // declare pool pointer
     StEventPool* pool = 0x0;
 
     // require event mixing
@@ -1340,8 +1399,8 @@ Int_t StMyAnalysisMaker3::Make() {
       Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSizeJS);
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
       
-      // initialize event pools
-      if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(refCorr2, zVtx); 
+      // initialize event pools - different cases for each dataset
+      if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(kEventActivity, zVtx); 
       } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); } // FIXME AuAu fcent: cent bin? cent16
       if(!pool) {
         Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
@@ -1349,12 +1408,14 @@ Int_t StMyAnalysisMaker3::Make() {
       }
     }
 
-    // check for back-to-back jets
+    // initialize some variables
     double ljpttemp = 0., sljpttemp = 0.;
     bool isBackToBack = kFALSE;
+
+    // check for back-to-back jets
     if(fLeadingJet && fSubLeadingJet) { 
       double BackToBackPhi = fLeadingJet->Phi() - fSubLeadingJet->Phi() - pi;
-      if(BackToBackPhi < 0) BackToBackPhi += 2*pi;
+      if(BackToBackPhi < 0.0) BackToBackPhi += 2.0*pi;
       if(BackToBackPhi < 0.4) isBackToBack = kTRUE;
 
       // get lj and sublj pt
@@ -1368,40 +1429,52 @@ Int_t StMyAnalysisMaker3::Make() {
 
     } // lj + sublj
 
-    // Aj selection for Jet Shape Analysis
-    bool doAjSelection = (isBackToBack && ljpttemp > 20. && sljpttemp > 10.) ? kTRUE : kFALSE;
+    // Aj selection for Jet Shape Analysis: LJ pt > 20, SubLJ pt > 10 defaults
+    bool doAjSelection = (isBackToBack && ljpttemp > fLeadJetPtMin && sljpttemp > fSubLeadJetPtMin) ? kTRUE : kFALSE;
     if(doAjSelection) hJetLeadingPtAj->Fill(ljpttemp);      // leading jet w/ Aj cut
     if(doAjSelection) hJetSubLeadingPtAj->Fill(sljpttemp);  // sub-leading jet w/ Aj cut
 
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
     if(doRequireAjSelection) {
-      if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
-      if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
-    } else { // don't require back-to-back jets
-      if(fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
-      if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
+      for(int ptbin=0; ptbin<9; ptbin++) {
+        if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet)       jsret = JetShapeAnalysis(fLeadingJet, pool, kEventActivity, ptbin);
+        if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, kEventActivity, ptbin);
+      }
+    } else { // don't require back-to-back jets meeting Aj criteria
+      for(int ptbin=0; ptbin<9; ptbin++) {
+        if(fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet)       jsret = JetShapeAnalysis(fLeadingJet, pool, kEventActivity, ptbin);
+        if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, kEventActivity, ptbin);
+      }
     }
 
     // use only tracks from MB events
-    //if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB5 or kMB30 (excluding HT)
-    if(fDoEventMixing > 0 && (fHaveMB5event || fHaveMB30event)) { // kMB5 or kMB30 (don't exclude HT)
+    //if(fDoEventMixing > 0 && fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - AuAu, kMB - pp (excluding HT)
+    if(fDoEventMixing > 0 && fRunForMB) { // kMB5 or kMB30 - AuAu, kMB - pp (don't exclude HT)
       // update pool: create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       pool->UpdatePool(CloneAndReduceTrackList());
-      hMBvsMult->Fill(refCorr2);                       // MB5 || MB30
-      if(fHaveMB5event)  hMB5vsMult->Fill(refCorr2);   // MB5
-      if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);  // MB30
 
       // fill QA histo's
+      hMBvsMult->Fill(kEventActivity);    // MB5 || MB30 AuAu and MB pp
+      if(fHaveMB5event)  hMB5vsMult->Fill(refCorr2);   // MB5
+      if(fHaveMB30event) hMB30vsMult->Fill(refCorr2);  // MB30
       hMixEvtStatZVtx->Fill(zVtx);
       hMixEvtStatCent->Fill(centBinToUse);
       hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);
     } // MB 
 
     // only return if doing jet shape analysis
+    FillEventTriggerQA(fHistEventSelectionQAafterCuts);
+
     return kStOK;  
   }
-  // ============================================================================================= //
+
+  // ======================================================================================================
+  // ======================================================================================================
+  // the code is cut off here when doing a jet-shape analysis
+  // ======================================================================================================
+  // ======================================================================================================
+  // ======================================================================================================
 
   // run Track QA and fill histograms
   if((doWriteTrackQAHist) && (doJetAnalysis)) TrackQA();
@@ -1411,8 +1484,7 @@ Int_t StMyAnalysisMaker3::Make() {
   const Int_t ntracks = mPicoDst->numberOfTracks();
   Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
   if(fDebugLevel == kDebugGeneralEvt) {
-    //cout<<"grefMult = "<<grefMult<<"  refMult = "<<refMult<<"  refCorr2 = "<<refCorr2;
-    //cout<<"  cent16 = "<<cent16<<"   cent9 = "<<cent9<<"  centbin = "<<centbin<<endl;
+    //cout<<"grefMult = "<<grefMult<<"  refMult = "<<refMult<<"  refCorr2 = "<<refCorr2<<"  cent16 = "<<cent16<<"   cent9 = "<<cent9<<"  centbin = "<<centbin<<endl;
     cout<<"njets = "<<njets<<"  ntracks = "<<ntracks<<"  nglobaltracks = "<<nglobaltracks<<"  refCorr2 = "<<refCorr2<<"  grefMult = "<<grefMult<<"  centbin = "<<centbin<<endl;
   }
 
@@ -1479,11 +1551,8 @@ Int_t StMyAnalysisMaker3::Make() {
     } else { if(jetpt < fMinPtJet) continue; }
     if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
 
-    // TODO TODO new TODO TODO check that jet contains a tower that fired the trigger
+    // TODO check that jet contains a tower that fired the trigger
     if(!DidTowerConstituentFireTrigger(jet)) { continue; }
-
-    // test QA stuff...
-    //cout<<"ij = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
 
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
@@ -1491,7 +1560,7 @@ Int_t StMyAnalysisMaker3::Make() {
       StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) return kFALSE; // check if primary
         // get primary track vector
@@ -1502,17 +1571,17 @@ Int_t StMyAnalysisMaker3::Make() {
       }
 
       // track variables
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
-      double pt = mTrkMom.perp();
+      double phi = mTrkMom.Phi();
+      double eta = mTrkMom.PseudoRapidity();
+      double pt = mTrkMom.Perp();
       double px = mTrkMom.x();
       double py = mTrkMom.y();
       double pz = mTrkMom.z();
       double jetZ = jet->GetZ(px, py, pz);
 
       // shift angle (0, 2*pi) 
-      if(phi < 0)    phi += 2*pi;
-      if(phi > 2*pi) phi -= 2*pi;
+      if(phi < 0.0)    phi += 2.0*pi;
+      if(phi > 2.0*pi) phi -= 2.0*pi;
 
       // fill jet track constituent histograms
       hJetTracksPt->Fill(pt);
@@ -1529,7 +1598,18 @@ Int_t StMyAnalysisMaker3::Make() {
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
-      int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
+      int towID = -1;
+      if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+        //towID = tow->id();
+      } else {
+        //towID = tow->numericIndex2SoftId(ArrayIndex);
+      }
+
+      // tower ID: get from index of array shifted by +1
+      towID = ArrayIndex + 1;
+      if(towID < 0) continue;
+
       int containsTower = jet->ContainsTower(ArrayIndex);
       cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
     } // constituent tower loop
@@ -1597,9 +1677,9 @@ Int_t StMyAnalysisMaker3::Make() {
     //} // check on max track and tower pt/E
 
     // ======================================================================================
-    // 
 
 /*
+    // this is for jet constituents
     vector<fastjet::PseudoJet> fConstituents = jet->GetJetConstituents();
     for(UInt_t ic = 0; ic < fConstituents.size(); ++ic) {
       // get user defined index
@@ -1612,7 +1692,9 @@ Int_t StMyAnalysisMaker3::Make() {
 */
 
     // =============== jet shape analysis ================
-    if(doJetShapeAnalysis) JetShapeAnalysis(jet, 0x0, refCorr2); // FIXME
+    for(int ptbin = 0; ptbin < 9; ptbin++) {
+    ////// if(doJetShapeAnalysis) JetShapeAnalysis(jet, 0x0, refCorr2, ptbin); // FIXME
+    }
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(int itrack = 0; itrack < ntracks; itrack++){
@@ -1623,9 +1705,8 @@ Int_t StMyAnalysisMaker3::Make() {
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // primary track switch
       // get momentum vector of track - global or primary track
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
         mTrkMom = trk->pMom();
@@ -1635,9 +1716,9 @@ Int_t StMyAnalysisMaker3::Make() {
       }
 
       // track variables
-      double pt = mTrkMom.perp();
-      double phi = mTrkMom.phi();
-      double eta = mTrkMom.pseudoRapidity();
+      double pt = mTrkMom.Perp();
+      double phi = mTrkMom.Phi();
+      double eta = mTrkMom.PseudoRapidity();
       short charge = trk->charge();
 
       // get jet - track relations
@@ -1679,11 +1760,10 @@ Int_t StMyAnalysisMaker3::Make() {
 // ***************************************************************************************************************
 // ******************************** Event MIXING *****************************************************************
 // ***************************************************************************************************************
-
   if(fDebugLevel == kDebugMixedEvents) cout<<"StMyAnMaker event# = "<<EventCounter()<<"  Centbin = "<<centbin<<"  zVtx = "<<zVtx<<endl;
 
-  //Prepare to do event mixing
-  if(fDoEventMixing>0){
+  // Prepare to do event mixing
+  if(fDoEventMixing > 0){
     // event mixing
 
     // 1. First get an event pool corresponding in mult (cent) and
@@ -1729,7 +1809,6 @@ Int_t StMyAnalysisMaker3::Make() {
   if(doJetAnalysis) { // trigger type requested was fired for this event - do mixing
     if(pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
 
-      //double Mixmaxtrackpt, MixNtrackConstit;
       // loop over jets (passing cuts - set by jet maker)
       for(int ijet = 0; ijet < njets; ijet++) {
         // leading jet - why was this a double?
@@ -1775,7 +1854,6 @@ Int_t StMyAnalysisMaker3::Make() {
         // get number of current events in pool
         int nMix = pool->GetCurrentNEvents();
 
-        // TODO TODO new TODO TODO FIXME may want this inside below if??
         // check that jet contains a tower that fired the trigger
         if( !DidTowerConstituentFireTrigger(jet) ) continue;
 
@@ -1800,8 +1878,8 @@ Int_t StMyAnalysisMaker3::Make() {
               short Mixcharge = trk->Charge();
 
               // shift angle (0, 2*pi) 
-              if(Mixphi < 0)    Mixphi += 2*pi;
-              if(Mixphi > 2*pi) Mixphi -= 2*pi;
+              if(Mixphi < 0.0)    Mixphi += 2.0*pi;
+              if(Mixphi > 2.0*pi) Mixphi -= 2.0*pi;
               //cout<<"itrack = "<<ibg<<"  phi = "<<Mixphi<<"  eta = "<<Mixeta<<"  pt = "<<Mixpt<<"  q = "<<Mixcharge<<endl;
 
               // get jet - track relations
@@ -1810,7 +1888,7 @@ Int_t StMyAnalysisMaker3::Make() {
               double dMixphijh = RelativePhi(MixjetPhi, Mixphi); // angle between jet and hadron
 
               // print tracks outside of acceptance somehow
-              if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
+              if(fDebugLevel == kDebugMixedEvents) if(TMath::Abs(dMixeta > 1.6)) cout<<"DELTA ETA out of bounds... deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
 
               // calculate single particle tracking efficiency of mixed events for correlations (-999)
               double mixefficiency = 1.0;
@@ -1853,20 +1931,17 @@ Int_t StMyAnalysisMaker3::Make() {
 
     // use only tracks from MB (and Semi-Central) events
     ///if(fMixingEventType) { //kMB) {
-    //if((fHaveMB5event || fHaveMB30event) && (!fHaveEmcTrigger)) { // kMB or kMB30 - TODO probably want to use to use this line in future, may not matter
-    //if((fHaveMB5event) || (fHaveMB30event)) { // kMB or kMB30 (don't exclude HT)
-    if(fHaveMBevent) { // kMB
-      if(fDebugLevel == kDebugMixedEvents) cout<<"...MB event... update event pool"<<endl;
-
-      // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
-      // update pool if jet in event or not
+    //if(fRunForMB && (!fHaveEmcTrigger)) { // kMB or kMB30 - AuAu, kMB - pp, TODO probably want to use to use this line in future, may not matter
+    //if(fRunForMB) { // kMB or kMB30 (don't exclude HT)
+    if(fHaveMBevent) { // kMB - FIXME, this is how it was set up for correlations
+      // update pool - create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
       pool->UpdatePool(CloneAndReduceTrackList());
 
       // fill QA histo's
       hMixEvtStatZVtx->Fill(zVtx);
       hMixEvtStatCent->Fill(centBinToUse);
       hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);
-    } // MB (and Central and Semi-Central events ?)
+    } // MB event - updating pool
 
   } // end of event mixing
 
@@ -1880,7 +1955,7 @@ Int_t StMyAnalysisMaker3::Make() {
 
   return kStOK;
 }
-
+//
 //______________________________________________________________________
 THnSparse* StMyAnalysisMaker3::NewTHnSparseF(const char* name, UInt_t entries)
 {
@@ -1914,7 +1989,8 @@ THnSparse* StMyAnalysisMaker3::NewTHnSparseF(const char* name, UInt_t entries)
 
    return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
 } // end of NewTHnSparseF
-
+//
+//________________________________________________________________________
 void StMyAnalysisMaker3::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
 {
    // stores label and binning of axis for THnSparse
@@ -2005,7 +2081,7 @@ void StMyAnalysisMaker3::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins
 
    } // end of switch
 } // end of getting dim-params
-
+//
 //______________________________________________________________________
 THnSparse* StMyAnalysisMaker3::NewTHnSparseFCorr(const char* name, UInt_t entries) {
   // generate new THnSparseD, axes are defined in GetDimParamsD()
@@ -2038,7 +2114,7 @@ THnSparse* StMyAnalysisMaker3::NewTHnSparseFCorr(const char* name, UInt_t entrie
 
   return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
 } // end of NewTHnSparseF
-
+//
 //______________________________________________________________________________________________
 void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
 {
@@ -2095,7 +2171,7 @@ void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &n
 
    }// end of switch
 } // end of Correction (ME) sparse
-
+//
 //_________________________________________________
 // From CF event mixing code PhiCorrelations
 TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
@@ -2109,7 +2185,6 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
   // construct variables, get # of tracks
   int nMixTracks = mPicoDst->numberOfTracks();
   int iterTrk = 0;
-  //const double pi = 1.0*TMath::Pi();
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
@@ -2119,9 +2194,8 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       if(!(trk->isPrimary())) continue; // check if primary
       // get primary track vector
@@ -2132,9 +2206,9 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
     }
 
     // track variables - used with alt method below
-    double pt = mTrkMom.perp();
-    //double phi = mTrkMom.phi();
-    //double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    //double phi = mTrkMom.Phi();
+    //double eta = mTrkMom.PseudoRapidity();
     //short charge = trk->charge();
 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
@@ -2165,7 +2239,7 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
 
   return tracksClone;
 }
-
+//
 /*
 //________________________________________________________________________
 Bool_t StMyAnalysisMaker3::AcceptJet(StJet *jet) { // for jets
@@ -2182,13 +2256,13 @@ Bool_t StMyAnalysisMaker3::AcceptJet(StJet *jet) { // for jets
   return kTRUE;
 }
 */
-
+//
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+  if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
@@ -2242,11 +2316,41 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
 
   return h;
 }
-
+//
 //_____________________________________________________________________________
 // Trigger QA histogram, label bins 
 TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
+
+  // Run12 pp 200 GeV
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    // Run12 (200 GeV pp) triggers:
+    int arrHT1[] = {370511, 370546};
+    int arrHT2[] = {370521, 370522, 370531, 370980};
+    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
+    int arrMB[] = {370001, 370011, 370983};
+
+    int bin = 0;
+
+    // fill for kAny 
+    bin = 1; h->Fill(bin);
+
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
+    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
+
+    // label bins of the analysis trigger selection summary
+    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+    h->GetXaxis()->SetBinLabel(2, "BHT1");
+    h->GetXaxis()->SetBinLabel(3, "BHT2");
+    h->GetXaxis()->SetBinLabel(4, "BHT3");
+    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
+    h->GetXaxis()->SetBinLabel(6, "");
+    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
+    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
+    h->GetXaxis()->SetBinLabel(10, "VPDMB");
+  }
 
   // Run14 AuAu 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
@@ -2264,7 +2368,6 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
@@ -2313,9 +2416,7 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
@@ -2340,10 +2441,11 @@ TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
   
   return h;
 }
-
+//
+// general function to get local reaction plane calculation
 //________________________________________________________________________
 Double_t StMyAnalysisMaker3::GetReactionPlane() { 
-  //if(mVerbose)cout << "----------- In GetReactionPlane() -----------------" << endl;
+  // initliaze some variables and constants
   TVector2 mQ;
   double mQx = 0., mQy = 0.;
   int order = 2;
@@ -2363,12 +2465,10 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
-    // may change this back in future
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -2378,15 +2478,15 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0)    phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
     if((fLeadingJet) && 
@@ -2402,7 +2502,7 @@ Double_t StMyAnalysisMaker3::GetReactionPlane() {
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0) trackweight = 2.0;
+      if(pt > 2.0)  trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
@@ -2510,29 +2610,43 @@ void StMyAnalysisMaker3::SetSumw2() {
   hTPCvsZDCep->Sumw2();
   hBBCvsZDCep->Sumw2();
 
-  if(doJetShapeAnalysis) { 
+/*
+  // don't set Sumw2 for TProfile plots
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        fProfJetV2[k][j][i]->Sumw2();
+      }
+    }
+  }
+*/
+
+  if(doJetShapeAnalysis) {
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) { 
-          hJetShape[k][j][i]->Sumw2();
-          hJetShapeCase1[k][j][i]->Sumw2();
-          hJetShapeCase2[k][j][i]->Sumw2();
-          hJetShapeBG[k][j][i]->Sumw2();
-          hJetShapeBGCase1[k][j][i]->Sumw2();
-          hJetShapeBGCase2[k][j][i]->Sumw2();
-          hJetShapeBGCase3[k][j][i]->Sumw2();
+        for(int i=0; i<4; i++) {
           hJetCounter[k][j][i]->Sumw2();
           hJetCounterCase1[k][j][i]->Sumw2();
           hJetCounterCase2[k][j][i]->Sumw2();
           hJetCounterCase3BG[k][j][i]->Sumw2();
 
-          hJetPtProfile[k][j][i]->Sumw2();
-          hJetPtProfileCase1[k][j][i]->Sumw2();
-          hJetPtProfileCase2[k][j][i]->Sumw2();
-          hJetPtProfileBG[k][j][i]->Sumw2();
-          hJetPtProfileBGCase1[k][j][i]->Sumw2();
-          hJetPtProfileBGCase2[k][j][i]->Sumw2();
-          hJetPtProfileBGCase3[k][j][i]->Sumw2();
+          for(int p=0; p<9; p++) {
+            hJetShape[k][j][i][p]->Sumw2();
+            hJetShapeCase1[k][j][i][p]->Sumw2();
+            hJetShapeCase2[k][j][i][p]->Sumw2();
+            hJetShapeBG[k][j][i][p]->Sumw2();
+            hJetShapeBGCase1[k][j][i][p]->Sumw2();
+            hJetShapeBGCase2[k][j][i][p]->Sumw2();
+            hJetShapeBGCase3[k][j][i][p]->Sumw2();
+
+            hJetPtProfile[k][j][i][p]->Sumw2();
+            hJetPtProfileCase1[k][j][i][p]->Sumw2();
+            hJetPtProfileCase2[k][j][i][p]->Sumw2();
+            hJetPtProfileBG[k][j][i][p]->Sumw2();
+            hJetPtProfileBGCase1[k][j][i][p]->Sumw2();
+            hJetPtProfileBGCase2[k][j][i][p]->Sumw2();
+            hJetPtProfileBGCase3[k][j][i][p]->Sumw2();
+          }
         }
       }
     }
@@ -2553,7 +2667,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   fhnMixedEvents->Sumw2();
   fhnCorr->Sumw2();
 }
-
+//
 // ________________________________________________________________________________________
 void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin)
 { 
@@ -2595,9 +2709,8 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -2607,15 +2720,15 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0)    phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
@@ -2687,7 +2800,7 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0) trackweight = 2.0;
+      if(pt >  2.0) trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
@@ -2767,8 +2880,8 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   if(fEPTPCn <  0) fEPTPCn += pi;
   if(fEPTPCp > pi) fEPTPCp -= pi;
   if(fEPTPCp <  0) fEPTPCp += pi;
-  if(fEPTPC > pi) fEPTPC -= pi;
-  if(fEPTPC <  0) fEPTPC += pi;
+  if(fEPTPC > pi)  fEPTPC  -= pi;
+  if(fEPTPC <  0)  fEPTPC  += pi;
 
   // combine x-y vectors for neg and pos Eta ranges (cross-check)
   //double tpc2 = (0.5*TMath::ATan2(mQtpcY, mQtpcX));
@@ -2777,11 +2890,11 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   fHistEPTPCn->Fill(fCentralityScaled, fEPTPCn);
   fHistEPTPCp->Fill(fCentralityScaled, fEPTPCp);
 }
-
+//
 // 1) get the binning for: ref9 and region_vz
 // 2) get function: GetRunNo( );
 // 3) 
-
+//
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
@@ -2814,7 +2927,6 @@ Int_t StMyAnalysisMaker3::GetRunNo(int runid){
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
 }
-
 //
 // Fill event plane resolution histograms
 //_____________________________________________________________________________
@@ -2903,7 +3015,7 @@ void StMyAnalysisMaker3::CalculateEventPlaneResolution(Double_t bbc, Double_t zd
 
     // for the resolution of the combined vzero event plane, use two tpc halves as uncorrelated subdetectors
 } 
-
+//
 //_____________________________________________________________________________
 Double_t StMyAnalysisMaker3::CalculateEventPlaneChi(Double_t res) {
   // return chi for given resolution to combine event plane estimates from two subevents
@@ -2916,7 +3028,6 @@ Double_t StMyAnalysisMaker3::CalculateEventPlaneChi(Double_t res) {
 
   return chi;
 }
-
 //
 // track QA function to fill some histograms with track information
 //_____________________________________________________________________________
@@ -2935,9 +3046,8 @@ void StMyAnalysisMaker3::TrackQA()
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
     // get momentum vector of track - global or primary track
-    StThreeVectorF mTrkMom;
+    TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
       mTrkMom = track->pMom();
@@ -2947,14 +3057,14 @@ void StMyAnalysisMaker3::TrackQA()
     }
 
     // track variables
-    double pt = mTrkMom.perp();
-    double phi = mTrkMom.phi();
-    double eta = mTrkMom.pseudoRapidity();
+    double pt = mTrkMom.Perp();
+    double phi = mTrkMom.Phi();
+    double eta = mTrkMom.PseudoRapidity();
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // for heavy ion collisions, get EP and fill QA plots
     // get angle between tracks and event plane
@@ -3001,6 +3111,8 @@ void StMyAnalysisMaker3::FillTowerTriggersArr() {
     bool isHT1 = emcTrig->isHT1();
     bool isHT2 = emcTrig->isHT2();
     bool isHT3 = emcTrig->isHT3();
+
+    // set trigger level type
     if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
     if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
     if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
@@ -3008,25 +3120,7 @@ void StMyAnalysisMaker3::FillTowerTriggersArr() {
     //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }
 
-/*
-  // loop over towers and add input vectors to fastjet
-  int nTowers = mPicoDst->numberOfBTOWHits();
-  for(int itow = 0; itow < nTowers; itow++) {
-    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
-    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
-
-    // tower ID
-    int towerID = tower->id();
-    if(towerID < 0) continue; // double check these aren't still in the event list
-
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT2: "<<fTowerToTriggerTypeHT2[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT3: "<<fTowerToTriggerTypeHT3[towerID]<<"  adc = "<<tower->adc()<<endl;
-  }
-*/
-
 }
-
 //
 // function to require that a jet constituent tower fired a HT trigger
 //___________________________________________________________________________________________
@@ -3036,13 +3130,21 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
 
   // loop over constituents towers
   for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-    int towerid = jet->ClusterAt(itow);
-    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
+    int towerIndex = jet->ClusterAt(itow);
+    StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerIndex));
     if(!tow){ continue; }
     
-    int towID = tow->id();
+    //int towID = tow->id();
+    int towID = -1;
+    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
+      //towID = tow->id();
+    } else {
+      //towID = tow->numericIndex2SoftId(towerIndex);
+    }
 
-    //cout<<"towerID = "<<towerID<<"  towID = "<<towID<<endl;
+    // tower ID: get from index of array shifted by +1
+    towID = towerIndex + 1;
+    if(towID < 0) continue;
 
     // change flag to true if jet tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID]) mFiredTrigger = kTRUE;
@@ -3061,38 +3163,26 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
   Bool_t mBadTowerFiredTrigger = kFALSE;
 
   // loop over towers
-  int nTowers = mPicoDst->numberOfBTOWHits();
+  int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
     StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tow) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
-    // tower ID
-    //int towID = tow->id();
-    int towID = -1;
-
-    cout<<"classVersion: "<<gROOT->GetClass("StPicoBTowHit")->GetClassVersion()<<endl;
-/*
-    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-    if( gROOT->GetClass("StPicoBTowHit")->GetStreamerInfo()->GetClassVersion() < 3) {
-      towID = tow->id();
-      cout<<" < 3"<<endl;
-    } else { 
-      towID = tow->numericIndex2SoftId(itow); 
-      cout<<" not < 3"<<endl;
-    }
-*/
-
+    // tower ID: get from index of array shifted by +1
+    int towID = itow + 1;
     if(towID < 0) continue; // double check these aren't still in the event list
 
     // check if tower is bad or dead - functions return kTRUE if ok and kFALSE if NOT dead 
-    // isTowOK = kTRUE if tower is OK and not dead
-    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID));
+    // isTowerOK(towID) = kTRUE if tower is OK and not dead
+    // isTowerDead(towID) = kTRUE if tower is dead, = kFALSE if tower is NOT dead
+    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID)); // FIXME
 
     // change flag to true if jet tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
 
+    if(mBadTowerFiredTrigger == kTRUE) cout<<"Bad tower fired trigger, towID: "<<towID<<endl;
   } // tower constituent loop
 
   return mBadTowerFiredTrigger;
@@ -3106,7 +3196,7 @@ Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   double pi = 1.0*TMath::Pi();
 
   // get track momentum vector 
-  StThreeVectorF mTrkMom;
+  TVector3 mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return -99.; // check if primary
     // get primary track vector
@@ -3117,10 +3207,10 @@ Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   }
 
   // track variables
-  double tphi = mTrkMom.phi();
+  double tphi = mTrkMom.Phi();
   if(tphi > 2.0*pi) tphi -= 2.0*pi;
   if(tphi < 0.0   ) tphi += 2.0*pi;
-  double teta = mTrkMom.pseudoRapidity();
+  double teta = mTrkMom.PseudoRapidity();
 
   // jet variables
   double jphi = jet->Phi();
@@ -3129,28 +3219,30 @@ Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
   // calculate radial distance
   double deltaEta = 1.0*TMath::Abs(jeta - teta);
   double deltaPhi = 1.0*TMath::Abs(jphi - tphi);
-  if(deltaPhi > 1.0*pi) deltaPhi = 2*pi - deltaPhi;
+  if(deltaPhi > 1.0*pi) deltaPhi = 2.0*pi - deltaPhi;
   deltaR = 1.0*TMath::Sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
 
   return deltaR;
 }
-
+// ===========================================================================================
+// ===========================================================================================
 //
 // function that does jet shape analysis
 //___________________________________________________________________________________________
-Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2) {
+Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin) {
+    // refCorr2 is refCorr2 for AuAu, but is grefMult for pp
     // constants
     double pi = 1.0*TMath::Pi();
     double rbinSize = 0.05;
 
     // get centrality bin
-    int centbin = Get4CentBin(fCentralityScaled);
-    if(centbin < 0) return kStOK;
+    int centBin = (!doppAnalysis) ? Get4CentBin(fCentralityScaled) : 0; // this secures it will still run for pp, and use cent bin = 0
+    if(centBin < 0) return kStOK;
 
     // get jet info
     double jetPhi = jet->Phi();
     double jetEta = jet->Eta();
-    
+
     // get jet pt bin and value
     double jetPt = -99.;
     if(fCorrJetPt) { jetPt = jet->Pt() - jet->Area()*fRhoVal;
@@ -3168,22 +3260,24 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, TPC_PSI2) : -99.; // CORRECTED event plane angle - STEP3
     if(doTPCptassocBin && !doppAnalysis) {
       // z = if(condition) then(?) <do this> else(:) <do this>  
+      // FIXME FIXME FIXME FIXME FIXME
       double dEP0 = RelativeEPJET(jetPhi, TPC_PSI2);
       double dEP1 = RelativeEPJET(jetPhi, TPC_PSI2);
       double dEP2 = RelativeEPJET(jetPhi, TPC_PSI2);
       double dEP3 = RelativeEPJET(jetPhi, TPC_PSI2);
       double dEP4 = RelativeEPJET(jetPhi, TPC_PSI2);
-      if(fJetShapePtAssocBin == 0) dEP = dEP0; // 0.2-0.5 GeV
-      if(fJetShapePtAssocBin == 1) dEP = dEP1; // 0.5-1.0 GeV
-      if(fJetShapePtAssocBin == 2) dEP = dEP2; // 1.0-1.5 GeV
-      if(fJetShapePtAssocBin == 3) dEP = dEP3; // 1.5-2.0 GeV
-      if(fJetShapePtAssocBin == 4) dEP = dEP4; // 2.0-3.0 GeV
-      if(fJetShapePtAssocBin == 5) dEP = dEP4; // 3.0-4.0 GeV
-      if(fJetShapePtAssocBin == 6) dEP = dEP4; // 4.0-8.0 GeV
-      if(fJetShapePtAssocBin == 7) dEP = dEP4; // 8.0+    GeV
-      if(fJetShapePtAssocBin == 8) dEP = dEP4; // 0.5+    GeV (inclusive)
+
+      if(assocPtBin == 0) dEP = dEP0; // 0.2-0.5 GeV
+      if(assocPtBin == 1) dEP = dEP1; // 0.5-1.0 GeV
+      if(assocPtBin == 2) dEP = dEP2; // 1.0-1.5 GeV
+      if(assocPtBin == 3) dEP = dEP3; // 1.5-2.0 GeV
+      if(assocPtBin == 4) dEP = dEP4; // 2.0-3.0 GeV
+      if(assocPtBin == 5) dEP = dEP4; // 3.0-4.0 GeV
+      if(assocPtBin == 6) dEP = dEP4; // 4.0-8.0 GeV
+      if(assocPtBin == 7) dEP = dEP4; // 8.0+    GeV
+      if(assocPtBin == 8) dEP = dEP4; // 0.5+    GeV (inclusive)
     }
-    int EPBin = GetJetEPBin(dEP);
+    int EPBin = (!doppAnalysis) ? GetJetEPBin(dEP) : 0; // this secures it will still run for pp, and use EP bin = 0
     if(EPBin < 0) return kStOK;
 
     // annuli sum - initialize
@@ -3201,9 +3295,8 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // primary track switch
       // get momentum vector of track - global or primary track
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
         mTrkMom = trk->pMom();
@@ -3213,10 +3306,11 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }
 
       // track variables
-      double tpt = mTrkMom.perp();
-      double tphi = mTrkMom.phi();
-      if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
-      double teta = mTrkMom.pseudoRapidity();
+      double tpt = mTrkMom.Perp();
+      double tphi = mTrkMom.Phi();
+      if(tphi < 0.0)    tphi += 2.0*pi;   // require 0,2pi interval
+      if(tphi > 2.0*pi) tphi -= 2.0*pi;
+      double teta = mTrkMom.PseudoRapidity();
 
       // cut on track pt
       if(tpt < fJetShapeTrackPtMin) { continue; }
@@ -3224,15 +3318,15 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
-        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
-        if(fJetShapePtAssocBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
-        if(fJetShapePtAssocBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
+        if(assocPtBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+        if(assocPtBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+        if(assocPtBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+        if(assocPtBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+        if(assocPtBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+        if(assocPtBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+        if(assocPtBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+        if(assocPtBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
+        if(assocPtBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
       }
 
       // get radial distance between track and jet axis
@@ -3248,21 +3342,26 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     } // track loop
 
     // QA histograms
-    hHTvsMult->Fill(refCorr2);
-    hTriggerEvtStatZVtx->Fill(zVtx);
-    hTriggerEvtStatCent->Fill(fCentralityScaled);
-    hTriggerEvtStatZvsCent->Fill(fCentralityScaled, zVtx);
+    // fill only for case of kJetShapePtAssocBin == 0 (assocPtBin)
+    if(assocPtBin == 0) {
+      hHTvsMult->Fill(refCorr2);
+      hTriggerEvtStatZVtx->Fill(zVtx);
+      hTriggerEvtStatCent->Fill(fCentralityScaled); // bad for pp
+      hTriggerEvtStatZvsCent->Fill(fCentralityScaled, zVtx); // bad for pp
+    }
 
     // fill jet shape histograms
-    for(int i=0; i<10; i++) { 
-      hJetShape[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
-      hJetShape[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
+    for(int i=0; i<10; i++) {
+      hJetShape[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
+      hJetShape[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
 
-      hJetPtProfile[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
-      hJetPtProfile[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+      hJetPtProfile[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+      hJetPtProfile[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
     }
-    hJetCounter[jetPtBin][centbin][EPBin]->Fill(0.5);
-    hJetCounter[jetPtBin][centbin][3]->Fill(0.5); // ALL angles
+    if(assocPtBin == 0) {
+      hJetCounter[jetPtBin][centBin][EPBin]->Fill(0.5);
+      hJetCounter[jetPtBin][centBin][3]->Fill(0.5); // ALL angles
+    }
 
     // background calculation variables
     bool case1 = kFALSE, case2 = kFALSE, case3 = kFALSE;
@@ -3271,19 +3370,21 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // fiducial cuts
     double etaMin = fJetRad;
-    double etaMax = 1.0 - fJetRad; 
+    double etaMax = 1.0 - fJetRad;
 
     // CASE 1: Eta reflection
     if(TMath::Abs(jetEta) > etaMin && TMath::Abs(jetEta) < etaMax) {
-      for(int i=0; i<10; i++) { 
-        hJetShapeCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
-        hJetShapeCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);    
+      for(int i=0; i<10; i++) {
+        hJetShapeCase1[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
+        hJetShapeCase1[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
 
-        hJetPtProfileCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
-        hJetPtProfileCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+        hJetPtProfileCase1[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+        hJetPtProfileCase1[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
       }
-      hJetCounterCase1[jetPtBin][centbin][EPBin]->Fill(0.5);
-      hJetCounterCase1[jetPtBin][centbin][3]->Fill(0.5); // ALL angles 
+      if(assocPtBin == 0){
+        hJetCounterCase1[jetPtBin][centBin][EPBin]->Fill(0.5);
+        hJetCounterCase1[jetPtBin][centBin][3]->Fill(0.5); // ALL angles 
+      }
 
       // background
       case1 = kTRUE;
@@ -3293,15 +3394,17 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // CASE 2: Phi shifted
     if(TMath::Abs(jetEta) < etaMin) {
-      for(int i=0; i<10; i++) { 
-        hJetShapeCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
-        hJetShapeCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);    
+      for(int i=0; i<10; i++) {
+        hJetShapeCase2[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
+        hJetShapeCase2[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
 
-        hJetPtProfileCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
-        hJetPtProfileCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+        hJetPtProfileCase2[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
+        hJetPtProfileCase2[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]);
       }
-      hJetCounterCase2[jetPtBin][centbin][EPBin]->Fill(0.5);
-      hJetCounterCase2[jetPtBin][centbin][3]->Fill(0.5); // ALL angles
+      if(assocPtBin == 0) {
+        hJetCounterCase2[jetPtBin][centBin][EPBin]->Fill(0.5);
+        hJetCounterCase2[jetPtBin][centBin][3]->Fill(0.5); // ALL angles
+      }
 
       // background
       case2 = kTRUE;
@@ -3328,6 +3431,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }
     }
 
+    // BACKGROUND tracks
     // track loop inside jet loop - loop over ALL tracks in PicoDst - for BG
     for(int itrack = 0; itrack < ntracks; itrack++){
       // get tracks
@@ -3337,9 +3441,8 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // primary track switch
       // get momentum vector of track - global or primary track
-      StThreeVectorF mTrkMom;
+      TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
         mTrkMom = trk->pMom();
@@ -3349,10 +3452,11 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }
 
       // track variables
-      double tpt = mTrkMom.perp();
-      double tphi = mTrkMom.phi();
-      if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
-      double teta = mTrkMom.pseudoRapidity();
+      double tpt = mTrkMom.Perp();
+      double tphi = mTrkMom.Phi();
+      if(tphi < 0.0)    tphi += 2.0*pi; // require 0,2pi interval
+      if(tphi > 2.0*pi) tphi -= 2.0*pi;
+      double teta = mTrkMom.PseudoRapidity();
 
       // cut on track pt
       if(tpt < fJetShapeTrackPtMin) { continue; }
@@ -3360,15 +3464,15 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
-        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
-        if(fJetShapePtAssocBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
-        if(fJetShapePtAssocBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
+        if(assocPtBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+        if(assocPtBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+        if(assocPtBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+        if(assocPtBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+        if(assocPtBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+        if(assocPtBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+        if(assocPtBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+        if(assocPtBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
+        if(assocPtBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
       }
 
       // get radial distance between track and jet axis
@@ -3406,33 +3510,33 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     } // track loop
 
     // inclusive case: Background
-    for(int i=0; i<10; i++) { 
-      hJetShapeBG[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
-      hJetShapeBG[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
+    for(int i=0; i<10; i++) {
+      hJetShapeBG[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
+      hJetShapeBG[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
 
-      hJetPtProfileBG[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
-      hJetPtProfileBG[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+      hJetPtProfileBG[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+      hJetPtProfileBG[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
     }
 
     // Case 1: background
-    if(case1) { 
+    if(case1) {
       for(int i=0; i<10; i++) {
-        hJetShapeBGCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt); 
-        hJetShapeBGCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
+        hJetShapeBGCase1[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
+        hJetShapeBGCase1[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
 
-        hJetPtProfileBGCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
-        hJetPtProfileBGCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+        hJetPtProfileBGCase1[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+        hJetPtProfileBGCase1[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
       }
     }
 
     // Case 2: background
     if(case2) {
       for(int i=0; i<10; i++) {
-        hJetShapeBGCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
-        hJetShapeBGCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
+        hJetShapeBGCase2[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
+        hJetShapeBGCase2[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
 
-        hJetPtProfileBGCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
-        hJetPtProfileBGCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+        hJetPtProfileBGCase2[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
+        hJetPtProfileBGCase2[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]);
       }
     }
 
@@ -3440,11 +3544,11 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     // Case 3: background
     if(case3) {
       for(int i=0; i<10; i++) {
-        hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
-        hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
+        hJetShapeBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
+        hJetShapeBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
 
-        hJetPtProfileBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]);
-        hJetPtProfileBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]);
+        hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]);
+        hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]);
       }
     }
 */
@@ -3457,10 +3561,10 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       // do event mixing when Signal Jet is part of event with a HT1 or HT2 or HT3 trigger firing
       if(pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
         // get number of current events in pool
-        int nMix = pool->GetCurrentNEvents(); 
+        int nMix = pool->GetCurrentNEvents();
 
         // QA histogram
-        hNMixEvents->Fill(nMix);
+        if(assocPtBin == 0) hNMixEvents->Fill(nMix);
 
         // reset annuli sums here - do this inside loop over mixed events
         //double rsumBG3[10] = {0.0};
@@ -3479,13 +3583,14 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
             // trying new slimmed PicoTrack class: StFemtoTrack
             StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
             if(!trk) continue;
+
             double Mphi = trk->Phi();
             double Meta = trk->Eta();
             double Mpt = trk->Pt();
 
             // shift angle (0, 2*pi) 
-            if(Mphi < 0)    Mphi += 2*pi;
-            if(Mphi > 2*pi) Mphi -= 2*pi;
+            if(Mphi < 0.0)    Mphi += 2.0*pi;
+            if(Mphi > 2.0*pi) Mphi -= 2.0*pi;
 
             // cut on track pt
             if(Mpt < fJetShapeTrackPtMin) { continue; }
@@ -3493,16 +3598,16 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
             // additional pt selection when doing pt associated bin method
             if(doTPCptassocBin) {
-              if(fJetShapePtAssocBin == 0) { if((Mpt < 0.20) || (Mpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 1) { if((Mpt < 0.50) || (Mpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 2) { if((Mpt < 1.00) || (Mpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 3) { if((Mpt < 1.50) || (Mpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 4) { if((Mpt < 2.00) || (Mpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 5) { if((Mpt < 3.00) || (Mpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 6) { if((Mpt < 4.00) || (Mpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
-              if(fJetShapePtAssocBin == 7) { if((Mpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
-              if(fJetShapePtAssocBin == 8) { if((Mpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
-            }  
+              if(assocPtBin == 0) { if((Mpt < 0.20) || (Mpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+              if(assocPtBin == 1) { if((Mpt < 0.50) || (Mpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+              if(assocPtBin == 2) { if((Mpt < 1.00) || (Mpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+              if(assocPtBin == 3) { if((Mpt < 1.50) || (Mpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+              if(assocPtBin == 4) { if((Mpt < 2.00) || (Mpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+              if(assocPtBin == 5) { if((Mpt < 3.00) || (Mpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+              if(assocPtBin == 6) { if((Mpt < 4.00) || (Mpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+              if(assocPtBin == 7) { if((Mpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
+              if(assocPtBin == 8) { if((Mpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
+            }
 
             // get radial distance between track and jet axis
             double deltaEtaBG = 1.0*TMath::Abs(jetEta - Meta);
@@ -3524,36 +3629,42 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
           // fill BG histos here
           for(int i=0; i<10; i++) {
-            hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
-            hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
-            hJetPtProfileBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
-            hJetPtProfileBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
+            hJetShapeBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
+            hJetShapeBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
+            hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
+            hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
           } // loop over annuli bins
-          //hJetCounterCase3BG[jetPtBin][centbin][EPBin]->Fill(0.5);
-          //hJetCounterCase3BG[jetPtBin][centbin][3]->Fill(0.5); // ALL angles
+          if(assocPtBin == 0) { 
+            //hJetCounterCase3BG[jetPtBin][centBin][EPBin]->Fill(0.5);
+            //hJetCounterCase3BG[jetPtBin][centBin][3]->Fill(0.5); // ALL angles
+          }
 
         }   // end of filling mixed-event histo's:  jth mix event loop
 
 /*  ------ October 29, 2018
         // fill histo here... FIXME
         for(int i=0; i<10; i++) {
-          hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
-          hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
-          hJetPtProfileBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
-          hJetPtProfileBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
+          hJetShapeBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
+          hJetShapeBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
+          hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
+          hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
         } // loop over annuli bins
-        hJetCounterCase3BG[jetPtBin][centbin][EPBin]->Fill(0.5);
-        hJetCounterCase3BG[jetPtBin][centbin][3]->Fill(0.5); // ALL angles
+        if(assocPtBin == 0) {
+          hJetCounterCase3BG[jetPtBin][centBin][EPBin]->Fill(0.5);
+          hJetCounterCase3BG[jetPtBin][centBin][3]->Fill(0.5); // ALL angles
+        }
 */
 
-        hJetCounterCase3BG[jetPtBin][centbin][EPBin]->Fill(0.5);
-        hJetCounterCase3BG[jetPtBin][centbin][3]->Fill(0.5); // ALL angles
+        if(assocPtBin == 0) {
+          hJetCounterCase3BG[jetPtBin][centBin][EPBin]->Fill(0.5);
+          hJetCounterCase3BG[jetPtBin][centBin][3]->Fill(0.5); // ALL angles
+        }
       }     // end of check for pool being ready
     }       // end of event mixing
 
     return kStOK;
 }
-
+//
 Double_t StMyAnalysisMaker3::TestBool() {
   return kFALSE;
 }
@@ -3588,4 +3699,38 @@ Bool_t StMyAnalysisMaker3::IsTowerDead( Int_t mTowId ){
     __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
     return kFALSE;
   }
+}
+//
+// function to calculate Jet v2 using the event plane method
+//____________________________________________________________________________________________
+void StMyAnalysisMaker3::GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin)
+{
+  // get centrality bin
+  int centBin = (!doppAnalysis) ? Get4CentBin(fCentralityScaled) : 0; // this secures it will still run for pp
+  if(centBin < 0) return; // kStOK;
+
+  // get jet pt bin and value
+  double jetPt = -99.;
+  if(fCorrJetPt) { jetPt = jet->Pt() - jet->Area()*fRhoVal;
+  } else { jetPt = jet->Pt(); }
+  int jetPtBin = GetJetPtBin(jetPt);
+  if(jetPtBin < 0) return; // kStOK;
+
+  // require tower and or track bias for jet
+  //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) return kStOK;
+
+  // check that jet contains a tower that fired the trigger
+  //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;
+
+  // jet parameters
+  double jetPhi = jet->Phi();
+
+  // get event plane bin
+  double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, EPangle) : -99.; // CORRECTED event plane angle - STEP3
+  int EPBin = (!doppAnalysis) ? GetJetEPBin(dEP) : 0; // this secures it will still run for pp, and use EP bin = 0
+  if(EPBin < 0) return; // kStOK;
+
+  // fill histogram
+  fProfJetV2[jetPtBin][centBin][EPBin]->Fill(ptAssocBin, TMath::Cos(2.*(jetPhi - EPangle)));
+  fProfJetV2[jetPtBin][centBin][3]->Fill(ptAssocBin, TMath::Cos(2.*(jetPhi - EPangle)));
 }

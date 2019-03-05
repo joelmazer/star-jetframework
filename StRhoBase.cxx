@@ -19,6 +19,7 @@
 #include <TGrid.h>
 #include "TFile.h"
 #include <THnSparse.h>
+#include "TVector3.h"
 
 // STAR includes
 #include "StRhoParameter.h"
@@ -492,7 +493,7 @@ Int_t StRhoBase::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get vertex 3 vector and declare variables
-  StThreeVectorF mVertex = mPicoEvent->primaryVertex();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
   double zVtx = mVertex.z();
 
   // zvertex cut - per the Aj analysis

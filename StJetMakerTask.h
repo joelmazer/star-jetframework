@@ -10,12 +10,10 @@
 
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
-#include "StEmcUtil/projection/StEmcPosition.h"
+//#include "StEmcUtil/projection/StEmcPosition.h"
 #include "StMuDSTMaker/COMMON/StMuDst.h"
 class StEmcGeom;
-class StEmcCluster;
-class StEmcCollection;
-class StBemcTables; //v3.14
+class StEmcPosition2;
 
 // ROOT classes
 class TClonesArray;
@@ -219,16 +217,19 @@ class StJetMakerTask : public StMaker {
   //Int_t FindJets(); // use this if want to return NJets found
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
-  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);// track accept cuts function
-  Bool_t                 AcceptJetTower(StPicoBTowHit *tower);                            // tower accept cuts function
+  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
+  Bool_t                 AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-  Bool_t                 GetMomentum(StThreeVectorF &mom, const StPicoBTowHit* tower, Double_t mass) const;
+  Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
   Bool_t                 CheckForMB(int RunFlag, int type);
   Bool_t                 CheckForHT(int RunFlag, int type);
   Bool_t                 DoComparison(int myarr[], int elems);
   void                   FillEmcTriggersArr();
   Double_t               GetMaxTrackPt();
+  void                   RunEventQA();
+  void                   SetSumw2(); // set errors weights 
+  Int_t                  GetRunNo(int runid);
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
@@ -259,7 +260,7 @@ class StJetMakerTask : public StMaker {
 
   // event variables
   Double_t               Bfield;                  // event Bfield
-  StThreeVectorF         mVertex;                 // event vertex 3-vector
+  TVector3               mVertex;                 // event vertex 3-vector
   Double_t               zVtx;                    // z-vertex component
 
   // event selection types
@@ -355,6 +356,9 @@ class StJetMakerTask : public StMaker {
   StPicoDst      *mPicoDst;      // PicoDst object
   StPicoEvent    *mPicoEvent;    // PicoEvent object
 
+  // position objection
+  StEmcPosition2 *mEmcPosition; // Emc position object
+
   // centrality objects
   StRefMultCorr* grefmultCorr;
 
@@ -362,8 +366,22 @@ class StJetMakerTask : public StMaker {
   Bool_t         mTowerStatusArr[4801];
 
   // histograms
+  TH1F           *fHistMultiplicity;//!
   TH1F           *fHistCentrality;//!
   TH1F           *fHistFJRho;//!
+  TProfile       *fProfEventBBCx;//!
+  TProfile       *fProfEventZDCx;//!
+
+  TH1F           *fHistNTrackvsPt;//!
+  TH1F           *fHistNTrackvsPhi;//!
+  TH1F           *fHistNTrackvsEta;//!
+  TH2F           *fHistNTrackvsPhivsEta;//!
+  TH1F           *fHistNTowervsID;//!
+  TH1F           *fHistNTowervsE;//!
+  TH1F           *fHistNTowervsEt;//!
+  TH1F           *fHistNTowervsPhi;//!
+  TH1F           *fHistNTowervsEta;//!
+  TH2F           *fHistNTowervsPhivsEta;//!
 
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!

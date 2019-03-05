@@ -78,7 +78,7 @@ StJet::StJet() :
  */
 StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   StVParticle(),//FIXME
-  fPt(TMath::Sqrt(px * px + py* py)),
+  fPt(TMath::Sqrt(px*px + py*py)),
   fEta(TMath::ASinH(pz / fPt)),
   fPhi(0),
   fM(0),

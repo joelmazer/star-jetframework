@@ -18,7 +18,7 @@
 #include "StMuDSTMaker/COMMON/StMuEvent.h"
 
 #include "StEmcUtil/geometry/StEmcGeom.h"
-#include "StEmcUtil/projection/StEmcPosition.h"
+//#include "StEmcUtil/projection/StEmcPosition.h"
 
 // ROOT classes
 class TClonesArray;
@@ -40,7 +40,8 @@ class StEmcGeom;
 class StBemcTables; //v3.14
 class StEmcCluster;
 class StEmcCollection;
-class StEmcPosition;
+
+class StEmcPosition2;
 
 // centrality class
 class StRefMultCorr;
@@ -120,15 +121,13 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
 
   // track / cluster setters 
-  virtual void         SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;}   // min track cut
-  virtual void         SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;}   // max track cut
-  virtual void         SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
+  virtual void         SetTrackPtRange(Double_t ptmi, Double_t ptma) { fTrackPtMinCut = ptmi; fTrackPtMaxCut = ptma; }
+  virtual void         SetTrackPhiRange(Double_t phimi, Double_t phima) { fTrackPhiMinCut = phimi; fTrackPhiMaxCut = phima; }
   virtual void         SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
   virtual void         SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
   virtual void         SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
   virtual void         SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
-  virtual void         SetMinClusterPt(Double_t minpt)    { fClusterPtMinCut    = minpt;} // min cluster cut
-  virtual void         SetMaxClusterPt(Double_t maxpt)    { fClusterPtMaxCut    = maxpt;} // max cluster cut
+  virtual void         SetClusterPtRange(Double_t mi, Double_t ma) { fClusterPtMinCut = mi; fClusterPtMaxCut = ma; }
 
   // tower setters
   virtual void         SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
@@ -163,11 +162,14 @@ class StPicoTrackClusterQA : public StMaker {
   void                 SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
 
  protected:
-  void                   RunQA();
-  void                   RunTowerTest();
+  // functions
+  void                   RunEventQA();
+  void                   RunTrackQA();
+  void                   RunHadCorrTowerQA();
+  void                   RunTowerQA();
   void                   RunFiredTriggerQA();  
-  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, StThreeVectorF Vert);  // track accept cuts function
-  Bool_t                 AcceptTower(StPicoBTowHit *tower);                              // tower accept cuts function
+  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
+  Bool_t                 AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                       // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
@@ -176,8 +178,9 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t                 CheckForMB(int RunFlag, int type);
   Bool_t                 CheckForHT(int RunFlag, int type);
   Double_t               GetMaxTrackPt();
-
+  void                   FillTriggerIDs(TH1* h);
   void                   SetSumw2(); // set errors weights 
+  Int_t                  GetRunNo(int runid);
 
   // switches
   Bool_t                 doWriteHistos;           // write QA histos
@@ -230,7 +233,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event
   Float_t         Bfield;                      // event Bfield
-  StThreeVectorF  mVertex;                     // event vertex 3-vector
+  TVector3        mVertex;                     // event vertex 3-vector
   Double_t        zVtx;                        // z-vertex component
   Int_t           fRunNumber;                  // Run number
 
@@ -253,6 +256,7 @@ class StPicoTrackClusterQA : public StMaker {
   Float_t                mHadronicCorrFrac;
 
  private:
+  // OLD - part of tests
   Bool_t MuProcessBEMC();
   Bool_t PicoProcessBEMC();
   Int_t  MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID);
@@ -264,6 +268,9 @@ class StPicoTrackClusterQA : public StMaker {
   StPicoDst         *mPicoDst;      // PicoDst object
   StPicoEvent       *mPicoEvent;    // PicoEvent object
 
+  // position object
+  StEmcPosition2    *mEmcPosition;
+
   //bool              *mTowerStatusArr; // tower status array
 
   // centrality objects
@@ -274,18 +281,36 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNTrackvsPhi;//!
   TH1F           *fHistNTrackvsEta;//!
   TH2F           *fHistNTrackvsPhivsEta;//!
+  TH1F           *fHistNHadCorrTowervsE;//!
+  TH1F           *fHistNHadCorrTowervsEt;//!
+  TH1F           *fHistNHadCorrTowervsPhi;//!
+  TH1F           *fHistNHadCorrTowervsEta;//!
+  TH2F           *fHistNHadCorrTowervsPhivsEta;//!
+  TH1F           *fHistNHadCorrTowerHOTvsTowID;//!
   TH1F           *fHistNTowervsE;//!
   TH1F           *fHistNTowervsEt;//!
   TH1F           *fHistNTowervsPhi;//!
   TH1F           *fHistNTowervsEta;//!
   TH2F           *fHistNTowervsPhivsEta;//!
+  TH1F           *fHistNTowerHOTvsTowID;//!
 
   // QA histos
   TH1            *fHistEventSelectionQA;//! 
   TH1            *fHistEventSelectionQAafterCuts;//!
   TH1            *hTriggerIds;//!
   TH1            *hEmcTriggers;//!
+  TH1            *fHistTriggerIDs;//!
 
+  // event QA
+  TProfile       *fProfEventRefMult;//!
+  TProfile       *fProfEventRanking;//!
+  TProfile       *fProfEventZvtx;//!
+  TProfile       *fProfEventYvtx;//!
+  TProfile       *fProfEventXvtx;//!
+  TProfile       *fProfEventVzVPD;//!
+  TProfile       *fProfEventBBCx;//!
+  TProfile       *fProfEventZDCx;//!
+  
   // trigger histos for zero and negative energy
   TH1F           *fHistNZeroEHT1vsID;//!
   TH1F           *fHistNZeroEHT2vsID;//!
@@ -307,6 +332,22 @@ class StPicoTrackClusterQA : public StMaker {
   TH2F           *fHistHT1IDvsFiredEt;//!
   TH2F           *fHistHT2IDvsFiredEt;//!
   TH2F           *fHistHT3IDvsFiredEt;//!
+
+  TH1F           *fHistNFiredHT0vsFlag;//!
+  TH1F           *fHistNFiredHT1vsFlag;//!
+  TH1F           *fHistNFiredHT2vsFlag;//!
+  TH1F           *fHistNFiredHT3vsFlag;//!
+  TH1F           *fHistNFiredJP0vsFlag;//!
+  TH1F           *fHistNFiredJP1vsFlag;//!
+  TH1F           *fHistNFiredJP2vsFlag;//!
+
+  TH1F           *fHistNFiredHT0vsADC;//!
+  TH1F           *fHistNFiredHT1vsADC;//!
+  TH1F           *fHistNFiredHT2vsADC;//!
+  TH1F           *fHistNFiredHT3vsADC;//!
+  TH1F           *fHistNFiredJP0vsADC;//!
+  TH1F           *fHistNFiredJP1vsADC;//!
+  TH1F           *fHistNFiredJP2vsADC;//!
 
   // THn Sparse's
   THnSparse      *fhnTrackQA;//!      // sparse of track info

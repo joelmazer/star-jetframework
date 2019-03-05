@@ -2,22 +2,22 @@
 // Author:  Joel Mazer for the STAR Collaboration
 // Affiliation: Rutgers University
 //
-// Centrality QA
+// This code is set as an AnalysisMaker task, where it can perform:
+// - event mixing setup
+//
 //
 // ################################################################
 
-#include "StCentralityQA.h"
+#include "StEventPoolMaker.h"
 #include "StRoot/StarRoot/StMemStat.h"
 
 // ROOT includes
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TFile.h"
-#include <THnSparse.h>
 #include "TParameter.h"
 #include <TProfile.h>
-#include "TRandom.h"
-#include "TRandom3.h"
+#include "TVector3.h"
 
 // STAR includes
 #include "StRoot/StPicoEvent/StPicoDst.h"
@@ -26,10 +26,8 @@
 
 // my STAR includes
 #include "StJetFrameworkPicoBase.h"
+#include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h"
-#include "runlistP16ij.h"
-#include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -45,10 +43,11 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-ClassImp(StCentralityQA)
+ClassImp(StEventPoolMaker)
 
-//-----------------------------------------------------------------------------
-StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
+//
+//__________________________________________________________________________________________
+StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
   : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
 {
   doUsePrimTracks = kFALSE;
@@ -64,13 +63,14 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
   fHistZvertBinMin = 0;
   fHistZvertBinMax = 20;             // (-40, 40) 4cm bins
+  fPoolMgr = 0x0;
   fRunNumber = 0;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
   grefmultCorr = 0x0;
-  grefmultCorrNEW = 0x0;
   mOutName = outName;
+  doPrintEventCounter = kFALSE;
   fDoEffCorr = kFALSE;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
@@ -80,12 +80,15 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   fTowerEMinCut = 0.2; fTowerEMaxCut = 100.0;
   fTowerEtaMinCut = -1.0; fTowerEtaMaxCut = 1.0;
   fTowerPhiMinCut = 0.0; fTowerPhiMaxCut = 2.0*TMath::Pi();
+  fDoEventMixing = 0; fMixingTracks = 50000; fNMIXtracks = 5000; fNMIXevents = 5;
+  fCentBinSize = 5; fReduceStatsCent = -1;
+  fDoUseMultBins = kFALSE;
   fCentralityScaled = 0.;
   ref16 = -99; ref9 = -99;
   Bfield = 0.0;
 //  mVertex = 0x0;
   zVtx = 0.0;
-  fEmcTriggerEventType = 0; fMBEventType = 2;
+  fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   for(int i=0; i<4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
@@ -94,28 +97,30 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   }
   doComments = mDoComments;
   fAnalysisMakerName = name;
+  fEventPlaneMakerName = "";
 }
-
-//----------------------------------------------------------------------------- 
-StCentralityQA::~StCentralityQA()
+//
+//__________________________________________________________________________________________
+StEventPoolMaker::~StEventPoolMaker()
 { /*  */
   // destructor
   delete hEventZVertex;
   delete hCentrality;
   delete hMultiplicity;
-  delete hCentralityNEW;
-  delete hMultiplicityNEW;
-  delete hCentralityDiff;
-  delete hMultiplicityDiff;
-
+  delete hTrackEtavsPhi;
   delete fHistEventSelectionQA;
   delete fHistEventSelectionQAafterCuts;
   delete hTriggerIds;
   delete hEmcTriggers;
-}
+  delete hMixEvtStatZVtx;
+  delete hMixEvtStatCent;
+  delete hMixEvtStatZvsCent;
 
-//-----------------------------------------------------------------------------
-Int_t StCentralityQA::Init() {
+  fPoolMgr->Clear(); delete fPoolMgr;
+}
+//
+//__________________________________________________________________________________________
+Int_t StEventPoolMaker::Init() {
   //StJetFrameworkPicoBase::Init();
 
   // initialize the histograms
@@ -126,10 +131,6 @@ Int_t StCentralityQA::Init() {
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-
-/*
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -144,7 +145,6 @@ Int_t StCentralityQA::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
         }
         break;
-*/
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(fCentralityDef) {      
@@ -190,11 +190,11 @@ Int_t StCentralityQA::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
-Int_t StCentralityQA::Finish() { 
+//
+//__________________________________________________________________________________________
+Int_t StEventPoolMaker::Finish() { 
   //  Summarize the run.
-  cout << "StCentralityQA::Finish()\n";
+  cout << "StEventPoolMaker::Finish()\n";
 
   //  Write histos to file and close it.
   if(mOutName!="") {
@@ -209,68 +209,123 @@ Int_t StCentralityQA::Finish() {
     fout->Close();
   }
 
-  cout<<"End of StCentralityQA::Finish"<<endl;
+  cout<<"End of StEventPoolMaker::Finish"<<endl;
   StMemStat::PrintMem("End of Finish...");
 
   return kStOK;
 }
-
-//-----------------------------------------------------------------------------
-void StCentralityQA::DeclareHistograms() {
+//
+//__________________________________________________________________________________________
+void StEventPoolMaker::DeclareHistograms() {
+  double pi = 1.0*TMath::Pi();
   int nHistCentBins;
-  int fCentBinSize = 5;
+  if(fCentBinSize == 20) nHistCentBins = 5;
   if(fCentBinSize == 10) nHistCentBins = 10;
   if(fCentBinSize ==  5) nHistCentBins = 20;
 
   // QA histos
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", nHistCentBins, 0, 100); 
-  hCentralityNEW = new TH1F("hCentralityNEW", "No. events vs centrality - NEW", nHistCentBins, 0, 100);
-  hCentralityDiff = new TH1F("hCentralityDiff", "No. events vs centrality - Diff", 2*nHistCentBins, -100, 100);
-
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", 160, 0, 800);
-  hMultiplicityNEW = new TH1F("hMultiplicityNEW", "No. events vs multiplicity - NEW", 160, 0, 800);
-  hMultiplicityDiff = new TH1F("hMultiplicityDiff", "No. events vs multiplicity - Diff", 200, -100, 100);
+  hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
 
   // Event Selection QA histo
   fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
+  hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
+  hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", nHistCentBins, 0, 100);
+  hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
+
+  // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
+  int nCentralityBins = 100;
+  double mult = 1.0;
+  if(fCentBinSize==1) { 
+    nCentralityBins = 100;
+    mult = 1.0;  
+  } else if(fCentBinSize==2){
+    nCentralityBins = 50;
+    mult = 2.0;
+  } else if(fCentBinSize==5){ // will be most commonly used
+    nCentralityBins = 20;
+    mult = 5.0;
+  } else if(fCentBinSize==10){
+    nCentralityBins = 10;
+    mult = 10.0;
+  } else if(fCentBinSize==20){
+    nCentralityBins = 5;
+    mult = 20.0;
+  }
+
+  // set bin edges
+  Double_t cBins[nCentralityBins + 1]; // nCentralityBins
+  for(Int_t ic = 0; ic < nCentralityBins + 1; ic++){
+    //cBins[ic] = mult*ic;
+    cBins[ic] = 1.0*ic;
+  }
+
+  Double_t *centralityBins = cBins;
+
+  // multiplicity bins
+//  Int_t nMultBins = 29; 
+//  Double_t multBins[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+//  Int_t nMultBins = 24;  // Alt-1: Best Yet
+//  Double_t multBins[] = {10,16,24,34,46,61,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+  Int_t nMultBins = 25;  // Alt-2
+  Double_t multBins[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
+  Double_t *multiplicityBins = multBins;
+
+  // z-vertex bins for mixed events
+  Int_t nZvBins  = 20;
+  Double_t vBins[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
+  Double_t *zvbins = vBins;
+  // =================================================================================================
+  //Int_t nbinsjetMIX = sizeof(vBinsJS)/sizeof(Double_t) - 1;
+
+  // Event Mixing
+  Int_t trackDepth = fMixingTracks;
+  Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
+  //fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinspp, centralityBinspp, nZvtxBins, zvtxbin);
+  // binning schemes
+  if(fDoUseMultBins) {
+    fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBins, (Double_t*)multiplicityBins, nZvBins, (Double_t*)zvbins);
+  } else {
+    fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvbins);
+  }
 
   // Switch on Sumw2 for all histos - (except profiles)
   SetSumw2();
 }
-
 //
 // write histograms
 //_____________________________________________________________________________
-void StCentralityQA::WriteHistograms() {
+void StEventPoolMaker::WriteHistograms() {
   // default histos
   hEventZVertex->Write();
   hCentrality->Write();
-  hCentralityNEW->Write();
-  hCentralityDiff->Write();
   hMultiplicity->Write();
-  hMultiplicityNEW->Write();
-  hMultiplicityDiff->Write();
+  hTrackEtavsPhi->Write();
 
   // QA histos
   fHistEventSelectionQA->Write(); 
   fHistEventSelectionQAafterCuts->Write();
   hTriggerIds->Write();
   hEmcTriggers->Write();
+  hMixEvtStatZVtx->Write();
+  hMixEvtStatCent->Write();
+  hMixEvtStatZvsCent->Write();
 }
-
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
-void StCentralityQA::Clear(Option_t *opt) {
+void StEventPoolMaker::Clear(Option_t *opt) {
 }
- 
+// 
 //  This method is called every event.
 //_____________________________________________________________________________
-Int_t StCentralityQA::Make() {
-  //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
+Int_t StEventPoolMaker::Make() {
+  const double pi = 1.0*TMath::Pi();
 
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
@@ -293,7 +348,7 @@ Int_t StCentralityQA::Make() {
     return kStWarn;
   }
 
-  // cut event on max track pt > 30.0 GeV
+  // cut event on max track pt > 35.0 GeV (30 Oct25, 2018)
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // get event B (magnetic) field
@@ -314,27 +369,22 @@ Int_t StCentralityQA::Make() {
   int eventId = mPicoEvent->eventId();
   double fBBCCoincidenceRate = mPicoEvent->BBCx();
   double fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
+  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
   Int_t centbin, cent9, cent16;
   Double_t refCorr2;
 
+  // for AuAu collisions
   if(!doppAnalysis) {
     // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
@@ -349,8 +399,6 @@ Int_t StCentralityQA::Make() {
     if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
     } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
 
-    //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-    //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
     //grefmultCorr->isCentralityOk(cent16)
   } else { // for pp
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
@@ -359,77 +407,20 @@ Int_t StCentralityQA::Make() {
   // cut on unset centrality, > 80%
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
 
+  // bin-age to use for mixed event and sparses
+  Int_t centbin10 = GetCentBin10(centbin);
+  double centBinToUse;
+  if(fCentBinSize==10) { centBinToUse = (double)centbin10 * 10.0;
+  } else if(fCentBinSize==5) { centBinToUse = (double)centbin * 5.0; }
+
   // centrality / multiplicity histograms
-  ///hMultiplicity->Fill(refCorr2);
-  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
+  hMultiplicity->Fill(refCorr2);
   fCentralityScaled = centbin*5.0;
-  ///hCentrality->Fill(fCentralityScaled);
+  hCentrality->Fill(fCentralityScaled);
 
-  // =======================================================================
-  // new centrality determination
-
-  Int_t centbinNEW, cent9NEW, cent16NEW;
-  Int_t ref9NEW, ref16NEW;
-  Double_t refCorr2NEW;
-  Double_t fCentralityScaledNEW;
-
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorrNEW->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorrNEW->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorrNEW->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-//    if(grefmultCorrNEW->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//    if(grefmultCorrNEW->isIndexOk()) cout << "Index Ok" << endl;
-//    if(grefmultCorrNEW->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//    if(grefmultCorrNEW->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-
-    // get centrality bin: either 0-7 or 0-15
-    cent16NEW = grefmultCorrNEW->getCentralityBin16();
-    cent9NEW = grefmultCorrNEW->getCentralityBin9();
-
-    // re-order binning to be from central -> peripheral
-    ref9NEW = GetCentBin(cent9NEW, 9);
-    ref16NEW = GetCentBin(cent16NEW, 16);
-    centbinNEW = GetCentBin(cent16NEW, 16);  // 0-16
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2NEW = grefmultCorrNEW->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2NEW = grefmultCorrNEW->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-    //Double_t refCorr1NEW = grefmultCorrNEW->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-    //Double_t refCorr0NEW = grefmultCorrNEW->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
-    //grefmultCorrNEW->isCentralityOk(cent16NEW)
-  } else { // for pp
-    centbinNEW = 0, cent9NEW = 0, cent16NEW = 0, refCorr2NEW = 0.0, ref9NEW = 0, ref16NEW = 0;
-  }
-
-  // cut on unset centrality, > 80%
-  if(cent16NEW == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
-
-  // centrality / multiplicity histograms
-  ///hMultiplicityNEW->Fill(refCorr2NEW);
-  if(fDebugLevel == kDebugCentrality) { if(centbinNEW > 15) cout<<"centbin = "<<centbinNEW<<"  mult = "<<refCorr2NEW<<"  CentbinNEW*5.0 = "<<centbinNEW*5.0<<"  cent16NEW = "<<cent16NEW<<endl; }
-  fCentralityScaledNEW = centbinNEW*5.0;
-  ///hCentralityNEW->Fill(fCentralityScaledNEW);
-
-  // ====================================================================================
-  // differences
-  double refCorr2Diff = refCorr2 - refCorr2NEW;
-  double fCentralityScaledDiff = fCentralityScaled - fCentralityScaledNEW;
-  ///hMultiplicityDiff->Fill(refCorr2Diff);
-  ///hCentralityDiff->Fill(fCentralityScaledDiff);
-
-  // to limit filling unused entries in sparse, only fill for certain centrality ranges
-  // ranges can be different than functional cent bin setter
-  Int_t cbin = -1;
-  // this is actually not used since the below line does the cut:  if(fRequireCentSelection)
-  if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
-  else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
-  else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
-  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
-  else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
-  else cbin = -99;
+  // cut on centrality for analysis before doing anything
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
+  // ============================ end of CENTRALITY ============================== //
 
   // ========================= Trigger Info =============================== //
   // fill Event Trigger QA
@@ -444,43 +435,180 @@ Int_t StCentralityQA::Make() {
   for(unsigned int i=0; i<mytriggers.size(); i++) {
     if(fDebugLevel == kDebugEmcTrigger) cout<<"i = "<<i<<": "<<mytriggers[i] << ", "; 
   }
-  if(fDebugLevel == kDebugEmcTrigger) 
-  cout<<endl;
+  if(fDebugLevel == kDebugEmcTrigger) cout<<endl;
 
   // check for MB/HT event
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30); 
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
 
   // fill arrays for towers that fired trigger
   FillTowerTriggersArr();
-  // ======================== end of Triggers ============================= //
 
-  if(fHaveMB30event || fHaveEmcTrigger) {
-    // centrality / multiplicity histograms - OLD
-    hMultiplicity->Fill(refCorr2);
-    hCentrality->Fill(fCentralityScaled);
+  // ========================== Event pool setup ===================================== //
+  // create pool pointer
+  StEventPool *pool = 0x0;
 
-    // centrality / multiplicity histograms - NEW
-    hMultiplicityNEW->Fill(refCorr2NEW);
-    hCentralityNEW->Fill(fCentralityScaledNEW);
+  // require event mixing
+  if(fDoEventMixing > 0) {
+    // convert back to integer bins for mixed event pool - 10% bins (0, 7), 5% bins (0, 15)
+    Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSize);
 
-    // diff
-    hMultiplicityDiff->Fill(refCorr2Diff);
-    hCentralityDiff->Fill(fCentralityScaledDiff);
+    // initialize event pools
+    if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(refCorr2, zVtx);
+    } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); }
+    if(!pool) {
+      Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
+      return kTRUE;
+    }
 
+    // use only tracks from MB events
+    if(fRunForMB) { // kMB5 or kMB30 (don't exclude HT)
+    //if(fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 excluding HT
+      // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
+      pool->UpdatePool(CloneAndReduceTrackList());
+
+    } // MB 
   }
+
+  // ============================================================================================= //
+
+  // get number of jets, tracks, and global tracks in events
+  const Int_t ntracks = mPicoDst->numberOfTracks();
+  Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
+
+// ***************************************************************************************************************
+// ******************************** Event MIXING *****************************************************************
+// ***************************************************************************************************************
+  //Prepare to do event mixing
+  if(fDoEventMixing>0){
+    // event mixing
+
+    // 1. First get an event pool corresponding in mult (cent) and
+    //    zvertex to the current event. Once initialized, the pool
+    //    should contain nMix (reduced) events. This routine does not
+    //    pre-scan the chain. The first several events of every chain
+    //    will be skipped until the needed pools are filled to the
+    //    specified depth. If the pool categories are not too rare, this
+    //    should not be a problem. If they are rare, you could lose
+    //    statistics.
+
+    // 2. Collect the whole pool's content of tracks into one TObjArray
+    //    (bgTracks), which is effectively a single background super-event.
+
+    // 3. The reduced and bgTracks arrays must both be passed into
+    //    FillCorrelations(). Also nMix should be passed in, so a weight
+    //    of 1./nMix can be applied.
+
+    // mix jets from triggered events with tracks from MB events
+    // get the trigger bit, need to change trigger bits between different runs
+
+    // mixed event centbin
+    Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSize);
+    //cout<<"mixcentbin = "<<mixcentbin<<"  centbin = "<<centbin<<" centbin10 = "<<centbin10<<"  zvtx = "<<zVtx<<endl;
+
+    // initialize event pools
+    StEventPool *pool = 0x0;
+    if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(refCorr2, zVtx);
+    } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); } 
+    if(!pool) {
+      Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
+      return kTRUE;
+    }
+
+    ///if(fMixingEventType) { //kMB) {
+    if(fRunForMB) { // kMB or kMB30 (don't exclude HT)
+    //if(fRunForMB && (!fHaveEmcTrigger)) { // kMB or kMB30 (excluding HT)
+      // create a list of reduced objects. This speeds up processing and reduces memory consumption for the event pool
+      pool->UpdatePool(CloneAndReduceTrackList());
+
+      // fill QA histo's
+      hMixEvtStatZVtx->Fill(zVtx);
+      hMixEvtStatCent->Fill(centBinToUse);
+      hMixEvtStatZvsCent->Fill(centBinToUse, zVtx);
+    } // MB
+  } // end of event mixing
 
   return kStOK;
 }
+//
+//_________________________________________________
+// From CF event mixing code PhiCorrelations
+TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
+{
+  // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
+//  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");// original way
+  TClonesArray* tracksClone = new TClonesArray("StFemtoTrack");
+//  tracksClone->SetName("tracksClone");
+//  tracksClone->SetOwner(kTRUE);
 
+  // construct variables, get # of tracks
+  int nMixTracks = mPicoDst->numberOfTracks();
+  int iterTrk = 0;
+  //const double pi = 1.0*TMath::Pi();
+
+  // loop over tracks
+  for(int i = 0; i < nMixTracks; i++) { 
+    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    if(!trk){ continue; }
+
+    // acceptance and kinematic quality cuts
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+
+    // get momentum vector of track - global or primary track
+    TVector3 mTrkMom;
+    if(doUsePrimTracks) {
+      if(!(trk->isPrimary())) continue; // check if primary
+      // get primary track vector
+      mTrkMom = trk->pMom();
+    } else {
+      // get global track vector
+      mTrkMom = trk->gMom(mVertex, Bfield);
+    }
+
+    // track variables - used with alt method below
+    double pt = mTrkMom.Perp();
+
+/*
+    // when doing event plane calculation via pt assoc bin
+    // this is TEMP, it will filter track by the pt bin used for analysis
+    if(doTPCptassocBin && fDoFilterPtMixEvents) {
+      if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+    }
+*/
+
+    // create StFemtoTracks out of accepted tracks - light-weight object for mixing
+    //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
+    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
+    if(!t) continue;
+
+    // add light-weight tracks passing cuts to TClonesArray
+    ((*tracksClone)[iterTrk]) =  t;
+
+    //delete t;
+    ++iterTrk;
+  } // end of looping through tracks
+
+  return tracksClone;
+}
+//
+//
 //_________________________________________________________________________
-TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
+TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
@@ -498,13 +626,6 @@ TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
     bool isJP0 = emcTrig->isJP0();
     bool isJP1 = emcTrig->isJP1();
     bool isJP2 = emcTrig->isJP2();
-
-    // print some EMCal Trigger info
-    if(fDebugLevel == kDebugEmcTrigger) {
-      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
-      cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
-      cout<<"  isJP0: "<<isJP0<<"  isJP1: "<<isJP1<<"  isJP2: "<<isJP2<<endl;
-    }
 
     // fill for valid triggers
     if(isHT0) { h->Fill(1); fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT0] = 1; }
@@ -534,10 +655,10 @@ TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
 
   return h;
 }
-
+//
 //_____________________________________________________________________________
 // Trigger QA histogram, label bins 
-TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
+TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
   // check and fill a Event Selection QA histogram for different trigger selections after cuts
 
   // Run12 pp 200 GeV
@@ -550,7 +671,7 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
 
     int bin = 0;
 
-    // fill for kAny
+    // fill for kAny 
     bin = 1; h->Fill(bin);
 
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
@@ -586,7 +707,6 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
@@ -626,9 +746,7 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
@@ -653,27 +771,26 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
   
   return h;
 }
-
+//
 // Set the bin errors on histograms
 // __________________________________________________________________________________
-void StCentralityQA::SetSumw2() {
+void StEventPoolMaker::SetSumw2() {
   // set sum weights
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
-  //hCentralityNEW->Sumw2();
-  //hMultiplicityNEW->Sumw2();
-  //hCentralityDiff->Sumw2();
-  //hMultiplicityDiff->Sumw2();
-  
+  hTrackEtavsPhi->Sumw2();
   //fHistEventSelectionQA->Sumw2();
   //fHistEventSelectionQAafterCuts->Sumw2();
   //hTriggerIds->Sumw2();
   //hEmcTriggers->Sumw2();
+  //hMixEvtStatZVtx->Sumw2();
+  //hMixEvtStatCent->Sumw2();
+  //hMixEvtStatZvsCent->Sumw2();
 }
-
+//
 //_________________________________________________________________________
-void StCentralityQA::FillTowerTriggersArr() {
+void StEventPoolMaker::FillTowerTriggersArr() {
   // tower - HT trigger types array
   // zero these out - so they are refreshed for each event
   for(int i = 0; i < 4801; i++) {
@@ -700,25 +817,5 @@ void StCentralityQA::FillTowerTriggersArr() {
     if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
     if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
     if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
-
-    //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }
-
-/*
-  // loop over towers and add input vectors to fastjet
-  int nTowers = mPicoDst->numberOfBTOWHits();
-  for(int itow = 0; itow < nTowers; itow++) {
-    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
-    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
-
-    // tower ID: get from index of array shifted by +1
-    int towerID = itow + 1; //tower->id();
-    if(towerID < 0) continue; // double check these aren't still in the event list
-
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT2: "<<fTowerToTriggerTypeHT2[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT3: "<<fTowerToTriggerTypeHT3[towerID]<<"  adc = "<<tower->adc()<<endl;
-  }
-*/
-
 }

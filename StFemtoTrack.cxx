@@ -19,10 +19,11 @@
 #include "StFemtoTrack.h"
 
 #include "StVParticle.h"
-#include "StThreeVectorF.hh"
+#include "TVector3.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
 #include "Riostream.h"
+
 /// \cond CLASSIMP
 ClassImp(StFemtoTrack);
 /// \endcond
@@ -78,11 +79,11 @@ StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t cha
   //fPhi = TVector2::Phi_0_2pi(fPhi);
 }
 
-StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, StThreeVectorF mVertex, bool prim)
+StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVertex, bool prim)
 {
   // primary track switch
   // get momentum vector of track - global or primary track
-  StThreeVectorF mTrkMom;
+  TVector3 mTrkMom;
   if(prim) {
     // get primary track vector
     mTrkMom = track->pMom();
@@ -92,9 +93,9 @@ StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, StThreeVecto
   }
 
   // track variables
-  double pt = mTrkMom.perp();
-  double phi = mTrkMom.phi();
-  double eta = mTrkMom.pseudoRapidity();
+  double pt = mTrkMom.Perp();
+  double phi = mTrkMom.Phi();
+  double eta = mTrkMom.PseudoRapidity();
   short charge = track->charge();
 
   fPt = pt;
