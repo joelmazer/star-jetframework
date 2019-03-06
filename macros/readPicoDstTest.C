@@ -268,6 +268,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         rhoTask->SetExcludeLeadJets(2);
         rhoTask->SetOutRhoName("OutRho");
         rhoTask->SetRunFlag(RunFlag);
+        rhoTask->SetdoppAnalysis(dopp);
         rhoTask->SetCentralityDef(CentralityDefinition);
         rhoTask->SetUseBBCCoincidenceRate(kFALSE);
         rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
@@ -353,6 +354,8 @@ void LoadLibs()
 {
   // load fastjet libraries 3.x
   //gSystem->Load("libCGAL"); - not installed 
+  // FIXME FIXME! make sure if you get a crash from running this macro the first time, that the $FASTJET variable points to the right place
+  // else you will not find the libraries
   gSystem->Load("$FASTJET/lib/libfastjet");
   gSystem->Load("$FASTJET/lib/libsiscone");
   gSystem->Load("$FASTJET/lib/libsiscone_spherical");
@@ -368,16 +371,11 @@ void LoadLibs()
   loadSharedLibraries();
 
   // these are needed for new / additional classes
-//  gSystem->Load("StPicoDstMaker");
-  //gSystem->Load("StJetMakerTask");
-  //gSystem->Load("StRho");
   gSystem->Load("libStPicoEvent");
   gSystem->Load("libStPicoDstMaker");
 
   // my libraries
-  //gSystem->Load("StPicoDstMaker");
   gSystem->Load("StRefMultCorr");
-  //gSystem->Load("StJetFrameworkPicoBase");
   gSystem->Load("StMyAnalysisMaker");
 
   gSystem->ListLibraries();
