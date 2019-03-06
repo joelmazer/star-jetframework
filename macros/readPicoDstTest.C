@@ -39,8 +39,8 @@ bool doBackgroundJets = kTRUE;
 // run analysis for specific centrality bin
 bool doCentSelection = kFALSE; // keep false to run over all centralities
 
-// see enumerator below, 4 = Run14
-Int_t RunYear = 4; 
+// see enumerator below, 14 = Run14
+Int_t RunYear = 14; 
 // kFALSE when submitting jobs, kTRUE for tests
 bool doTEST = kTRUE;     // FIXME double check before submitting!
 bool dopp = kFALSE;      // kTRUE for pp data
@@ -49,8 +49,6 @@ bool dopp = kFALSE;      // kTRUE for pp data
 Double_t ZVtxMin = -40.0;
 Double_t ZVtxMax = 40.0;
 
-StChain *chain;
-
 void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.root", Int_t nEv = 10, const Char_t *fOutJobappend="")
 {
         Int_t nEvents = 1000;
@@ -58,9 +56,11 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
 
         // run enumerators
         enum RunType_t {
-          mJobSubmission = 0, // 0th spot - default unless set
-          mRun11 = 1, mRun12 = 2, mRun13 = 3, mRun14 = 4, 
-          mRun15 = 5, mRun16 = 6, mRun17 = 7, mRun18 = 8
+          mJobSubmission = 0, // 0th spot
+          mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10,
+          mRun11 = 11, mRun12 = 12, mRun13 = 13,
+          mRun14 = 14,
+          mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18
         };
 
         // set up Jet enumerators:
@@ -105,10 +105,16 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         LoadMacros();
 
         // =============================================================================== //
+        // =============================================================================== //
+        // =============================================================================== //
         // over-ride functions
-        if(dopp) doCentSelection = kFALSE; // can't ask for a particular centrality if requesting pp collisions
+        if(dopp) {
+          doCentSelection = kFALSE;  // can't ask for a particular centrality if requesting pp collisions
+          doBackgroundJets = kFALSE; // don't do a rho background calculation when using pp collisions   
+        }
 
-        // input file for tests (based on Run)
+        // input file for tests (based on Run) - updated for new Runs as needed - FIXME update for you own lists
+        if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
         if((RunYear == mRun14) && doTEST) inputFile = "Run_15151042_files.list";;
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
@@ -116,8 +122,9 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
 
         // centrality global flags
         // Centrality Selection can be set up in certain classes, to only run for a given centrality range
-        Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
+        Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050; // set as an example
         Int_t CentralityDefinition;
+        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30;  // no centrality defintion for Run 12 pp
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;       // Run14
         if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
@@ -128,27 +135,33 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if(RunYear == mRun14) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200;
         if(RunYear == mRun16) RunFlag = StJetFrameworkPicoBase::Run16_AuAu200;
         if(RunYear == mRun11 && dopp) RunFlag = StJetFrameworkPicoBase::Run11_pp500;
+        if(RunYear == mRun12 && dopp) RunFlag = StJetFrameworkPicoBase::Run12_pp200;
         if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
         if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
 
-        // trigger flags
+        // trigger flags - set as such
         // EmcTriggerEventType: selects which HT trigger to use
         Int_t EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT1 or kIsHT2 or kIsHT3 (Set for Run14)
+        if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // StJetFrameworkPicoBase::kIsHT2;
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
         if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3; 
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default, want kVPDMB30 for new centrality definitions
+        if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT
         Int_t TowerListToUse = 136; //122: - doesn't matter for charged jets
+        // Run12 pp: 1 - Raghav's list, 102 - my initial list, 169 - new list
 
         // track flags
         bool usePrimaryTracks;
+        if(RunYear == mRun12) usePrimaryTracks = kTRUE;
         if(RunYear == mRun14) usePrimaryTracks = kTRUE;  // = kTRUE for Run14, kFALSE for Run16
         if(RunYear == mRun16) usePrimaryTracks = kFALSE; 
         if(RunYear == mRun17) usePrimaryTracks = kTRUE;  
 
         // jet type flags
         Int_t fJetType;
+        if(RunYear == mRun12) fJetType = kFullJet;
         if(RunYear == mRun14) fJetType = kFullJet; // kChargedJet
         //fJetType = kChargedJet; // running Run14 analaysis for charged jets
         if(RunYear == mRun16) fJetType = kChargedJet;
@@ -156,6 +169,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         double fJetRadius = 0.3;  // 0.4, 0.3, 0.2
         double fJetConstituentCut = 0.2; // correlation analysis: 2.0, jet shape analysis: 1.0 (been using 2.0 for corrections)
         Int_t fJetShapeAnalysisJetType = kLeadingJets;  // Jet shape jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets
+        bool fDoJetShapeAnalysis = kTRUE; // switch for doing jet shape analysis - only usefuly when using StMyAnalysisMaker3
+        cout<<"fJetType: "<<fJetType<<endl;
 
         // event plane type and selection
         Int_t TPCEPSelectionType = StJetFrameworkPicoBase::kRemoveEtaStrip;
@@ -164,6 +179,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         // update settings for new centrality definitions
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
+        // =============================================================================== //
+        // =============================================================================== //
         // =============================================================================== //
 
         // open and close output .root file (so it exist and can be updated by Analysis Tasks)
@@ -196,6 +213,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         jetTask->SetJetPhiRange(0,2*pi);        // phi acceptance
         jetTask->SetUsePrimaryTracks(usePrimaryTracks);
         jetTask->SetRunFlag(RunFlag);
+        jetTask->SetdoppAnalysis(dopp);         // pp switch
         jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
         jetTask->SetUseBBCCoincidenceRate(kFALSE);
         jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);     // can be tighter for Run16 (-20,20)
