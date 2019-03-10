@@ -162,6 +162,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
   delete hCentrality;
+  delete hCenralityEP;
   delete hEventPlane;
   delete hEventPlaneWeighted;
   delete fHistEPTPCn;
@@ -419,6 +420,7 @@ void StEventPlaneMaker::DeclareHistograms() {
 
   // QA histos
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100);
+  hCentralityEP = new TH1F("hCentralityEP", "No. events vs centrality for EP res", 20, 0, 100);
 
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
   hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
@@ -684,6 +686,7 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
 
   // default histos
   hCentrality->Write();
+  hCentralityEP->Write();
 
   hEventPlane->Write();
   hEventPlaneWeighted->Write();
@@ -1016,6 +1019,8 @@ Int_t StEventPlaneMaker::Make() {
 
   // event plane analysis for resolution calculation
   if(doEPAnalysis) {
+    hCentralityEP->Fill(fCentralityScaled);
+
     // calculate / fill event plane resolution histograms
     if(doEventPlaneRes){
       // this version uses my method for TPCn and TPCp with no corrections
@@ -1224,6 +1229,7 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 void StEventPlaneMaker::SetEPSumw2() {
   // set sum weights
   //hCentrality->Sumw2();
+  //hCentralityEP->Sumw2();
 
   hEventPlane->Sumw2();
   hEventPlaneWeighted->Sumw2();
@@ -2415,13 +2421,13 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   // fill TPC event plane histos
   Psi2->Fill(psi2);              // raw psi2
   Psi2_rcd->Fill(tPhi_rcd);      // recentered psi2
-  Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2 - full range
+  Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2 - full range [-pi, pi]
   Delta_Psi2old->Fill(psi2m-psi2p); // raw delta psi2 - old
  
   // sanity check when doing unfolding - create angular difference [-pi/2, pi/2] - this will restrict the max range when used for smearing
-  double deltaPsi2 = psi2m-psi2p; // angles from [0, pi]
-  if(deltaPsi2 >  0.5*pi) deltaPsi2 = pi - deltaPsi2;
-  if(deltaPsi2 < -0.5*pi) deltaPsi2 = pi + deltaPsi2;
+  double deltaPsi2 = psi2m-psi2p; // angles from [-pi, pi]
+  if(deltaPsi2 >  0.5*pi) deltaPsi2 -= pi;
+  if(deltaPsi2 < -0.5*pi) deltaPsi2 += pi;
   Delta_Psi2cyc->Fill(deltaPsi2);
 
   // used for resolution calculation
