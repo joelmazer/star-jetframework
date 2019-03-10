@@ -2417,8 +2417,14 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   Psi2_rcd->Fill(tPhi_rcd);      // recentered psi2
   Delta_Psi2->Fill(psi2m-psi2p); // raw delta psi2 - full range
   Delta_Psi2old->Fill(psi2m-psi2p); // raw delta psi2 - old
-  //double deltaPsi2 = psi2m-psi2p;
-  
+ 
+  // sanity check when doing unfolding - create angular difference [-pi/2, pi/2] - this will restrict the max range when used for smearing
+  double deltaPsi2 = psi2m-psi2p; // angles from [0, pi]
+  if(deltaPsi2 >  0.5*pi) deltaPsi2 = pi - deltaPsi2;
+  if(deltaPsi2 < -0.5*pi) deltaPsi2 = pi + deltaPsi2;
+  Delta_Psi2cyc->Fill(deltaPsi2);
+
+  // used for resolution calculation
   double t_res = cos(2*(psi2m - psi2p)); // added
   res = 2.*(cos(2*(psi2m - psi2p)));
   RES = res;
