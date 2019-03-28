@@ -30,8 +30,6 @@ class StJetMakerTask;
 class StJet;
 class StRho;
 class StRhoParameter;
-class StCalibContainer;
-class StEPFlattener;
 
 //class StEventPlaneMaker : public StMaker {
 class StEventPlaneMaker : public StJetFrameworkPicoBase {
@@ -239,18 +237,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Double_t       ZDC_raw_west;
 
   private:
-    Double_t               ApplyFlatteningTPCn(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningTPCp(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningBBC(Double_t phi, Double_t c);
-    Double_t               ApplyFlatteningZDC(Double_t phi, Double_t c);
-
     Int_t                  fRunNumber;
     TString                fEPcalibFileName; 
-    StCalibContainer      *fFlatContainer;
-    StEPFlattener         *fTPCnFlat;
-    StEPFlattener         *fTPCpFlat;
-    StEPFlattener         *fBBCFlat;
-    StEPFlattener         *fZDCFlat;
     Double_t               fEPTPCResolution;
     Double_t               fEPTPCn;
     Double_t               fEPTPCp;
@@ -272,10 +260,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH2F* fHistEPTPCp;//!
     TH2F* fHistEPBBC;//!
     TH2F* fHistEPZDC;//!
-    TH2F* fHistEPTPCnFlatten;//!
-    TH2F* fHistEPTPCpFlatten;//!
-    TH2F* fHistEPBBCFlatten;//!
-    TH2F* fHistEPZDCFlatten;//!
     TH1F* hTrackPhi[9];//!
     TH1F* hTrackPt[9];//!
 

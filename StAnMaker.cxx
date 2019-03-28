@@ -19,7 +19,6 @@
 #include "TVector3.h"
 
 // STAR includes
-//#include "StThreeVectorF.hh"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"

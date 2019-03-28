@@ -41,8 +41,6 @@
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StFemtoTrack.h"
-#include "StEPFlattener.h"
-#include "StCalibContainer.h"
 #include "runlistP12id.h"
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
@@ -101,8 +99,6 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fJets = 0x0;
   fRunNumber = 0;
   fEPcalibFileName = "$STROOT_CALIB/eventplaneFlat.root";
-  fFlatContainer = 0x0;
-  fTPCnFlat = 0x0; fTPCpFlat = 0x0; fBBCFlat = 0x0; fZDCFlat = 0x0;
   fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
   fCalibFile = 0x0; fCalibFile2 = 0x0;
   mPicoDstMaker = 0x0;
@@ -168,10 +164,6 @@ StEventPlaneMaker::~StEventPlaneMaker()
   delete fHistEPTPCp;
   delete fHistEPBBC;
   delete fHistEPZDC;
-  delete fHistEPTPCnFlatten;
-  delete fHistEPTPCpFlatten;
-  delete fHistEPBBCFlatten;
-  delete fHistEPZDCFlatten;
   for(int i=0; i<9; i++){ // centrality
     delete hTrackPhi[i];
     delete hTrackPt[i];
@@ -427,10 +419,6 @@ void StEventPlaneMaker::DeclareHistograms() {
   fHistEPTPCp = new TH2F("fHistEPTPCp", "", 20, 0., 100., 72, -pi, pi);
   fHistEPBBC = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, -pi, pi);
   fHistEPZDC = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPTPCnFlatten = new TH2F("fHistEPTPCnFlatten", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPTPCpFlatten = new TH2F("fHistEPTPCpFlatten", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPBBCFlatten = new TH2F("fHistEPBBCFlatten", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPZDCFlatten = new TH2F("fHistEPZDCFlatten", "", 20, 0., 100., 72, -pi, pi);
 
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
@@ -693,10 +681,6 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   fHistEPTPCp->Write();
   fHistEPBBC->Write();
   fHistEPZDC->Write();
-  fHistEPTPCnFlatten->Write();
-  fHistEPTPCpFlatten->Write();
-  fHistEPBBCFlatten->Write();
-  fHistEPZDCFlatten->Write();
 
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
@@ -856,16 +840,6 @@ Int_t StEventPlaneMaker::Make() {
   Double_t fBBCCoincidenceRate = mPicoEvent->BBCx();
   Double_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
-
-  // ================= Event Plane flattening container ==============
-  // set up event plane flattening container  - not used
-  TObjArray *maps = static_cast<TObjArray*>(fFlatContainer->GetObject(fRunNumber,"eventplaneFlat"));
-  if(maps) {
-    fTPCnFlat = static_cast<StEPFlattener*>(maps->At(0));
-    fTPCpFlat = static_cast<StEPFlattener*>(maps->At(1));
-    fBBCFlat = static_cast<StEPFlattener*>(maps->At(2));
-    fZDCFlat = static_cast<StEPFlattener*>(maps->At(3));
-  }
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
@@ -1236,10 +1210,6 @@ void StEventPlaneMaker::SetEPSumw2() {
   fHistEPTPCp->Sumw2();
   fHistEPBBC->Sumw2();
   fHistEPZDC->Sumw2();
-  fHistEPTPCnFlatten->Sumw2();
-  fHistEPTPCpFlatten->Sumw2();
-  fHistEPBBCFlatten->Sumw2();
-  fHistEPZDCFlatten->Sumw2();
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Sumw2();
     hTrackPt[i]->Sumw2();
@@ -1353,43 +1323,7 @@ void StEventPlaneMaker::SetEPSumw2() {
 // __________________________________________________________________________________
 void StEventPlaneMaker::InitParameters()
 {
-  //AddToHistogramsName("Flow_");
-  // FIXME update this!
-  fFlatContainer = new StCalibContainer("eventplaneFlat");
-  fFlatContainer->InitFromFile("$STROOT_CALIB/eventplaneFlat.root", "eventplaneFlat");
 }  
-//
-// TPC negative eta region event plane flattening
-// __________________________________________________________________________________
-Double_t StEventPlaneMaker::ApplyFlatteningTPCn(Double_t phi, Double_t c)
-{
-  if (fTPCnFlat) return fTPCnFlat->MakeFlat(phi,c);
-  return phi;
-}
-//
-// TPC positive eta region event plane flattening
-// __________________________________________________________________________________
-Double_t StEventPlaneMaker::ApplyFlatteningTPCp(Double_t phi, Double_t c)
-{ 
-  if (fTPCpFlat) return fTPCpFlat->MakeFlat(phi,c);
-  return phi;
-}
-//
-// BBC event plane flattening
-// __________________________________________________________________________________
-Double_t StEventPlaneMaker::ApplyFlatteningBBC(Double_t phi, Double_t c)
-{
-  if (fBBCFlat) return fBBCFlat->MakeFlat(phi,c);
-  return phi;
-}
-//
-// ZDC event plane flattening
-// __________________________________________________________________________________
-Double_t StEventPlaneMaker::ApplyFlatteningZDC(Double_t phi, Double_t c)
-{
-  if (fZDCFlat) return fZDCFlat->MakeFlat(phi,c);
-  return phi;
-}
 //
 //
 // ________________________________________________________________________________________
@@ -1621,24 +1555,6 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   fHistEPTPCp->Fill(fCentralityScaled, fEPTPCp);
   fHistEPBBC->Fill(fCentralityScaled, fEPBBC);
   fHistEPZDC->Fill(fCentralityScaled, fEPZDC);
-
-  // if we want to flatten event plane
-  if(flattenEP) {
-    fEPTPCn = ApplyFlatteningTPCn(fEPTPCn, fCentralityScaled);
-    fEPTPCp = ApplyFlatteningTPCp(fEPTPCp, fCentralityScaled);
-    fEPBBC = ApplyFlatteningBBC(fEPBBC, fCentralityScaled);
-    fEPZDC = ApplyFlatteningZDC(fEPZDC, fCentralityScaled);
-    //if (fEPTPC != -999.) fEPTPC = ApplyFlatteningTPC(fEPTPC, fCentralityScaled);
-    while (fEPTPCn<0.) fEPTPCn+=TMath::Pi(); while (fEPTPCn>TMath::Pi()) fEPTPCn-=TMath::Pi();
-    while (fEPTPCp<0.) fEPTPCp+=TMath::Pi(); while (fEPTPCp>TMath::Pi()) fEPTPCp-=TMath::Pi();
-    while (fEPBBC<0.)  fEPBBC+=TMath::Pi();  while (fEPBBC>TMath::Pi())  fEPBBC-=TMath::Pi();
-    while (fEPZDC<0.)  fEPZDC+=TMath::Pi();  while (fEPZDC>TMath::Pi())  fEPZDC-=TMath::Pi();
-
-    fHistEPTPCnFlatten->Fill(fCentralityScaled, fEPTPCn);
-    fHistEPTPCpFlatten->Fill(fCentralityScaled, fEPTPCp);
-    fHistEPBBCFlatten->Fill(fCentralityScaled, fEPBBC);
-    fHistEPZDCFlatten->Fill(fCentralityScaled, fEPZDC);
-  }
 
 }
 //
