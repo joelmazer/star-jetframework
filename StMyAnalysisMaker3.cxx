@@ -160,6 +160,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   zVtx = 0.0;
   fDoFilterPtMixEvents = kFALSE;
   fDoUseMultBins = kFALSE;
+  doUseEPBins = kFALSE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   for(int i=0; i<4801; i++) {
@@ -772,6 +773,10 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
   Double_t multBinsJS[nMultBinsJS + 1] = {0, 10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469, 800};
   Double_t *multiplicityBinsJS = multBinsJS;
 
+  // cent bins for AuAu data
+  Int_t nCentBinsJS = 20;
+  Double_t* centralityBinsJSnew = GenerateFixedBinArray(nCentBinsJS, 0., 100.); 
+
   // for pp data
   const int nMultBinsJSpp = 7;
   //Double_t multBinsJSpp[nMultBinsJSpp + 1] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  // 8 (9)
@@ -780,19 +785,28 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
 
   // z-vertex bins for mixed events
   Int_t nZvBins  = 20; // 4 cm wide, 40 for 2 cm wide
-  Double_t* zvbins = GenerateFixedBinArray(nZvBins, -40., 40.);
+  Double_t* zvbins = GenerateFixedBinArray(nZvBins, -40., 40.); // min/max doesn't matter as data is cut zmin/zmax
+
+  // event plane bins for mixed events
+  Int_t nEPBins = 3; // 3 from 0-90 degrees, (0 - pi/2)
+  Double_t* epbins = GenerateFixedBinArray(nEPBins, 0, 0.5*pi);
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
   Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
   if(doJetShapeAnalysis) { 
     if(fDoUseMultBins) { 
-      if(!doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins); // not pp
+      if(!doppAnalysis && !doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins); // not pp
+      if(!doppAnalysis &&  doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins); // not pp
       if( doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJSpp, (Double_t*)multiplicityBinsJSpp, nZvBins, (Double_t*)zvbins); // is pp
 
     } else { // centrality binning 
-      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins);
+      //if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins);
+      //if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins);
+      if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvbins);
+      if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins);
     } // correlation analysis setup
+
   } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvbins); }
 
   // set up event mixing sparse
@@ -1400,8 +1414,15 @@ Int_t StMyAnalysisMaker3::Make() {
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
       
       // initialize event pools - different cases for each dataset
-      if(fDoUseMultBins) { pool = fPoolMgr->GetEventPool(kEventActivity, zVtx); 
-      } else { pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); } // FIXME AuAu fcent: cent bin? cent16
+      if(fDoUseMultBins) {
+        if(!doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx);
+        if( doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx, 50.0);
+      } else {
+        if(!doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); 
+        if( doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx, 50.0);
+      } // FIXME AuAu fcent: cent bin? cent16
+
+      // check if pool exists
       if(!pool) {
         Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
         return kTRUE;
@@ -1447,6 +1468,25 @@ Int_t StMyAnalysisMaker3::Make() {
         if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, kEventActivity, ptbin);
       }
     }
+
+    // jet shape - case for: inclusive jets
+    if(fHaveEmcTrigger && fJetShapeJetType == kInclusiveJets) {
+
+      // loop over Jets in the event
+      for(int ijet = 0; ijet < fJets->GetEntries(); ijet++) {  // JET LOOP
+        // get pointer to jets
+        StJet *jet = static_cast<StJet*>(fJets->At(ijet));
+        if(!jet) continue;
+
+        // loop over pt associated bins
+        for(int ptbin=0; ptbin<9; ptbin++) {
+          if(doRequireAjSelection && doAjSelection) { jsret = JetShapeAnalysis(jet, pool, kEventActivity, ptbin);
+          } else { jsret = JetShapeAnalysis(jet, pool, kEventActivity, ptbin); }
+
+        }
+
+      } // loop over jets
+    }   // inclusive jet case
 
     // use only tracks from MB events
     //if(fDoEventMixing > 0 && fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - AuAu, kMB - pp (excluding HT)

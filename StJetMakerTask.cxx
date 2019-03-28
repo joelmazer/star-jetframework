@@ -737,7 +737,7 @@ int StJetMakerTask::Make()
   // run event QA function
   RunEventQA();
 
-  // no need for switch for few checks
+  // no need for switch for few checks - FIXME
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMB5event) && (!fHaveMB30event)) return kStOK;  // MB triggered event
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))                    return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis

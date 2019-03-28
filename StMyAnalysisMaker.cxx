@@ -1788,8 +1788,7 @@ Int_t StMyAnalysisMaker::Make() {
 
             // loop over background (mixed event) tracks
             for(int ibg = 0; ibg < Nbgtrks; ibg++) {
-              // trying new slimmed PicoTrack class
-              //StPicoTrk* trk = (StPicoTrk*)bgTracks->At(ibg);
+              // slimmed PicoTrack class
               StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
               if(!trk){ continue; }
               double Mixphi = trk->Phi();

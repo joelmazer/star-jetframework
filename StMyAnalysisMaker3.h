@@ -136,6 +136,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetReduceStatsCent(Int_t red)      { fReduceStatsCent = red; }
     virtual void            SetDoFilterPtMixEvents(Bool_t fil) { fDoFilterPtMixEvents = fil; }
     virtual void            SetDoUseMultBins(Bool_t mult)      { fDoUseMultBins = mult; }
+    virtual void            SetdoUseEPBins(Bool_t ep)          { doUseEPBins = ep; }
 
     // event selection - setters
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
@@ -219,6 +220,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
     Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
     Bool_t         fDoUseMultBins;              // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
+    Bool_t         doUseEPBins;                // use event plane bins
 
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal

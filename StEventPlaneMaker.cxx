@@ -43,7 +43,6 @@
 #include "StFemtoTrack.h"
 #include "StEPFlattener.h"
 #include "StCalibContainer.h"
-
 #include "runlistP12id.h"
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
@@ -162,7 +161,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
   delete hCentrality;
-  delete hCenralityEP;
+  delete hCentralityEP;
   delete hEventPlane;
   delete hEventPlaneWeighted;
   delete fHistEPTPCn;
