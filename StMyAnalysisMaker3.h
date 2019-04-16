@@ -137,6 +137,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetDoFilterPtMixEvents(Bool_t fil) { fDoFilterPtMixEvents = fil; }
     virtual void            SetDoUseMultBins(Bool_t mult)      { fDoUseMultBins = mult; }
     virtual void            SetdoUseEPBins(Bool_t ep)          { doUseEPBins = ep; }
+    virtual void            SetdoIgnoreExternalME(Bool_t ig)   { doIgnoreExternalME = ig; }
 
     // event selection - setters
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
@@ -163,8 +164,19 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    SetEPcalibFileName(TString filename)            {fEPcalibFileName = filename; } 
     void                    SetOutFileNameEP(TString epout)                 {mOutNameEP = epout; }
     void                    SetOutFileNameQA(TString QAout)                 {mOutNameQA = QAout; }
+    void                    SetOutFileNameMixEvt(TString MEout)             {mOutNameME = MEout; }
 
     virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
+
+    // testing...... TODO
+    // ##### External event pool configuration
+    void                    SetExternalEventPoolManager(StEventPoolManager* mgr) {fPoolMgr = mgr;}
+    StEventPoolManager*     GetEventPoolManager()                                {return fPoolMgr;}
+    void                    SetUsePtBinnedEventPool(Bool_t val)                  {fUsePtBinnedEventPool = val;}
+    void                    SetCheckEventNumberInMixedEvent(Bool_t val)          {fCheckEventNumberInMixedEvent = val;}
+
+    // Set which pools will be saved
+    virtual void AddEventPoolsToOutput(Double_t minCent, Double_t maxCent, Double_t minZvtx, Double_t maxZvtx, Double_t minPsi2, Double_t maxPsi2, Double_t minPt, Double_t maxPt);
 
   protected:
     TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
@@ -220,7 +232,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
     Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
     Bool_t         fDoUseMultBins;              // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
-    Bool_t         doUseEPBins;                // use event plane bins
+    Bool_t         doUseEPBins;                 // use event plane bins: 0.2-2.0 GeV charged tracks
 
     // event selection types
     UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
@@ -271,6 +283,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
   private:
     Int_t                  fRunNumber;
     TString                fEPcalibFileName; 
+    TString                mOutNameME;
     Double_t               fEPTPCResolution;
     Double_t               fEPTPCn;
     Double_t               fEPTPCp;
@@ -420,6 +433,12 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t IsTowerDead( Int_t mTowId );
     std::set<Int_t> badTowers;
     std::set<Int_t> deadTowers;
+
+    // Event pool variables - TEST
+    vector<vector<Double_t> >   fEventPoolOutputList; // vector representing a list of pools (given by value range) that will be saved
+    Bool_t                      fUsePtBinnedEventPool; // uses event pool in pt bins
+    Bool_t                      fCheckEventNumberInMixedEvent; // check event number before correlation in mixed event
+    TList*                      fListOfPools; //  Output list of containers
 
     ClassDef(StMyAnalysisMaker3, 1)
 };

@@ -48,9 +48,10 @@
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h"
+#include "runlistP12id.h" // Run12 pp
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
+#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
 // include header that has all the event plane correction headers - with calibration/correction values
 #include "StPicoEPCorrectionsIncludes.h"

@@ -52,9 +52,10 @@
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h"
+#include "runlistP12id.h" // Run12 pp
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
+#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
@@ -85,7 +86,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fRunFlag = 0;
   doppAnalysis = kFALSE;
   doJetShapeAnalysis = kFALSE;
-  fJetShapeJetType = kLeadingJets;
+  fJetShapeJetType = kLeadingJets;  // see header, LJ, SubLJ, inclusive
   doRequireAjSelection = kFALSE;
   fCorrJetPt = kFALSE;
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
@@ -129,6 +130,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   mOutName = outName;
   mOutNameEP = "";
   mOutNameQA = "";
+  mOutNameME = "";
   doPrintEventCounter = kFALSE;
   fDoEffCorr = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -161,6 +163,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fDoFilterPtMixEvents = kFALSE;
   fDoUseMultBins = kFALSE;
   doUseEPBins = kFALSE;
+  doIgnoreExternalME = kTRUE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   for(int i=0; i<4801; i++) {
@@ -176,6 +179,10 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
   fEventPlaneMakerName = "";
+  //fEventPoolOutputList = {{}}; // FIXME - does this make sense as is?
+  fUsePtBinnedEventPool = kFALSE;
+  fCheckEventNumberInMixedEvent = kFALSE;
+  fListOfPools = 0x0;
 }
 //
 //
@@ -323,13 +330,27 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
 
 //  fJets->Clear(); delete fJets;
 //  fRho->Clear(); delete fRho; 
-  fPoolMgr->Clear(); delete fPoolMgr;
+//  fPoolMgr->Clear(); delete fPoolMgr;
+
+  // Clear unnecessary pools before saving - FIXME
+  fPoolMgr->ClearPools();
+  delete fListOfPools;
 }
 //
-//
+// initialize objects & set up
 //_________________________________________________________________________________________
 Int_t StMyAnalysisMaker3::Init() {
   //StJetFrameworkPicoBase::Init();
+
+  // Initialize output list of event pools - TEST
+  if (fListOfPools != NULL){
+        delete fListOfPools;
+        fListOfPools = NULL;
+  }
+  if (!fListOfPools){
+        fListOfPools = new TList();
+        fListOfPools->SetOwner(kTRUE);
+  }
 
   // initialize the histograms
   DeclareHistograms();
@@ -414,6 +435,15 @@ Int_t StMyAnalysisMaker3::Finish() {
   //cout << "\tProcessed " << mEventCounter << " events." << endl;
   //cout << "\tWithout PV cuts: "<< mAllPVEventCounter << " events"<<endl;
   //cout << "\tInput events: "<<mInputEventCounter<<endl;
+
+  // Write event pool manager object to file and close it
+  if(mOutNameME!="") {
+    TFile *fOutME = new TFile(mOutNameME.Data(), "RECREATE");
+    fOutME->cd();
+    fListOfPools->Write();  // write pools to file if we have them and want to
+    fOutME->Write();
+    fOutME->Close();
+  }
 
   //  Write histos to file and close it.
   if(mOutName!="") {
@@ -592,6 +622,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hTPCvsZDCep = new TH2F("hTPCvsZDCep", "TPC vs ZDC 2nd order event plane", 144, 0.*pi, 1.0*pi, 144, 0.*pi, 1.*pi);
   hBBCvsZDCep = new TH2F("hBBCvsZDCep", "BBC vs ZDC 2nd order event plane", 144, 0.*pi, 1.0*pi, 144, 0.*pi, 1.*pi);
 
+  // jet v2 histogram
   for(int k=0; k<4; k++) {
     for(int j=0; j<4; j++) {
       for(int i=0; i<4; i++) {
@@ -600,6 +631,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
     }
   }
 
+  // jet shape analysis histograms
   if(doJetShapeAnalysis) {
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
@@ -768,14 +800,14 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
   ///Double_t multBinsJS[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
 
   // for AuAu data
-  // +1 to accomodate the fact that we dfine bins rather than array entries
+  // +1 to accomodate the fact that we define bins rather than array entries
   const int nMultBinsJS = 26;  // Alt-2 - 27 values, 26 ranges
   Double_t multBinsJS[nMultBinsJS + 1] = {0, 10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469, 800};
   Double_t *multiplicityBinsJS = multBinsJS;
 
   // cent bins for AuAu data
   Int_t nCentBinsJS = 20;
-  Double_t* centralityBinsJSnew = GenerateFixedBinArray(nCentBinsJS, 0., 100.); 
+  Double_t* centralityBinsJSnew = GenerateFixedBinArray(nCentBinsJS, 0., 20.); 
 
   // for pp data
   const int nMultBinsJSpp = 7;
@@ -785,29 +817,70 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
 
   // z-vertex bins for mixed events
   Int_t nZvBins  = 20; // 4 cm wide, 40 for 2 cm wide
-  Double_t* zvbins = GenerateFixedBinArray(nZvBins, -40., 40.); // min/max doesn't matter as data is cut zmin/zmax
+  Double_t* zvBins = GenerateFixedBinArray(nZvBins, -40., 40.); // min/max doesn't matter as data is cut zmin/zmax
 
   // event plane bins for mixed events
-  Int_t nEPBins = 3; // 3 from 0-90 degrees, (0 - pi/2)
-  Double_t* epbins = GenerateFixedBinArray(nEPBins, 0, 0.5*pi);
+  Int_t nEPBins = 6; // 6 from 0-180 degrees, (0 - pi)
+  Double_t* epBins = GenerateFixedBinArray(nEPBins, 0., 1.0*pi);
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
   Int_t poolsize   = 1000;  // Maximum number of events, ignored in the present implementation of AliEventPoolManager
-  if(doJetShapeAnalysis) { 
-    if(fDoUseMultBins) { 
-      if(!doppAnalysis && !doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins); // not pp
-      if(!doppAnalysis &&  doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins); // not pp
-      if( doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJSpp, (Double_t*)multiplicityBinsJSpp, nZvBins, (Double_t*)zvbins); // is pp
+  if(doIgnoreExternalME) {
+    if(doJetShapeAnalysis) {
+      if(fDoUseMultBins) {
+        if(!doppAnalysis && !doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvBins); // not pp
+        if(!doppAnalysis &&  doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvBins, nEPBins, (Double_t*)epBins); // not pp
+        if( doppAnalysis) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJSpp, (Double_t*)multiplicityBinsJSpp, nZvBins, (Double_t*)zvBins); // is pp
 
-    } else { // centrality binning 
-      //if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins);
-      //if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins);
-      if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvbins);
-      if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvbins, nEPBins, (Double_t*)epbins);
-    } // correlation analysis setup
+      } else { // centrality binning  
+        //if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvBins);
+        //if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentralityBinsJS, (Double_t*)centralityBinsJS, nZvBins, (Double_t*)zvBins, nEPBins, (Double_t*)epBins);
+        if(!doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvBins);
+        if( doUseEPBins) fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBinsJS, (Double_t*)centralityBinsJSnew, nZvBins, (Double_t*)zvBins, nEPBins, (Double_t*)epBins);
 
-  } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvbins); }
+      } // correlation analysis setup
+
+    } else { fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nCentBins, (Double_t*)centralityBins, nZvBins, (Double_t*)zvBins); }
+  }
+
+  // ================================================================================================
+  // TEMP testing 
+  if(!doIgnoreExternalME) {
+    Int_t nPtBins = 1;
+    Double_t defaultPtBins[2] = {-9999., 9999.};
+    Double_t* ptBins = defaultPtBins;
+
+    if(!fPoolMgr) {
+      cout<<"Don't have pre-existing fPoolMgr object, We will now create it!"<<endl;
+      fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvBins, nEPBins, epBins, nPtBins, ptBins);
+    } else {
+      cout<<"User has provided fPoolMgr object.. goodluck!"<<endl;
+    }
+
+    // If some bins of the pool should be saved, fEventPoolOutputList must be given using AddEventPoolsToOutput()
+    // Note that this is in principle also possible, if an external poolmanager was given
+    for(UInt_t i = 0; i < fEventPoolOutputList.size(); i++) {
+      Double_t minCent = fEventPoolOutputList[i][0];
+      Double_t maxCent = fEventPoolOutputList[i][1];
+      Double_t minZvtx = fEventPoolOutputList[i][2];
+      Double_t maxZvtx = fEventPoolOutputList[i][3];
+      Double_t minPsi2 = fEventPoolOutputList[i][4];
+      Double_t maxPsi2 = fEventPoolOutputList[i][5];
+      Double_t minPt   = fEventPoolOutputList[i][6];
+      Double_t maxPt   = fEventPoolOutputList[i][7];
+
+      fPoolMgr->SetSaveFlag(minCent, maxCent, minZvtx, maxZvtx, minPsi2, maxPsi2, minPt, maxPt);
+    }
+
+    // Basic checks and printing of pool properties
+    fPoolMgr->Validate();
+
+    // save to output if requested
+    if(fEventPoolOutputList.size()) fListOfPools->Add(fPoolMgr);
+
+  } // external use switch
+  // ================================================================================================
 
   // set up event mixing sparse
   bitcodeMESE = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7; // | 1<<8 | 1<<9;
@@ -1133,7 +1206,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
   double centBinToUse;
-  if(fCentBinSize==10) { centBinToUse = (double)centbin10 * 10.0;
+  if(fCentBinSize==10)       { centBinToUse = (double)centbin10 * 10.0;
   } else if(fCentBinSize==5) { centBinToUse = (double)centbin * 5.0; }
 
   // centrality / multiplicity histograms
@@ -1412,21 +1485,37 @@ Int_t StMyAnalysisMaker3::Make() {
       // convert back to integer bins for mixed event pool - 10% bins (0, 7), 5% bins (0, 15)
       Int_t mixcentbin = TMath::Floor(fCentralityScaled / fCentBinSizeJS);
       //cout<<"fCentralityScaled: "<<fCentralityScaled<<"  fCentBinSizeJS: "<<fCentBinSizeJS<<"  mixcentbin: "<<mixcentbin<<"  zVtx: "<<zVtx<<endl;
-      
+  
+      // for an angle (0-pi)    
+      const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
+      StEventPlaneMaker *EPMaker = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4)));
+      double psi2 = (EPMaker) ? (double)EPMaker->GetTPCEP() : -999;
+
+      double psibin = -1.;
+      if(psi2 >=       0.0 && psi2 <  1.*pi/6.0) psibin = 0.5; // psibin = 1;
+      if(psi2 >= 1.*pi/6.0 && psi2 <  2.*pi/6.0) psibin = 1.5; // psibin = 2;
+      if(psi2 >= 2.*pi/6.0 && psi2 <  4.*pi/6.0) psibin = 2.5; // psibin = 3;
+      if(psi2 >= 4.*pi/6.0 && psi2 <  6.*pi/6.0) psibin = 1.5; // psibin = 2;
+      if(psi2 >= 5.*pi/6.0 && psi2 <= 6.*pi/6.0) psibin = 0.5; // psibin = 1;
+      //cout<<"psi2 = "<<psi2<<"  psibin = "<<psibin<<endl;
+    
       // initialize event pools - different cases for each dataset
       if(fDoUseMultBins) {
         if(!doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx);
-        if( doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx, 50.0);
+        //if( doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx, psibin);
+        if( doUseEPBins) pool = fPoolMgr->GetEventPool(kEventActivity, zVtx, psi2);
       } else {
-        if(!doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); 
-        if( doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx, 50.0);
-      } // FIXME AuAu fcent: cent bin? cent16
+        if(!doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx); // FIXME AuAu fcent: cent bin? cent16
+        if( doUseEPBins) pool = fPoolMgr->GetEventPool(mixcentbin, zVtx, psi2); // psibin
+      }
 
       // check if pool exists
       if(!pool) {
         Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
         return kTRUE;
       }
+
+      //cout<<"nPsiIndex: "<<pool->PsiBinIndex()<<"   zvertexbinIndex: "<<pool->ZvtxBinIndex()<<"   multbinindex: "<<pool->MultBinIndex()<<endl;
     }
 
     // initialize some variables
@@ -1506,6 +1595,7 @@ Int_t StMyAnalysisMaker3::Make() {
     // only return if doing jet shape analysis
     FillEventTriggerQA(fHistEventSelectionQAafterCuts);
 
+    // only return if doing jet shape analysis
     return kStOK;  
   }
 
@@ -1828,7 +1918,7 @@ Int_t StMyAnalysisMaker3::Make() {
     //Double_t mycentbin = (Double_t)centbin + 0.001;
     // mixed event centbin - FIXME
     Int_t mixcentbin;
-    if(fCentBinSize==10) { mixcentbin = centbin10;          // 10% bins (0,  7)
+    if(fCentBinSize==10)       { mixcentbin = centbin10;    // 10% bins (0,  7)
     } else if(fCentBinSize==5) { mixcentbin = centbin; }    //  5% bins (0, 15)
     //cout<<"mixcentbin = "<<mixcentbin<<"  centbin = "<<centbin<<" centbin10 = "<<centbin10<<"  zvtx = "<<zVtx<<endl;
 
@@ -2212,8 +2302,8 @@ void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &n
    }// end of switch
 } // end of Correction (ME) sparse
 //
-//_________________________________________________
 // From CF event mixing code PhiCorrelations
+//____________________________________________________________________________
 TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
@@ -3174,15 +3264,8 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
     StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerIndex));
     if(!tow){ continue; }
     
-    //int towID = tow->id();
-    int towID = -1;
-    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-      //towID = tow->id();
-    } else {
-      //towID = tow->numericIndex2SoftId(towerIndex);
-    }
-
     // tower ID: get from index of array shifted by +1
+    int towID = -1;
     towID = towerIndex + 1;
     if(towID < 0) continue;
 
@@ -3296,29 +3379,51 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     // check that jet contains a tower that fired the trigger
     //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;
 
-    // get event plane bin - FIXME, double check, might want to code this nicer
-    double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, TPC_PSI2) : -99.; // CORRECTED event plane angle - STEP3
-    if(doTPCptassocBin && !doppAnalysis) {
-      // z = if(condition) then(?) <do this> else(:) <do this>  
-      // FIXME FIXME FIXME FIXME FIXME
-      double dEP0 = RelativeEPJET(jetPhi, TPC_PSI2);
-      double dEP1 = RelativeEPJET(jetPhi, TPC_PSI2);
-      double dEP2 = RelativeEPJET(jetPhi, TPC_PSI2);
-      double dEP3 = RelativeEPJET(jetPhi, TPC_PSI2);
-      double dEP4 = RelativeEPJET(jetPhi, TPC_PSI2);
+    // ==========================================================================================================
+    // get StEventPlaneMaker from event
+    StEventPlaneMaker *EventPlaneMaker[4];
 
-      if(assocPtBin == 0) dEP = dEP0; // 0.2-0.5 GeV
-      if(assocPtBin == 1) dEP = dEP1; // 0.5-1.0 GeV
-      if(assocPtBin == 2) dEP = dEP2; // 1.0-1.5 GeV
-      if(assocPtBin == 3) dEP = dEP3; // 1.5-2.0 GeV
-      if(assocPtBin == 4) dEP = dEP4; // 2.0-3.0 GeV
-      if(assocPtBin == 5) dEP = dEP4; // 3.0-4.0 GeV
-      if(assocPtBin == 6) dEP = dEP4; // 4.0-8.0 GeV
-      if(assocPtBin == 7) dEP = dEP4; // 8.0+    GeV
-      if(assocPtBin == 8) dEP = dEP4; // 0.5+    GeV (inclusive)
+    // pt-dependent bin mode
+    const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
+    for(int i=0; i<5; i++) {
+      EventPlaneMaker[i] = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, i)));
     }
+
+    // event plane bin to use
+    int ptAssocBins[9] = {0, 1, 2, 3, 4, 4,4,4,4};
+    int EPBinToUse = ptAssocBins[assocPtBin];
+
+    // check for requested EventPlaneMaker pointer
+    if(!EventPlaneMaker[EPBinToUse]) {LOG_WARN<<Form("No EventPlaneMaker bin: %i!", fTPCptAssocBin)<<endm; return kStWarn;}
+
+    // get event plane angle for different pt bins
+    // assign global event plane to selected pt-dependent bin
+    // could also write this as:  tpc2EP_bin = (EventPlaneMaker) ? (double)EventPlaneMaker->GetTPCEP() : -999;
+    double tpc2EP = (EventPlaneMaker[EPBinToUse]) ? (double)EventPlaneMaker[EPBinToUse]->GetTPCEP() : -999;
+    double jetV2EP = (EventPlaneMaker[EPBinToUse]) ? (double)EventPlaneMaker[EPBinToUse]->GetTPCEP() : -999;
+
+    // if requiring a single event plane angle (non-pt dependent): use charged tracks 0.2-2.0 GeV to calculate EP
+    if(doUseMainEPAngle) {
+      tpc2EP = (EventPlaneMaker[4]) ? (double)EventPlaneMaker[4]->GetTPCEP() : -999;
+      jetV2EP = (EventPlaneMaker[4]) ? (double)EventPlaneMaker[4]->GetTPCEP() : -999;
+    }
+
+    //cout<<"assocPtBin: "<<assocPtBin<<"  tpc2EP: "<<tpc2EP<<"  jetV2EP: "<<jetV2EP<<endl;
+
+    // get relative angle between jet and event plane
+    double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, tpc2EP) : -99.; // CORRECTED event plane angle - STEP3
+
+    // get relative jet-event plane bin
     int EPBin = (!doppAnalysis) ? GetJetEPBin(dEP) : 0; // this secures it will still run for pp, and use EP bin = 0
     if(EPBin < 0) return kStOK;
+
+    // calculate jet v2 here, can move around for other analysis, but here for now
+    // jetPtr, EPangle, ptBin
+    // only calculate and fill jet v2 for assocPtBin == 0 for now - TODO
+    //    if(assocPtBin == 0) GetJetV2(jet, tpc2EP, 1);
+    //if(assocPtBin == 0 ) GetJetV2(jet, jetV2EP, 1); 
+    GetJetV2(jet, jetV2EP, assocPtBin);
+    // ==========================================================================================================================
 
     // annuli sum - initialize
     double rsum[10] = {0.0};
@@ -3773,4 +3878,21 @@ void StMyAnalysisMaker3::GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin
   // fill histogram
   fProfJetV2[jetPtBin][centBin][EPBin]->Fill(ptAssocBin, TMath::Cos(2.*(jetPhi - EPangle)));
   fProfJetV2[jetPtBin][centBin][3]->Fill(ptAssocBin, TMath::Cos(2.*(jetPhi - EPangle)));
+}
+//
+// Function to add event pools to output file
+//____________________________________________________________________
+void StMyAnalysisMaker3::AddEventPoolsToOutput(Double_t minCent, Double_t maxCent,  Double_t minZvtx, Double_t maxZvtx, Double_t minPsi2, Double_t maxPsi2, Double_t minPt, Double_t maxPt)
+{
+  std::vector<Double_t> binVec;
+  binVec.push_back(minCent);
+  binVec.push_back(maxCent);
+  binVec.push_back(minZvtx);
+  binVec.push_back(maxZvtx);
+  binVec.push_back(minPsi2);
+  binVec.push_back(maxPsi2);
+  binVec.push_back(minPt);
+  binVec.push_back(maxPt);
+
+  fEventPoolOutputList.push_back(binVec);
 }
