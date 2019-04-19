@@ -4,7 +4,6 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
-
 #include <set>
 
 class StJetFrameworkPicoBase;
@@ -35,7 +34,6 @@ class StRho;
 class StRhoParameter;
 class StEventPoolManager;
 class StEventPool;
-//class StEventPlaneMaker;
 
 //class StMyAnalysisMaker3 : public StMaker {
 class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
@@ -168,7 +166,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
 
     virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
-    // testing...... TODO
     // ##### External event pool configuration
     void                    SetExternalEventPoolManager(StEventPoolManager* mgr) {fPoolMgr = mgr;}
     StEventPoolManager*     GetEventPoolManager()                                {return fPoolMgr;}
@@ -212,6 +209,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doUseMainEPAngle;        // use 0.2-2.0 GeV charged tracks for event plane
+    Bool_t                  doIgnoreExternalME;          // does standared event mixing (without use of external approach)
 
     // cuts
     //Double_t       fMinPtJet;               // min jet pt to keep jet in output
@@ -440,6 +438,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                      fCheckEventNumberInMixedEvent; // check event number before correlation in mixed event
     TList*                      fListOfPools; //  Output list of containers
 
-    ClassDef(StMyAnalysisMaker3, 1)
+    ClassDef(StMyAnalysisMaker3, 2)
 };
 #endif

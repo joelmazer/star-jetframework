@@ -4,7 +4,6 @@
 
 // base class
 //class StJetFrameworkPicoBase;
-//class StJetMakerTask;
 
 #include <set>
 
@@ -18,7 +17,6 @@
 #include "StMuDSTMaker/COMMON/StMuEvent.h"
 
 #include "StEmcUtil/geometry/StEmcGeom.h"
-//#include "StEmcUtil/projection/StEmcPosition.h"
 
 // ROOT classes
 class TClonesArray;
@@ -163,87 +161,87 @@ class StPicoTrackClusterQA : public StMaker {
 
  protected:
   // functions
-  void                   RunEventQA();
-  void                   RunTrackQA();
-  void                   RunHadCorrTowerQA();
-  void                   RunTowerQA();
-  void                   RunFiredTriggerQA();  
-  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
-  Bool_t                 AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
-  Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                       // centrality bin
-  Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-  TH1*                   FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-  TH1*                   FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
-  Bool_t                 DoComparison(int myarr[], int elems);
-  Bool_t                 CheckForMB(int RunFlag, int type);
-  Bool_t                 CheckForHT(int RunFlag, int type);
-  Double_t               GetMaxTrackPt();
-  void                   FillTriggerIDs(TH1* h);
-  void                   SetSumw2(); // set errors weights 
-  Int_t                  GetRunNo(int runid);
+  void                 RunEventQA();
+  void                 RunTrackQA();
+  void                 RunHadCorrTowerQA();
+  void                 RunTowerQA();
+  void                 RunFiredTriggerQA();  
+  Bool_t               AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
+  Bool_t               AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
+  Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                       // centrality bin
+  Bool_t               SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+  TH1*                 FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+  TH1*                 FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+  Bool_t               DoComparison(int myarr[], int elems);
+  Bool_t               CheckForMB(int RunFlag, int type);
+  Bool_t               CheckForHT(int RunFlag, int type);
+  Double_t             GetMaxTrackPt();
+  void                 FillTriggerIDs(TH1* h);
+  void                 SetSumw2(); // set errors weights 
+  Int_t                GetRunNo(int runid);
 
   // switches
-  Bool_t                 doWriteHistos;           // write QA histos
-  Bool_t                 doUsePrimTracks;         // primary track switch
-  Int_t                  fDebugLevel;             // debug printout level
-  Int_t                  fRunFlag;                // Run Flag numerator value
-  Bool_t                 doppAnalysis;            // use pp analysis data
-  Int_t                  fCentralityDef;          // Centrality Definition enumerator value
-  Bool_t                 fDoEffCorr;              // efficiency correction to tracks
-  Bool_t                 fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
+  Bool_t               doWriteHistos;           // write QA histos
+  Bool_t               doUsePrimTracks;         // primary track switch
+  Int_t                fDebugLevel;             // debug printout level
+  Int_t                fRunFlag;                // Run Flag numerator value
+  Bool_t               doppAnalysis;            // use pp analysis data
+  Int_t                fCentralityDef;          // Centrality Definition enumerator value
+  Bool_t               fDoEffCorr;              // efficiency correction to tracks
+  Bool_t               fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
 
   // event cuts
-  Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on) 
-  Double_t               fEventZVtxMinCut;        // min event z-vertex cut
-  Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
-  Int_t                  fCentralitySelectionCut; // centrality selection cut
-  Bool_t                 fRequireCentSelection;   // require particular centrality bin
-  Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
+  Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on) 
+  Double_t             fEventZVtxMinCut;        // min event z-vertex cut
+  Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
+  Int_t                fCentralitySelectionCut; // centrality selection cut
+  Bool_t               fRequireCentSelection;   // require particular centrality bin
+  Bool_t               doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
 
   // names
-  TString                mOutName;                // name of output file
-  TString                fAnalysisMakerName;      // name of this analysis maker
-  TString                fTracksName;             // name of track collection
-  TString                fCaloName;               // name of calo cluster collection
+  TString              mOutName;                // name of output file
+  TString              fAnalysisMakerName;      // name of this analysis maker
+  TString              fTracksName;             // name of track collection
+  TString              fCaloName;               // name of calo cluster collection
 
-  Double_t               fTrackPtMinCut;          // min track pt cut
-  Double_t               fTrackPtMaxCut;          // max track pt cut
-  Double_t               fClusterPtMinCut;        // min cluster pt cut
-  Double_t               fClusterPtMaxCut;        // max cluster pt cut
-  Double_t               fTrackPhiMinCut;         // min track phi cut
-  Double_t               fTrackPhiMaxCut;         // max track phi cut
-  Double_t               fTrackEtaMinCut;         // min track eta cut
-  Double_t               fTrackEtaMaxCut;         // max track eta cut
-  Double_t               fTrackDCAcut;            // max track dca cut
-  Int_t                  fTracknHitsFit;          // requirement for track hits
-  Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
-  Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
-  Int_t                  fGoodTrackCounter;       // good tracks - passed quality cuts
-  Double_t               fTowerEMinCut;           // min tower energy cut
-  Double_t               fTowerEMaxCut;           // max tower energy cut
-  Double_t               fTowerEtaMinCut;         // min tower eta cut
-  Double_t               fTowerEtaMaxCut;         // max tower eta cut
-  Double_t               fTowerPhiMinCut;         // min tower phi cut
-  Double_t               fTowerPhiMaxCut;         // max tower phi cut
+  Double_t             fTrackPtMinCut;          // min track pt cut
+  Double_t             fTrackPtMaxCut;          // max track pt cut
+  Double_t             fClusterPtMinCut;        // min cluster pt cut
+  Double_t             fClusterPtMaxCut;        // max cluster pt cut
+  Double_t             fTrackPhiMinCut;         // min track phi cut
+  Double_t             fTrackPhiMaxCut;         // max track phi cut
+  Double_t             fTrackEtaMinCut;         // min track eta cut
+  Double_t             fTrackEtaMaxCut;         // max track eta cut
+  Double_t             fTrackDCAcut;            // max track dca cut
+  Int_t                fTracknHitsFit;          // requirement for track hits
+  Double_t             fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
+  Double_t             fTrackEfficiency;        // artificial tracking inefficiency (0...1)
+  Int_t                fGoodTrackCounter;       // good tracks - passed quality cuts
+  Double_t             fTowerEMinCut;           // min tower energy cut
+  Double_t             fTowerEMaxCut;           // max tower energy cut
+  Double_t             fTowerEtaMinCut;         // min tower eta cut
+  Double_t             fTowerEtaMaxCut;         // max tower eta cut
+  Double_t             fTowerPhiMinCut;         // min tower phi cut
+  Double_t             fTowerPhiMaxCut;         // max tower phi cut
 
   // centrality    
-  Double_t        fCentralityScaled;           // scaled by 5% centrality 
-  Int_t           ref16;                       // multiplicity bin (16)
-  Int_t           ref9;                        // multiplicity bin (9)
+  Double_t             fCentralityScaled;       // scaled by 5% centrality 
+  Int_t                ref16;                   // multiplicity bin (16)
+  Int_t                ref9;                    // multiplicity bin (9)
 
   // event
-  Float_t         Bfield;                      // event Bfield
-  TVector3        mVertex;                     // event vertex 3-vector
-  Double_t        zVtx;                        // z-vertex component
-  Int_t           fRunNumber;                  // Run number
+  Float_t              Bfield;                  // event Bfield
+  TVector3             mVertex;                 // event vertex 3-vector
+  Double_t             zVtx;                    // z-vertex component
+  Int_t                fRunNumber;              // Run number
 
   // event selection types
-  UInt_t          fEmcTriggerEventType;        // Physics selection of event used for signal
-  UInt_t          fMBEventType;                // Physics selection of event used for MB
-  Int_t           fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
-  Bool_t          fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-  Bool_t          fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-  Bool_t          fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+  UInt_t               fEmcTriggerEventType;        // Physics selection of event used for signal
+  UInt_t               fMBEventType;                // Physics selection of event used for MB
+  Int_t                fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
+  Bool_t               fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+  Bool_t               fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+  Bool_t               fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
   // Emc objects
   StEmcGeom             *mGeom;
@@ -257,24 +255,24 @@ class StPicoTrackClusterQA : public StMaker {
 
  private:
   // OLD - part of tests
-  Bool_t MuProcessBEMC();
-  Bool_t PicoProcessBEMC();
-  Int_t  MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID);
+  Bool_t               MuProcessBEMC();
+  Bool_t               PicoProcessBEMC();
+  Int_t                MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID);
 
-  StMuDstMaker      *mMuDstMaker;   // MuDstMaker object
-  StMuDst           *mMuDst;        // muDst object
-  StMuEvent         *mMuInputEvent; // muDst event object
-  StPicoDstMaker    *mPicoDstMaker; // PicoDstMaker object
-  StPicoDst         *mPicoDst;      // PicoDst object
-  StPicoEvent       *mPicoEvent;    // PicoEvent object
+  StMuDstMaker        *mMuDstMaker;   // MuDstMaker object
+  StMuDst             *mMuDst;        // muDst object
+  StMuEvent           *mMuInputEvent; // muDst event object
+  StPicoDstMaker      *mPicoDstMaker; // PicoDstMaker object
+  StPicoDst           *mPicoDst;      // PicoDst object
+  StPicoEvent         *mPicoEvent;    // PicoEvent object
 
   // position object
-  StEmcPosition2    *mEmcPosition;
+  StEmcPosition2      *mEmcPosition;
 
   //bool              *mTowerStatusArr; // tower status array
 
   // centrality objects
-  StRefMultCorr   *grefmultCorr;
+  StRefMultCorr       *grefmultCorr;
 
   // histograms
   TH1F           *fHistNTrackvsPt;//!
@@ -362,6 +360,6 @@ class StPicoTrackClusterQA : public StMaker {
   StPicoTrackClusterQA(const StPicoTrackClusterQA&);            // not implemented
   StPicoTrackClusterQA &operator=(const StPicoTrackClusterQA&); // not implemented
 
-  ClassDef(StPicoTrackClusterQA, 1) // track/cluster QA task
+  ClassDef(StPicoTrackClusterQA, 2) // track/cluster QA task
 };
 #endif

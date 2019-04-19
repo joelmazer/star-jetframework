@@ -5,12 +5,10 @@
 
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
-
 #include <set>
 
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
-//#include "StEmcUtil/projection/StEmcPosition.h"
 #include "StMuDSTMaker/COMMON/StMuDst.h"
 class StEmcGeom;
 class StEmcPosition2;
@@ -418,6 +416,6 @@ class StJetMakerTask : public StMaker {
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented
 
-  ClassDef(StJetMakerTask, 1) // Jet producing task
+  ClassDef(StJetMakerTask, 2) // Jet producing task
 };
 #endif

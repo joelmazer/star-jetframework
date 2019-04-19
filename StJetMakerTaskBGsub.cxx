@@ -23,7 +23,6 @@
 #include <TParticle.h>
 #include "TFile.h"
 #include "TVector3.h"
-
 #include <sstream>
 #include <fstream>
 
@@ -41,8 +40,8 @@
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
 //#include "StEmcUtil/projection/StEmcPosition.h"  // old
-#include "StEmcPosition2.h"
 //class StEmcPosition; // old
+#include "StEmcPosition2.h"
 //class StEmcPosition2;
 
 // jet class and fastjet wrapper

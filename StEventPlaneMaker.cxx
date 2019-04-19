@@ -1296,7 +1296,7 @@ void StEventPlaneMaker::SetEPSumw2() {
   Psi2p->Sumw2();
   Delta_Psi2->Sumw2();
   Delta_Psi2cyc->Sumw2();
-  Delta_Psi2old->Write();
+  Delta_Psi2old->Sumw2();
   Shift_delta_psi2->Sumw2();
   Psi2_rcd->Sumw2();
   Psi2_final->Sumw2();
@@ -2226,12 +2226,11 @@ Int_t StEventPlaneMaker::GetRunNo(int runid){
   }
 
   // Run14 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {  
-    // 1654 for Run14 AuAu
-    //for(int i = 0; i < 1654; i++){
-    // new picoDst production is 830
+  // Run14AuAu_IdNo: SL17id
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+    // 1654 for Run14 AuAu, new picoDst production is 830
     for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_IdNo[i] == runid) {
+      if(Run14AuAu_P18ih_IdNo[i] == runid) {
         return i;
       }
     }

@@ -27,9 +27,10 @@
 // my STAR includes
 #include "StJetFrameworkPicoBase.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h"
+#include "runlistP12id.h" // Run12 pp
 #include "runlistP16ij.h"
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
+#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
 // new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"

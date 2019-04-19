@@ -42,8 +42,8 @@
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
 //#include "StEmcUtil/projection/StEmcPosition.h" // old
-#include "StEmcPosition2.h"
 //class StEmcPosition; // old
+#include "StEmcPosition2.h"
 class StEmcPosition2;
 
 // jet class and fastjet wrapper
@@ -2272,12 +2272,11 @@ Int_t StJetMakerTask::GetRunNo(int runid){
   }
 
   // Run14 AuAu
+  // Run14AuAu_IdNo: SL17id
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu
-    //for(int i = 0; i < 1654; i++){
-    // new picoDst production is 830
+    // 1654 for Run14 AuAu, new picoDst production is 830
     for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_IdNo[i] == runid) {
+      if(Run14AuAu_P18ih_IdNo[i] == runid) {
         return i;
       }
     }

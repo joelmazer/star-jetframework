@@ -406,7 +406,7 @@ class StJetFrameworkPicoBase : public StMaker {
 
   private:
 
-    ClassDef(StJetFrameworkPicoBase, 1)
+    ClassDef(StJetFrameworkPicoBase, 2)
 };
 
 /**
