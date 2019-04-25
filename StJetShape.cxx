@@ -5,6 +5,7 @@
 
 #include "StJetShape.h"
 
+// ROOT classes
 #include "TMath.h"
 #include "TMatrixD.h"
 #include "TMatrixDSym.h"
@@ -12,6 +13,7 @@
 #include "TVector3.h"
 #include "TVector2.h"
 
+// my classes
 #include "StFJWrapper.h"
 
 using namespace std;
@@ -34,13 +36,13 @@ Double32_t StJetShapeGRNum::result(const fastjet::PseudoJet &jet) const {
       /* if (uid == -1) //skip ghost particle */
       /* 	continue; */
       Double_t dphi = constits[ic].phi()-constits[jc].phi();
-      if(dphi<-1.*TMath::Pi()) dphi+=TMath::TwoPi();
-      if(dphi>TMath::Pi()) dphi-=TMath::TwoPi();
+      if(dphi < -1.*TMath::Pi()) dphi+=TMath::TwoPi();
+      if(dphi > TMath::Pi()) dphi-=TMath::TwoPi();
       Double_t dr2 = (constits[ic].eta()-constits[jc].eta())*(constits[ic].eta()-constits[jc].eta()) + dphi*dphi;
-      if(dr2>0.) {
+      if(dr2 > 0.) {
 	Double_t dr = TMath::Sqrt(dr2);
 	Double_t x = fR-dr;
-	//noisy function
+	// noisy function
 	Double_t noise = TMath::Exp(-x*x/(2*fDRStep*fDRStep))/(TMath::Sqrt(2.*TMath::Pi())*fDRStep);
 	A += constits[ic].perp()*constits[jc].perp()*dr2*noise;
       }
@@ -49,6 +51,7 @@ Double32_t StJetShapeGRNum::result(const fastjet::PseudoJet &jet) const {
   return A;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeGRDen::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents())
     return 0; //("Angular structure can only be applied on jets for which the constituents are known.");
@@ -64,10 +67,10 @@ Double32_t StJetShapeGRDen::result(const fastjet::PseudoJet &jet) const {
       /* if (uid == -1) //skip ghost particle */
       /* 	continue; */
       Double_t dphi = constits[ic].phi()-constits[jc].phi();
-      if(dphi<-1.*TMath::Pi()) dphi+=TMath::TwoPi();
-      if(dphi>TMath::Pi()) dphi-=TMath::TwoPi();
+      if(dphi < -1.*TMath::Pi()) dphi+=TMath::TwoPi();
+      if(dphi > TMath::Pi()) dphi-=TMath::TwoPi();
       Double_t dr2 = (constits[ic].eta()-constits[jc].eta())*(constits[ic].eta()-constits[jc].eta()) + dphi*dphi;
-      if(dr2>0.) {
+      if(dr2 > 0.) {
 	Double_t dr = TMath::Sqrt(dr2);
 	Double_t x = fR-dr;
 	//error function
@@ -79,37 +82,40 @@ Double32_t StJetShapeGRDen::result(const fastjet::PseudoJet &jet) const {
   return A;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeAngularity::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents())
     return 0; 
-  Double_t den=0.;
+  Double_t den = 0.;
   Double_t num = 0.;
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
     Double_t dphi = constits[ic].phi()-jet.phi();
-    if(dphi<-1.*TMath::Pi()) dphi+=TMath::TwoPi();
-    if(dphi>TMath::Pi()) dphi-=TMath::TwoPi();
+    if(dphi < -1.*TMath::Pi()) dphi+=TMath::TwoPi();
+    if(dphi > TMath::Pi()) dphi-=TMath::TwoPi();
     Double_t dr2 = (constits[ic].eta()-jet.eta())*(constits[ic].eta()-jet.eta()) + dphi*dphi;
     Double_t dr = TMath::Sqrt(dr2);
-    num=num+constits[ic].perp()*dr;
-    den=den+constits[ic].perp();
+    num = num+constits[ic].perp()*dr;
+    den = den+constits[ic].perp();
   }
   return num/den;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapepTD::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents())
     return 0; 
-  Double_t den=0;
+  Double_t den = 0;
   Double_t num = 0.;
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
-    num=num+constits[ic].perp()*constits[ic].perp();
-    den=den+constits[ic].perp();
+    num = num+constits[ic].perp()*constits[ic].perp();
+    den = den+constits[ic].perp();
   }
   return TMath::Sqrt(num)/den;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeCircularity::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents())
     return 0;
@@ -118,11 +124,11 @@ Double32_t StJetShapeCircularity::result(const fastjet::PseudoJet &jet) const {
   Double_t mxy    = 0.;
   int  nc     = 0;
   Double_t sump2  = 0.;
-  Double_t pxjet=jet.px();
-  Double_t pyjet=jet.py();
-  Double_t pzjet=jet.pz();
+  Double_t pxjet = jet.px();
+  Double_t pyjet = jet.py();
+  Double_t pzjet = jet.pz();
          
-  //2 general normalized vectors perpendicular to the jet
+  // 2 general normalized vectors perpendicular to the jet
   TVector3  ppJ1(pxjet, pyjet, pzjet);
   TVector3  ppJ3(- pxjet* pzjet, - pyjet * pzjet, pxjet * pxjet + pyjet * pyjet);
   ppJ3.SetMag(1.);
@@ -132,22 +138,22 @@ Double32_t StJetShapeCircularity::result(const fastjet::PseudoJet &jet) const {
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
     TVector3 pp(constits[ic].px(), constits[ic].py(), constits[ic].pz());
-    //local frame
+    // local frame
     TVector3 pLong = pp.Dot(ppJ1) / ppJ1.Mag2() * ppJ1;
     TVector3 pPerp = pp - pLong;
-    //projection onto the two perpendicular vectors defined above
+    // projection onto the two perpendicular vectors defined above
     Float_t ppjX = pPerp.Dot(ppJ2);
     Float_t ppjY = pPerp.Dot(ppJ3);
     Float_t ppjT = TMath::Sqrt(ppjX * ppjX + ppjY * ppjY);
-    if(ppjT<=0) return 0;
+    if(ppjT <= 0) return 0;
     mxx += (ppjX * ppjX / ppjT);
     myy += (ppjY * ppjY / ppjT);
     mxy += (ppjX * ppjY / ppjT);
     nc++;
     sump2 += ppjT;
   }
-  if(nc<2) return 0;
-  if(sump2==0) return 0;
+  if(nc < 2) return 0;
+  if(sump2 == 0) return 0;
   // Sphericity Matrix
   Double_t ele[4] = {mxx / sump2, mxy / sump2, mxy / sump2, myy / sump2};
   TMatrixDSym m0(2,ele);
@@ -163,16 +169,17 @@ Double32_t StJetShapeCircularity::result(const fastjet::PseudoJet &jet) const {
   TVectorD evec0(2);
   // Principle axis
   evec0 = TMatrixDColumn(evecm, jev);
-  Double_t compx=evec0[0];
-  Double_t compy=evec0[1];
+  Double_t compx = evec0[0];
+  Double_t compy = evec0[1];
   TVector2 evec(compx, compy);
-  Double_t circ=0;
-  if(jev==1) circ=2*eval[0];
-  if(jev==0) circ=2*eval[1];
+  Double_t circ = 0;
+  if(jev == 1) circ = 2*eval[0];
+  if(jev == 0) circ=2*eval[1];
     
   return circ;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeSigma2::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents())
     return 0;
@@ -184,10 +191,10 @@ Double32_t StJetShapeSigma2::result(const fastjet::PseudoJet &jet) const {
 
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
-    Double_t ppt=constits[ic].perp();
+    Double_t ppt = constits[ic].perp();
     Double_t dphi = constits[ic].phi()-jet.phi();
-    if(dphi<-1.*TMath::Pi()) dphi+=TMath::TwoPi();
-    if(dphi>TMath::Pi()) dphi-=TMath::TwoPi();
+    if(dphi < -1.*TMath::Pi()) dphi += TMath::TwoPi();
+    if(dphi > TMath::Pi())     dphi -= TMath::TwoPi();
     Double_t deta = constits[ic].eta()-jet.eta();
     mxx += ppt*ppt*deta*deta;
     myy += ppt*ppt*dphi*dphi;
@@ -195,8 +202,8 @@ Double32_t StJetShapeSigma2::result(const fastjet::PseudoJet &jet) const {
     nc++;
     sump2 += ppt*ppt;
   }
-  if(nc<2) return 0;
-  if(sump2==0) return 0;
+  if(nc < 2) return 0;
+  if(sump2 == 0) return 0;
   // Sphericity Matrix
   Double_t ele[4] = {mxx , mxy, mxy, myy };
   TMatrixDSym m0(2,ele);
@@ -212,16 +219,17 @@ Double32_t StJetShapeSigma2::result(const fastjet::PseudoJet &jet) const {
   TVectorD evec0(2);
   // Principle axis
   evec0 = TMatrixDColumn(evecm, jev);
-  Double_t compx=evec0[0];
-  Double_t compy=evec0[1];
+  Double_t compx = evec0[0];
+  Double_t compy = evec0[1];
   TVector2 evec(compx, compy);
-  Double_t sigma2=0;
-  if(jev==1) sigma2=TMath::Sqrt(TMath::Abs(eval[0])/sump2);
-  if(jev==0) sigma2=TMath::Sqrt(TMath::Abs(eval[1])/sump2);
+  Double_t sigma2 = 0;
+  if(jev == 1) sigma2 = TMath::Sqrt(TMath::Abs(eval[0])/sump2);
+  if(jev == 0) sigma2 = TMath::Sqrt(TMath::Abs(eval[1])/sump2);
     
   return sigma2;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape1subjettiness_kt::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -232,6 +240,7 @@ Double32_t StJetShape1subjettiness_kt::result(const fastjet::PseudoJet &jet) con
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape2subjettiness_kt::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -242,6 +251,7 @@ Double32_t StJetShape2subjettiness_kt::result(const fastjet::PseudoJet &jet) con
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape3subjettiness_kt::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -252,6 +262,7 @@ Double32_t StJetShape3subjettiness_kt::result(const fastjet::PseudoJet &jet) con
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeOpeningAngle_kt::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -263,6 +274,7 @@ Double32_t StJetShapeOpeningAngle_kt::result(const fastjet::PseudoJet &jet) cons
 }
 
 // =====
+//____________________________________________________________________________
 Double32_t StJetShape1subjettiness_ca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -273,6 +285,7 @@ Double32_t StJetShape1subjettiness_ca::result(const fastjet::PseudoJet &jet) con
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape2subjettiness_ca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -283,6 +296,7 @@ Double32_t StJetShape2subjettiness_ca::result(const fastjet::PseudoJet &jet) con
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeOpeningAngle_ca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -293,6 +307,7 @@ Double32_t StJetShapeOpeningAngle_ca::result(const fastjet::PseudoJet &jet) cons
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape1subjettiness_akt02::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -303,6 +318,7 @@ Double32_t StJetShape1subjettiness_akt02::result(const fastjet::PseudoJet &jet) 
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape2subjettiness_akt02::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -313,6 +329,7 @@ Double32_t StJetShape2subjettiness_akt02::result(const fastjet::PseudoJet &jet) 
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeOpeningAngle_akt02::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -323,6 +340,7 @@ Double32_t StJetShapeOpeningAngle_akt02::result(const fastjet::PseudoJet &jet) c
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape1subjettiness_onepassca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -333,6 +351,7 @@ Double32_t StJetShape1subjettiness_onepassca::result(const fastjet::PseudoJet &j
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShape2subjettiness_onepassca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;
@@ -343,6 +362,7 @@ Double32_t StJetShape2subjettiness_onepassca::result(const fastjet::PseudoJet &j
   return Result;
 }
 
+//____________________________________________________________________________
 Double32_t StJetShapeOpeningAngle_onepassca::result(const fastjet::PseudoJet &jet) const {
   if (!jet.has_constituents()) 
     return 0;

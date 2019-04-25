@@ -4,8 +4,6 @@
 // some includes
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
-//#include "StRoot/StPicoEvent/StPicoDst.h"
-
 #include <set>
 
 // ROOT classes
@@ -335,53 +333,53 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fTowerPhiMaxCut;         // max tower phi cut
 
     // used for event plane calculation and resolution
-    StJet*         fLeadingJet;//! leading jet
-    StJet*         fSubLeadingJet;//! sub-leading jet
-    Float_t        fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
-    Int_t          fTrackWeight; // track weight for Q-vector summation
+    StJet*                 fLeadingJet;//! leading jet
+    StJet*                 fSubLeadingJet;//! sub-leading jet
+    Float_t                fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
+    Int_t                  fTrackWeight; // track weight for Q-vector summation
 
-    TClonesArray   *CloneAndReduceTrackList(TClonesArray* tracks);
+    TClonesArray          *CloneAndReduceTrackList(TClonesArray* tracks);
 
     // clonesarray collections of tracks and jets
-    TClonesArray   *fTracksME;//! track collection to slim down for mixed events
-    TClonesArray   *fJets;//!  jet array
-    TClonesArray   *fBGJets;//! background jets array
+    TClonesArray          *fTracksME;//! track collection to slim down for mixed events
+    TClonesArray          *fJets;//!  jet array
+    TClonesArray          *fBGJets;//! background jets array
     // added for Thomas - multiple jet collections
-    TClonesArray   *fJets1;//! jet array
-    TClonesArray   *fJets2;//! jet array
+    TClonesArray          *fJets1;//! jet array
+    TClonesArray          *fJets2;//! jet array
 
     // PicoDstMaker and PicoDst object pointer
-    StPicoDstMaker *mPicoDstMaker;
-    StPicoDst      *mPicoDst;
-    StPicoEvent    *mPicoEvent;
-    StJetMakerTask *JetMaker;
-    StJetMakerTask *JetMakerBG;
-    StJetMakerTask *JetMaker1; // for thomas, multiple jet collections
-    StJetMakerTask *JetMaker2; // for thomas, multiple jet collection
-    StRho          *RhoMaker;
-    StRho          *RhoMaker1; // for thomas, multiple jet collections
-    StRho          *RhoMaker2; // for thomas, multiple jet collections
-    StEventPlaneMaker *EventPlaneMaker;
+    StPicoDstMaker        *mPicoDstMaker;
+    StPicoDst             *mPicoDst;
+    StPicoEvent           *mPicoEvent;
+    StJetMakerTask        *JetMaker;
+    StJetMakerTask        *JetMakerBG;
+    StJetMakerTask        *JetMaker1; // for thomas, multiple jet collections
+    StJetMakerTask        *JetMaker2; // for thomas, multiple jet collection
+    StRho                 *RhoMaker;
+    StRho                 *RhoMaker1; // for thomas, multiple jet collections
+    StRho                 *RhoMaker2; // for thomas, multiple jet collections
+    StEventPlaneMaker     *EventPlaneMaker;
 
     // position object
-    StEmcPosition2 *mEmcPosition;
+    StEmcPosition2        *mEmcPosition;
 
     // centrality objects
-    StRefMultCorr* grefmultCorr;
-    StRefMultCorr* refmultCorr;
-    StRefMultCorr* refmult2Corr;
+    StRefMultCorr         *grefmultCorr;
+    StRefMultCorr         *refmultCorr;
+    StRefMultCorr         *refmult2Corr;
 
     // output file name string 
-    TString        mOutName;
-    TString        mOutNameEP;
-    TString        mOutNameQA;
+    TString                mOutName;
+    TString                mOutNameEP;
+    TString                mOutNameQA;
 
     // maker names
-    TString        fJetMakerName;
-    TString        fJetBGMakerName;
-    TString        fRhoMakerName;
-    TString        fRhoSparseMakerName;
-    TString        fEventPlaneMakerName;
+    TString                fJetMakerName;
+    TString                fJetBGMakerName;
+    TString                fRhoMakerName;
+    TString                fRhoSparseMakerName;
+    TString                fEventPlaneMakerName;
 
     // Rho objects
     StRhoParameter        *GetRhoFromEvent(const char *name);
@@ -395,12 +393,12 @@ class StJetFrameworkPicoBase : public StMaker {
     TString                fAddToHistogramsName; ///<  Add this string to histograms name.
 
     // counters 
-    Int_t          mEventCounter;//!
-    Int_t          mAllPVEventCounter;//!
-    Int_t          mInputEventCounter;//!
+    Int_t                  mEventCounter;//!
+    Int_t                  mAllPVEventCounter;//!
+    Int_t                  mInputEventCounter;//!
 
     // counters get functions
-    Int_t GetEventCounter() {return mEventCounter;}
+    Int_t GetEventCounter()      {return mEventCounter;}
     Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
     Int_t GetInputEventCounter() {return mInputEventCounter;}
 

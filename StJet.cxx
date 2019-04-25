@@ -279,11 +279,11 @@ Int_t StJet::Compare(const TObject* obj) const
 
   if (obj == this) return 0;
 
-  const StJet* jet = dynamic_cast<const StJet*>(obj);
+  const StJet *jet = dynamic_cast<const StJet*>(obj);
   if (!jet) return 0;
 
-  if (Pt() > jet->Pt()) return -1;
-  else if (Pt() < jet->Pt()) return 1;
+  if (Pt() > jet->Pt())      return -1;
+  else if (Pt() < jet->Pt()) return  1;
   else return 0;
 }
 

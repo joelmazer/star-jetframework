@@ -1,10 +1,13 @@
 #ifndef StEventPoolManager_h
 #define StEventPoolManager_h
 
+// ROOT includes
 #include <vector>
 #include <deque>
 #include <Rtypes.h>
 #include <TObjArray.h>
+
+// additional includes
 #include "StVParticle.h"
 #include "StChain/StMaker.h"
 
@@ -21,6 +24,7 @@
 //
 // Authors: A. Adare and C. Loizides
 
+// namespaces
 using std::deque;
 
 class StEventPool : public TObject
@@ -190,7 +194,7 @@ protected:
   Float_t               fTargetFraction;      //fraction of fTargetTrackDepth at which pool is ready (default: 1.0)
   Int_t                 fTargetEvents;        //if non-zero: number of filled events after which pool is ready regardless of fTargetTrackDepth (default: 0)
 
-  ClassDef(StEventPool,1) // Event pool class
+  ClassDef(StEventPool,2) // Event pool class
 };
 
 class StEventPoolManager : public TObject
@@ -271,9 +275,9 @@ public:
   Int_t      fTargetTrackDepth;                         // Required track size, same for all pools.
 
   Int_t       GetBinIndex(Int_t iMult, Int_t iZvtx, Int_t iPsi, Int_t iPt) const {return fNZvtxBins*fNPsiBins*fNPtBins*iMult + fNPsiBins*fNPtBins*iZvtx + fNPtBins*iPsi + iPt;}
-  Double_t*   GetBinning(const char* configuration, const char* tag, Int_t& nBins) const;
+  Double_t   *GetBinning(const char* configuration, const char* tag, Int_t& nBins) const;
 
-  ClassDef(StEventPoolManager,1)
+  ClassDef(StEventPoolManager,2)
 };
 
 #endif

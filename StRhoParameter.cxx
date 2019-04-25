@@ -28,6 +28,5 @@ StRhoParameter::StRhoParameter(const char *name, Double_t val) :
 void StRhoParameter::Clear(Option_t * /*option*/) 
 { 
   // Clear.
-
   SetVal(0);
 }

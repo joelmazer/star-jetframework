@@ -86,58 +86,58 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
 
   protected:
-    TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1*                    FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
 
     // switches
-    Bool_t                  doPrintEventCounter;     // print event # switch
-    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  doPrintEventCounter;         // print event # switch
+    Int_t                   fDoEffCorr;                  // efficiency correction to tracks
 
     // event mixing
-    Int_t          fDoEventMixing;              // switch ON/off event mixing
-    Int_t          fMixingTracks;               // MAX # of mixing tracks to keep in pool, before removing old to add new
-    Int_t          fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
-    Int_t          fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
-    Int_t          fCentBinSize;                // centrality bin size of mixed event pools
-    Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
-    Bool_t         fDoUseMultBins;              // use multiplicity bins instead of centrality bins
+    Int_t                   fDoEventMixing;              // switch ON/off event mixing
+    Int_t                   fMixingTracks;               // MAX # of mixing tracks to keep in pool, before removing old to add new
+    Int_t                   fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
+    Int_t                   fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
+    Int_t                   fCentBinSize;                // centrality bin size of mixed event pools
+    Int_t                   fReduceStatsCent;            // bins to use for reduced statistics of sparse
+    Bool_t                  fDoUseMultBins;              // use multiplicity bins instead of centrality bins
 
     // event selection types
-    UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
-    UInt_t         fMBEventType;                // Physics selection of event used for MB
-    UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
-    Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
+    UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
+    UInt_t                  fMBEventType;                // Physics selection of event used for MB
+    UInt_t                  fMixingEventType;            // Physics selection of event used for mixed event
+    Int_t                   fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // tower to firing trigger type matched array
-    Bool_t         fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-    Bool_t         fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-    Bool_t         fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
     // used for event plane calculation and resolution
-    Int_t          fHistCentBinMin;             // min centrality bin for histogram loop
-    Int_t          fHistCentBinMax;             // max centrality bin for histogram loop
-    Int_t          fHistZvertBinMin;            // min z-vertex bin for histogram loop
-    Int_t          fHistZvertBinMax;            // min z-vertex bin for histogram loop
+    Int_t                   fHistCentBinMin;             // min centrality bin for histogram loop
+    Int_t                   fHistCentBinMax;             // max centrality bin for histogram loop
+    Int_t                   fHistZvertBinMin;            // min z-vertex bin for histogram loop
+    Int_t                   fHistZvertBinMax;            // min z-vertex bin for histogram loop
 
     // event pool
-    TClonesArray          *CloneAndReduceTrackList();
-    StEventPoolManager    *fPoolMgr;//!  // event pool Manager object
+    TClonesArray           *CloneAndReduceTrackList();
+    StEventPoolManager     *fPoolMgr;//!  // event pool Manager object
 
   private:
-    Int_t                  fRunNumber;
+    Int_t                   fRunNumber;
 
     // switches
-    bool         doComments;
+    bool                    doComments;
 
     // histograms
-    TH1F* hEventZVertex;//!
-    TH1F* hCentrality;//!
-    TH1F* hMultiplicity;//!
-    TH2F* hTrackEtavsPhi;//!
+    TH1F *hEventZVertex;//!
+    TH1F *hCentrality;//!
+    TH1F *hMultiplicity;//!
+    TH2F *hTrackEtavsPhi;//!
 
     // QA histos
     TH1  *fHistEventSelectionQA;//! 
@@ -152,6 +152,6 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
 
-    ClassDef(StEventPoolMaker, 1)
+    ClassDef(StEventPoolMaker, 2)
 };
 #endif

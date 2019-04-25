@@ -34,6 +34,9 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 
 // my STAR includes
 #include "StJetFrameworkPicoBase.h"
@@ -47,11 +50,6 @@
 #include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 #include "StPicoEPCorrectionsIncludes.h"
 
-// new includes
-#include "StRoot/StPicoEvent/StPicoEvent.h"
-#include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
-
 // old file kept
 #include "StPicoConstants.h"
 
@@ -61,7 +59,7 @@
 
 ClassImp(StEventPlaneMaker)
 
-//-----------------------------------------------------------------------------
+//_____________________________________________________________________________
 StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker, const char* jetMakerName = "", const char* rhoMakerName = "")
   : StJetFrameworkPicoBase(name)
 {
@@ -157,31 +155,30 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
 StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
-  delete hCentrality;
-  delete hCentralityEP;
-  delete hEventPlane;
-  delete hEventPlaneWeighted;
-  delete fHistEPTPCn;
-  delete fHistEPTPCp;
-  delete fHistEPBBC;
-  delete fHistEPZDC;
+  if(hCentrality)    delete hCentrality;
+  if(hCentralityEP)   delete hCentralityEP;
+  if(hEventPlane)    delete hEventPlane;
+  if(fHistEPTPCn)    delete fHistEPTPCn;
+  if(fHistEPTPCp)    delete fHistEPTPCp;
+  if(fHistEPBBC)     delete fHistEPBBC;
+  if(fHistEPZDC)     delete fHistEPZDC;
   for(int i=0; i<9; i++){ // centrality
-    delete hTrackPhi[i];
-    delete hTrackPt[i];
+    if(hTrackPhi[i]) delete hTrackPhi[i];
+    if(hTrackPt[i])  delete hTrackPt[i];
   }
 
-  delete fHistEventSelectionQA;
-  delete fHistEventSelectionQAafterCuts;
-  delete hTriggerIds;
-  delete hEmcTriggers;
-  delete hTPCepDebug;
-  delete hBBCepDebug;
-  delete hZDCepDebug;
+  if(fHistEventSelectionQA)          delete fHistEventSelectionQA;
+  if(fHistEventSelectionQAafterCuts) delete fHistEventSelectionQAafterCuts;
+  if(hTriggerIds)    delete hTriggerIds;
+  if(hEmcTriggers)   delete hEmcTriggers;
+  if(hTPCepDebug)    delete hTPCepDebug;
+  if(hBBCepDebug)    delete hBBCepDebug;
+  if(hZDCepDebug)    delete hZDCepDebug;
 
-  if(hZDCDis_W) delete hZDCDis_W;
-  if(hZDCDis_E) delete hZDCDis_E;
-  if(hBBCDis_W) delete hBBCDis_W;
-  if(hBBCDis_E) delete hBBCDis_E;
+  if(hZDCDis_W)      delete hZDCDis_W;
+  if(hZDCDis_E)      delete hZDCDis_E;
+  if(hBBCDis_W)      delete hBBCDis_W;
+  if(hBBCDis_E)      delete hBBCDis_E;
 
   for(int i=0; i<9; i++){ // centrality
     for(int j=0; j<20; j++){ // vz (15)
@@ -218,52 +215,52 @@ StEventPlaneMaker::~StEventPlaneMaker()
   if(hBBC_center_wx) delete hBBC_center_wx;
   if(hBBC_center_wy) delete hBBC_center_wy;
 
-  if(bbc_res) delete bbc_res;
-  if(zdc_psi) delete zdc_psi;
-  if(checkbbc) delete checkbbc;
-  if(psi2_tpc_bbc) delete psi2_tpc_bbc;
-  if(bbc_psi_e) delete bbc_psi_e;
-  if(bbc_psi_w) delete bbc_psi_w;
-  if(bbc_psi_evw) delete bbc_psi_evw;
-  if(bbc_psi1_raw) delete bbc_psi1_raw;
-  if(bbc_psi_raw) delete bbc_psi_raw;
-  if(bbc_psi_rcd) delete bbc_psi_rcd;
-  if(bbc_psi_sft) delete bbc_psi_sft;
-  if(bbc_psi_fnl) delete bbc_psi_fnl;
+  if(bbc_res)        delete bbc_res;
+  if(zdc_psi)        delete zdc_psi;
+  if(checkbbc)       delete checkbbc;
+  if(psi2_tpc_bbc)   delete psi2_tpc_bbc;
+  if(bbc_psi_e)      delete bbc_psi_e;
+  if(bbc_psi_w)      delete bbc_psi_w;
+  if(bbc_psi_evw)    delete bbc_psi_evw;
+  if(bbc_psi1_raw)   delete bbc_psi1_raw;
+  if(bbc_psi_raw)    delete bbc_psi_raw;
+  if(bbc_psi_rcd)    delete bbc_psi_rcd;
+  if(bbc_psi_sft)    delete bbc_psi_sft;
+  if(bbc_psi_fnl)    delete bbc_psi_fnl;
 
-  if(zdc_res) delete zdc_res;
-  if(zdc_psi_e) delete zdc_psi_e;
-  if(zdc_psi_w) delete zdc_psi_w;
-  if(zdc_psi_evw) delete zdc_psi_evw;
-  if(zdc_psi_raw) delete zdc_psi_raw;
-  if(zdc_psi_rcd) delete zdc_psi_rcd;
-  if(zdc_psi_sft) delete zdc_psi_sft;
-  if(zdc_psi_fnl) delete zdc_psi_fnl;
+  if(zdc_res)        delete zdc_res;
+  if(zdc_psi_e)      delete zdc_psi_e;
+  if(zdc_psi_w)      delete zdc_psi_w;
+  if(zdc_psi_evw)    delete zdc_psi_evw;
+  if(zdc_psi_raw)    delete zdc_psi_raw;
+  if(zdc_psi_rcd)    delete zdc_psi_rcd;
+  if(zdc_psi_sft)    delete zdc_psi_sft;
+  if(zdc_psi_fnl)    delete zdc_psi_fnl;
 
-  if(tpc_res) delete tpc_res;
-  if(tpc_psi_N) delete tpc_psi_N;
-  if(tpc_psi_P) delete tpc_psi_P;
-  if(tpc_psi_NvP) delete tpc_psi_NvP;
-  if(tpc_psi_raw) delete tpc_psi_raw;
-  if(tpc_psi_rcd) delete tpc_psi_rcd;
-  if(tpc_psi_sft) delete tpc_psi_sft;
-  if(tpc_psi_fnl) delete tpc_psi_fnl;
+  if(tpc_res)        delete tpc_res;
+  if(tpc_psi_N)      delete tpc_psi_N;
+  if(tpc_psi_P)      delete tpc_psi_P;
+  if(tpc_psi_NvP)    delete tpc_psi_NvP;
+  if(tpc_psi_raw)    delete tpc_psi_raw;
+  if(tpc_psi_rcd)    delete tpc_psi_rcd;
+  if(tpc_psi_sft)    delete tpc_psi_sft;
+  if(tpc_psi_fnl)    delete tpc_psi_fnl;
 
-  if(Psi2) delete Psi2;
-  if(Psi2m) delete Psi2m;
-  if(Psi2p) delete Psi2p;
-  if(Delta_Psi2) delete Delta_Psi2;
-  if(Delta_Psi2cyc) delete Delta_Psi2cyc;
-  if(Delta_Psi2old) delete Delta_Psi2old;
+  if(Psi2)           delete Psi2;
+  if(Psi2m)          delete Psi2m;
+  if(Psi2p)          delete Psi2p;
+  if(Delta_Psi2)     delete Delta_Psi2;
+  if(Delta_Psi2cyc)  delete Delta_Psi2cyc;
+  if(Delta_Psi2old)  delete Delta_Psi2old;
   if(Shift_delta_psi2) delete Shift_delta_psi2;
-  if(Psi2_rcd) delete Psi2_rcd;
-  if(Psi2_final) delete Psi2_final;
+  if(Psi2_rcd)       delete Psi2_rcd;
+  if(Psi2_final)     delete Psi2_final;
   if(Psi2_final_folded) delete Psi2_final_folded;
   if(Psi2_final_raw) delete Psi2_final_raw;
 
-  if(hTPCvsBBCep) delete hTPCvsBBCep;
-  if(hTPCvsZDCep) delete hTPCvsZDCep;
-  if(hBBCvsZDCep) delete hBBCvsZDCep;
+  if(hTPCvsBBCep)    delete hTPCvsBBCep;
+  if(hTPCvsZDCep)    delete hTPCvsZDCep;
+  if(hBBCvsZDCep)    delete hBBCvsZDCep;
 
   if(doEventPlaneRes){
     for(Int_t i=0; i<9; i++){
@@ -299,8 +296,6 @@ Int_t StEventPlaneMaker::Init() {
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -336,7 +331,7 @@ Int_t StEventPlaneMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -380,7 +375,7 @@ Int_t StEventPlaneMaker::Finish() {
     //foutEP->cd(GetName());
     WriteEventPlaneHistograms();
 
-    //foutEP->cd();
+    foutEP->cd();
     foutEP->Write();
     foutEP->Close();
   }
@@ -392,8 +387,8 @@ Int_t StEventPlaneMaker::Finish() {
     TFile *foutEP = new TFile(mOutNameEP.Data(), "UPDATE");
     //fout->ls();
     foutEP->cd();
-    foutEP->mkdir(fAnalysisMakerName);
-    foutEP->cd(fAnalysisMakerName);
+    foutEP->mkdir(GetName());
+    foutEP->cd(GetName());
     WriteEventPlaneHistograms();
 
     foutEP->cd();
@@ -408,6 +403,7 @@ Int_t StEventPlaneMaker::Finish() {
 //
 //______________________________________________________________________________________
 void StEventPlaneMaker::DeclareHistograms() {
+  // constants
   double pi = 1.0*TMath::Pi();
 
   // QA histos
@@ -415,7 +411,6 @@ void StEventPlaneMaker::DeclareHistograms() {
   hCentralityEP = new TH1F("hCentralityEP", "No. events vs centrality for EP res", 20, 0, 100);
 
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
-  hEventPlaneWeighted = new TH1F("hEventPlaneWeighted", "Event plane distribution weighted", 72, 0.0, 1.0*pi);
   fHistEPTPCn = new TH2F("fHistEPTPCn", "", 20, 0., 100., 72, -pi, pi);
   fHistEPTPCp = new TH2F("fHistEPTPCp", "", 20, 0., 100., 72, -pi, pi);
   fHistEPBBC = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, -pi, pi);
@@ -461,17 +456,17 @@ void StEventPlaneMaker::DeclareHistograms() {
 
   float range = 12.;
   float range_b = 2.;
-  hZDCDis_W = new TH2F("hZDCDis_W","",400,-range,range,400,-range,range);
-  hZDCDis_E = new TH2F("hZDCDis_E","",400,-range,range,400,-range,range);
-  hBBCDis_W = new TH2F("hBBCDis_W","",400,-range_b,range_b,400,-range_b,range_b);
-  hBBCDis_E = new TH2F("hBBCDis_E","",400,-range_b,range_b,400,-range_b,range_b);
+  hZDCDis_W = new TH2F("hZDCDis_W","", 400, -range, range, 400, -range, range);
+  hZDCDis_E = new TH2F("hZDCDis_E","", 400, -range, range, 400, -range, range);
+  hBBCDis_W = new TH2F("hBBCDis_W","", 400, -range_b, range_b, 400, -range_b, range_b);
+  hBBCDis_E = new TH2F("hBBCDis_E","", 400, -range_b, range_b, 400, -range_b, range_b);
 
   // TPC recentering Q-vector
   if(tpc_recenter_read_switch){
     for(int i=0; i<9; i++){ // centrality
       for(int j=0; j<20; j++){ // vz (15)
-        Q2_p[i][j] = new TProfile(Form("Q2_p%d_%d",i,j),Form("Q2 for postive eta,centr%d,vz%d",i,j),2,0,2);
-        Q2_m[i][j] = new TProfile(Form("Q2_m%d_%d",i,j),Form("Q2 for minus eta,centr%d,vz%d",i,j),2,0,2);
+        Q2_p[i][j] = new TProfile(Form("Q2_p%d_%d",i,j), Form("Q2 for postive eta,centr%d,vz%d",i,j), 2, 0, 2);
+        Q2_m[i][j] = new TProfile(Form("Q2_m%d_%d",i,j), Form("Q2 for minus eta,centr%d,vz%d",i,j), 2, 0, 2);
       }
     }
   }
@@ -480,8 +475,8 @@ void StEventPlaneMaker::DeclareHistograms() {
   if(tpc_shift_read_switch){
     for(int i=0; i<9; i++){ // centrality
       for(int j=0; j<20; j++){ // vz (15)
-        hTPC_shift_N[i][j] = new TProfile(Form("hTPC_shift_N%d_%d",i,j),"Nn",20,0,20,-100,100);
-        hTPC_shift_P[i][j] = new TProfile(Form("hTPC_shift_P%d_%d",i,j),"Pn",20,0,20,-100,100);
+        hTPC_shift_N[i][j] = new TProfile(Form("hTPC_shift_N%d_%d",i,j), "Nn", 20, 0, 20, -100, 100);
+        hTPC_shift_P[i][j] = new TProfile(Form("hTPC_shift_P%d_%d",i,j), "Pn", 20, 0, 20, -100, 100);
       }
     }
   }
@@ -490,8 +485,8 @@ void StEventPlaneMaker::DeclareHistograms() {
   if(bbc_shift_read_switch){
     for(int i=0; i<9; i++){ // centrality
       for(int j=0; j<20; j++){ //vz (15)
-        hBBC_shift_A[i][j] = new TProfile(Form("hBBC_shift_A%d_%d",i,j),"An",20,0,20,-100,100);
-        hBBC_shift_B[i][j] = new TProfile(Form("hBBC_shift_B%d_%d",i,j),"Bn",20,0,20,-100,100);
+        hBBC_shift_A[i][j] = new TProfile(Form("hBBC_shift_A%d_%d",i,j), "An", 20, 0, 20, -100, 100);
+        hBBC_shift_B[i][j] = new TProfile(Form("hBBC_shift_B%d_%d",i,j), "Bn", 20, 0, 20, -100, 100);
       }
     }
   }
@@ -500,8 +495,8 @@ void StEventPlaneMaker::DeclareHistograms() {
   if(zdc_shift_read_switch){
     for(int i=0; i<9; i++){ // centrality
       for(int j=0; j<20; j++){ //vz (15)
-        hZDC_shift_A[i][j] = new TProfile(Form("hZDC_shift_A%d_%d",i,j),"An",20,0,20,-100,100);
-        hZDC_shift_B[i][j] = new TProfile(Form("hZDC_shift_B%d_%d",i,j),"Bn",20,0,20,-100,100);
+        hZDC_shift_A[i][j] = new TProfile(Form("hZDC_shift_A%d_%d",i,j), "An", 20, 0, 20, -100, 100);
+        hZDC_shift_B[i][j] = new TProfile(Form("hZDC_shift_B%d_%d",i,j), "Bn", 20, 0, 20, -100, 100);
       }
     }
   }
@@ -578,6 +573,7 @@ void StEventPlaneMaker::DeclareHistograms() {
   if(doEventPlaneRes){
     // Reaction Plane resolution as function of centrality - corrected for 2nd order event plane
     for (Int_t i=0; i<9; i++){
+      // 2nd order correction to second order event plane
       fProfV2Resolution[i] = new TProfile(Form("fProfV2Resolution_%i", i), Form("fProfV2Resolution_%i", i), 25, 0.5, 25.5);
       fProfV2Resolution[i]->GetXaxis()->SetBinLabel(2, "<cos(2(#Psi_{BBC} - #Psi_{TPC}))>");
       fProfV2Resolution[i]->GetXaxis()->SetBinLabel(3, "<cos(2(#Psi_{BBC} - #Psi_{ZDC}))>");
@@ -598,6 +594,7 @@ void StEventPlaneMaker::DeclareHistograms() {
       fProfV2Resolution[i]->GetXaxis()->SetBinLabel(22, "<cos(2(#Psi_{ZDC1} - #Psi_{TPCn}))>");
       fProfV2Resolution[i]->GetXaxis()->SetBinLabel(23, "<cos(2(#Psi_{ZDC1} - #Psi_{TPCp}))>");
 
+      // 3rd order correction to second order event plane
       fProfV3Resolution[i] = new TProfile(Form("fProfV3Resolution_%i", i), Form("fProfV3Resolution_%i", i), 25, 0.5, 25.5);
       fProfV3Resolution[i]->GetXaxis()->SetBinLabel(2, "<cos(3(#Psi_{BBC} - #Psi_{TPC}))>");
       fProfV3Resolution[i]->GetXaxis()->SetBinLabel(3, "<cos(3(#Psi_{BBC} - #Psi_{ZDC}))>");
@@ -618,6 +615,7 @@ void StEventPlaneMaker::DeclareHistograms() {
       fProfV3Resolution[i]->GetXaxis()->SetBinLabel(22, "<cos(3(#Psi_{ZDC1} - #Psi_{TPCn}))>");
       fProfV3Resolution[i]->GetXaxis()->SetBinLabel(23, "<cos(3(#Psi_{ZDC1} - #Psi_{TPCp}))>");
 
+      // 4th order correction to second order event plane
       fProfV4Resolution[i] = new TProfile(Form("fProfV4Resolution_%i", i), Form("fProfV4Resolution_%i", i), 25, 0.5, 25.5);
       fProfV4Resolution[i]->GetXaxis()->SetBinLabel(2, "<cos(4(#Psi_{BBC} - #Psi_{TPC}))>");
       fProfV4Resolution[i]->GetXaxis()->SetBinLabel(3, "<cos(4(#Psi_{BBC} - #Psi_{ZDC}))>");
@@ -638,6 +636,7 @@ void StEventPlaneMaker::DeclareHistograms() {
       fProfV4Resolution[i]->GetXaxis()->SetBinLabel(22, "<cos(4(#Psi_{ZDC1} - #Psi_{TPCn}))>");
       fProfV4Resolution[i]->GetXaxis()->SetBinLabel(23, "<cos(4(#Psi_{ZDC1} - #Psi_{TPCp}))>");
 
+      // 5th order correction to second order event plane
       fProfV5Resolution[i] = new TProfile(Form("fProfV5Resolution_%i", i), Form("fProfV5Resolution_%i", i), 25, 0.5, 25.5);
       fProfV5Resolution[i]->GetXaxis()->SetBinLabel(2, "<cos(5(#Psi_{BBC} - #Psi_{TPC}))>");
       fProfV5Resolution[i]->GetXaxis()->SetBinLabel(3, "<cos(5(#Psi_{BBC} - #Psi_{ZDC}))>");
@@ -677,7 +676,6 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   hCentralityEP->Write();
 
   hEventPlane->Write();
-  hEventPlaneWeighted->Write();
   fHistEPTPCn->Write();
   fHistEPTPCp->Write();
   fHistEPBBC->Write();
@@ -957,6 +955,8 @@ Int_t StEventPlaneMaker::Make() {
   // ==================================================================
   // 1) get z-vertex binning
   // 2) call BBC_EP_Cal to calculate corrections for BBC event plane
+  // 3) call ZDC_EP_Cal to calculate corrections for ZDC event plane
+  // 4) call EventPlaneCal to calculate corrections for TPC event plane
 
   // get z-vertex region and cut on it
   int region_vz = GetVzRegion(zVtx);
@@ -966,9 +966,8 @@ Int_t StEventPlaneMaker::Make() {
   BBC_EP_Cal(ref9, region_vz, 2);
   ZDC_EP_Cal(ref9, region_vz, 2);  // will probably want n=1 for ZDC
   EventPlaneCal(ref9, region_vz, 2, fTPCptAssocBin);
-  //cout<<"print2:  TPC_PSI2: "<<TPC_PSI2<<"  TPCA_PSI2: "<<TPCA_PSI2<<"  TPCB_PSI2: "<<TPCB_PSI2<<endl;
-
   hEventPlane->Fill(TPC_PSI2);
+  //cout<<"print2:  TPC_PSI2: "<<TPC_PSI2<<"  TPCA_PSI2: "<<TPCA_PSI2<<"  TPCB_PSI2: "<<TPCB_PSI2<<endl;
 
   // compare BBC, ZDC, TPC event planes
   hTPCvsBBCep->Fill(BBC_PSI2, TPC_PSI2);
@@ -1049,6 +1048,7 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -1081,10 +1081,9 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
 }
 //
 // Trigger QA histogram, label bins
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
 //_____________________________________________________________________________
 TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:
@@ -1093,11 +1092,11 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
     //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
     int arrMB[] = {370001, 370011, 370983};
 
+    // fill for kAny
     int bin = 0;
-
-    // fill for kAny 
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -1126,12 +1125,15 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {460101, 460111};
     int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
+    // fill for kAny
     int bin = 0;
+    bin = 1; h->Fill(bin);
+
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
@@ -1152,8 +1154,6 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    int bin = 0;
-
     // hard-coded trigger Ids for run16
     //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
@@ -1165,16 +1165,15 @@ TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
+    int bin = 0;
     bin = 1; h->Fill(bin);
 
-    // check if event triggers meet certain criteria and fill histos
+    // check if event triggers meet certain criteria and fill histos    
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
@@ -1206,7 +1205,6 @@ void StEventPlaneMaker::SetEPSumw2() {
   //hCentralityEP->Sumw2();
 
   hEventPlane->Sumw2();
-  hEventPlaneWeighted->Sumw2();
   fHistEPTPCn->Sumw2();
   fHistEPTPCp->Sumw2();
   fHistEPBBC->Sumw2();
@@ -1360,16 +1358,15 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   //TRandom *rand = new TRandom();
   int nTOT = 0, nA = 0, nB = 0;
   int nTrack = mPicoDst->numberOfTracks();
-  for(int i=0; i<nTrack; i++) {
-    // get tracks
+  for(int i = 0; i < nTrack; i++) {
+    // get track pointer
     StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
-    // get momentum vector of track - global or primary track
+    // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
@@ -1386,8 +1383,8 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     ////if(pt > ptcut) continue; // == TEST == //
 
@@ -1467,15 +1464,14 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0) trackweight = 2.0;
+      if(pt >  2.0) trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
     }
 
     // test - Jan15 for random subevents
-    // generate random distribution from 0 -> 1
-    // and split subevents for [0,0.5] and [0.5, 1]
+    // generate random distribution from 0 -> 1: and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     ////double randomNum = gRandom->Rndm();  // > 0.5?
 
@@ -1495,8 +1491,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       }
     }  // pt-dependent mode
 
-    // non-pt dependent mode
-    // split up Q-vectors to +/- eta regions
+    // non-pt dependent mode: split up Q-vectors to +/- eta regions
     if(!doTPCptassocBin) {
       if(eta < 0) {
         // sum up q-vectors on negative eta side
@@ -1558,11 +1553,6 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   fHistEPZDC->Fill(fCentralityScaled, fEPZDC);
 
 }
-//
-// 1) get the binning for: ref9 and region_vz
-// 2) get function: GetRunNo( );
-// 3) 
-//
 // 
 // BBC event plane calculation
 // ______________________________________________________________________
@@ -1581,7 +1571,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   double bbc_W[N_B] = {0.};
   double sum_E = 0.;
   double sum_W = 0.;
-  for(int i=0; i<N_B; i++){
+  for(int i = 0; i < N_B; i++){
     bbc_E[i] = mPicoEvent->bbcAdcEast(i);
     bbc_W[i] = mPicoEvent->bbcAdcWest(i);
     sum_E += bbc_E[i];
@@ -1799,8 +1789,8 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 
   // Corrected ANGLE: make shifted event plane from {0, pi}
   double bPhi_fnl = bPhi_rcd + bbc_delta_psi;
-  if(bPhi_fnl <  0) bPhi_fnl += pi;
-  if(bPhi_fnl > pi) bPhi_fnl -= pi;
+  if(bPhi_fnl < 0.0)    bPhi_fnl += pi;
+  if(bPhi_fnl > 1.0*pi) bPhi_fnl -= pi;
 
   // fill a bunch of histograms
   ////checkbbc->Fill(PSI2-bPhi_sft);// FIXME
@@ -2041,8 +2031,8 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // make shifted event plane from {0, pi}
   double zPhi_fnl = zPhi_rcd + zdc_delta_psi;
-  if(zPhi_fnl <  0) zPhi_fnl += pi;
-  if(zPhi_fnl > pi) zPhi_fnl -= pi;
+  if(zPhi_fnl < 0.0)    zPhi_fnl += pi;
+  if(zPhi_fnl > 1.0*pi) zPhi_fnl -= pi;
 
   // fill a bunch of histograms  - Added
   zdc_res->Fill((ref9) + 0.5, z_res);
@@ -2429,8 +2419,8 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
 
   // make shifted event plane from {0, pi}    -- ADDED
   double tPhi_fnl = tPhi_rcd + tpc_delta_psi;
-  if(tPhi_fnl <  0) tPhi_fnl += pi;
-  if(tPhi_fnl > pi) tPhi_fnl -= pi;
+  if(tPhi_fnl < 0.0)   tPhi_fnl += pi;
+  if(tPhi_fnl > 1.0*pi) tPhi_fnl -= pi;
 
   double shifted_psi2_raw;
   if(tPhi_sft < 0.)  shifted_psi2_raw = tPhi_sft + pi;
@@ -2483,7 +2473,6 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
       excludeInPhi = fLeadingJet->Phi();
     }
 
-    // new Feb9
     if(fSubLeadingJet) {
       excludeInEtaSub = fSubLeadingJet->Eta();
       excludeInPhiSub = fSubLeadingJet->Phi();
@@ -2493,14 +2482,14 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < Qtrack; i++){
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    // get track pointer
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
-    // primary track switch
-    // get momentum vector of track - global or primary track
+    // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
@@ -2517,8 +2506,8 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // should set a soft pt range (0.2 - 5.0?)
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
-    if(phi < 0)    phi += 2*pi;
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.0)    phi += 2.0*pi;
+    if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
@@ -2609,12 +2598,11 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     Q2y_raw += y;
 
     // test - Jan15 for random subevents
-    // generate random distribution from 0 -> 1
-    // and split subevents for [0,0.5] and [0.5, 1]
+    // generate random distribution from 0 -> 1: and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     //double randomNum = gRandom->Rndm();  // > 0.5?
     if(randomNum >= 0.5) nA++;
-    if(randomNum < 0.5)  nB++;
+    if(randomNum <  0.5) nB++;
     nTOT++;
 
     // STEP1: calculate recentering for TPC event plane
@@ -2822,9 +2810,11 @@ void StEventPlaneMaker::CalculateEventPlaneResolution(Double_t bbc, Double_t zdc
     fProfV5Resolution[ref9]->Fill(23., TMath::Cos(5.*(zdc1 - tpcP)));
   }
 
-    // for the resolution of the combined vzero event plane, use two tpc halves as uncorrelated subdetectors
+  // for the resolution of the combined vzero event plane, use two tpc halves as uncorrelated subdetectors
 } 
 
+//
+//
 //_____________________________________________________________________________
 Double_t StEventPlaneMaker::CalculateEventPlaneChi(Double_t res) {
   // return chi for given resolution to combine event plane estimates from two subevents
@@ -2838,6 +2828,8 @@ Double_t StEventPlaneMaker::CalculateEventPlaneChi(Double_t res) {
   return chi;
 }
 
+//
+//
 //______________________________________________________________________
 THnSparse* StEventPlaneMaker::NewTHnSparseEP(const char* name, UInt_t entries) {
   // generate new THnSparseD, axes are defined in GetDimParamsD()
@@ -2870,11 +2862,13 @@ THnSparse* StEventPlaneMaker::NewTHnSparseEP(const char* name, UInt_t entries) {
 
   return new THnSparseF(name, hnTitle.Data(), dim, nbins, xmin, xmax);
 } // end of NewTHnSparseEP
- 
+
+//
+// 
 //______________________________________________________________________________________________
 void StEventPlaneMaker::GetDimParamsEP(Int_t iEntry, TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax)
 {
-   //stores label and binning of axis for THnSparse
+   // stores label and binning of axis for THnSparse
    const Double_t pi = TMath::Pi();
 
    switch(iEntry){
@@ -2917,6 +2911,8 @@ void StEventPlaneMaker::GetDimParamsEP(Int_t iEntry, TString &label, Int_t &nbin
    }// end of switch
 } // end of event plane sparse
 
+//
+//
 //_____________________________________________________________________________
 Double_t StEventPlaneMaker::GetEventPlaneAngle(TString det, Int_t order, Int_t correctin, TString subevt)
 {

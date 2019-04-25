@@ -7,8 +7,9 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
-
 #include <iosfwd>
+
+// ROOT includes
 #include <TArrayI.h>
 #include <TMath.h>
 #include <TClonesArray.h>
@@ -16,10 +17,12 @@
 #include <TLorentzVector.h>
 #include <TString.h>
 
+// STAR includes
 #include "StPicoEvent/StPicoEmcTrigger.h"
-#include "StVParticle.h"
 #include "StPicoEvent/StPicoBEmcPidTraits.h"
 
+// my includes
+#include "StVParticle.h"
 #include "FJ_includes.h"
 #include "StFJWrapper.h"
 
@@ -272,7 +275,7 @@ class StJet : public StVParticle
   };
 
   /// \cond CLASSIMP
-  ClassDef(StJet,1);
+  ClassDef(StJet,2);
   /// \endcond
 };
 

@@ -27,9 +27,11 @@
 
 ClassImp(StVParticle)
 
+//___________________________________________________________________________________
 StVParticle::StVParticle(const StVParticle& vPart) :
   TObject(vPart) { } // Copy constructor
 
+//___________________________________________________________________________________
 StVParticle& StVParticle::operator=(const StVParticle& vPart)
 { if (this!=&vPart) { 
     TObject::operator=(vPart); 
@@ -38,10 +40,10 @@ StVParticle& StVParticle::operator=(const StVParticle& vPart)
   return *this; 
 }
 
+//___________________________________________________________________________________
 Bool_t StVParticle::Local2GlobalMomentum(Double_t p[3], Double_t alpha) const {
   //----------------------------------------------------------------
-  // This function performs local->global transformation of the
-  // track momentum.
+  // This function performs local->global transformation of the track momentum.
   // When called, the arguments are:
   //    p[0] = 1/pt * charge of the track;
   //    p[1] = sine of local azim. angle of the track momentum;
@@ -53,17 +55,20 @@ Bool_t StVParticle::Local2GlobalMomentum(Double_t p[3], Double_t alpha) const {
   //    p[2] = pz
   // Results for (nearly) straight tracks are meaningless !
   //----------------------------------------------------------------
-  if (TMath::Abs(p[0])<=kAlmost0) return kFALSE;
-  if (TMath::Abs(p[1])> kAlmost1) return kFALSE;
+  if (TMath::Abs(p[0]) <= kAlmost0) return kFALSE;
+  if (TMath::Abs(p[1]) >  kAlmost1) return kFALSE;
 
-  Double_t pt=1./TMath::Abs(p[0]);
-  Double_t cs=TMath::Cos(alpha), sn=TMath::Sin(alpha);
-  Double_t r=TMath::Sqrt((1. - p[1])*(1. + p[1]));
-  p[0]=pt*(r*cs - p[1]*sn); p[1]=pt*(p[1]*cs + r*sn); p[2]=pt*p[2];
+  Double_t pt = 1./TMath::Abs(p[0]);
+  Double_t cs = TMath::Cos(alpha), sn = TMath::Sin(alpha);
+  Double_t r = TMath::Sqrt((1. - p[1])*(1. + p[1]));
+  p[0] = pt*(r*cs - p[1]*sn); 
+  p[1] = pt*(p[1]*cs + r*sn); 
+  p[2] = pt*p[2];
 
   return kTRUE;
 }
 
+//___________________________________________________________________________________
 Bool_t StVParticle::Local2GlobalPosition(Double_t r[3], Double_t alpha) const {
   //----------------------------------------------------------------
   // This function performs local->global transformation of the
@@ -78,12 +83,14 @@ Bool_t StVParticle::Local2GlobalPosition(Double_t r[3], Double_t alpha) const {
   //    r[1] = global y
   //    r[2] = global z
   //----------------------------------------------------------------
-  Double_t cs=TMath::Cos(alpha), sn=TMath::Sin(alpha), x=r[0];
-  r[0]=x*cs - r[1]*sn; r[1]=x*sn + r[1]*cs;
+  Double_t cs = TMath::Cos(alpha), sn = TMath::Sin(alpha), x = r[0];
+  r[0] = x*cs - r[1]*sn; 
+  r[1] = x*sn + r[1]*cs;
 
   return kTRUE;
 }
 
+//___________________________________________________________________________________
 Bool_t StVParticle::Global2LocalMomentum(Double_t p[3], Short_t charge, Double_t &alpha) const {
   //----------------------------------------------------------------
   // This function performs global->local transformation of the
@@ -111,13 +118,13 @@ Bool_t StVParticle::Global2LocalMomentum(Double_t p[3], Short_t charge, Double_t
   return kTRUE;
 }
 
+//___________________________________________________________________________________
 Bool_t StVParticle::Global2LocalPosition(Double_t r[3], Double_t alpha) const {
   return Local2GlobalPosition(r, -alpha);
 }
 
-
+//___________________________________________________________________________________
 Int_t StVParticle::Compare( const TObject* obj) const {
-
   // 
   // see header file for class documentation
   //

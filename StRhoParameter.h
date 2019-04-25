@@ -19,6 +19,6 @@ private:
   StRhoParameter(const StRhoParameter&);             // not implemented
   StRhoParameter& operator=(const StRhoParameter&);  // not implemented
   
-  ClassDef(StRhoParameter, 1); // Rho parameter
+  ClassDef(StRhoParameter, 2); // Rho parameter
 };
 #endif

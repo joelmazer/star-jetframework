@@ -15,7 +15,6 @@
 
 // Adapted from AliROOT class, AliEmcalJetShapeProperties
 
-
 #include "StJetShapeProperties.h"
 
 /**

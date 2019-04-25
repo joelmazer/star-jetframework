@@ -6,6 +6,7 @@
 //
 #include "StRhoSparse.h"
 
+// ROOT includes
 #include <TClonesArray.h>
 #include <TMath.h>
 #include "TH2.h"
@@ -92,9 +93,7 @@ Int_t StRhoSparse::Init()
 Int_t StRhoSparse::Finish() {
 
   //  Write histos to file and close it.
-  // "test.root"  
   if(mOutName!="") {
-    //TFile *fout = new TFile("test.root", "UPDATE");
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
     fout->mkdir("RhoSparse");
@@ -125,10 +124,10 @@ void StRhoSparse::DeclareHistograms() {
   fHistMultvsCorrRho->GetXaxis()->SetTitle("Charged track multiplicity");
   fHistMultvsCorrRho->GetYaxis()->SetTitle("corrected #rho (GeV/c)/A");
 }
-
+//
+// Function to write histograms
 //________________________________________________________________________
 void StRhoSparse::WriteHistograms() {
-  // write histograms
   fHistOccCorrvsCent->Write();
   fHistOccCorrvsMult->Write();
   fHistMultvsUnCorrRho->Write();
@@ -142,8 +141,11 @@ void StRhoSparse::Clear(Option_t *opt) {
 
 //________________________________________________________________________
 Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2) {
+  // jet 1 tracks:
   for (Int_t i = 0; i < jet1->GetNumberOfTracks(); ++i) {
     Int_t jet1Track = jet1->TrackAt(i);
+
+    // jet 2 tracks:
     for (Int_t j = 0; j < jet2->GetNumberOfTracks(); ++j) {
       Int_t jet2Track = jet2->TrackAt(j);
       if (jet1Track == jet2Track)
@@ -156,18 +158,19 @@ Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2) {
 //________________________________________________________________________
 Bool_t StRhoSparse::IsJetSignal(StJet* jet)
 {
-  if(jet->Pt()>5){
+  if(jet->Pt() > 5) {
       return kTRUE;
-  }else{
+  } else {
     return kFALSE;
   }
 }
 
-
+//
+// Functions that runs over the analysis for each event
 //________________________________________________________________________
 Int_t StRhoSparse::Make() 
 {
-  // Run the analysis.
+  // re-initialize the Rho objects
   fOutRho->SetVal(0);
   if(fOutRhoScaled)  fOutRhoScaled->SetVal(0);
 
@@ -282,6 +285,7 @@ Int_t StRhoSparse::Make()
   // leading jet exclusion
   if(fNExclLeadJets > 0) {
     for(Int_t ij = 0; ij < Njets; ++ij) {
+      // get jet pointer
       StJet *jet = static_cast<StJet*>(fBGJets->At(ij));
       if(!jet) { continue; } 
       //if (!AcceptJet(jet)) continue;
@@ -317,9 +321,9 @@ Int_t StRhoSparse::Make()
     if(!jet) { continue; } 
 
     // add total jet area
-    TotaljetArea+=jet->Area();
+    TotaljetArea += jet->Area();
     if(jet->Pt() > 0.1) {
-      TotaljetAreaPhys+=jet->Area();
+      TotaljetAreaPhys += jet->Area();
     }
 
     //if (!AcceptJet(jet)) continue;
@@ -342,7 +346,7 @@ Int_t StRhoSparse::Make()
 
     if(isOverlapping) continue;
 
-    if(jet->Pt()>0.1){
+    if(jet->Pt() > 0.1){
       rhovec[NjetAcc] = jet->Pt() / jet->Area();
       ++NjetAcc;
     }

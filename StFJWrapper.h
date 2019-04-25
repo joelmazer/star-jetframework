@@ -3,12 +3,15 @@
 
 #if !defined(__CINT__)
 
+// ROOT includes
 #include <TMath.h>
 #include <TList.h>
 #include <TVector3.h>
 #include <TLorentzVector.h>
 #include <vector>
 #include <TString.h>
+
+// jet includes
 #include "FJ_includes.h"
 #include "StJetShape.h"
 #include "StJetPicoDefinitions.h"
@@ -365,7 +368,6 @@ void StFJWrapper::Clear(const Option_t */*opt*/)
 void StFJWrapper::RemoveLastInputVector()
 {
   // Remove last input vector
-
   fInputVectors.pop_back();
 }
 
@@ -373,7 +375,6 @@ void StFJWrapper::RemoveLastInputVector()
 void StFJWrapper::AddInputVector(Double_t px, Double_t py, Double_t pz, Double_t E, Int_t index)
 {
   // Make the input pseudojet.
-
   fastjet::PseudoJet inVec(px, py, pz, E);
 
   // Salvatore Aiola: not sure why this was done...
@@ -391,7 +392,6 @@ void StFJWrapper::AddInputVector(Double_t px, Double_t py, Double_t pz, Double_t
 void StFJWrapper::AddInputVector(const fj::PseudoJet& vec, Int_t index)
 {
   // Add an input pseudojet.
-
   fj::PseudoJet inVec = vec;
 
   // Salvatore Aiola: not sure why this was done...
@@ -409,7 +409,6 @@ void StFJWrapper::AddInputVector(const fj::PseudoJet& vec, Int_t index)
 void StFJWrapper::AddInputVectors(const std::vector<fj::PseudoJet>& vecs, Int_t offsetIndex)
 {
   // Add the input from vector of pseudojets.
-
   for (UInt_t i = 0; i < vecs.size(); ++i) {
     fj::PseudoJet inVec = vecs[i];
     if (offsetIndex > -99999)
@@ -423,7 +422,6 @@ void StFJWrapper::AddInputVectors(const std::vector<fj::PseudoJet>& vecs, Int_t 
 void StFJWrapper::AddInputGhost(Double_t px, Double_t py, Double_t pz, Double_t E, Int_t index)
 {
   // Make the input pseudojet.
-
   fastjet::PseudoJet inVec(px, py, pz, E);
 
   if (index > -99999) {
@@ -441,7 +439,6 @@ void StFJWrapper::AddInputGhost(Double_t px, Double_t py, Double_t pz, Double_t 
 Double_t StFJWrapper::GetJetArea(UInt_t idx) const
 {
   // Get the jet area.
-
   Double_t retval = -1; // really wrong area..
   if ( idx < fInclusiveJets.size() ) {
     retval = fClustSeq->area(fInclusiveJets[idx]);
@@ -455,7 +452,6 @@ Double_t StFJWrapper::GetJetArea(UInt_t idx) const
 Double_t StFJWrapper::GetFilteredJetArea(UInt_t idx) const
 {
   // Get the filtered jet area.
-
   Double_t retval = -1; // really wrong area..
   if (fDoFilterArea && fClustSeqActGhosts && (idx<fFilteredJets.size())) {
     retval = fClustSeqActGhosts->area(fFilteredJets[idx]);
@@ -495,7 +491,6 @@ fastjet::PseudoJet StFJWrapper::GetFilteredJetAreaVector(UInt_t idx) const
 std::vector<double> StFJWrapper::GetSubtractedJetsPts(Double_t median_pt, Bool_t sorted)
 {
   // Get subtracted jets pTs, returns vector.
-
   SubtractBackground(median_pt);
 
   if (kTRUE == sorted) {
@@ -508,7 +503,6 @@ std::vector<double> StFJWrapper::GetSubtractedJetsPts(Double_t median_pt, Bool_t
 Double_t StFJWrapper::GetJetSubtractedPt(UInt_t idx) const
 {
   // Get subtracted jets pTs, returns Double_t.
-
   Double_t retval = -99999.; // really wrong pt..
   if ( idx < fSubtractedJetsPt.size() ) {
     retval = fSubtractedJetsPt[idx];
@@ -521,7 +515,6 @@ std::vector<fastjet::PseudoJet>
 StFJWrapper::GetJetConstituents(UInt_t idx) const
 {
   // Get jets constituents.
-
   std::vector<fastjet::PseudoJet> retval;
 
   if ( idx < fInclusiveJets.size() ) {
@@ -538,7 +531,6 @@ std::vector<fastjet::PseudoJet>
 StFJWrapper::GetFilteredJetConstituents(UInt_t idx) const
 {
   // Get jets constituents.
-
   std::vector<fastjet::PseudoJet> retval;
 
   if ( idx < fFilteredJets.size() ) {
@@ -556,7 +548,6 @@ void StFJWrapper::GetMedianAndSigma(Double_t &median, Double_t &sigma, Int_t rem
 {
   // Get the median and sigma from fastjet.
   // User can also do it on his own because the cluster sequence is exposed (via a getter)
-
   if (!fClustSeq) {
     __ERROR(Form("Run the jfinder first."));
     return;
@@ -583,7 +574,6 @@ void StFJWrapper::GetMedianAndSigma(Double_t &median, Double_t &sigma, Int_t rem
 Int_t StFJWrapper::Run()
 {
   // Run the actual jet finder.
-
   if (fAreaType == fj::voronoi_area) {
     // Rfact - check dependence - default is 1.
     // NOTE: hardcoded variable!
@@ -660,7 +650,6 @@ Int_t StFJWrapper::Filter()
 //
 //  StFJWrapper::Filter
 //
-
   fJetDef = new fj::JetDefinition(fAlgor, fR, fScheme, fStrategy);
 
   if (fDoFilterArea) {
@@ -769,13 +758,13 @@ void StFJWrapper::SubtractBackground(Double_t median_pt)
 
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::DoConstituentSubtraction() {
-  //Do constituent subtraction
+  // Do constituent subtraction
 #ifdef FASTJET_VERSION
   CreateConstituentSub();
   // fConstituentSubtractor->set_alpha(/* double alpha */);
   // fConstituentSubtractor->set_max_deltaR(/* double max_deltaR */);
 
-  //clear constituent subtracted jets
+  // clear constituent subtracted jets
   fConstituentSubtrJets.clear();
   for (unsigned i = 0; i < fInclusiveJets.size(); i++) {
     fj::PseudoJet subtracted_jet(0.,0.,0.,0.);
@@ -791,11 +780,11 @@ Int_t StFJWrapper::DoConstituentSubtraction() {
 
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::DoSoftDrop() {
-  //Do grooming
+  // Do grooming
 #ifdef FASTJET_VERSION
   CreateSoftDrop();
 
-  //clear groomed jets
+  // clear groomed jets
   fGroomedJets.clear();
   //fastjet::Subtractor fjsub (fBkrdEstimator);
   //fSoftDrop->set_subtractor(&fjsub);
@@ -817,7 +806,7 @@ Int_t StFJWrapper::DoSoftDrop() {
 
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::CreateSoftDrop() {
-  //Do grooming
+  // Do grooming
   #ifdef FASTJET_VERSION
   if (fSoftDrop) { delete fSoftDrop; } // protect against memory leaks
   
@@ -830,7 +819,7 @@ Int_t StFJWrapper::CreateSoftDrop() {
 /*
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::CreateGenSub() {
-  //Do generic subtraction for jet mass
+  // Do generic subtraction for jet mass
   #ifdef FASTJET_VERSION
   if (fGenSubtractor) { delete fGenSubtractor; } // protect against memory leaks
 
@@ -851,7 +840,7 @@ Int_t StFJWrapper::CreateGenSub() {
 
 //_________________________________________________________________________________________________
 Int_t StFJWrapper::CreateConstituentSub() {
-  //Do generic subtraction for jet mass
+  // Do generic subtraction for jet mass
   #ifdef FASTJET_VERSION
   if (fConstituentSubtractor) { delete fConstituentSubtractor; } // protect against memory leaks
 
@@ -868,7 +857,6 @@ Int_t StFJWrapper::CreateConstituentSub() {
 void StFJWrapper::SetupAlgorithmfromOpt(const char *option)
 {
   // Setup algorithm from char.
-
   std::string opt(option);
 
   if (!opt.compare("kt"))                fAlgor    = fj::kt_algorithm;
@@ -886,7 +874,6 @@ void StFJWrapper::SetupAlgorithmfromOpt(const char *option)
 void StFJWrapper::SetupAreaTypefromOpt(const char *option)
 {
   // Setup area type from char.
-
   std::string opt(option);
 
   if (!opt.compare("active"))                      fAreaType = fj::active_area;
@@ -903,7 +890,6 @@ void StFJWrapper::SetupSchemefromOpt(const char *option)
   //
   // setup scheme from char
   //
-
   std::string opt(option);
 
   if (!opt.compare("BIpt"))   fScheme   = fj::BIpt_scheme;
@@ -919,7 +905,6 @@ void StFJWrapper::SetupSchemefromOpt(const char *option)
 void StFJWrapper::SetupStrategyfromOpt(const char *option)
 {
   // Setup strategy from char.
-
   std::string opt(option);
 
   if (!opt.compare("Best"))            fStrategy = fj::Best;
@@ -936,7 +921,8 @@ void StFJWrapper::SetupStrategyfromOpt(const char *option)
   if (!opt.compare("NlnNCam"))         fStrategy = fj::NlnNCam;
   if (!opt.compare("plugin"))          fStrategy = fj::plugin_strategy;
 }
- 
+
+//_______________________________________________________________________________________________ 
 Double_t StFJWrapper::NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Int_t Option){
   //Option 0=Nsubjettiness result, 1=opening angle between axes in Eta-Phi plane, 2=Distance between axes in Eta-Phi plane
   
@@ -1036,6 +1022,7 @@ Double_t StFJWrapper::NSubjettiness(Int_t N, Int_t Algorithm, Double_t Radius, D
   else return -2;
 }
 
+//_______________________________________________________________________________________________
 Double32_t StFJWrapper::NSubjettinessDerivativeSub(Int_t N, Int_t Algorithm, Double_t Radius, Double_t Beta, Double_t JetR, fastjet::PseudoJet jet, Int_t Option){ //For derivative subtraction
 
   Double_t Result=-1;

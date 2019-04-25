@@ -49,6 +49,7 @@ private:
   TString   mOutputFileName;       //! FileName
   TFile*    mOutputFile;
 
+  // FIXME, check this 0 for class enum
   ClassDef(StFileManagerMaker, 0)
 };
 #endif

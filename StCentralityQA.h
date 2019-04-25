@@ -100,29 +100,29 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     Int_t                   GetVzRegion(double Vz);
 
     // switches
-    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Int_t                   fDoEffCorr;                  // efficiency correction to tracks
 
     // event selection types
-    UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
-    UInt_t         fMBEventType;                // Physics selection of event used for MB
-    Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
+    UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
+    UInt_t                  fMBEventType;                // Physics selection of event used for MB
+    Int_t                   fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // tower to firing trigger type matched array
-    Bool_t         fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-    Bool_t         fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-    Bool_t         fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
     // used for event plane calculation and resolution
-    Int_t          fHistCentBinMin;             // min centrality bin for histogram loop
-    Int_t          fHistCentBinMax;             // max centrality bin for histogram loop
-    Int_t          fHistZvertBinMin;            // min z-vertex bin for histogram loop
-    Int_t          fHistZvertBinMax;            // min z-vertex bin for histogram loop
+    Int_t                   fHistCentBinMin;             // min centrality bin for histogram loop
+    Int_t                   fHistCentBinMax;             // max centrality bin for histogram loop
+    Int_t                   fHistZvertBinMin;            // min z-vertex bin for histogram loop
+    Int_t                   fHistZvertBinMax;            // min z-vertex bin for histogram loop
 
   private:
-    Int_t                  fRunNumber;
+    Int_t                   fRunNumber;
 
     // switches
-    bool         doComments;
+    bool                    doComments;
 
     // histograms
     TH1F* hEventZVertex;//!
@@ -142,6 +142,6 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     // maker names
     TString                fAnalysisMakerName;
 
-    ClassDef(StCentralityQA, 1)
+    ClassDef(StCentralityQA, 2)
 };
 #endif

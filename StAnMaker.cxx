@@ -22,15 +22,6 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
-
-// my STAR includes
-#include "StJetFrameworkPicoBase.h"
-#include "StRhoParameter.h"
-#include "StRho.h"
-#include "StJetMakerTask.h"
-#include "StFemtoTrack.h"
-
-// new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h"
@@ -41,9 +32,16 @@
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
+// my STAR includes
+#include "StJetFrameworkPicoBase.h"
+#include "StRhoParameter.h"
+#include "StRho.h"
+#include "StJetMakerTask.h"
+#include "StFemtoTrack.h"
+#include "StEmcPosition2.h"
+
 // old file kept
 #include "StPicoConstants.h"
-#include "StEmcPosition2.h"
 
 // centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -51,7 +49,7 @@
 
 ClassImp(StAnMaker)
 
-//-----------------------------------------------------------------------------
+//________________________________________________________________________
 StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", const char* jetMakerName = "", const char* rhoMakerName = "") : StJetFrameworkPicoBase(name) //StMaker(name),
 {
   fLeadingJet = 0x0; fSubLeadingJet = 0x0;
@@ -105,20 +103,23 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
 
 }
 
-//----------------------------------------------------------------------------- 
+//
+//________________________________________________________________________
 StAnMaker::~StAnMaker()
 { /*  */
   // destructor
-  delete hJetPt;
-  delete hJetCorrPt;
+  if(hJetPt)       delete hJetPt;
+  if(hJetCorrPt)   delete hJetCorrPt;
 
-  delete mEmcPosition;
+  if(mEmcPosition) delete mEmcPosition;
 }
 
-//-----------------------------------------------------------------------------
+//
+//________________________________________________________________________
 Int_t StAnMaker::Init() {
   StJetFrameworkPicoBase::Init();
 
+  // declare histograms
   DeclareHistograms();
 
   // position object for Emc
@@ -129,8 +130,6 @@ Int_t StAnMaker::Init() {
   //fJets->SetName(fJetsName);
   //fJets->SetOwner(kTRUE);
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -193,18 +192,18 @@ Int_t StAnMaker::Init() {
 
   return kStOK;
 }
-
-//----------------------------------------------------------------------------- 
+//
+// Function:  write to output file and close
+//________________________________________________________________________
 Int_t StAnMaker::Finish() { 
-  //  Summarize the run.
   cout << "StAnMaker::Finish()\n";
 
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
-    fout->mkdir(fAnalysisMakerName);
-    fout->cd(fAnalysisMakerName);
+    fout->mkdir(GetName());
+    fout->cd(GetName());
     WriteHistograms();
     fout->cd();
     fout->Write();
@@ -217,15 +216,15 @@ Int_t StAnMaker::Finish() {
   return kStOK;
 }
 
-//-----------------------------------------------------------------------------
+//
+// initialization of histograms done here + global object setup
+//________________________________________________________________________
 void StAnMaker::DeclareHistograms() {
-  // initialization of histograms done here + global object setup
-
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
   hJetCorrPt = new TH1F("hJetCorrPt", "Corrected Jet p_{T}", 125, -25, 100);
 }
-
+//
 // write histograms
 //_____________________________________________________________________________
 void StAnMaker::WriteHistograms() {
@@ -233,15 +232,14 @@ void StAnMaker::WriteHistograms() {
   hJetPt->Write();
   hJetCorrPt->Write();
 }
-
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StAnMaker::Clear(Option_t *opt) {
   fJets->Clear();
-
 }
- 
-//  This method is called every event.
+//
+//  Function: This method is called every event.
 //_____________________________________________________________________________
 Int_t StAnMaker::Make() {
   // get PicoDstMaker 
@@ -275,8 +273,7 @@ Int_t StAnMaker::Make() {
   mVertex = mPicoEvent->primaryVertex();
   zVtx = mVertex.z();
   
-  // Z-vertex cut 
-  // the Aj analysis cut on (-40, 40) for reference
+  // Z-vertex cut: the Aj analysis cut on (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
 
   // get the Run #, fill, and event ID
@@ -398,6 +395,8 @@ Int_t StAnMaker::Make() {
   return kStOK;
 }
 
+//
+//
 //_____________________________________________________________________________________________
 void StAnMaker::RunJets()
 {
@@ -436,9 +435,9 @@ void StAnMaker::RunJets()
     double NtrackConstit = jet->GetNumberOfTracks();
 
     // get highest Pt jet in event (leading jet)
-    if(highestjetpt<jetpt){
-      ijethi=ijet;
-      highestjetpt=jetpt;
+    if(highestjetpt < jetpt){
+      ijethi = ijet;
+      highestjetpt = jetpt;
     }
 
     // fill some basic histos
@@ -458,13 +457,15 @@ void StAnMaker::RunJets()
     }
 */
 
-    // get jet constituents
-    // loop over constituent tracks
+    // get jet constituents: loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
+
+      // get jet track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
+      // get momentum vector
       TVector3 mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) continue; // check if primary
@@ -489,6 +490,8 @@ void StAnMaker::RunJets()
     // loop over constituents towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int towerid = jet->ClusterAt(itow);
+
+      // get jet tower pointer
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerid));
       if(!tow){ continue; }
 
@@ -501,24 +504,25 @@ void StAnMaker::RunJets()
 
 }
 
+//
+//
 //________________________________________________________________________
 void StAnMaker::RunTracks()
 {
-  // assume neutral pion mass
+  // constants: assume neutral pion mass
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
-
   unsigned int ntracks = mPicoDst->numberOfTracks();
+
   // loop over ALL tracks in PicoDst 
-  for(unsigned short iTracks=0;iTracks<ntracks;iTracks++){
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
+  for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-    // primary track switch
-    // get momentum vector of track - global or primary track
+    // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;
     if(doUsePrimTracks) {
       // get primary track vector
@@ -542,20 +546,20 @@ void StAnMaker::RunTracks()
 }  // track function
 
 //
+//
 //________________________________________________________________________
 void StAnMaker::RunTowers()
 {
-  // assume neutral pion mass
+  // constants: assume neutral pion mass
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
 
-  // looping over clusters - STAR: matching already done
-  // get # of clusters and set variables
+  // looping over clusters - STAR: matching already done, get # of clusters and set variables
   unsigned int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
   for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
-    StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
+    StPicoBEmcPidTraits *cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
     if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
     // cluster and tower ID
@@ -573,7 +577,8 @@ void StAnMaker::RunTowers()
 
     // matched track index
     int trackIndex = cluster->trackIndex();
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
+    // get track pointer
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
     if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
@@ -582,12 +587,11 @@ void StAnMaker::RunTowers()
   // loop over towers
   int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
-    // tower ID
-    //int towerID = tower->id();
-    // tower ID shifted by +1 from array index
+    // tower ID: tower ID shifted by +1 from array index
     int towerID = itow + 1;
     if(towerID < 0) continue; // double check these aren't still in the event list
 
@@ -603,6 +607,7 @@ void StAnMaker::RunTowers()
 }  // run towers function
 
 //
+//
 // __________________________________________________________________________________
 void StAnMaker::SetSumw2() {
   hJetPt->Sumw2();
@@ -610,9 +615,10 @@ void StAnMaker::SetSumw2() {
 }
 
 //
+// Function: get centrality bin
 //________________________________________________________________________
 Int_t StAnMaker::GetCentBin(Int_t cent, Int_t nBin) const
-{  // Get centrality bin.
+{
   Int_t centbin = -1;
 
   if(nBin == 16) {
@@ -625,14 +631,16 @@ Int_t StAnMaker::GetCentBin(Int_t cent, Int_t nBin) const
   return centbin;
 }
 
+//
+// Function: get relative phi of jet and track (-0.5pi, 1.5pi)
 //________________________________________________________________________
 Double_t StAnMaker::RelativePhi(Double_t mphi,Double_t vphi) const
 { // function to calculate relative PHI
   double dphi = mphi-vphi;
 
   // set dphi to operate on adjusted scale
-  if(dphi<-0.5*TMath::Pi()) dphi+=2.*TMath::Pi();
-  if(dphi>3./2.*TMath::Pi()) dphi-=2.*TMath::Pi();
+  if(dphi < -0.5*TMath::Pi())  dphi += 2.*TMath::Pi();
+  if(dphi > 3./2.*TMath::Pi()) dphi -= 2.*TMath::Pi();
 
   // test
   if( dphi < -1.*TMath::Pi()/2 || dphi > 3.*TMath::Pi()/2 )
@@ -641,14 +649,16 @@ Double_t StAnMaker::RelativePhi(Double_t mphi,Double_t vphi) const
   return dphi; // dphi in [-0.5Pi, 1.5Pi]                                                                                   
 }
 
+//
+// Function: calculate angle between jet and EP in the 1st quadrant (0,Pi/2)
 //_________________________________________________________________________
 Double_t StAnMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
-{ // function to calculate angle between jet and EP in the 1st quadrant (0,Pi/2)
+{
   Double_t pi = 1.0*TMath::Pi();
   Double_t dphi = 1.0*TMath::Abs(EPAng - jetAng);
   
   // ran into trouble with a few dEP<-Pi so trying this...
-  if( dphi<-1*TMath::Pi() ){
+  if( dphi < -1*TMath::Pi() ){
     dphi = dphi + 1*TMath::Pi();
   } // this assumes we are doing full jets currently 
  
@@ -658,7 +668,7 @@ Double_t StAnMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
   dphi = 1.0*TMath::Abs(dphi);
 
   // test
-  if( dphi < 0 || dphi > TMath::Pi()/2 ) {
+  if( dphi < 0.0 || dphi > TMath::Pi()/2 ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
     cout<<"dPhi not in range [0, 0.5*Pi]!"<<endl;
   }
@@ -666,6 +676,8 @@ Double_t StAnMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
   return dphi;   // dphi in [0, Pi/2]
 }
 
+//
+//
 //_________________________________________________________________________
 void StAnMaker::FillEmcTriggers() {
   // number of Emcal Triggers
@@ -677,6 +689,7 @@ void StAnMaker::FillEmcTriggers() {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -691,8 +704,9 @@ void StAnMaker::FillEmcTriggers() {
   }
 }
 
-//_____________________________________________________________________________
+//
 // this function is not used in this class, but kept to keep track of the USEFUL triggers from various Runs 
+//_____________________________________________________________________________
 void StAnMaker::FillEventTriggerQA() {
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
@@ -729,6 +743,7 @@ void StAnMaker::FillEventTriggerQA() {
 
 }
 
+//
 // elems: sizeof(myarr)/sizeof(*myarr) prior to passing to function
 // upon passing the array collapses to a pointer and can not get size anymore
 //________________________________________________________________________

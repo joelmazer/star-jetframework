@@ -53,6 +53,6 @@ class StRhoSparse : public StRhoBase {
   StRhoSparse(const StRhoSparse&);             // not implemented
   StRhoSparse& operator=(const StRhoSparse&);  // not implemented
   
-  ClassDef(StRhoSparse, 1); // Rho task
+  ClassDef(StRhoSparse, 2); // Rho task
 };
 #endif

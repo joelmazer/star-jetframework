@@ -13,8 +13,7 @@
 /// \class StJetShapeProperties
 /// \brief This class contains the derivative subtraction operators for jet shapes
 ///
-/// This class was designed to contain the derivative subtraction operators
-/// for jet shapes, as an extension of the StJet class.
+/// This class was designed to contain the derivative subtraction operators for jet shapes, as an extension of the StJet class.
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, University of Birmingham
 /// \author Salvatore Aiola <salvatore.aiola@cern.ch>, Yale University
@@ -27,8 +26,8 @@ public:
   StJetShapeProperties(const StJetShapeProperties &jetshape);
   StJetShapeProperties& operator=(const StJetShapeProperties &jetshape);
 
-  //jet shape derivatives
-  //jet mass
+  // jet shape derivatives
+  // jet mass
   void              SetFirstDerivative(Double_t d)                             { fJetShapeMassFirstDer = d                       ; }
   void              SetSecondDerivative(Double_t d)                            { fJetShapeMassSecondDer = d                      ; }
   void              SetFirstOrderSubtracted(Double_t d)                        { fJetShapeMassFirstSub = d                       ; }
@@ -38,7 +37,7 @@ public:
   Double_t          GetFirstOrderSubtracted()                            const { return fJetShapeMassFirstSub                    ; }
   Double_t          GetSecondOrderSubtracted()                           const { return fJetShapeMassSecondSub                   ; }
 
-  //jet structure function
+  // jet structure function
   TArrayF           GetGRNumerator()                                     const { return fGRNumerator                             ; }
   TArrayF           GetGRDenominator()                                   const { return fGRDenominator                           ; }
   TArrayF           GetGRNumeratorSub()                                  const { return fGRNumeratorSub                          ; }
@@ -54,7 +53,7 @@ public:
   void              SetGRDenSubSize(UInt_t s)                                  { fGRDenominatorSub.Set(s)                        ; }
   void              PrintGR();
 
-  //Angularity
+  // Angularity
   void              SetFirstDerivativeAngularity(Double_t d)                   { fJetShapeAngularityFirstDer = d                 ; }
   void              SetSecondDerivativeAngularity(Double_t d)                  { fJetShapeAngularitySecondDer = d                ; }
   void              SetFirstOrderSubtractedAngularity(Double_t d)              { fJetShapeAngularityFirstSub = d                 ; }
@@ -64,7 +63,7 @@ public:
   Double_t          GetFirstOrderSubtractedAngularity()                  const { return fJetShapeAngularityFirstSub              ; }
   Double_t          GetSecondOrderSubtractedAngularity()                 const { return fJetShapeAngularitySecondSub             ; }
 
-  //pTD
+  // pTD
   void              SetFirstDerivativepTD(Double_t d)                          { fJetShapepTDFirstDer = d                        ; }
   void              SetSecondDerivativepTD(Double_t d)                         { fJetShapepTDSecondDer = d                       ; }
   void              SetFirstOrderSubtractedpTD(Double_t d)                     { fJetShapepTDFirstSub = d                        ; }
@@ -74,7 +73,7 @@ public:
   Double_t          GetFirstOrderSubtractedpTD()                         const { return fJetShapepTDFirstSub                     ; }
   Double_t          GetSecondOrderSubtractedpTD()                        const { return fJetShapepTDSecondSub                    ; }
 
-  //Circularity
+  // Circularity
   void              SetFirstDerivativeCircularity(Double_t d)                  { fJetShapeCircularityFirstDer = d                ; }
   void              SetSecondDerivativeCircularity(Double_t d)                 { fJetShapeCircularitySecondDer = d               ; }
   void              SetFirstOrderSubtractedCircularity(Double_t d)             { fJetShapeCircularityFirstSub = d                ; }
@@ -84,7 +83,7 @@ public:
   Double_t          GetFirstOrderSubtractedCircularity()                 const { return fJetShapeCircularityFirstSub             ; }
   Double_t          GetSecondOrderSubtractedCircularity()                const { return fJetShapeCircularitySecondSub            ; }
 
-  //Sigma2
+  // Sigma2
   void              SetFirstDerivativeSigma2(Double_t d)                       { fJetShapeSigma2FirstDer = d                     ; }
   void              SetSecondDerivativeSigma2(Double_t d)                      { fJetShapeSigma2SecondDer = d                    ; }
   void              SetFirstOrderSubtractedSigma2(Double_t d)                  { fJetShapeSigma2FirstSub = d                     ; }
@@ -95,7 +94,7 @@ public:
   Double_t          GetSecondOrderSubtractedSigma2()                     const { return fJetShapeSigma2SecondSub                 ; }
 
 
-  //number of contituents
+  // number of constituents
   void              SetFirstDerivativeConstituent(Double_t d)                  { fJetShapeConstituentFirstDer = d                ; }
   void              SetSecondDerivativeConstituent(Double_t d)                 { fJetShapeConstituentSecondDer = d               ; }
   void              SetFirstOrderSubtractedConstituent(Double_t d)             { fJetShapeConstituentFirstSub = d                ; }
@@ -105,7 +104,7 @@ public:
   Double_t          GetFirstOrderSubtractedConstituent()                 const { return fJetShapeConstituentFirstSub             ; }
   Double_t          GetSecondOrderSubtractedConstituent()                const { return fJetShapeConstituentSecondSub            ; }
 
-  //leading minus subleading constituent
+  // leading minus subleading constituent
   void              SetFirstDerivativeLeSub(Double_t d)                        { fJetShapeLeSubFirstDer = d                      ; }
   void              SetSecondDerivativeLeSub(Double_t d)                       { fJetShapeLeSubSecondDer = d                     ; }
   void              SetFirstOrderSubtractedLeSub(Double_t d)                   { fJetShapeLeSubFirstSub = d                      ; }
@@ -115,7 +114,7 @@ public:
   Double_t          GetFirstOrderSubtractedLeSub()                       const { return fJetShapeLeSubFirstSub                   ; }
   Double_t          GetSecondOrderSubtractedLeSub()                      const { return fJetShapeLeSubSecondSub                  ; }
 
-  //1subjettiness_kt
+  // 1subjettiness_kt
   void              SetFirstDerivative1subjettiness_kt(Double_t d)             { fJetShape1subjettinessktFirstDer = d                      ; }
   void              SetSecondDerivative1subjettiness_kt(Double_t d)            { fJetShape1subjettinessktSecondDer = d                     ; }
   void              SetFirstOrderSubtracted1subjettiness_kt(Double_t d)        { fJetShape1subjettinessktFirstSub = d                      ; }
@@ -125,7 +124,7 @@ public:
   Double_t          GetFirstOrderSubtracted1subjettiness_kt()            const { return fJetShape1subjettinessktFirstSub                   ; }
   Double_t          GetSecondOrderSubtracted1subjettiness_kt()           const { return fJetShape1subjettinessktSecondSub                  ; }
 
-  //2subjettiness_kt
+  // 2subjettiness_kt
   void              SetFirstDerivative2subjettiness_kt(Double_t d)             { fJetShape2subjettinessktFirstDer = d                      ; }
   void              SetSecondDerivative2subjettiness_kt(Double_t d)            { fJetShape2subjettinessktSecondDer = d                     ; }
   void              SetFirstOrderSubtracted2subjettiness_kt(Double_t d)        { fJetShape2subjettinessktFirstSub = d                      ; }
@@ -135,7 +134,7 @@ public:
   Double_t          GetFirstOrderSubtracted2subjettiness_kt()            const { return fJetShape2subjettinessktFirstSub                   ; }
   Double_t          GetSecondOrderSubtracted2subjettiness_kt()           const { return fJetShape2subjettinessktSecondSub                  ; }
 
-  //3subjettiness_kt
+  // 3subjettiness_kt
   void              SetFirstDerivative3subjettiness_kt(Double_t d)             { fJetShape3subjettinessktFirstDer = d                      ; }
   void              SetSecondDerivative3subjettiness_kt(Double_t d)            { fJetShape3subjettinessktSecondDer = d                     ; }
   void              SetFirstOrderSubtracted3subjettiness_kt(Double_t d)        { fJetShape3subjettinessktFirstSub = d                      ; }
@@ -145,7 +144,7 @@ public:
   Double_t          GetFirstOrderSubtracted3subjettiness_kt()            const { return fJetShape3subjettinessktFirstSub                   ; }
   Double_t          GetSecondOrderSubtracted3subjettiness_kt()           const { return fJetShape3subjettinessktSecondSub                  ; }
 
-  //OpeningAngle_kt
+  // OpeningAngle_kt
   void              SetFirstDerivativeOpeningAngle_kt(Double_t d)             { fJetShapeOpeningAnglektFirstDer = d                      ; }
   void              SetSecondDerivativeOpeningAngle_kt(Double_t d)            { fJetShapeOpeningAnglektSecondDer = d                     ; }
   void              SetFirstOrderSubtractedOpeningAngle_kt(Double_t d)        { fJetShapeOpeningAnglektFirstSub = d                      ; }
@@ -155,7 +154,7 @@ public:
   Double_t          GetFirstOrderSubtractedOpeningAngle_kt()            const { return fJetShapeOpeningAnglektFirstSub                   ; }
   Double_t          GetSecondOrderSubtractedOpeningAngle_kt()           const { return fJetShapeOpeningAnglektSecondSub                  ; }
 
-  //SoftDrop
+  // SoftDrop
   void              SetSoftDropZg(Double_t d)                                 { fSoftDropZg = d                      ; }
   void              SetSoftDropdR(Double_t d)                                 { fSoftDropdR = d                      ; }
   void              SetSoftDropPtfrac(Double_t d)                             { fSoftDropPtfrac = d                  ; }

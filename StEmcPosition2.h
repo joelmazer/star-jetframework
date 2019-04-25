@@ -10,10 +10,12 @@
 
 #ifndef StEmcPosition2_H
 #define StEmcPosition2_H
- 
+
+// ROOT includes 
 #include "TObject.h"
 #include "TVector3.h"
 
+// StRoot classes
 class StMuTrack;
 class StEmcGeom;
 
@@ -40,8 +42,8 @@ class StEmcPosition2 : public TObject
 
    protected:     
  
-     StEmcGeom* mGeom[4];   
+     StEmcGeom *mGeom[4];   
  
-   ClassDef(StEmcPosition2,1)
+   ClassDef(StEmcPosition2, 2)
 };
 #endif

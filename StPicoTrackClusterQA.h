@@ -285,6 +285,7 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNHadCorrTowervsEta;//!
   TH2F           *fHistNHadCorrTowervsPhivsEta;//!
   TH1F           *fHistNHadCorrTowerHOTvsTowID;//!
+  TH1F           *fHistNTowervsADC;//!
   TH1F           *fHistNTowervsE;//!
   TH1F           *fHistNTowervsEt;//!
   TH1F           *fHistNTowervsPhi;//!

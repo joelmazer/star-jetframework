@@ -15,15 +15,14 @@
 
 #include <Rtypes.h>
 #include <TObject.h>
+#include <float.h>
 
 class TLorentzVector;
 class TParticle;
 
-#include <float.h>
-
-const Double_t kAlmost1=1. - Double_t(FLT_EPSILON);
-const Double_t kAlmost0=Double_t(FLT_MIN);
-const Double_t kAlmost0Field=1.e-13;
+const Double_t kAlmost1 = 1. - Double_t(FLT_EPSILON);
+const Double_t kAlmost0 = Double_t(FLT_MIN);
+const Double_t kAlmost0Field = 1.e-13;
 
 class StVParticle: public TObject {
 
@@ -81,7 +80,6 @@ public:
    */
   Int_t Compare( const TObject* obj) const;
   
-    
   /** Defines this class as being sortable in a TCollection
    *  @return     always kTRUE;
    */
@@ -96,12 +94,11 @@ public:
   Bool_t   Global2LocalMomentum(Double_t p[3], Short_t charge, Double_t &alpha) const;
   Bool_t   Global2LocalPosition(Double_t r[3], Double_t alpha) const;
 
-  //Navigation
+  // Navigation
   virtual Int_t   GetMother()   const {return -1;}
   virtual Int_t   GetFirstDaughter()   const {return -1;}
   virtual Int_t   GetLastDaughter()    const {return -1;}
-  // Cannot use GetDaughter because of AliAODRecoDecay
-//virtual Int_t   GetDaughter(Int_t)      const {return -1;}
+  virtual Int_t   GetDaughter(Int_t)      const {return -1;}//
   virtual Int_t   GetDaughterLabel(Int_t) const {return -1;}
   virtual Int_t   GetNDaughters  ()       const {return 0 ;}
   
@@ -120,7 +117,7 @@ public:
   virtual void    SetSecondaryFromMaterial(Bool_t ) { ; }
   virtual Bool_t  IsSecondaryFromMaterial() const { return 0  ; }
   
-  ClassDef(StVParticle, 1)  // base class for particles
+  ClassDef(StVParticle, 2)  // base class for particles
 };
 
 #endif

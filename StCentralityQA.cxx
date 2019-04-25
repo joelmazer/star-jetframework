@@ -48,9 +48,9 @@
 
 ClassImp(StCentralityQA)
 
-//-----------------------------------------------------------------------------
+//______________________________________________________________________________
 StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
-  : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
+  : StJetFrameworkPicoBase(name)
 {
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
@@ -97,7 +97,7 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   fAnalysisMakerName = name;
 }
 
-//----------------------------------------------------------------------------- 
+//_____________________________________________________________________________
 StCentralityQA::~StCentralityQA()
 { /*  */
   // destructor
@@ -115,15 +115,13 @@ StCentralityQA::~StCentralityQA()
   delete hEmcTriggers;
 }
 
-//-----------------------------------------------------------------------------
+//_____________________________________________________________________________
 Int_t StCentralityQA::Init() {
   //StJetFrameworkPicoBase::Init();
 
   // initialize the histograms
   DeclareHistograms();
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -192,17 +190,16 @@ Int_t StCentralityQA::Init() {
   return kStOK;
 }
 
-//----------------------------------------------------------------------------- 
+//____________________________________________________________________________
 Int_t StCentralityQA::Finish() { 
-  //  Summarize the run.
   cout << "StCentralityQA::Finish()\n";
 
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
-    fout->mkdir(fAnalysisMakerName);
-    fout->cd(fAnalysisMakerName);
+    fout->mkdir(GetName());
+    fout->cd(GetName());
     WriteHistograms();
    
     fout->cd();
@@ -216,7 +213,7 @@ Int_t StCentralityQA::Finish() {
   return kStOK;
 }
 
-//-----------------------------------------------------------------------------
+//_____________________________________________________________________________
 void StCentralityQA::DeclareHistograms() {
   int nHistCentBins;
   int fCentBinSize = 5;

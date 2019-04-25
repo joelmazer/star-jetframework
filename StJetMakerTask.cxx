@@ -24,7 +24,6 @@
 #include <TParticle.h>
 #include "TFile.h"
 #include "TVector3.h"
-
 #include <sstream>
 #include <fstream>
 
@@ -146,7 +145,6 @@ StJetMakerTask::StJetMakerTask() :
   mPicoEvent(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0)
-//  fJetMakerName("")
 {
   // Default constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
@@ -236,7 +234,6 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   mPicoEvent(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0)
-//  fJetMakerName("")
 {
   // Standard constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
@@ -270,6 +267,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNTrackvsEta)         delete fHistNTrackvsEta;
   if(fHistNTrackvsPhivsEta)    delete fHistNTrackvsPhivsEta;
   if(fHistNTowervsID)          delete fHistNTowervsID;
+  if(fHistNTowervsADC)         delete fHistNTowervsADC;
   if(fHistNTowervsE)           delete fHistNTowervsE;
   if(fHistNTowervsEt)          delete fHistNTowervsEt;
   if(fHistNTowervsPhi)         delete fHistNTowervsPhi;
@@ -281,6 +279,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistJetNTrackvsEta)      delete fHistJetNTrackvsEta;
   if(fHistJetNTrackvsPhivsEta) delete fHistJetNTrackvsPhivsEta;
   if(fHistJetNTowervsID)       delete fHistJetNTowervsID;
+  if(fHistJetNTowervsADC)      delete fHistJetNTowervsADC;
   if(fHistJetNTowervsE)        delete fHistJetNTowervsE;
   if(fHistJetNTowervsEt)       delete fHistJetNTowervsEt;
   if(fHistJetNTowervsPhi)      delete fHistJetNTowervsPhi;
@@ -301,7 +300,7 @@ StJetMakerTask::~StJetMakerTask()
 
   delete mEmcPosition;
 }
-
+//
 //
 //________________________________________________________________________
 Int_t StJetMakerTask::Init() {
@@ -311,8 +310,6 @@ Int_t StJetMakerTask::Init() {
   // Add dead + bad tower lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
         if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
         if(fBadTowerListVers ==  2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
         if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
@@ -336,7 +333,6 @@ Int_t StJetMakerTask::Init() {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
         if(fBadTowerListVers == 102) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_102.txt");
         if(fBadTowerListVers == 1)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_Rag.txt"); // Raghav's Zg list
-        //if(fBadTowerListVers == ) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_.txt");
         if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
         if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
 
@@ -541,6 +537,7 @@ void StJetMakerTask::DeclareHistograms() {
   fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "# track vs #eta", 40, -1.0, 1.0);
   fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "# track vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistNTowervsID = new TH1F("fHistNTowervsID", "# tower vs tower id", 4800, 0.5, 4800.5);
+  fHistNTowervsADC = new TH1F("fHistNTowervsADC", "# tower vs ADC", 100., 0., 100.);
   fHistNTowervsE = new TH1F("fHistNTowervsE", "# tower vs energy", 100, 0., 20.0);
   fHistNTowervsEt = new TH1F("fHistNTowervsEt", "# tower vs transverse energy", 100, 0., 20.0);
   fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "# tower vs #phi", 144, 0., 2.0*pi);
@@ -552,6 +549,7 @@ void StJetMakerTask::DeclareHistograms() {
   fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
   fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistJetNTowervsID = new TH1F("fHistJetNTowervsID", "Jet tower vs tower id", 4800, 0.5, 4800.5);
+  fHistJetNTowervsADC = new TH1F("fHistJetNTowervsADC", "Jet tower constituents vs ADC", 100., 0., 100.);
   fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
   fHistJetNTowervsEt = new TH1F("fHistJetNTowervsEt", "Jet tower constituents vs transverse energy", 100, 0., 20.0);
   fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2.0*pi);
@@ -589,6 +587,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistNTrackvsEta->Write();
   fHistNTrackvsPhivsEta->Write();
   fHistNTowervsID->Write();
+  fHistNTowervsADC->Write();
   fHistNTowervsE->Write();
   fHistNTowervsEt->Write();
   fHistNTowervsPhi->Write();
@@ -600,6 +599,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistJetNTrackvsEta->Write();
   fHistJetNTrackvsPhivsEta->Write();
   fHistJetNTowervsID->Write();
+  fHistJetNTowervsADC->Write();
   fHistJetNTowervsE->Write();
   fHistJetNTowervsEt->Write();
   fHistJetNTowervsPhi->Write();
@@ -891,13 +891,14 @@ void StJetMakerTask::FindJets()
       if(towerPhi < 0.0)    towerPhi += 2.0*pi;
       if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
       double towerEta = towerPosition.PseudoRapidity();
-      //int towerADC = tower->adc();
+      int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
       double towEt = towerE / (1.0*TMath::CosH(towerEta));
 
       // fill QA histos for jet towers  
       fHistNTowervsID->Fill(towerID);
+      fHistNTowervsADC->Fill(towerADC);
       fHistNTowervsE->Fill(towerE);
       fHistNTowervsEt->Fill(towEt);
       fHistNTowervsPhi->Fill(towerPhi);
@@ -1150,6 +1151,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         double towerEta = towerPosition.PseudoRapidity();
         double towEuncorr = tower->energy();
         double towE = tower->energy();
+        int towADC = tower->adc();
 
         // shift tower phi (0, 2*pi)
         if(towerPhi < 0.0)    towerPhi += 2.0*pi;
@@ -1202,6 +1204,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
+        fHistJetNTowervsADC->Fill(towADC);
         fHistJetNTowervsE->Fill(towE);
         fHistJetNTowervsEt->Fill(towEt);
         fHistJetNTowervsPhi->Fill(towerPhi);
@@ -2203,6 +2206,7 @@ void StJetMakerTask::SetSumw2() {
   fHistNTrackvsEta->Sumw2();
   fHistNTrackvsPhivsEta->Sumw2();
   fHistNTowervsID->Sumw2();
+  fHistNTowervsADC->Sumw2();
   fHistNTowervsE->Sumw2();
   fHistNTowervsEt->Sumw2();
   fHistNTowervsPhi->Sumw2();
@@ -2214,6 +2218,7 @@ void StJetMakerTask::SetSumw2() {
   fHistJetNTrackvsEta->Sumw2();
   fHistJetNTrackvsPhivsEta->Sumw2();
   fHistJetNTowervsID->Sumw2();
+  fHistJetNTowervsADC->Sumw2();
   fHistJetNTowervsE->Sumw2();
   fHistJetNTowervsEt->Sumw2();
   fHistJetNTowervsPhi->Sumw2();

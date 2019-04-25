@@ -23,18 +23,16 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
-
-// my STAR includes
-#include "StJetFrameworkPicoBase.h"
-#include "StEventPoolManager.h"
-#include "StFemtoTrack.h"
-
-// new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
+
+// my STAR includes
+#include "StJetFrameworkPicoBase.h"
+#include "StEventPoolManager.h"
+#include "StFemtoTrack.h"
 
 // old file kept
 #include "StPicoConstants.h"
@@ -126,8 +124,6 @@ Int_t StEventPoolMaker::Init() {
   // initialize the histograms
   DeclareHistograms();
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -191,17 +187,17 @@ Int_t StEventPoolMaker::Init() {
   return kStOK;
 }
 //
+// Function: write to and close output file
 //__________________________________________________________________________________________
 Int_t StEventPoolMaker::Finish() { 
-  //  Summarize the run.
   cout << "StEventPoolMaker::Finish()\n";
 
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
-    fout->mkdir(fAnalysisMakerName);
-    fout->cd(fAnalysisMakerName);
+    fout->mkdir(GetName());
+    fout->cd(GetName());
     WriteHistograms();
    
     fout->cd();
@@ -215,9 +211,13 @@ Int_t StEventPoolMaker::Finish() {
   return kStOK;
 }
 //
+// Function: declare histograms and set up some global objects
 //__________________________________________________________________________________________
 void StEventPoolMaker::DeclareHistograms() {
+  // constants 
   double pi = 1.0*TMath::Pi();
+
+  // cent histo bins
   int nHistCentBins;
   if(fCentBinSize == 20) nHistCentBins = 5;
   if(fCentBinSize == 10) nHistCentBins = 10;
@@ -325,6 +325,7 @@ void StEventPoolMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPoolMaker::Make() {
+  // constants
   const double pi = 1.0*TMath::Pi();
 
   // get PicoDstMaker 
@@ -536,13 +537,13 @@ Int_t StEventPoolMaker::Make() {
   return kStOK;
 }
 //
-//_________________________________________________
 // From CF event mixing code PhiCorrelations
+//________________________________________________________________________________
 TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-//  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");// original way
-  TClonesArray* tracksClone = new TClonesArray("StFemtoTrack");
+//  TClonesArray *tracksClone = new TClonesArray("StPicoTrack");// original way
+  TClonesArray *tracksClone = new TClonesArray("StFemtoTrack");
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
 
@@ -553,7 +554,8 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    // get track pointer
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
@@ -615,6 +617,7 @@ TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -656,11 +659,10 @@ TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
   return h;
 }
 //
+// Trigger QA histogram, label bins
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
 //_____________________________________________________________________________
-// Trigger QA histogram, label bins 
 TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:
@@ -669,11 +671,11 @@ TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
     //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
     int arrMB[] = {370001, 370011, 370983};
 
+    // fill for kAny
     int bin = 0;
-
-    // fill for kAny 
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -702,7 +704,11 @@ TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {460101, 460111};
     int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
+    // fill for kAny
     int bin = 0;
+    bin = 1; h->Fill(bin);
+
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -726,8 +732,6 @@ TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    int bin = 0;
-
     // hard-coded trigger Ids for run16
     //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
@@ -739,6 +743,7 @@ TH1* StEventPoolMaker::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
+    int bin = 0;
     bin = 1; h->Fill(bin);
 
     // check if event triggers meet certain criteria and fill histos
@@ -789,10 +794,10 @@ void StEventPoolMaker::SetSumw2() {
   //hMixEvtStatZvsCent->Sumw2();
 }
 //
+//
 //_________________________________________________________________________
 void StEventPoolMaker::FillTowerTriggersArr() {
-  // tower - HT trigger types array
-  // zero these out - so they are refreshed for each event
+  // tower - HT trigger types array: zero these out - so they are refreshed for each event
   for(int i = 0; i < 4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -804,6 +809,7 @@ void StEventPoolMaker::FillTowerTriggersArr() {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 

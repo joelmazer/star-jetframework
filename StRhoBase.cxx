@@ -202,8 +202,6 @@ Int_t StRhoBase::Init()
   }
 */
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -239,7 +237,7 @@ Int_t StRhoBase::Init()
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -295,7 +293,6 @@ Int_t StRhoBase::Finish() {
 //_________________________________________________________________________
 void StRhoBase::WriteHistograms() 
 {
-  // added Jul17, 2017
   fHistRhovsCent->Write();
   fHistRhovsNtrackvsMult->Write();
   fHistRhovsNcluster->Write();
@@ -336,7 +333,7 @@ void StRhoBase::DeclareHistograms()
   Float_t Ntrackrange[2] = {0, 6000};
   Float_t Mult[2] = {0.,25000.};
   if(!fIsAuAu){
-     //set multiplicity related axes to a smaller max value
+     // set multiplicity related axes to a smaller max value
      Ntrackrange[1] = 200.;
      Mult[1] = 2000.;
   }
@@ -464,10 +461,11 @@ void StRhoBase::Clear(Option_t *opt)
 {
 
 }
-
+//
+// Runs the analysis for each event
 //________________________________________________________________________
 Int_t StRhoBase::Make() 
-{ // Run the analysis.
+{
   // get the PicoDstMaker
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -540,7 +538,7 @@ Int_t StRhoBase::Make()
   // cut on unset centrality, > 80%
   if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
 
-  // test for now //FIXME
+  // test for now FIXME
   double fCent = 0.0;
 
   // set Rho value
@@ -564,14 +562,14 @@ Bool_t StRhoBase::FillHistograms()
 {
   // Fill histograms.
 
-  // test for now // FIXME
+  // test for now FIXME
   double fCent = 0.0;
   int fCentBin = 0; 
 
   Int_t Ntracks   = 0;
   Int_t Nclusters = 0;
-  //if (GetParticleContainer(0)) Ntracks = GetParticleContainer(0)->GetNAcceptedParticles(); //FIXME
-  //if (GetClusterContainer(0)) Nclusters = GetClusterContainer(0)->GetNAcceptedClusters(); //FIXME
+  //if (GetParticleContainer(0)) Ntracks = GetParticleContainer(0)->GetNAcceptedParticles(); // FIXME
+  //if (GetClusterContainer(0)) Nclusters = GetClusterContainer(0)->GetNAcceptedClusters(); // FIXME
 
   if(fJets) {
     Int_t    Njets         = fJets->GetEntries();
@@ -585,6 +583,7 @@ Bool_t StRhoBase::FillHistograms()
 
     // loop over jets
     for (Int_t i = 0; i < Njets; ++i) { 
+      // get pointer to jet
       StJet *jet = static_cast<StJet*>(fJets->At(i));
       if(!jet) { continue; } 
       //if (!AcceptJet(jet)) continue; //FIXME
@@ -605,7 +604,7 @@ Bool_t StRhoBase::FillHistograms()
       NjetAcc++;
     }
     
-    if(NjetAcc>0) {
+    if(NjetAcc > 0) {
       fHistNjUEoverNjVsNj[fCentBin*3  ]->Fill(NjetAcc,1.*NjetUE1Sigma/NjetAcc);
       fHistNjUEoverNjVsNj[fCentBin*3+1]->Fill(NjetAcc,1.*NjetUE2Sigma/NjetAcc);
       fHistNjUEoverNjVsNj[fCentBin*3+2]->Fill(NjetAcc,1.*NjetUE3Sigma/NjetAcc);
@@ -657,24 +656,27 @@ Double_t StRhoBase::GetScaleFactor(Double_t cent)
 
   return scale;
 }
-
+//
+// Load the scale function from a file.
 //________________________________________________________________________
 TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
 {
-  // Load the scale function from a file.
   // "STARfileLocation" needs to be updated if loading rho function from file - dummy now
   TString fname(path);
   if(fname.BeginsWith("STARfileLocation://")) {
     TGrid::Connect("STARfileLocation://");
   }
 
+  // open file
   TFile* file = TFile::Open(path);
 
+  // does file exist
   if(!file || file->IsZombie()) {
     ::Error("StRhoBase", "Could not open scale function file");
     return 0;
   }
 
+  // get scale function from file
   TF1* sfunc = dynamic_cast<TF1*>(file->Get(name));
   if(sfunc) {
     ::Info("StRhoBase::LoadRhoFunction", "Scale function %s loaded from file %s.", name, path);
@@ -684,8 +686,10 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
     return 0;
   }
 
+  // clone scale function
   fScaleFunction = static_cast<TF1*>(sfunc->Clone());
 
+  // close and delete input file
   file->Close();
   delete file;
 

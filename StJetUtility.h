@@ -1,10 +1,13 @@
 #ifndef STJETUTILITY_H
 #define STJETUTILITY_H
 
+// ROOT includes
 #include <TNamed.h>
 
+// my includes
 #include "StFJWrapper.h"
 
+// classes
 class StJetMakerTask;
 class StJet;
 class StFJWrapper;
@@ -33,6 +36,6 @@ class StJetUtility : public TNamed
   StJetMakerTask       *fJetTask     ;// pointer to the main jet task
   Bool_t                fInit        ;//! whether or not the utility has been initialized
 
-  ClassDef(StJetUtility, 1) // Abstract Emcal jet utility class
+  ClassDef(StJetUtility, 2) // Abstract Emcal jet utility class
 };
 #endif

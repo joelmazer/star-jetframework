@@ -4,10 +4,7 @@
 // $Id$
 // adapted from the AliROOT class AliAnalysisTaskRhoBase.h for STAR
 #include "StJetFrameworkPicoBase.h"
-
-//#include "StJetMakerTask.h"
 #include "StMaker.h"
-//#include "StJet.h"
 
 // root classes
 class TString;
@@ -24,7 +21,6 @@ class StRhoParameter;
 class StRefMultCorr;
 
 // might not want to inherit from 2 classes
-//class StRhoBase : public StMaker, public StJet {
 //class StRhoBase : public StJetMakerTask {
 //class StRhoBase : public StMaker {  // TODO need to check if this is fine
 class StRhoBase : public StJetFrameworkPicoBase {
@@ -45,6 +41,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   void    DeclareHistograms();
   void    WriteHistograms();
 
+  // event setters
   void                   SetEventZVtxRange(Double_t zmi, Double_t zma)         { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma;     }
   virtual void           SetUseBBCCoincidenceRate(Bool_t b)                    { doUseBBCCoincidenceRate = b; }
   virtual void           SetMaxEventTrackPt(Double_t mxpt)                     { fMaxEventTrackPt = mxpt; }
@@ -74,7 +71,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
 
-  // added
+  // event parameters
   Bool_t                 doUseBBCCoincidenceRate;
   Double_t               fMaxEventTrackPt;
 
@@ -127,6 +124,6 @@ class StRhoBase : public StJetFrameworkPicoBase {
   StRhoBase(const StRhoBase&);             // not implemented
   StRhoBase& operator=(const StRhoBase&);  // not implemented
   
-  ClassDef(StRhoBase, 1); // Rho base task
+  ClassDef(StRhoBase, 2); // Rho base task
 };
 #endif

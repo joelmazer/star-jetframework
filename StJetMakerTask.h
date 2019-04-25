@@ -375,6 +375,7 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistNTrackvsEta;//!
   TH2F           *fHistNTrackvsPhivsEta;//!
   TH1F           *fHistNTowervsID;//!
+  TH1F           *fHistNTowervsADC;//!
   TH1F           *fHistNTowervsE;//!
   TH1F           *fHistNTowervsEt;//!
   TH1F           *fHistNTowervsPhi;//!
@@ -386,6 +387,7 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistJetNTrackvsEta;//!
   TH2F           *fHistJetNTrackvsPhivsEta;//!
   TH1F           *fHistJetNTowervsID;//!
+  TH1F           *fHistJetNTowervsADC;//!
   TH1F           *fHistJetNTowervsE;//!
   TH1F           *fHistJetNTowervsEt;//!
   TH1F           *fHistJetNTowervsPhi;//!
@@ -409,9 +411,6 @@ class StJetMakerTask : public StMaker {
   Bool_t IsTowerDead( Int_t mTowId );
   std::set<Int_t> badTowers; 
   std::set<Int_t> deadTowers;
-
-  // maker names
-  //TString         fJetMakerName;
 
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented

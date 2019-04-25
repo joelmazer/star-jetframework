@@ -13,9 +13,6 @@
 #include "TH2F.h"
 #include "TVector3.h"
 
-class TH2;
-class TH2F;
-
 // JetFramework includes
 #include "StJet.h"
 #include "StRhoParameter.h"
@@ -29,6 +26,10 @@ class TH2F;
 // STAR centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
+
+// classes
+class TH2;
+class TH2F;
 
 ClassImp(StRho)
 
@@ -138,15 +139,14 @@ void StRho::WriteHistograms() {
 //________________________________________________________________________
 void StRho::Clear(Option_t *opt) {
 //  StRhoBase::Clear();
-
 //  fJets->Clear();
 }
 
+//
+// Function that runs the analysis for each event
 //________________________________________________________________________
 Int_t StRho::Make() 
 {
-  // Run the analysis - for each event
-
   // get PicoDstMaker
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -250,6 +250,7 @@ Int_t StRho::Make()
   if(fNExclLeadJets > 0) {
     // loop over jets
     for(Int_t ij = 0; ij < Njets; ++ij) {
+      // get jet pointer
       StJet *jet = static_cast<StJet*>(fJets->At(ij));
       if(!jet) { continue; } 
 
@@ -307,7 +308,7 @@ Int_t StRho::Make()
 
   // when we have accepted Jets - calculate and set rho
   if(NjetAcc > 0) {
-    //find median value
+    // find median value
     Double_t rho = TMath::Median(NjetAcc, rhovec);
     fOutRho->SetVal(rho);
 

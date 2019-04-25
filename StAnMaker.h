@@ -129,8 +129,8 @@ class StAnMaker : public StJetFrameworkPicoBase {
     StEmcPosition2         *mEmcPosition;
 
     // jet histos
-    TH1F* hJetPt;//!
-    TH1F* hJetCorrPt;//!
+    TH1F *hJetPt;//!
+    TH1F *hJetCorrPt;//!
 
     // maker names
     TString                 fAnalysisMakerName;
