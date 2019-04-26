@@ -15,7 +15,6 @@
 #include "StMuDSTMaker/COMMON/StMuDstMaker.h"
 #include "StMuDSTMaker/COMMON/StMuDst.h"
 #include "StMuDSTMaker/COMMON/StMuEvent.h"
-
 #include "StEmcUtil/geometry/StEmcGeom.h"
 
 // ROOT classes

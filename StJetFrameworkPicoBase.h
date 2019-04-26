@@ -281,7 +281,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                  Get4CentBin(Double_t scaledCent) const;
     Double_t               ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
 
-    static Double_t*       GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
+    static Double_t       *GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
     static void            GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);
 
     // switches
@@ -333,8 +333,8 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               fTowerPhiMaxCut;         // max tower phi cut
 
     // used for event plane calculation and resolution
-    StJet*                 fLeadingJet;//! leading jet
-    StJet*                 fSubLeadingJet;//! sub-leading jet
+    StJet                 *fLeadingJet;//! leading jet
+    StJet                 *fSubLeadingJet;//! sub-leading jet
     Float_t                fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t                  fTrackWeight; // track weight for Q-vector summation
 

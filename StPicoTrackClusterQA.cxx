@@ -7,6 +7,8 @@
 
 #include "StPicoTrackClusterQA.h"
 #include "StMemStat.h"
+
+// C++ classes
 #include <sstream>
 #include <fstream>
 
@@ -35,9 +37,8 @@
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
 #include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
-// test for clusters:
+// for towers/clusters:
 #include "StMuDSTMaker/COMMON/StMuTrack.h"
-// StEmc:
 #include "StEmcRawMaker/StBemcRaw.h"
 #include "StEmcRawMaker/StBemcTables.h"
 ///#include "StMuDSTMaker/COMMON/StMuEmcCollection.h"
@@ -374,7 +375,7 @@ Int_t StPicoTrackClusterQA::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -404,7 +405,6 @@ Int_t StPicoTrackClusterQA::Init() {
 // finish running - write to output file and close
 //_____________________________________________________________________________
 Int_t StPicoTrackClusterQA::Finish() {
-  //  Summarize the run.
   cout << "StPicoTrackClusterQA::Finish()\n";
 
   // open output file
@@ -713,7 +713,7 @@ int StPicoTrackClusterQA::Make()
   // Event QA print-out
   // printing available information from the PicoDst objects
 /*
-  StPicoTrack* t = mPicoDst->track(1);
+  StPicoTrack *t = mPicoDst->track(1);
   if(t) t->Print();
   StPicoEmcTrigger *emcTrig = mPicoDst->emcTrigger(0);
   if(emcTrig) emcTrig->Print();
@@ -801,7 +801,8 @@ void StPicoTrackClusterQA::RunTrackQA()
 
   // loop over ALL tracks in PicoDst 
   for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
+    // get track pointer
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
     if(!trk){ continue; }
 
     // TODO - double check this, was commenting out for test before (Feb21, 2018)
@@ -858,7 +859,7 @@ void StPicoTrackClusterQA::RunTrackQA()
 
   // loop over ALL clusters in PicoDst and add to jet //TODO
   for(unsigned short iClus = 0; iClus < nclus; iClus++){
-    StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
+    StPicoBEmcPidTraits *cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
     if(!cluster){ continue; }
 
     // print index of associated track in the event (debug = 2)
@@ -881,8 +882,8 @@ void StPicoTrackClusterQA::RunTrackQA()
     int trackIndex = cluster->trackIndex();
 
     // get track corresponding to EMC pidTraits in question from its index
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
-    //StMuTrack* trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
+    //StMuTrack *trkMu = (StMuTrack*)mPicoDst->track(trackIndex);
     if(!trk) continue;
     //if(doUsePrimTracks) { if(!(trk->isPrimary())) continue; } // check if primary 
 
@@ -1202,6 +1203,7 @@ TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -1259,11 +1261,10 @@ TH1* StPicoTrackClusterQA::FillEmcTriggersHist(TH1* h) {
 }
 //
 // fill histogram for various triggered events: based on RunFlag
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
 //_____________________________________________________________________________
 // Trigger QA histogram, label bins 
 TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:
@@ -1276,6 +1277,7 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int bin = 0;
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -1309,6 +1311,7 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int bin = 0;
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -1384,7 +1387,7 @@ Bool_t StPicoTrackClusterQA::DoComparison(int myarr[], int elems) {
   bool match = kFALSE;
 
   // loop over specific physics selection array and compare to specific event trigger
-  for(int i=0; i<elems; i++) {
+  for(int i = 0; i < elems; i++) {
     if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
     if(match) break;
   }
@@ -1578,14 +1581,14 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
  
   // are collections used in AuAu??? FIXME
   // not according to: http://www.star.bnl.gov/public/comp/meet/RM200311/MuDstTutorial.pdf 
-  StEmcCollection* mEmcCollection = static_cast<StEmcCollection*>(mMuDst->emcCollection());
-  StMuEmcCollection* mMuEmcCollection = static_cast<StMuEmcCollection*>(mMuDst->muEmcCollection());
+  StEmcCollection *mEmcCollection = static_cast<StEmcCollection*>(mMuDst->emcCollection());
+  StMuEmcCollection *mMuEmcCollection = static_cast<StMuEmcCollection*>(mMuDst->muEmcCollection());
   mBemcTables->loadTables(static_cast<StMaker*>(this));
   
   /* if no collections are found, exit assuming error */
   if (!mEmcCollection || !mMuEmcCollection) return kFALSE;
 
-  StEmcDetector* mBEMC = static_cast<StEmcDetector*>(mEmcCollection->detector(kBarrelEmcTowerId));
+  StEmcDetector *mBEMC = static_cast<StEmcDetector*>(mEmcCollection->detector(kBarrelEmcTowerId));
   StSPtrVecEmcPoint& mEmcContainer =  mEmcCollection->barrelPoints();
   
   /* if we can't get the detector exit assuming error */
@@ -1603,7 +1606,7 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
     
     /* loop over all hits in the module */
     for (UInt_t j = 0; j < mEmcTowerHits.size(); ++j) {
-      StEmcRawHit* tow = mEmcTowerHits[j];
+      StEmcRawHit *tow = mEmcTowerHits[j];
       
       if (abs(tow->module()) > mBEMCModules  || abs(tow->eta()) > mBEMCTowPerModule || tow->sub() >  mBEMCSubSections) continue;
       
@@ -1671,14 +1674,14 @@ Bool_t StPicoTrackClusterQA::MuProcessBEMC() {
 // - Not used, from Kolja's framework
 //___________________________________________________________________________________________________
 Int_t StPicoTrackClusterQA::MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID) {
-  StEmcCluster* smdCluster = nullptr;
+  StEmcCluster *smdCluster = nullptr;
   Float_t dRmin = 9999;
   Float_t dRmin_cut = 0.05;
   StDetectorId id = static_cast<StDetectorId>(detectorID + kBarrelEmcTowerId);
   
-  StEmcDetector* detector = coll->detector(id);
+  StEmcDetector *detector = coll->detector(id);
   if (!detector) return 0;
-  StEmcClusterCollection* clusters = detector->cluster();
+  StEmcClusterCollection *clusters = detector->cluster();
   if (!clusters) return 0;
   StSPtrVecEmcCluster& cl=clusters->clusters();
   
@@ -1740,6 +1743,8 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
 
     // matched track index
     int trackIndex = cluster->trackIndex();
+
+    // get track pointer
     StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
     if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; } 
@@ -1761,6 +1766,7 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
   // loop over towers: BTowHits
   int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
@@ -1784,7 +1790,8 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
     // perform tower cuts - if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV (constituent cut)
     if(mTowerStatusArr[towerID]) {
       //if(mTowerMatchTrkIndex[towerID] > 0) 
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; } 
       if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }  // TODO double check this
 
@@ -1841,6 +1848,7 @@ void StPicoTrackClusterQA::RunTowerQA()
   // loop over towers
   int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
@@ -1915,6 +1923,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -1964,6 +1973,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     if(!isHT0 && !isHT1 && !isHT2 && !isHT3) continue; // have a HT trigger
 
     // get associated tower - minus 1 to get array element
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(emcTrigID-1));
     if(!tower) { cout<<"No tower pointer... iTow = "<<emcTrigID<<endl; continue; }
 
@@ -2069,7 +2079,7 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -2085,7 +2095,7 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
         switch(type) {
@@ -2279,6 +2289,7 @@ void StPicoTrackClusterQA::ResetBadTowerList( ){
 // Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
+//______________________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AddBadTowers(TString csvfile){
   // open infile
   std::string line;
@@ -2313,6 +2324,7 @@ Bool_t StPicoTrackClusterQA::AddBadTowers(TString csvfile){
 // Add dead towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
+//______________________________________________________________________________________
 Bool_t StPicoTrackClusterQA::AddDeadTowers(TString csvfile){
   // open infile
   std::string line;
@@ -2359,8 +2371,9 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
   double fMaxTrackPt = -99;
 
   // loop over all tracks
-  for(int i=0; i<nTrack; i++) {
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+  for(int i = 0; i < nTrack; i++) {
+    // get track pointer
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -2396,10 +2409,10 @@ void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
 
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
-  for(unsigned int i=0; i<mytriggers.size(); i++) {
+  for(unsigned int i = 0; i < mytriggers.size(); i++) {
     // check for valid, non-test trigger ID
     if(mytriggers[i] > 1000) {
-      for(int j=0; j<27; j++) {
+      for(int j = 0; j < 27; j++) {
         if(mytriggers[i] == triggers[j]) h->Fill(j + 1);
 
       } // loops over ID's

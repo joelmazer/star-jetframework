@@ -1481,7 +1481,7 @@ Int_t StMyAnalysisMaker3::Make() {
   int jsret = -99;
   if(doJetShapeAnalysis) {
     // declare pool pointer
-    StEventPool* pool = 0x0;
+    StEventPool *pool = 0x0;
 
     // require event mixing
     if(fDoEventMixing > 0) {
@@ -1690,7 +1690,9 @@ Int_t StMyAnalysisMaker3::Make() {
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
+
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
       // track momentum vector
@@ -1832,8 +1834,8 @@ Int_t StMyAnalysisMaker3::Make() {
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     for(int itrack = 0; itrack < ntracks; itrack++){
-      // get tracks
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
@@ -1998,13 +2000,13 @@ Int_t StMyAnalysisMaker3::Make() {
  
             // get jMix'th event
             bgTracks = pool->GetEvent(jMix);
-            //TObjArray* bgTracks = pool->GetEvent(jMix);
+            //TObjArray *bgTracks = pool->GetEvent(jMix);
             const Int_t Nbgtrks = bgTracks->GetEntries();
 
             // loop over background (mixed event) tracks
             for(int ibg = 0; ibg < Nbgtrks; ibg++) {
-              // trying new slimmed PicoTrack class: StFemtoTrack
-              StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
+              // get Femto track pointer
+              StFemtoTrack *trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
               if(!trk) continue;
               double Mixphi = trk->Phi();
               double Mixeta = trk->Eta();
@@ -2307,10 +2309,10 @@ void StMyAnalysisMaker3::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &n
 } // end of Correction (ME) sparse
 //
 // From CF event mixing code PhiCorrelations
+// clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
 //____________________________________________________________________________
 TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
 {
-  // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
   TClonesArray *tracksClone = new TClonesArray("StFemtoTrack");
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
@@ -2321,6 +2323,7 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
+    // get track pointer
     StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!trk){ continue; }
 
@@ -2390,6 +2393,7 @@ Bool_t StMyAnalysisMaker3::AcceptJet(StJet *jet) { // for jets
 }
 */
 //
+//
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
@@ -2402,6 +2406,7 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -2451,11 +2456,10 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   return h;
 }
 //
-//_____________________________________________________________________________
 // Trigger QA histogram, label bins 
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
+//_____________________________________________________________________________
 TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:

@@ -16,7 +16,6 @@
 #include <THnSparse.h>
 #include "TParameter.h"
 #include "TVector3.h"
-
 #include <sstream>
 #include <fstream>
 
@@ -24,19 +23,17 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
+#include "StRoot/StPicoEvent/StPicoBTowHit.h"
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"
 
 // jet-framework STAR includes
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StEventPlaneMaker.h"
-
-// new includes
-#include "StRoot/StPicoEvent/StPicoEvent.h"
-#include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
-#include "StRoot/StPicoEvent/StPicoBTowHit.h"
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"
 
 // old file, kept for useful constants
 #include "StPicoConstants.h"
@@ -308,10 +305,9 @@ Int_t StJetFrameworkPicoBase::Init() {
   return kStOK;
 }
 //
+//
 //_________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::Finish() { 
-  //  Summarize the run.
-
   return kStOK;
 }
 //
@@ -508,27 +504,27 @@ TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t j
   return name;
 }
 //
-//
+// Function: to calculate relative Phi
 //________________________________________________________________________
 Double_t StJetFrameworkPicoBase::RelativePhi(Double_t mphi,Double_t vphi) const
-{ // function to calculate relative PHI
+{
   double dphi = mphi-vphi;
 
   // set dphi to operate on adjusted scale
-  if(dphi<-0.5*TMath::Pi())  dphi+=2.*TMath::Pi();
-  if(dphi>3./2.*TMath::Pi()) dphi-=2.*TMath::Pi();
+  if(dphi < -0.5*TMath::Pi()) dphi += 2.*TMath::Pi();
+  if(dphi >  1.5*TMath::Pi()) dphi -= 2.*TMath::Pi();
 
   // test
-  if( dphi < -1.*TMath::Pi()/2 || dphi > 3.*TMath::Pi()/2 )
+  if( dphi < -0.5*TMath::Pi() || dphi > 1.5*TMath::Pi() )
     Form("%s: dPHI not in range [-0.5*Pi, 1.5*Pi]!", GetName());
 
   return dphi; // dphi in [-0.5Pi, 1.5Pi]                                                                                   
 }
 //
-// 
+// Function: calculate angle between jet and EP in the 1st quadrant (0,Pi/2) 
 //_________________________________________________________________________
 Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
-{ // function to calculate angle between jet and EP in the 1st quadrant (0,Pi/2)
+{
   Double_t pi = 1.0*TMath::Pi();
   Double_t dphi = 1.0*TMath::Abs(EPAng - jetAng);
   
@@ -543,7 +539,7 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
   dphi = 1.0*TMath::Abs(dphi);
 
   // test
-  if( dphi < 0 || dphi > TMath::Pi()/2.0 ) {
+  if( dphi < 0 || dphi > 0.5*TMath::Pi() ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
     cout<<"dEP not in range [0, 0.5*Pi]!"<<" jetAng: "<<jetAng<<"  EPang: "<<EPAng<<endl;
   }
@@ -552,11 +548,12 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
 }
 //
 /*
+//
+// Function: clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
 //_________________________________________________
 TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* tracksME)
 {
-  // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");
+  TClonesArray *tracksClone = new TClonesArray("StPicoTrack");
   //tracksClone->SetName("tracksClone");
   //tracksClone->SetOwner(kTRUE);
 
@@ -571,9 +568,9 @@ TClonesArray* StJetFrameworkPicoBase::CloneAndReduceTrackList(TClonesArray* trac
   Int_t iterTrk = 0;
   Double_t phi, eta, px, py, pt, pz, p, charge;
   const double pi = 1.0*TMath::Pi();
-  for (Int_t i=0; i<nMixTracks; i++) { 
-    // get tracks
-    StPicoTrack* trk = mPicoDst->track(i);
+  for (Int_t i = 0; i < nMixTracks; i++) { 
+    // get track pointer
+    StPicoTrack *trk = mPicoDst->track(i);
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
@@ -595,8 +592,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3
   //double pi0mass = Pico::mMass[0]; // GeV
   double pi = 1.0*TMath::Pi();
 
-  // primary track switch
-  // get momentum vector of track - global or primary track
+  // primary track switch: get momentum vector of track - global or primary track
   TVector3 mTrkMom;
   if(doUsePrimTracks) {
     if(!(trk->isPrimary())) return kFALSE; // check if primary
@@ -656,10 +652,7 @@ Bool_t StJetFrameworkPicoBase::AcceptTower(StPicoBTowHit *tower, TVector3 Vertex
   // constants:
   double pi = 1.0*TMath::Pi();
 
-  // tower ID - passed into function
-  //int towerID = tower->id();
-
-  // make sure some of these aren't still in event array
+  // tower ID - passed into function: make sure some of these aren't still in event array
   if(towerID < 0) return kFALSE; 
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
@@ -714,6 +707,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
 
   // loop over tracks
   for(int i = 0; i < n; i++) {
+    // get track pointer
     StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
@@ -758,7 +752,7 @@ Double_t StJetFrameworkPicoBase::GetReactionPlane() {
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0)  trackweight = 2.0;
+      if(pt >  2.0) trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
@@ -826,12 +820,13 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
     // get number of jets, initialize pt and leading jet pointer
     Int_t iJets(fJets->GetEntriesFast());
     Double_t pt(0);
-    StJet* leadingJet(0x0);
+    StJet *leadingJet(0x0);
 
     if(!eventRho) { // no rho parameter provided
       // loop over jets
       for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // get jet pointer
+        StJet *jet = static_cast<StJet*>(fJets->At(i));
         //if(!AcceptJet(jet)) continue;
         if(jet->Pt() > pt) {
           leadingJet = jet;
@@ -846,7 +841,8 @@ StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoPar
 
       // loop over corrected jets
       for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // get jet pointer
+        StJet *jet = static_cast<StJet*>(fJets->At(i));
         //if(!AcceptJet(jet)) continue;
         if((jet->Pt() - jet->Area()*fRhoValtemp) > pt) {
           leadingJet = jet;
@@ -891,13 +887,14 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
     Double_t pt2(0);
 
     // leading and subleading jet pointers
-    StJet* leadingJet(0x0);
-    StJet* subleadingJet(0x0);
+    StJet *leadingJet(0x0);
+    StJet *subleadingJet(0x0);
 
     if(!eventRho) { // no rho parameter provided
       // loop over jets
       for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // get jet pointer
+        StJet *jet = static_cast<StJet*>(fJets->At(i));
         // leading jet
         if(jet->Pt() > pt) {
           leadingJet = jet;
@@ -921,7 +918,8 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
       // loop over corrected jets
       for(Int_t i(0); i < iJets; i++) {
-        StJet* jet = static_cast<StJet*>(fJets->At(i));
+        // get jet pointer
+        StJet *jet = static_cast<StJet*>(fJets->At(i));
         // leading jet
         if((jet->Pt() - jet->Area()*fRhoValtemp) > pt) {
           leadingJet = jet;
@@ -941,6 +939,7 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
   return 0x0;
 }
 //
+// Function: Event counter
 //__________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::EventCounter() {
   mEventCounter++;
@@ -1119,7 +1118,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
           default : // kRun14Main or kVPDMB
               if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1135,7 +1134,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
           default :
               if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
         switch(type) {
@@ -1232,7 +1231,7 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
           default :  // default to HT2
               if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(type) {
@@ -1248,7 +1247,7 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
           default :  // Run16 only has HT1's
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
         switch(type) {
@@ -1305,14 +1304,6 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(TVector3 &mom, const StPicoBTowHit* t
   Double_t p = TMath::Sqrt(energy*energy - mass*mass);
 
   // tower ID - passed into function
-  //int towerID = tower->id();
-  //int towerID = -1;
-  if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-    //towerID = tower->id();
-  } else {
-    //towerID = tower->numericIndex2SoftId(itow);
-  }
-
   // get tower position
   TVector3 towerPosition = Position->getPosFromVertex(fVertex, towerID);
   double posX = towerPosition.x();
@@ -1479,8 +1470,8 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
   double fMaxTrackPt = -99;
 
   // loop over all tracks
-  for(int i=0; i<nTrack; i++) {
-    // get tracks
+  for(int i = 0; i < nTrack; i++) {
+    // get trac pointer
     StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
