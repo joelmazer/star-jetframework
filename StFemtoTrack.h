@@ -1,11 +1,13 @@
 #ifndef STFEMTOTRACK_H
 #define STFEMTOTRACK_H
 
+// C++ includes
 #include <vector>
 #include <algorithm>
 #include <utility>
-
 #include <iosfwd>
+
+// ROOT includes
 #include <TArrayI.h>
 #include <TMath.h>
 #include <TClonesArray.h>
@@ -63,7 +65,7 @@ class StFemtoTrack : public TObject //public StMaker //public StVParticle // FIX
 
  private:
   /// \cond CLASSIMP
-  ClassDef(StFemtoTrack,1);
+  ClassDef(StFemtoTrack,2);
   /// \endcond
 };
 

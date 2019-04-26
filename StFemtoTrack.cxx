@@ -31,6 +31,7 @@ ClassImp(StFemtoTrack);
 /**
  * Default constructor
  */
+//______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack() :
   TObject(),
   //StVParticle(),//FIXME
@@ -47,6 +48,7 @@ StFemtoTrack::StFemtoTrack() :
  * @param py component of the track momentum
  * @param pz component of the track momentum
  */
+//______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
   TObject(),
   //StVParticle(),//FIXME
@@ -68,6 +70,7 @@ StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
  * @param phi Azimuthal angle of the track
  * @param q Charge of the track
  */
+//______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t charge) :
   TObject(),
   //StVParticle(),//FIXME
@@ -78,11 +81,11 @@ StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t cha
 {
   //fPhi = TVector2::Phi_0_2pi(fPhi);
 }
-
+//
+//______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVertex, bool prim)
 {
-  // primary track switch
-  // get momentum vector of track - global or primary track
+  // primary track switch: get momentum vector of track - global or primary track
   TVector3 mTrkMom;
   if(prim) {
     // get primary track vector
@@ -108,6 +111,7 @@ StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVe
  * Copy constructor.
  * @param track Constant reference to copy from
  */
+//______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(const StFemtoTrack& t) :
   //StVParticle(t),//FIXME
   fPt(t.fPt),
@@ -120,6 +124,7 @@ StFemtoTrack::StFemtoTrack(const StFemtoTrack& t) :
 /**
  * Destructor.
  */
+//______________________________________________________________________________________________
 StFemtoTrack::~StFemtoTrack()
 {
 }
@@ -129,6 +134,7 @@ StFemtoTrack::~StFemtoTrack()
  * @param track Constant reference to copy from
  * @return A reference to this
  */
+//______________________________________________________________________________________________
 StFemtoTrack& StFemtoTrack::operator=(const StFemtoTrack& t)
 {
   if (this != &t) {
