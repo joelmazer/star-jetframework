@@ -85,15 +85,15 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
 
   protected:
-    TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1*                    FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    FillTowerTriggersArr();
 
     // FIXME - so far for Run14
-    StRefMultCorr* grefmultCorr;
-    StRefMultCorr* grefmultCorrNEW;
+    StRefMultCorr *grefmultCorr;
+    StRefMultCorr *grefmultCorrNEW;
 
     // Added from Liang
     Int_t                   GetRunNo(int runid);
@@ -125,13 +125,13 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     bool                    doComments;
 
     // histograms
-    TH1F* hEventZVertex;//!
-    TH1F* hCentrality;//!
-    TH1F* hCentralityNEW;//!
-    TH1F* hCentralityDiff;//!
-    TH1F* hMultiplicity;//!
-    TH1F* hMultiplicityNEW;//!
-    TH1F* hMultiplicityDiff;//!
+    TH1F *hEventZVertex;//!
+    TH1F *hCentrality;//!
+    TH1F *hCentralityNEW;//!
+    TH1F *hCentralityDiff;//!
+    TH1F *hMultiplicity;//!
+    TH1F *hMultiplicityNEW;//!
+    TH1F *hMultiplicityDiff;//!
 
     // QA histos
     TH1  *fHistEventSelectionQA;//! 

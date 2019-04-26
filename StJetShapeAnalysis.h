@@ -25,7 +25,7 @@ class StPicoEvent;
 class StPicoTrack;
 class StRefMultCorr;
 
-// my STAR classes
+// jet-framework classes
 class StJetMakerTask;
 class StJet;
 class StRho;
@@ -159,8 +159,8 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
   protected:
-    TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1*                    FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
@@ -248,39 +248,39 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Double_t               fEPZDC;
 
     // switches
-    bool         doComments;
+    bool                   doComments;
 
     // histograms
-    TH1F* hEventPlane;//!   
-    TH1F* hEventZVertex;//!
-    TH1F* hCentrality;//!
-    TH1F* hMultiplicity;//!
-    TH2F* hRhovsCent;//!
-    TH1F* hTrackPhi[9];//!
-    TH1F* hTrackEta[9];//!
-    TH1F* hTrackPt[9];//!
-    TH2F* hTrackEtavsPhi;//!
+    TH1F *hEventPlane;//!   
+    TH1F *hEventZVertex;//!
+    TH1F *hCentrality;//!
+    TH1F *hMultiplicity;//!
+    TH2F *hRhovsCent;//!
+    TH1F *hTrackPhi[9];//!
+    TH1F *hTrackEta[9];//!
+    TH1F *hTrackPt[9];//!
+    TH2F *hTrackEtavsPhi;//!
 
     // jet histos
-    TH1F* hJetPt;//!
-    TH1F* hJetCorrPt;//!
-    TH1F* hJetLeadingPt;//!
-    TH1F* hJetSubLeadingPt;//!
-    TH1F* hJetLeadingPtAj;//!
-    TH1F* hJetSubLeadingPtAj;//!
-    TH1F* hJetDiJetAj;//!
-    TH1F* hJetE;//!
-    TH1F* hJetEta;//!
-    TH1F* hJetPhi;//!
-    TH1F* hJetNEF;//!
-    TH1F* hJetArea;//!
-    TH1F* hJetTracksPt;//!
-    TH1F* hJetTracksPhi;//!
-    TH1F* hJetTracksEta;//!
-    TH1F* hJetTracksZ;//!
-    TH2F* hJetPtvsArea;//!
-    TH1F* hJetEventEP;//!
-    TH2F* hJetPhivsEP;//!
+    TH1F *hJetPt;//!
+    TH1F *hJetCorrPt;//!
+    TH1F *hJetLeadingPt;//!
+    TH1F *hJetSubLeadingPt;//!
+    TH1F *hJetLeadingPtAj;//!
+    TH1F *hJetSubLeadingPtAj;//!
+    TH1F *hJetDiJetAj;//!
+    TH1F *hJetE;//!
+    TH1F *hJetEta;//!
+    TH1F *hJetPhi;//!
+    TH1F *hJetNEF;//!
+    TH1F *hJetArea;//!
+    TH1F *hJetTracksPt;//!
+    TH1F *hJetTracksPhi;//!
+    TH1F *hJetTracksEta;//!
+    TH1F *hJetTracksZ;//!
+    TH2F *hJetPtvsArea;//!
+    TH1F *hJetEventEP;//!
+    TH2F *hJetPhivsEP;//!
 
     // correlation histo
     TH2  *fHistJetHEtaPhi;//!
@@ -328,6 +328,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
 
-    ClassDef(StJetShapeAnalysis, 1)
+    ClassDef(StJetShapeAnalysis, 2)
 };
 #endif

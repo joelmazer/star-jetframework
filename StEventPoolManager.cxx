@@ -183,7 +183,7 @@ Long64_t StEventPool::Merge(TCollection* hlist)
 
   Bool_t origLock = fLockFlag;
   fLockFlag = kFALSE; // temporary deactivate lockflag to allow filling
-  StEventPool* tmpObj = 0;
+  StEventPool *tmpObj = 0;
   TIter objIter(hlist);
   // Iterate through all objects to be merged
   while ( (tmpObj = static_cast<StEventPool*>(objIter())) )
@@ -357,10 +357,10 @@ Int_t StEventPoolManager::InitEventPools(Int_t depth,
   fPsiBins.assign(psibin, psibin+nPsiBins+1);
   fPtBins.assign(ptbin, ptbin+nPtBins+1);
   
-  for (Int_t iM=0; iM<nMultBins; iM++) {
-    for (Int_t iZ=0; iZ<nZvtxBins; iZ++) {
-      for (Int_t iP=0; iP<nPsiBins; iP++) {
-        for (Int_t iPt=0; iPt<nPtBins; iPt++) {
+  for (Int_t iM = 0; iM < nMultBins; iM++) {
+    for (Int_t iZ = 0; iZ < nZvtxBins; iZ++) {
+      for (Int_t iP = 0; iP < nPsiBins; iP++) {
+        for (Int_t iPt = 0; iPt < nPtBins; iPt++) {
 
           fEvPool.push_back(new StEventPool(depth, 
              multbin[iM], multbin[iM+1], 
@@ -372,11 +372,10 @@ Int_t StEventPoolManager::InitEventPools(Int_t depth,
     }
   }
   
-  
-  for (Int_t iM=0; iM<nMultBins; iM++) {
-    for (Int_t iZ=0; iZ<nZvtxBins; iZ++) {
-      for (Int_t iP=0; iP<nPsiBins; iP++) {
-        for (Int_t iPt=0; iPt<nPtBins; iPt++) {
+  for (Int_t iM = 0; iM < nMultBins; iM++) {
+    for (Int_t iZ = 0; iZ < nZvtxBins; iZ++) {
+      for (Int_t iP = 0; iP < nPsiBins; iP++) {
+        for (Int_t iPt = 0; iPt < nPtBins; iPt++) {
           fEvPool.at(GetBinIndex(iM, iZ, iP, iPt))->SetMultBinIndex(iM);
           fEvPool.at(GetBinIndex(iM, iZ, iP, iPt))->SetZvtxBinIndex(iZ);
           fEvPool.at(GetBinIndex(iM, iZ, iP, iPt))->SetPsiBinIndex(iP);
@@ -389,10 +388,10 @@ Int_t StEventPoolManager::InitEventPools(Int_t depth,
     
   if (0) {
     cout << "fEvPool outer size: " << fEvPool.size() << endl;
-    for (Int_t iM=0; iM<nMultBins; iM++) {
-      for (Int_t iZ=0; iZ<nZvtxBins; iZ++) {
-        for (Int_t iP=0; iP<nPsiBins; iP++) {
-          for (Int_t iPt=0; iPt<nPtBins; iPt++) {
+    for (Int_t iM = 0; iM < nMultBins; iM++) {
+      for (Int_t iZ = 0; iZ < nZvtxBins; iZ++) {
+        for (Int_t iP = 0; iP < nPsiBins; iP++) {
+          for (Int_t iPt = 0; iPt < nPtBins; iPt++) {
             if(fEvPool.at(GetBinIndex(iM, iZ, iP, iPt))) {
               cout << "multiplicity bin: " << iM;
               cout << ", z-vertex bin: " << iZ;
@@ -421,14 +420,14 @@ Long64_t StEventPoolManager::Merge(TCollection* hlist)
   // Iterate through all objects to be merged
   while ( (tmpObj = static_cast<StEventPoolManager*>(objIter())) )
   {
-    for(Int_t i = 0; i<GetNumberOfMultBins(); i++)
-      for(Int_t j = 0; j<GetNumberOfZVtxBins(); j++)
-        for(Int_t k = 0; k<GetNumberOfPsiBins(); k++)
-          for(Int_t l = 0; l<GetNumberOfPtBins(); l++)
+    for(Int_t i = 0; i < GetNumberOfMultBins(); i++)
+      for(Int_t j = 0; j < GetNumberOfZVtxBins(); j++)
+        for(Int_t k = 0; k < GetNumberOfPsiBins(); k++)
+          for(Int_t l = 0; l < GetNumberOfPtBins(); l++)
           {
-            TList* poolList = new TList();
-            StEventPool* objPool = tmpObj->GetEventPool(i,j,k,l);
-            StEventPool* pool    = GetEventPool(i,j,k,l);
+            TList *poolList = new TList();
+            StEventPool *objPool = tmpObj->GetEventPool(i,j,k,l);
+            StEventPool *pool    = GetEventPool(i,j,k,l);
 
             poolList->Add(objPool);
             pool->Merge(poolList);

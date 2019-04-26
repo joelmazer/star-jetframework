@@ -37,7 +37,7 @@
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
 
-// my STAR includes
+// jet-framework STAR includes
 #include "StEventPlaneMaker.h"
 #include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
@@ -246,11 +246,21 @@ Int_t StJetShapeAnalysis::Init() {
   //fJets->SetName(fJetsName);
   //fJets->SetOwner(kTRUE);
 
-  // may not need, used for old RUNS
-  // StRefMultCorr* getgRefMultCorr() ; // For grefmult //Run14 AuAu200GeV
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -266,7 +276,10 @@ Int_t StJetShapeAnalysis::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -283,21 +296,6 @@ Int_t StJetShapeAnalysis::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
 
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
@@ -365,9 +363,12 @@ Int_t StJetShapeAnalysis::Finish() {
   return kStOK;
 }
 //
+// Function: declare histograms and output objects
 //________________________________________________________________________________________________
 void StJetShapeAnalysis::DeclareHistograms() {
+  // constants
   double pi = 1.0*TMath::Pi();
+
   int nHistCentBins;
   if(fCentBinSizeJS == 10) nHistCentBins = 10;
   if(fCentBinSizeJS ==  5) nHistCentBins = 20;
@@ -455,7 +456,6 @@ void StJetShapeAnalysis::DeclareHistograms() {
 
   // set up centrality bins for mixed events
   // for pp we need mult bins for event mixing. Create binning here, to also make a histogram from it
-  // TODO needs updating for STAR multiplicities
   //int nCentralityBinspp = 8;
   //double centralityBinspp[9] = {0.0, 4., 9, 15, 25, 35, 55, 100.0, 500.0};  
 
@@ -764,31 +764,13 @@ Int_t StJetShapeAnalysis::Make() {
   Bool_t doJetAnalysis = kFALSE; // set false by default
   Bool_t doEPAnalysis = kFALSE;  // set false by default
 
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
-      if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
-      break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-      if(fHaveEmcTrigger) {
-        doJetAnalysis = kTRUE;
-        doEPAnalysis = kTRUE;
-      }
-      break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-      if(fHaveEmcTrigger) {
-        doJetAnalysis = kTRUE;
-        doEPAnalysis = kTRUE;
-      }
-      break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
-      if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
-      break;
-
-  } // fRunFlag switch
+  // if we have trigger: perform jet analysis
+  if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
+    
+  // if we have trigger && AuAu dataset: run event plane analysis
+  if(fHaveEmcTrigger && (fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200 || fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200)) {
+    doEPAnalysis = kTRUE;
+  }
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
@@ -829,7 +811,7 @@ Int_t StJetShapeAnalysis::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  //cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
+  if(fDebugLevel == kDebugEmcTrigger) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
   // cache the leading + subleading jets within acceptance
@@ -978,7 +960,7 @@ Int_t StJetShapeAnalysis::Make() {
     // Run - Trigger Selection to process jets from
     if(!doJetAnalysis) continue;
 
-    // get pointer to jets
+    // get jet pointer
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
     if(!jet) continue;
 
@@ -1010,9 +992,12 @@ Int_t StJetShapeAnalysis::Make() {
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
+
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
       if(!trk){ continue; }
 
+      // get momentum three vector
       TVector3 mTrkMom;
       if(doUsePrimTracks) {
         if(!(trk->isPrimary())) return kFALSE; // check if primary
@@ -1033,8 +1018,8 @@ Int_t StJetShapeAnalysis::Make() {
       double jetZ = jet->GetZ(px, py, pz);
 
       // shift angle (0, 2*pi) 
-      if(phi < 0)    phi += 2*pi;
-      if(phi > 2*pi) phi -= 2*pi;
+      if(phi < 0.0)    phi += 2.0*pi;
+      if(phi > 2.0*pi) phi -= 2.0*pi;
 
       // fill jet track constituent histograms
       hJetTracksPt->Fill(pt);
@@ -1048,19 +1033,14 @@ Int_t StJetShapeAnalysis::Make() {
     // loop over constituent towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int ArrayIndex = jet->ClusterAt(itow);
+
+      // get tower pointer
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
       //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
-      int towID = -1;
-      if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-        //towID = tow->id();
-      } else {
-        //towID = tow->numericIndex2SoftId(ArrayIndex);
-      }
-
       // tower ID: get from index of array shifted by +1
-      towID = ArrayIndex + 1;
+      int towID = ArrayIndex + 1;
       if(towID < 0) continue;
 
       int containsTower = jet->ContainsTower(ArrayIndex);
@@ -1124,6 +1104,7 @@ TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -1172,11 +1153,10 @@ TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
   return h;
 }
 //
-//_____________________________________________________________________________
 // Trigger QA histogram, label bins 
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
+//_____________________________________________________________________________
 TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:
@@ -1185,11 +1165,11 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
     //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
     int arrMB[] = {370001, 370011, 370983};
 
+    // fill for kAny
     int bin = 0;
-
-    // fill for kAny 
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -1218,7 +1198,11 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {460101, 460111};
     int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
+    // fill for kAny
     int bin = 0;
+    bin = 1; h->Fill(bin);
+
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -1251,8 +1235,6 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    int bin = 0;
-
     // hard-coded trigger Ids for run16
     //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
@@ -1264,6 +1246,7 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
+    int bin = 0;
     bin = 1; h->Fill(bin);
 
     // check if event triggers meet certain criteria and fill histos
@@ -1302,8 +1285,8 @@ TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
 TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-//  TClonesArray* tracksClone = new TClonesArray("StPicoTrack");// original way
-  TClonesArray* tracksClone = new TClonesArray("StFemtoTrack");
+//  TClonesArray *tracksClone = new TClonesArray("StPicoTrack");// original way
+  TClonesArray *tracksClone = new TClonesArray("StFemtoTrack");
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
 
@@ -1313,7 +1296,8 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
 
   // loop over tracks
   for(int i = 0; i < nMixTracks; i++) { 
-    StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    // get track pointer
+    StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!trk){ continue; }
 
     // acceptance and kinematic quality cuts
@@ -1349,7 +1333,7 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
     //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
-    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
+    StFemtoTrack *t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
     if(!t) continue;
 
     // add light-weight tracks passing cuts to TClonesArray
@@ -1379,8 +1363,8 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
   // loop over tracks
   int nTrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < nTrack; i++) {
-    // get tracks
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    // get track pointer
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -1422,7 +1406,7 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
       trackweight = pt;
     } else if(fTrackWeight == kPtLinear2Const5Weight) {
       if(pt <= 2.0) trackweight = pt;
-      if(pt > 2.0) trackweight = 2.0;
+      if(pt >  2.0) trackweight = 2.0;
     } else {
       // nothing choosen, so don't use weight
       trackweight = 1.0;
@@ -1523,16 +1507,19 @@ void StJetShapeAnalysis::SetSumw2() {
 
 }
 //
-// 1) get the binning for: ref9 and region_vz
-// 2) get function: GetRunNo( );
-// 3) 
-//
-//
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
+// 1287 - Liang
 // _________________________________________________________________________________
 Int_t StJetShapeAnalysis::GetRunNo(int runid){ 
-  //1287 - Liang
+  // Run12 pp (200 GeV)
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
+    for(int i = 0; i < 857; i++) {
+      if(Run12pp_IdNo[i] == runid) {
+        return i;
+      }
+    }
+  }
 
   // Run14 AuAu
   // Run14AuAu_IdNo: SL17id
@@ -1569,9 +1556,9 @@ void StJetShapeAnalysis::TrackQA()
   double pi = 1.0*TMath::Pi();
 
   // loop over all tracks
-  for(int i=0; i<nTrack; i++) {
-    // get tracks
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+  for(int i = 0; i < nTrack; i++) {
+    // get track pointer
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -1608,8 +1595,7 @@ void StJetShapeAnalysis::TrackQA()
 //
 //_________________________________________________________________________
 void StJetShapeAnalysis::FillTowerTriggersArr() {
-  // tower - HT trigger types array
-  // zero these out - so they are refreshed for each event
+  // tower - HT trigger types array: zero these out - so they are refreshed for each event
   for(int i = 0; i < 4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -1621,6 +1607,7 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -1642,11 +1629,11 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
   // loop over towers and add input vectors to fastjet
   int nTowers = mPicoDst->numberOfBTOWHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
     // tower ID: get from index of array shifted by +1
-    //int towerID = tower->id();
     int towerID = itow + 1;
     if(towerID < 0) continue; // double check these aren't still in the event list
 
@@ -1668,19 +1655,13 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
   // loop over constituents towers
   for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
     int ArrayIndex = jet->ClusterAt(itow);
+
+    // get jet tower pointer
     StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
     if(!tow){ continue; }
     
-    //int towID = tow->id();
-    int towID = -1;
-    if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-      //towID = tow->id();
-    } else {
-      //towID = tow->numericIndex2SoftId(itow);
-    }
-
     // tower ID: get from index of array shifted by +1
-    towID = ArrayIndex + 1;
+    int towID = ArrayIndex + 1;
     if(towID < 0) kFALSE;
 
     // change flag to true if jet tower fired trigger
@@ -1788,15 +1769,14 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     // track loop inside jet loop - loop over ALL tracks in PicoDst
     Int_t ntracks = mPicoDst->numberOfTracks();
     for(int itrack = 0; itrack < ntracks; itrack++){
-      // get tracks
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // primary track switch
-      // get momentum vector of track - global or primary track
+      // primary track switch: get momentum vector of track - global or primary track
       TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
@@ -1848,7 +1828,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     hTriggerEvtStatZvsCent->Fill(fCentralityScaled, zVtx);
 
     // fill jet shape histograms
-    for(int i=0; i<10; i++) { 
+    for(int i = 0; i < 10; i++) { 
       hJetShape[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
       hJetShape[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
 
@@ -1869,7 +1849,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // CASE 1: Eta reflection
     if(TMath::Abs(jetEta) > etaMin && TMath::Abs(jetEta) < etaMax) {
-      for(int i=0; i<10; i++) { 
+      for(int i = 0; i < 10; i++) { 
         hJetShapeCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt); 
         hJetShapeCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);    
 
@@ -1887,7 +1867,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // CASE 2: Phi shifted
     if(TMath::Abs(jetEta) < etaMin) {
-      for(int i=0; i<10; i++) { 
+      for(int i = 0; i < 10; i++) { 
         hJetShapeCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);
         hJetShapeCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsum[i]/jetPt);    
 
@@ -1924,15 +1904,14 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // track loop inside jet loop - loop over ALL tracks in PicoDst - for BG
     for(int itrack = 0; itrack < ntracks; itrack++){
-      // get tracks
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(itrack));
       if(!trk){ continue; }
 
       // acceptance and kinematic quality cuts
       if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
-      // primary track switch
-      // get momentum vector of track - global or primary track
+      // primary track switch: get momentum vector of track - global or primary track
       TVector3 mTrkMom;
       if(doUsePrimTracks) {
         // get primary track vector
@@ -1998,7 +1977,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     } // track loop
 
     // inclusive case: Background
-    for(int i=0; i<10; i++) { 
+    for(int i = 0; i < 10; i++) { 
       hJetShapeBG[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
       hJetShapeBG[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
 
@@ -2008,7 +1987,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // Case 1: background
     if(case1) { 
-      for(int i=0; i<10; i++) {
+      for(int i = 0; i < 10; i++) {
         hJetShapeBGCase1[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt); 
         hJetShapeBGCase1[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
 
@@ -2019,7 +1998,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
     // Case 2: background
     if(case2) {
-      for(int i=0; i<10; i++) {
+      for(int i = 0; i < 10; i++) {
         hJetShapeBGCase2[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);
         hJetShapeBGCase2[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG[i]/jetPt);    
 
@@ -2031,7 +2010,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 /*
     // Case 3: background
     if(case3) {
-      for(int i=0; i<10; i++) {
+      for(int i = 0; i < 10; i++) {
         hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
         hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]/jetPt);
         hJetPtProfileBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i]);
@@ -2043,7 +2022,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     // event mixing for background jet cones
     if(fDoEventMixing > 0){
       // initialize background tracks array
-      TObjArray* bgTracks;
+      TObjArray *bgTracks;
 
       // do event mixing when Signal Jet is part of event with a HT1 or HT2 or HT3 trigger firing
       if(pool->IsReady() || pool->NTracksInPool() > fNMIXtracks || pool->GetCurrentNEvents() >= fNMIXevents) {
@@ -2067,16 +2046,16 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
 
           // loop over background (mixed event) tracks
           for(int ibg = 0; ibg < Nbgtrks; ibg++) {
-            // trying new slimmed PicoTrack class: StFemtoTrack
-            StFemtoTrack* trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
+            // get Femto track pointer
+            StFemtoTrack *trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
             if(!trk) continue;
             double Mphi = trk->Phi();
             double Meta = trk->Eta();
             double Mpt = trk->Pt();
 
             // shift angle (0, 2*pi) 
-            if(Mphi < 0)    Mphi += 2*pi;
-            if(Mphi > 2*pi) Mphi -= 2*pi;
+            if(Mphi < 0.0)    Mphi += 2.0*pi;
+            if(Mphi > 2.0*pi) Mphi -= 2.0*pi;
 
             // cut on track pt
             if(Mpt < fJetShapeTrackPtMin) { continue; }
@@ -2114,7 +2093,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
           } // end of background track loop
 
           // fill BG histos here
-          for(int i=0; i<10; i++) {
+          for(int i = 0; i < 10; i++) {
             hJetShapeBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
             hJetShapeBGCase3[jetPtBin][centbin][3]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix*jetPt));
             hJetPtProfileBGCase3[jetPtBin][centbin][EPBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));

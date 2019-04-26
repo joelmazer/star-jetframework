@@ -26,7 +26,7 @@ class StPicoEvent;
 class StPicoTrack;
 class StRefMultCorr;
 
-// my STAR classes
+// jet-framework classes
 class StEmcPosition2;
 class StJetMakerTask;
 class StJet;

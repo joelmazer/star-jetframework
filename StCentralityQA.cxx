@@ -24,7 +24,7 @@
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
 
-// my STAR includes
+// jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StFemtoTrack.h"
 #include "runlistP12id.h" // Run12 pp
@@ -124,6 +124,18 @@ Int_t StCentralityQA::Init() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
               grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
@@ -144,6 +156,10 @@ Int_t StCentralityQA::Init() {
         }
         break;
 */
+             break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(fCentralityDef) {      
@@ -162,21 +178,6 @@ Int_t StCentralityQA::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
 
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
@@ -259,12 +260,13 @@ void StCentralityQA::WriteHistograms() {
   hTriggerIds->Write();
   hEmcTriggers->Write();
 }
-
+//
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StCentralityQA::Clear(Option_t *opt) {
+
 }
- 
+// 
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StCentralityQA::Make() {
@@ -485,6 +487,7 @@ TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -532,12 +535,11 @@ TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
 
   return h;
 }
-
-//_____________________________________________________________________________
+//
 // Trigger QA histogram, label bins 
+// check and fill a Event Selection QA histogram for different trigger selections after cuts
+//_____________________________________________________________________________
 TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
-  // check and fill a Event Selection QA histogram for different trigger selections after cuts
-
   // Run12 pp 200 GeV
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     // Run12 (200 GeV pp) triggers:
@@ -546,11 +548,11 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
     int arrMB[] = {370001, 370011, 370983};
 
-    int bin = 0;
-
     // fill for kAny
+    int bin = 0;
     bin = 1; h->Fill(bin);
 
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
     //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
@@ -579,12 +581,15 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {460101, 460111};
     int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
+    // fill for kAny
     int bin = 0;
+    bin = 1; h->Fill(bin);
+
+    // check if event triggers meet certain criteria and fill histos
     if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    //if() { bin = 6; h->Fill(bin); } 
     if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
@@ -604,8 +609,6 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
 
   // Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    int bin = 0;
-
     // hard-coded trigger Ids for run16
     //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
     int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
@@ -617,6 +620,7 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
+    int bin = 0;
     bin = 1; h->Fill(bin);
 
     // check if event triggers meet certain criteria and fill histos
@@ -624,9 +628,7 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
     if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    //if(mytriggers[i] == 999999) { bin = 6; h->Fill(bin); }
     if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    //if(mytriggers[i] == 999999) { bin = 8; h->Fill(bin); } 
     if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
     if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
 
@@ -652,10 +654,9 @@ TH1* StCentralityQA::FillEventTriggerQA(TH1* h) {
   return h;
 }
 
-// Set the bin errors on histograms
+// Set the bin errors on histograms, set sum weights
 // __________________________________________________________________________________
 void StCentralityQA::SetSumw2() {
-  // set sum weights
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
@@ -672,8 +673,7 @@ void StCentralityQA::SetSumw2() {
 
 //_________________________________________________________________________
 void StCentralityQA::FillTowerTriggersArr() {
-  // tower - HT trigger types array
-  // zero these out - so they are refreshed for each event
+  // tower - HT trigger types array: zero these out - so they are refreshed for each event
   for(int i = 0; i < 4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -685,6 +685,7 @@ void StCentralityQA::FillTowerTriggersArr() {
 
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
+    // get trigger pointer
     StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
     if(!emcTrig) continue;
 
@@ -706,11 +707,12 @@ void StCentralityQA::FillTowerTriggersArr() {
   // loop over towers and add input vectors to fastjet
   int nTowers = mPicoDst->numberOfBTOWHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // get tower pointer
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
     // tower ID: get from index of array shifted by +1
-    int towerID = itow + 1; //tower->id();
+    int towerID = itow + 1;
     if(towerID < 0) continue; // double check these aren't still in the event list
 
     //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;

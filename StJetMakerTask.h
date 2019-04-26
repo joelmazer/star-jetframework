@@ -342,26 +342,25 @@ class StJetMakerTask : public StMaker {
   TClonesArray          *fJetsConstit;            //!jet constituents ClonesArray
   TClonesArray          *fJetsConstitBGsub;       //!jet constituents background subtracted ClonesArray  
   
-  // TEST ---
-  StEmcGeom       *mGeom;
-  StEmcCollection *mEmcCol;
+  // Emc geometry 
+  StEmcGeom             *mGeom;
   
-  static const Int_t     fgkConstIndexShift;      //!contituent index shift
+  static const Int_t     fgkConstIndexShift;      //! contituent index shift
 
  private:
-  StMuDst        *mu;            // muDst object
-  StPicoDstMaker *mPicoDstMaker; // PicoDstMaker object
-  StPicoDst      *mPicoDst;      // PicoDst object
-  StPicoEvent    *mPicoEvent;    // PicoEvent object
+  StMuDst               *mu;                      // muDst object
+  StPicoDstMaker        *mPicoDstMaker;           // PicoDstMaker object
+  StPicoDst             *mPicoDst;                // PicoDst object
+  StPicoEvent           *mPicoEvent;              // PicoEvent object
 
   // position objection
-  StEmcPosition2 *mEmcPosition; // Emc position object
+  StEmcPosition2        *mEmcPosition;            // Emc position object
 
   // centrality objects
-  StRefMultCorr* grefmultCorr;
+  StRefMultCorr         *grefmultCorr;
 
-  Float_t        mTowerMatchTrkIndex[4801];
-  Bool_t         mTowerStatusArr[4801];
+  Float_t                mTowerMatchTrkIndex[4801];
+  Bool_t                 mTowerStatusArr[4801];
 
   // histograms
   TH1F           *fHistMultiplicity;//!

@@ -32,7 +32,7 @@
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
-// my STAR includes
+// jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
 #include "StRho.h"
@@ -132,7 +132,19 @@ Int_t StAnMaker::Init() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -148,7 +160,10 @@ Int_t StAnMaker::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -165,21 +180,6 @@ Int_t StAnMaker::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break;
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
 
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
@@ -418,6 +418,7 @@ void StAnMaker::RunJets()
 
   // loop over jets
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
+    // get jet pointer
     StJet *jet = static_cast<StJet*>(fJets->At(ijet));
     if(!jet) continue;
 
@@ -516,6 +517,7 @@ void StAnMaker::RunTracks()
 
   // loop over ALL tracks in PicoDst 
   for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
+    // get track pointer
     StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
     if(!trk){ continue; }
 
@@ -570,8 +572,7 @@ void StAnMaker::RunTowers()
     if(towID < 0) continue;
 
     // cluster and tower position - from vertex and ID
-    TVector3  towPosition;
-    towPosition = mEmcPosition->getPosFromVertex(mVertex, towID);
+    TVector3 towPosition = mEmcPosition->getPosFromVertex(mVertex, towID);
     double towPhi = towPosition.Phi();
     double towEta = towPosition.PseudoRapidity();
 
@@ -639,11 +640,11 @@ Double_t StAnMaker::RelativePhi(Double_t mphi,Double_t vphi) const
   double dphi = mphi-vphi;
 
   // set dphi to operate on adjusted scale
-  if(dphi < -0.5*TMath::Pi())  dphi += 2.*TMath::Pi();
-  if(dphi > 3./2.*TMath::Pi()) dphi -= 2.*TMath::Pi();
+  if(dphi < -0.5*pi) dphi += 2.0*TMath::Pi();
+  if(dphi >  1.5*pi) dphi -= 2.0*TMath::Pi();
 
-  // test
-  if( dphi < -1.*TMath::Pi()/2 || dphi > 3.*TMath::Pi()/2 )
+  // test check
+  if( dphi < -0.5*pi || dphi > 1.5*pi )
     Form("%s: dPHI not in range [-0.5*Pi, 1.5*Pi]!", GetName());
 
   return dphi; // dphi in [-0.5Pi, 1.5Pi]                                                                                   
@@ -658,17 +659,17 @@ Double_t StAnMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
   Double_t dphi = 1.0*TMath::Abs(EPAng - jetAng);
   
   // ran into trouble with a few dEP<-Pi so trying this...
-  if( dphi < -1*TMath::Pi() ){
-    dphi = dphi + 1*TMath::Pi();
+  if( dphi < -pi ){
+    dphi = dphi + pi;
   } // this assumes we are doing full jets currently 
  
-  if(dphi > 1.5*pi) dphi -= 2*pi;
-  if((dphi > 1.0*pi) && (dphi < 1.5*pi)) dphi -= 1*pi;
-  if((dphi > 0.5*pi) && (dphi < 1.0*pi)) dphi -= 1*pi;
+  if(dphi > 1.5*pi) dphi -= 2.0*pi;
+  if((dphi > 1.0*pi) && (dphi < 1.5*pi)) dphi -= 1.0*pi;
+  if((dphi > 0.5*pi) && (dphi < 1.0*pi)) dphi -= 1.0*pi;
   dphi = 1.0*TMath::Abs(dphi);
 
-  // test
-  if( dphi < 0.0 || dphi > TMath::Pi()/2 ) {
+  // test check
+  if( dphi < 0.0 || dphi > 0.5*pi ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
     cout<<"dPhi not in range [0, 0.5*Pi]!"<<endl;
   }

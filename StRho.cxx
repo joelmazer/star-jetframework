@@ -27,7 +27,7 @@
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-// classes
+// ROOT classes
 class TH2;
 class TH2F;
 
@@ -75,6 +75,7 @@ Int_t StRho::Init()
   // this in effect inherits from StJetFrameworkPicoBase - check it out!
   StRhoBase::Init();
 
+  // declare histogram
   DeclareHistograms();
 
   // Create user objects.
@@ -86,7 +87,6 @@ Int_t StRho::Init()
 
 //________________________________________________________________________
 Int_t StRho::Finish() {
-  //  Summarize the run.
   //cout << "StRho::Finish()\n";
 
   //  Write histos to file and close it.
@@ -118,10 +118,10 @@ Int_t StRho::Finish() {
   //cout<<"End of StRho::Finish"<<endl;
   return kStOK;
 }
-
+//
+// Function: declare histograms 
 //________________________________________________________________________
 void StRho::DeclareHistograms() {
-    // declare histograms
     // weird that this next line is needed to remove cppcheck warning
     delete fHistMultvsRho;
     // mult was 150, 0, 1500
@@ -129,10 +129,10 @@ void StRho::DeclareHistograms() {
     fHistMultvsRho->GetXaxis()->SetTitle("Charged track multiplicity");
     fHistMultvsRho->GetYaxis()->SetTitle("#rho (GeV/c)/A");
 }
-
+//
+// Function: write histograms / objects to file
 //________________________________________________________________________
 void StRho::WriteHistograms() {
-  // write histograms
   fHistMultvsRho->Write();
 }
 
@@ -285,12 +285,11 @@ Int_t StRho::Make()
 
   // push all jets within selected acceptance into stack
   for(Int_t iJets = 0; iJets < Njets; ++iJets) {
-
     // excluding lead jets
     if(iJets == maxJetIds[0] || iJets == maxJetIds[1])
       continue;
 
-    // pointer to jet
+    // get jet pointer
     StJet *jet = static_cast<StJet*>(fJets->At(iJets));
     if(!jet) { continue; } 
 

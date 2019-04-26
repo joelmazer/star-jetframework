@@ -21,13 +21,14 @@
 #include <THnSparse.h>
 #include "TVector3.h"
 
-// STAR includes
+// my includes
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StJetMakerTask.h"
 #include "StMyAnalysisMaker.h"
-#include "StMaker.h"
 
+// STAR includes
+#include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
@@ -179,6 +180,7 @@ Int_t StRhoBase::Init()
 {
   StJetFrameworkPicoBase::Init();
 
+  // declare histograms
   DeclareHistograms();
 
   // Create user objects.
@@ -204,7 +206,19 @@ Int_t StRhoBase::Init()
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -220,7 +234,10 @@ Int_t StRhoBase::Init()
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -239,21 +256,6 @@ Int_t StRhoBase::Init()
         }
         break;
 
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
         // this is the default for Run17 pp - don't set anything for pp
         break;
@@ -267,7 +269,6 @@ Int_t StRhoBase::Init()
 
 //________________________________________________________________________
 Int_t StRhoBase::Finish() {
-  //  Summarize the run.
   cout << "StRhoBase::Finish()\n";
 
 /*
@@ -286,10 +287,10 @@ Int_t StRhoBase::Finish() {
 */
 
   //cout<<"End of StRhoBase::Finish"<<endl;
-
   return kStOK;
 }
-
+//
+// Function: write histograms and objects to file
 //_________________________________________________________________________
 void StRhoBase::WriteHistograms() 
 {
@@ -322,11 +323,11 @@ void StRhoBase::WriteHistograms()
   fHistDeltaRhoScalevsCent->Write();
   fHistDeltaRhoScalevsNtrack->Write();
 } 
-
+//
+// Function: user create output objects, called at the beginning of the analysis
 //________________________________________________________________________
 void StRhoBase::DeclareHistograms()
 {
-  // User create output objects, called at the beginning of the analysis.
   //if (!fCreateHisto) return; //FIXME
 
   // ranges for AuAu - TODO update range
@@ -668,7 +669,7 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
   }
 
   // open file
-  TFile* file = TFile::Open(path);
+  TFile *file = TFile::Open(path);
 
   // does file exist
   if(!file || file->IsZombie()) {
@@ -677,7 +678,7 @@ TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
   }
 
   // get scale function from file
-  TF1* sfunc = dynamic_cast<TF1*>(file->Get(name));
+  TF1 *sfunc = dynamic_cast<TF1*>(file->Get(name));
   if(sfunc) {
     ::Info("StRhoBase::LoadRhoFunction", "Scale function %s loaded from file %s.", name, path);
   }

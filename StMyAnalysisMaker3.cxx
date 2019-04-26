@@ -1277,7 +1277,6 @@ Int_t StMyAnalysisMaker3::Make() {
   if(fHaveEmcTrigger && (fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200 || fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200)) {
     doEPAnalysis = kTRUE;
   }
-
   // ======================== end of Triggers ============================= //
 
   // ================= JetMaker ================ //
@@ -3038,10 +3037,9 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
+// 1287 - Liang
 // _________________________________________________________________________________
 Int_t StMyAnalysisMaker3::GetRunNo(int runid){ 
-  //1287 - Liang
-
   // Run12 pp (200 GeV)
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     for(int i = 0; i < 857; i++) {

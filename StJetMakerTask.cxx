@@ -66,6 +66,9 @@ class StChain;
 class StPicoDstMaker;
 class StPicoEvent;
 
+#include "StMyAnalysisMaker3.h"
+class StMyAnalysisMaker3;
+
 // constants - definitions
 const Int_t StJetMakerTask::fgkConstIndexShift = 100000;
 
@@ -407,6 +410,18 @@ Int_t StJetMakerTask::Init() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp - THIS DOESN'T DO ANYTHING
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
@@ -421,6 +436,10 @@ Int_t StJetMakerTask::Init() {
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
         }
+        break;
+
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -441,21 +460,6 @@ Int_t StJetMakerTask::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;  // need this from embedded switch - May20
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp - THIS DOESN'T DO ANYTHING
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
 
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
         // this is the default for Run17 pp - don't set anything for pp
@@ -637,6 +641,12 @@ int StJetMakerTask::Make()
     mTowerStatusArr[i] = kFALSE;
   }
 
+  // get base class pointer
+  // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
+  //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
+  StJetFrameworkPicoBase *baseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!baseMaker) { cout<<"no baseMaker.. returning"<<endl;  return kStOK; }
+ 
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -719,13 +729,23 @@ int StJetMakerTask::Make()
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
+  //if(fRequireCentSelection) { if(!baseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStWarn; }
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+
+/*
+  bool fHaveMBevent = baseMaker->CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event = baseMaker->CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event = baseMaker->CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
+  bool fHaveEmcTrigger = baseMaker->CheckForHT(fRunFlag, fEmcTriggerEventType);
   //bool fHaveAnyEvent = kTRUE;
+  //cout<<"MB: "<<fHaveMBevent<<"  MB5: "<<fHaveMB5event<<"  MB30: "<<fHaveMB30event<<"  EMC: "<<fHaveEmcTrigger<<endl;
+  delete baseMaker;
+*/
 
   // fill trigger array
   FillEmcTriggersArr();
@@ -1013,8 +1033,6 @@ void StJetMakerTask::FillJetBranch()
     if((jets_incl[ij].phi() < fJetPhiMin) || (jets_incl[ij].phi() > fJetPhiMax)) continue;
 
     // need to figure out how to get m or E from STAR tracks
-    //StJet *jet = new ((*fJets)[jetCount]) 
-    //  StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
     StJet *jet = new ((*fJets)[jetCount])
       StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
 
@@ -1134,8 +1152,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
         // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
         // tower ID: get from tower index shift: +1 above tower index in the BTowHit array
-        int towerID = -1;
-        towerID = towIndex + 1;
+        int towerID = towIndex + 1;
         if(towerID < 0) continue;
 
         // get vector to get tower position
@@ -1159,7 +1176,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
           if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
           // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
-          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }  // comment in April10
+          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
           if(AcceptJetTrack(trk, Bfield, mVertex)) {
 
             // get track variables to matched tower
@@ -1337,6 +1354,7 @@ fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t
 }
 */
 //
+// Function: jet track quality cuts
 //________________________________________________________________________
 Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
   // constants: assume neutral pion mass
@@ -1358,9 +1376,6 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert
   double pt = mTrkMom.Perp();
   double phi = mTrkMom.Phi();
   double eta = mTrkMom.PseudoRapidity();
-  //double px = mTrkMom.x();
-  //double py = mTrkMom.y();
-  //double pz = mTrkMom.z();
   //double p = mTrkMom.Mag();
   //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
   //short charge = trk->charge();
@@ -1395,13 +1410,11 @@ Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) {
   // constants:
   double pi = 1.0*TMath::Pi();
 
-  // tower ID - passed into function
-  // make sure some of these aren't still in event array
+  // tower ID - passed into function: make sure some of these aren't still in event array
   if(towerID < 0) return kFALSE; 
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
   TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
-
   double phi = towerPosition.Phi();
   if(phi < 0.0)    phi += 2.0*pi;
   if(phi > 2.0*pi) phi -= 2.0*pi;
@@ -1421,7 +1434,7 @@ Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) {
   return kTRUE;
 }
 //
-//
+// Function: get cent bin on 0-8 or 0-15 scale
 //________________________________________________________________________
 Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
 {  // Get centrality bin.
@@ -1433,7 +1446,7 @@ Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
   return centbin;
 }
 //
-//
+// Function: select analysis centrality bin, if performing class wide cut
 //__________________________________________________________________________________________
 Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
   // this function is written to cut on centrality in a task for a given range
@@ -1542,7 +1555,7 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
   return doAnalysis;
 }
 //
-//
+// Function: calculate momentum of a tower
 //________________________________________________________________________________________________________
 Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const {
   // vertex components - only need if below method is used
@@ -1557,8 +1570,6 @@ Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Do
   Double_t p = TMath::Sqrt(energy*energy - mass*mass);
 
   // tower ID - passed into function
-  //int towerID = tower->id();
-
   // get tower position
   TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
   double posX = towerPosition.x();
@@ -1581,7 +1592,7 @@ Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Do
   return kTRUE;
 }
 //
-//
+// Function: check on if Tower is OK or not
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
   //if( badTowers.size()==0 ){
@@ -1598,7 +1609,7 @@ Bool_t StJetMakerTask::IsTowerOK( Int_t mTowId ){
   }    
 }
 //
-//
+// Function: check on if Tower is DEAD or not
 //____________________________________________________________________________________________
 Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
   //if( deadTowers.size()==0 ){
@@ -1615,7 +1626,7 @@ Bool_t StJetMakerTask::IsTowerDead( Int_t mTowId ){
   }
 }
 //
-//
+// Function: reset bad tower list
 //____________________________________________________________________________
 void StJetMakerTask::ResetBadTowerList( ){
   badTowers.clear();
@@ -1691,7 +1702,7 @@ Bool_t StJetMakerTask::AddDeadTowers(TString csvfile){
   return kTRUE;
 }
 //
-//
+// Function: reset dead tower list
 //____________________________________________________________________________
 void StJetMakerTask::ResetDeadTowerList( ){
   deadTowers.clear();
@@ -1700,7 +1711,16 @@ void StJetMakerTask::ResetDeadTowerList( ){
 // check if event fired min-bias (MB) trigger
 //_________________________________________________________________________
 Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
-  // Run14 triggers:
+  // Run11 triggers: pp
+  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
+
+  // Run12 (200 GeV pp) triggers: 1) VPDMB
+  int arrMB_Run12[] = {370001, 370011, 370983};
+
+  // Run13 triggers: pp
+  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
+
+  // Run14 triggers: 200 GeV AuAu
   int arrMB_Run14[] = {450014};
   int arrMB30_Run14[] = {450010, 450020};
   int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
@@ -1709,60 +1729,18 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
   // 1: VPDMB-5-p-nobsmd-hlt Run: 15081020 - 15090048
   // 4: VPDMB-5-p-nobsmd-hlt Run: 15090049 - 15167007
 
-  // Run16 triggers:
+  // Run16 triggers: 200 GeV AuAu
   int arrMB_Run16[] = {520021};
   int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
   int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
 
-  // Run11 triggers:
-  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
-
-  // Run12 (200 GeV pp) triggers:
-  // 1) VPDMB
-  int arrMB_Run12[] = {370001, 370011, 370983};
-
-  // Run13 triggers:
-  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
-
-  // Run17 triggers:
+  // Run17 triggers: 500(10) GeV pp
   int arrMB30_Run17[] = {570001, 590001};
   int arrMB100_Run17[] = {590002};
   int arrMBnovtx_Run17[] = {55, 570004};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        switch(type) { 
-          case StJetFrameworkPicoBase::kRun14main :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB30 :
-              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-        }
-        break; // added May20
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        switch(type) {
-          case StJetFrameworkPicoBase::kRun16main :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB10 :
-              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-        }
-        break; // added May20
-
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
         switch(type) {
           case StJetFrameworkPicoBase::kVPDMB :
@@ -1796,7 +1774,39 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        switch(type) { 
+          case StJetFrameworkPicoBase::kRun14main :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB30 :
+              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        switch(type) {
+          case StJetFrameworkPicoBase::kRun16main :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB10 :
+              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kVPDMB30 :
               if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
@@ -1812,7 +1822,6 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
         }
         break;
 
-
   } // RunFlag switch
 
   // return status
@@ -1822,29 +1831,29 @@ Bool_t StJetMakerTask::CheckForMB(int RunFlag, int type) {
 // check to see if the event was EMC triggered for High Towers
 //____________________________________________________________________________
 Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
-  // Run14 triggers:
-  int arrHT1_Run14[] = {450201, 450211, 460201};
-  int arrHT2_Run14[] = {450202, 450212, 460202, 460212};
-  int arrHT3_Run14[] = {450203, 450213, 460203};
-
-  // Run16 triggers:
-  int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrHT2_Run16[] = {530202, 540203};
-  int arrHT3_Run16[] = {520203, 530213};
-
   // Run12 (200 GeV pp) triggers:
   int arrHT1_Run12[] = {370511, 370546};
   int arrHT2_Run12[] = {370521, 370522, 370531, 370980};
   int arrHT3_Run12[] = {380206, 380216}; // NO HT3 triggers in this dataset
 
-  // Run17 triggers: (HT1 and HT2 not exclusive)
+  // Run14 triggers: 200 GeV AuAu
+  int arrHT1_Run14[] = {450201, 450211, 460201};
+  int arrHT2_Run14[] = {450202, 450212, 460202, 460212};
+  int arrHT3_Run14[] = {450203, 450213, 460203};
+
+  // Run16 triggers: 200 GeV AuAu
+  int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
+  int arrHT2_Run16[] = {530202, 540203};
+  int arrHT3_Run16[] = {520203, 530213};
+
+  // Run17 triggers: (HT1 and HT2 not exclusive), 510 GeV
   int arrHT1_Run17[] = {29, 570204, 570214};
   int arrHT2_Run17[] = {30, 31, 570205, 570215};
   int arrHT3_Run17[] = {16, 570201, 590201};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run12, sizeof(arrHT1_Run12)/sizeof(*arrHT1_Run12)))) { return kTRUE; }
@@ -1860,7 +1869,7 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
@@ -1876,7 +1885,7 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
@@ -1892,7 +1901,7 @@ Bool_t StJetMakerTask::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run17, sizeof(arrHT1_Run17)/sizeof(*arrHT1_Run17)))) { return kTRUE; }
@@ -2001,7 +2010,7 @@ Double_t StJetMakerTask::GetMaxTrackPt()
   // loop over all tracks
   for(int i = 0; i < nTrack; i++) {
     // get track pointer
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -2248,10 +2257,9 @@ void StJetMakerTask::RunEventQA() {
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
+// 1287 - Liang
 // _________________________________________________________________________________
 Int_t StJetMakerTask::GetRunNo(int runid){
-  //1287 - Liang
-
   // Run12 pp (200 GeV)
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     for(int i = 0; i < 857; i++) {

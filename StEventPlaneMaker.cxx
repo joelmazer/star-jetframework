@@ -298,7 +298,7 @@ Int_t StEventPlaneMaker::Init() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -314,7 +314,7 @@ Int_t StEventPlaneMaker::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -1345,7 +1345,6 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       //cout<<"leading: pt = "<<fLeadingJet->Pt()<<"  eta = "<<fLeadingJet->Eta()<<"  phi = "<<fLeadingJet->Phi()<<endl;
     }
 
-    // new Jan26
     if(fSubLeadingJet) {
       excludeInEtaSub = fSubLeadingJet->Eta();
       excludeInPhiSub = fSubLeadingJet->Phi();
@@ -2202,10 +2201,9 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 //
 // this function checks for the bin number of the run from a runlist header 
 // in order to apply various corrections and fill run-dependent histograms
+// 1287 - Liang
 // _________________________________________________________________________________
 Int_t StEventPlaneMaker::GetRunNo(int runid){ 
-  //1287 - Liang
-
   // Run12 pp (200 GeV)
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     for(int i = 0; i < 857; i++) {

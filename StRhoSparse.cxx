@@ -81,6 +81,7 @@ Int_t StRhoSparse::Init()
   // nothing done - base class should take care of that
   StRhoBase::Init();
 
+  // declare histograms
   DeclareHistograms();
 
   // Create user objects.
@@ -88,11 +89,10 @@ Int_t StRhoSparse::Init()
 
   return kStOk;
 }
-
+//
+// write histos to file and close it
 //________________________________________________________________________
 Int_t StRhoSparse::Finish() {
-
-  //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
     fout->cd();
@@ -106,10 +106,10 @@ Int_t StRhoSparse::Finish() {
 
   return kStOK;
 }
-
+//
+// Function: declare histograms and user output objects
 //________________________________________________________________________
 void StRhoSparse::DeclareHistograms() {
-  // declare histograms
   // weird that this next line is needed to remove cppcheck warning
   delete fHistOccCorrvsCent;
   //fHistOccCorrvsCent = new TH2F("OccCorrvsCent", "Occupancy correction vs centrality", 101, -1, 100, 2000, 0 , 2);
@@ -316,7 +316,7 @@ Int_t StRhoSparse::Make()
     // excluding lead jets
     if(iJets == maxJetIds[0] || iJets == maxJetIds[1]) continue;
 
-    // get background jets
+    // get background jet pointer
     StJet *jet = static_cast<StJet*>(fBGJets->At(iJets));
     if(!jet) { continue; } 
 
@@ -333,7 +333,7 @@ Int_t StRhoSparse::Make()
     if(fJets) {
       for(Int_t j = 0; j < NjetsSig; j++) {
         // get signal jets
-        StJet* signalJet = static_cast<StJet*>(fJets->At(j)); // GetAcceptJet(j)
+        StJet *signalJet = static_cast<StJet*>(fJets->At(j)); // GetAcceptJet(j)
         if(!signalJet) continue;
         if(!IsJetSignal(signalJet)) continue;
 	  

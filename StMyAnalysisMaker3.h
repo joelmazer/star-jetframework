@@ -177,8 +177,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            AddEventPoolsToOutput(Double_t minCent, Double_t maxCent, Double_t minZvtx, Double_t maxZvtx, Double_t minPsi2, Double_t maxPsi2, Double_t minPt, Double_t maxPt);
 
   protected:
-    TH1*                    FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1*                    FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
     Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
@@ -295,68 +295,68 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     bool                    doComments;
 
     // histograms
-    TH1F* hdEPReactionPlaneFnc;//!
-    TH1F* hdEPEventPlaneFncN2;//!
-    TH1F* hdEPEventPlaneFncP2;//!
-    TH1F* hdEPEventPlaneFnc2;//!
-    TH1F* hdEPEventPlaneClass;//!
-    TH1F* hReactionPlaneFnc;//!
-    TH1F* hEventPlaneFncN2;//!
-    TH1F* hEventPlaneFncP2;//!
-    TH1F* hEventPlaneFnc2;//!
-    TH1F* hEventPlaneClass;//!
+    TH1F *hdEPReactionPlaneFnc;//!
+    TH1F *hdEPEventPlaneFncN2;//!
+    TH1F *hdEPEventPlaneFncP2;//!
+    TH1F *hdEPEventPlaneFnc2;//!
+    TH1F *hdEPEventPlaneClass;//!
+    TH1F *hReactionPlaneFnc;//!
+    TH1F *hEventPlaneFncN2;//!
+    TH1F *hEventPlaneFncP2;//!
+    TH1F *hEventPlaneFnc2;//!
+    TH1F *hEventPlaneClass;//!
 
-    TH1F* hEventPlane;//!   
-    TH2F* fHistEPTPCn;//!
-    TH2F* fHistEPTPCp;//!
-    TH2F* fHistEPBBC;//!
-    TH2F* fHistEPZDC;//!
-    TH1F* hEventZVertex;//!
-    TH1F* hCentrality;//!
-    TH1F* hMultiplicity;//!
-    TH2F* hRhovsCent;//!
-    TH1F* hdEPtrk[5];//!
-    TH1F* hTrackPhi[9];//!
-    TH1F* hTrackEta[9];//!
-    TH1F* hTrackPt[9];//!
-    TH2F* hTrackEtavsPhi;//!
+    TH1F *hEventPlane;//!   
+    TH2F *fHistEPTPCn;//!
+    TH2F *fHistEPTPCp;//!
+    TH2F *fHistEPBBC;//!
+    TH2F *fHistEPZDC;//!
+    TH1F *hEventZVertex;//!
+    TH1F *hCentrality;//!
+    TH1F *hMultiplicity;//!
+    TH2F *hRhovsCent;//!
+    TH1F *hdEPtrk[5];//!
+    TH1F *hTrackPhi[9];//!
+    TH1F *hTrackEta[9];//!
+    TH1F *hTrackPt[9];//!
+    TH2F *hTrackEtavsPhi;//!
 
     // jet histos
-    TH1F* hJetPt;//!
-    TH1F* hJetCorrPt;//!
-    TH1F* hJetLeadingPt;//!
-    TH1F* hJetSubLeadingPt;//!
-    TH1F* hJetLeadingPtAj;//!
-    TH1F* hJetSubLeadingPtAj;//!
-    TH1F* hJetDiJetAj;//!
-    TH1F* hJetE;//!
-    TH1F* hJetEta;//!
-    TH1F* hJetPhi;//!
-    TH1F* hJetNEF;//!
-    TH1F* hJetArea;//!
-    TH1F* hJetTracksPt;//!
-    TH1F* hJetTracksPhi;//!
-    TH1F* hJetTracksEta;//!
-    TH1F* hJetTracksZ;//!
-    TH2F* hJetPtvsArea;//!
-    TH1F* hJetEventEP;//!
-    TH2F* hJetPhivsEP;//!
+    TH1F *hJetPt;//!
+    TH1F *hJetCorrPt;//!
+    TH1F *hJetLeadingPt;//!
+    TH1F *hJetSubLeadingPt;//!
+    TH1F *hJetLeadingPtAj;//!
+    TH1F *hJetSubLeadingPtAj;//!
+    TH1F *hJetDiJetAj;//!
+    TH1F *hJetE;//!
+    TH1F *hJetEta;//!
+    TH1F *hJetPhi;//!
+    TH1F *hJetNEF;//!
+    TH1F *hJetArea;//!
+    TH1F *hJetTracksPt;//!
+    TH1F *hJetTracksPhi;//!
+    TH1F *hJetTracksEta;//!
+    TH1F *hJetTracksZ;//!
+    TH2F *hJetPtvsArea;//!
+    TH1F *hJetEventEP;//!
+    TH2F *hJetPhivsEP;//!
 
-    TH1F* hJetPtIn;//!
-    TH1F* hJetPhiIn;//!
-    TH1F* hJetEtaIn;//!
-    TH1F* hJetEventEPIn;//!
-    TH2F* hJetPhivsEPIn;//!
-    TH1F* hJetPtMid;//!
-    TH1F* hJetPhiMid;//!
-    TH1F* hJetEtaMid;//!
-    TH1F* hJetEventEPMid;//!
-    TH2F* hJetPhivsEPMid;//!
-    TH1F* hJetPtOut;//!
-    TH1F* hJetPhiOut;//!
-    TH1F* hJetEtaOut;//!
-    TH1F* hJetEventEPOut;//!
-    TH2F* hJetPhivsEPOut;//!
+    TH1F *hJetPtIn;//!
+    TH1F *hJetPhiIn;//!
+    TH1F *hJetEtaIn;//!
+    TH1F *hJetEventEPIn;//!
+    TH2F *hJetPhivsEPIn;//!
+    TH1F *hJetPtMid;//!
+    TH1F *hJetPhiMid;//!
+    TH1F *hJetEtaMid;//!
+    TH1F *hJetEventEPMid;//!
+    TH2F *hJetPhivsEPMid;//!
+    TH1F *hJetPtOut;//!
+    TH1F *hJetPhiOut;//!
+    TH1F *hJetEtaOut;//!
+    TH1F *hJetEventEPOut;//!
+    TH2F *hJetPhivsEPOut;//!
 
     // correlation histo
     TH2  *fHistJetHEtaPhi;//!
@@ -436,7 +436,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     vector<vector<Double_t> >   fEventPoolOutputList; // vector representing a list of pools (given by value range) that will be saved
     Bool_t                      fUsePtBinnedEventPool; // uses event pool in pt bins
     Bool_t                      fCheckEventNumberInMixedEvent; // check event number before correlation in mixed event
-    TList*                      fListOfPools; //  Output list of containers
+    TList                      *fListOfPools; //  Output list of containers
 
     ClassDef(StMyAnalysisMaker3, 2)
 };

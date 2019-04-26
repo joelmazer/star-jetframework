@@ -259,6 +259,11 @@ class StJetFrameworkPicoBase : public StMaker {
     //std::set<Int_t> badTowers;
     //std::set<Int_t> deadTowers;
 
+    //Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+    Bool_t                 DoComparison(int myarr[], int elems);
+    Bool_t                 CheckForMB(int RunFlag, int type);
+    Bool_t                 CheckForHT(int RunFlag, int type);
+
   protected:
     Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Int_t                  GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
@@ -270,9 +275,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t               GetReactionPlane(); // get reaction plane angle
     Int_t                  EventCounter();     // when called, provides Event #
     Double_t               GetRhoValue(TString fRhoMakerNametemp);
-    Bool_t                 DoComparison(int myarr[], int elems);
-    Bool_t                 CheckForMB(int RunFlag, int type);
-    Bool_t                 CheckForHT(int RunFlag, int type);
+//    Bool_t                 DoComparison(int myarr[], int elems);
+//    Bool_t                 CheckForMB(int RunFlag, int type);
+//    Bool_t                 CheckForHT(int RunFlag, int type);
     Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
     Double_t               GetMaxTrackPt();
     Int_t                  GetAnnuliBin(Double_t deltaR) const;
@@ -440,5 +445,4 @@ inline Double_t* StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t
   GenerateFixedBinArray(n, min, max, array);
   return array;
 }
-
 #endif

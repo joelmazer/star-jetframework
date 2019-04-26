@@ -56,7 +56,7 @@
 
 #include "StJetPicoDefinitions.h"
 
-// classes
+// StRoot classes
 class StMaker;
 class StChain;
 class StPicoDstMaker;
@@ -295,11 +295,22 @@ StJetMakerTaskBGsub::~StJetMakerTaskBGsub()
 //
 //________________________________________________________________________
 Int_t StJetMakerTaskBGsub::Init() {
+  // declare histograms
   DeclareHistograms();
 
   // Add dead + bad tower lists
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        if(fBadTowerListVers == 102) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_102.txt");
+        if(fBadTowerListVers == 1)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_Rag.txt"); // Raghav's Zg list
+        if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
+        if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
+
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
         if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
@@ -317,19 +328,9 @@ Int_t StJetMakerTaskBGsub::Init() {
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
-        if(fBadTowerListVers == 102) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_102.txt");
-        if(fBadTowerListVers == 1)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_Rag.txt"); // Raghav's Zg list
-        if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
-        if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
-
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_DeadTowers.txt");
         break;
 
     default :
@@ -405,6 +406,18 @@ Int_t StJetMakerTaskBGsub::Init() {
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
+        break;
+
+    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
+        break;
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
@@ -419,6 +432,9 @@ Int_t StJetMakerTaskBGsub::Init() {
           default: // this is the default for Run14
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
         }
+        break;
+
+    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -439,21 +455,6 @@ Int_t StJetMakerTaskBGsub::Init() {
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;  // need this from embedded switch - May20
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
 
     case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
         // this is the default for Run17 pp - don't set anything for pp
@@ -542,10 +543,9 @@ void StJetMakerTaskBGsub::DeclareHistograms() {
     fHistQATowIDvsPhi = new TH2F("fHistQATowIDvsPhi", "Tower ID vs #phi", 4800, 0.5, 4800.5, 144, 0.0, 2.*pi);
 }
 //
-//
+// write histograms
 //________________________________________________________________________
 void StJetMakerTaskBGsub::WriteHistograms() {
-  // write histograms
   fHistMultiplicity->Write();
   fHistCentrality->Write();
   fHistFJRho->Write();
@@ -811,7 +811,9 @@ void StJetMakerTaskBGsub::FindJets()
 
       // matched track index
       int trackIndex = cluster->trackIndex();
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
+
+      // get track pointer
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
       // apply quality cut to matched tracks
@@ -827,20 +829,12 @@ void StJetMakerTaskBGsub::FindJets()
     // loop over towers and add input vectors to fastjet
     int nTowers = mPicoDst->numberOfBTowHits();
     for(int itow = 0; itow < nTowers; itow++) {
+      // get tower pointer
       StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
       if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
 
-      // tower ID
-      //int towerID = tower->id();
-      int towerID = -1;
-      if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-        //towerID = tower->id();
-      } else {
-        //towerID = tower->numericIndex2SoftId(itow);
-      }
-
       // tower ID: get from index of array shifted by +1
-      towerID = itow + 1;
+      int towerID = itow + 1;
       if(towerID < 0) continue; // double check these aren't still in the event list
 
       // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
@@ -865,7 +859,8 @@ void StJetMakerTaskBGsub::FindJets()
 
       // perform tower cuts: if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
       if(mTowerStatusArr[towerID]) {
-        StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+        // get track pointer
+        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
         // want to process tower on its own if track did not meet quality cut
@@ -905,8 +900,7 @@ void StJetMakerTaskBGsub::FindJets()
       }
       //if(TowerDead) continue;
 
-      // get components from Energy (p - momentum)
-      // the below lines 'converts' the tower energy to momentum
+      // get components from Energy (p - momentum): the below lines 'converts' the tower energy to momentum
       TVector3 mom;
       GetMomentum(mom, tower, pi0mass, towerID);
       double towerPx = mom.x();
@@ -1019,7 +1013,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
       jet->AddTrackAt(uid, nt);
 
       // get track pointer
-      StPicoTrack* trk = static_cast<StPicoTrack*>(mPicoDst->track(uid));
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(uid));
       if(!trk) continue;
 
       // acceptance and kinematic quality cuts - probably not needed (done before passing to fastjet) FIXME
@@ -1074,17 +1068,8 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
         StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towIndex));
         if(!tower) continue;
 
-        // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
-        //int towerID = tower->id();
-        int towerID = -1;
-        if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-          //towerID = tower->id();
-        } else {
-          //towerID = tower->numericIndex2SoftId(towIndex - 1);
-        }
-
         // tower ID: get from index of array shifted by +1        
-        towerID = towIndex + 1;
+        int towerID = towIndex + 1;
         if(towerID < 0) continue;
 
         // get vector to determine tower position
@@ -1244,10 +1229,8 @@ Bool_t StJetMakerTaskBGsub::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3
   int nHitsMax = trk->nHitsMax();
   double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
-  // pt cut
-  if(pt < fMinJetTrackPt) return kFALSE;
-
   // jet track acceptance cuts now - after getting 3vector - hardcoded
+  if(pt < fMinJetTrackPt) return kFALSE;
   if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) return kFALSE;
   if(phi < 0.0)    phi += 2.0*pi;
@@ -1274,7 +1257,6 @@ Bool_t StJetMakerTaskBGsub::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) 
 
   // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
   TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
-
   double phi = towerPosition.Phi();
   if(phi < 0.0)    phi += 2.0*pi;
   if(phi > 2.0*pi) phi -= 2.0*pi;
@@ -1288,8 +1270,8 @@ Bool_t StJetMakerTaskBGsub::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) 
 
   // jet track acceptance cuts now - after getting 3vector - hardcoded
   if((eta < fJetTowerEtaMin) || (eta > fJetTowerEtaMax)) return kFALSE;
-  if(phi < 0.0)    phi += 2*pi;
-  if(phi > 2.0*pi) phi -= 2*pi;
+  if(phi < 0.0)    phi += 2.0*pi;
+  if(phi > 2.0*pi) phi -= 2.0*pi;
   if((phi < fJetTowerPhiMin) || (phi > fJetTowerPhiMax)) return kFALSE;
 
   // passed all above cuts - keep tower and fill input vector to fastjet
@@ -1491,7 +1473,7 @@ Bool_t StJetMakerTaskBGsub::IsTowerDead( Int_t mTowId ){
   }
 }
 //
-//
+// Function: reset bad tower list
 //____________________________________________________________________________
 void StJetMakerTaskBGsub::ResetBadTowerList( ){
   badTowers.clear();
@@ -1500,6 +1482,7 @@ void StJetMakerTaskBGsub::ResetBadTowerList( ){
 // Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
+//_____________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::AddBadTowers(TString csvfile){  
   // open infile
   std::string line;
@@ -1566,7 +1549,7 @@ Bool_t StJetMakerTaskBGsub::AddDeadTowers(TString csvfile){
   return kTRUE;
 }
 //
-//
+// Function: reset dead tower list
 //____________________________________________________________________________
 void StJetMakerTaskBGsub::ResetDeadTowerList( ){
   deadTowers.clear();
@@ -1575,7 +1558,16 @@ void StJetMakerTaskBGsub::ResetDeadTowerList( ){
 //
 //_________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
-  // Run14 triggers:
+  // Run11 triggers: pp
+  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
+
+  // Run12 (200 GeV pp) triggers: 1) VPDMB
+  int arrMB_Run12[] = {370001, 370011, 370983};
+
+  // Run13 triggers: pp
+  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
+
+  // Run14 triggers: 200 GeV AuAu
   int arrMB_Run14[] = {450014};
   int arrMB30_Run14[] = {450010, 450020};
   int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
@@ -1584,60 +1576,18 @@ Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
   // 1: VPDMB-5-p-nobsmd-hlt Run: 15081020 - 15090048
   // 4: VPDMB-5-p-nobsmd-hlt Run: 15090049 - 15167007
 
-  // Run16 triggers:
+  // Run16 triggers: 200 GeV AuAu
   int arrMB_Run16[] = {520021};
   int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
   int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
 
-  // Run11 triggers:
-  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
-
-  // Run12 (200 GeV pp) triggers:
-  // 1) VPDMB
-  int arrMB_Run12[] = {370001, 370011, 370983};
-
-  // Run13 triggers:
-  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
-
-  // Run17 triggers:
+  // Run17 triggers: 510 GeV pp
   int arrMB30_Run17[] = {570001, 590001};
   int arrMB100_Run17[] = {590002};
   int arrMBnovtx_Run17[] = {55, 570004};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        switch(type) { 
-          case StJetFrameworkPicoBase::kRun14main :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB30 :
-              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        switch(type) {
-          case StJetFrameworkPicoBase::kRun16main :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB10 :
-              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-        }
-        break;
-
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
         switch(type) {
           case StJetFrameworkPicoBase::kVPDMB :
@@ -1671,7 +1621,39 @@ Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        switch(type) { 
+          case StJetFrameworkPicoBase::kRun14main :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB30 :
+              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        switch(type) {
+          case StJetFrameworkPicoBase::kRun16main :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB5 :
+              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
+              break;
+          case StJetFrameworkPicoBase::kVPDMB10 :
+              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
+              break;
+          default :
+              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
+        }
+        break;
+
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kVPDMB30 :
               if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
@@ -1687,11 +1669,11 @@ Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
         }
         break;
 
-
   } // RunFlag switch
 
   // return status
   return kFALSE;
+
 } // MB function
 //
 //
@@ -1720,7 +1702,7 @@ Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run12, sizeof(arrHT1_Run12)/sizeof(*arrHT1_Run12)))) { return kTRUE; }
@@ -1736,7 +1718,7 @@ Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
@@ -1752,7 +1734,7 @@ Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
@@ -1768,7 +1750,7 @@ Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp
+    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
         switch(type) {
           case StJetFrameworkPicoBase::kIsHT1 :
               if((DoComparison(arrHT1_Run17, sizeof(arrHT1_Run17)/sizeof(*arrHT1_Run17)))) { return kTRUE; }
@@ -2192,10 +2174,9 @@ void StJetMakerTaskBGsub::FillJetBGBranch()
 
 }
 //
-// sets errors on histograms up before filling
+// sets errors on histograms up before filling: set sum weights
 //________________________________________________________________________
 void StJetMakerTaskBGsub::SetSumw2() {
-  // set sum weights
   fHistMultiplicity->Sumw2();
   fHistCentrality->Sumw2();
   fHistFJRho->Sumw2();
