@@ -66,12 +66,6 @@ class StJetMakerTaskBGsub : public StMaker {
   void    DeclareHistograms();
   void    WriteHistograms();
 
-  // Use one set to reject bad towers
-  void ResetBadTowerList( );
-  void ResetDeadTowerList( );
-  Bool_t AddBadTowers(TString csvfile);
-  Bool_t AddDeadTowers(TString csvfile);
-
   // switches
   virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
   virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
@@ -84,11 +78,12 @@ class StJetMakerTaskBGsub : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-  virtual void         SetEmcTriggerEventType(UInt_t te)   { fEmcTriggerEventType = te; }
-  virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
-  virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
-  virtual void         SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
+  virtual void         SetEmcTriggerEventType(UInt_t te) { fEmcTriggerEventType = te; }
+  virtual void         SetMBEventType(UInt_t mbe)        { fMBEventType = mbe; }   
+  virtual void         SetTriggerToUse(UInt_t ttu)       { fTriggerToUse = ttu; }
+  virtual void         SetBadTowerListVers(UInt_t ibt)   { fBadTowerListVers = ibt; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+  virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
 
   // common setters
   void                 SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -208,6 +203,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Int_t                fCentralitySelectionCut; // centrality selection cut
   Bool_t               doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on)    
+  Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
   // event variables
   Double_t             Bfield;                  // event Bfield
@@ -353,10 +349,20 @@ class StJetMakerTaskBGsub : public StMaker {
   TH2F           *fHistQATowIDvsPhi;//!
 
   // bad and dead tower list functions and arrays
-  Bool_t IsTowerOK( Int_t mTowId );
-  Bool_t IsTowerDead( Int_t mTowId );
-  std::set<Int_t> badTowers; 
-  std::set<Int_t> deadTowers;
+  void                   ResetBadTowerList( );
+  void                   ResetDeadTowerList( );
+  Bool_t                 AddBadTowers(TString csvfile);
+  Bool_t                 AddDeadTowers(TString csvfile);
+  Bool_t                 IsTowerOK( Int_t mTowId );
+  Bool_t                 IsTowerDead( Int_t mTowId );
+  std::set<Int_t>        badTowers;
+  std::set<Int_t>        deadTowers;
+
+  // bad run list 
+  void                   ResetBadRunList( );
+  Bool_t                 AddBadRuns(TString csvfile);
+  Bool_t                 IsRunOK( Int_t mRunId );
+  std::set<Int_t>        badRuns;
 
   // maker names
   //TString         fJetMakerName;

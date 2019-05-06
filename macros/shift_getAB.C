@@ -13,7 +13,7 @@ int shift_getAB()
   //Method = 4;  // ZDC shift
 
   // pt bin methods
-  int ptbin = 0;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
+  int ptbin = 4;  // use -99 for standard, and 0, 1, 2, 3, 4, (5,6,7) for pt assoc bin
   bool appendDate = kTRUE;
 
   // append bin for pt assoc bins to file name
@@ -26,7 +26,14 @@ int shift_getAB()
   //if(appendDate) { funcDate = Form("_STEP2_Feb5"); } // CHANGE NAME case-by-case
   //if(appendDate) { funcDate = Form("_STEP2_March31"); } // CHANGE NAME case-by-case
   //if(appendDate) { funcDate = Form("_STEP2_April28"); } // CHANGE NAME case-by-case
-  if(appendDate) { funcDate = Form("_STEP2_May15"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_May15"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_May26"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_May30"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_June7ch"); } // CHANGE NAME case-by-case // charged jets
+  //if(appendDate) { funcDate = Form("_STEP2_June22_R02"); } // CHANGE NAME case-by-case // R=0.2 jets
+  //if(appendDate) { funcDate = Form("_STEP2_August29"); } // CHANGE NAME case-by-case
+  //if(appendDate) { funcDate = Form("_STEP2_Oct15_R03"); } // CHANGE NAME case-by-case // R=0.3 jets
+  if(appendDate) { funcDate = Form("_STEP2_Dec5_R03"); } // CHANGE NAME case-by-case // R=0.3 jets
 
   // method of jet removal
   // "Method1": kRemoveEtaStrip
@@ -34,9 +41,10 @@ int shift_getAB()
   // "Method3": kRemoveLeadingJetConstituents
   // "Method5": kRemoveEtaPhiConeLeadSub
   // "Method6": kRemoveLeadingSubJetConstituents
-  //JetMethod = "_Method2ch_Run14"; // from 
-  const char *JetMethod = "_Method2ch";
-  const char *RunName = "_Run14";
+  //JetMethod = "_Method2ch"; // charged jets
+  const char *JetMethod = "_Method1_R03";
+  //const char *JetMethod = "_Method1";
+  const char *RunName = "_Run14_NEW";
 
   // print append strings
   cout<<"funcbin = "<<funcBin<<endl;

@@ -61,7 +61,8 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
-    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -101,6 +102,7 @@ class StCentralityQA : public StJetFrameworkPicoBase {
 
     // switches
     Int_t                   fDoEffCorr;                  // efficiency correction to tracks
+    Bool_t                  doRejectBadRuns;             // switch to reject bad runs and thus skip from analysis
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
@@ -138,6 +140,12 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
+
+    // bad run list 
+    void                   ResetBadRunList( );
+    Bool_t                 AddBadRuns(TString csvfile);
+    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     // maker names
     TString                fAnalysisMakerName;

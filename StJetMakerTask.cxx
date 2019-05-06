@@ -58,6 +58,7 @@ class StEmcPosition2;
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
+// extra includes
 #include "StJetPicoDefinitions.h"
 
 // StRoot classes
@@ -90,6 +91,7 @@ StJetMakerTask::StJetMakerTask() :
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
   zVtx(0.0),
@@ -179,6 +181,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
   zVtx(0.0),
@@ -335,6 +338,9 @@ Int_t StJetMakerTask::Init() {
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
         if(fBadTowerListVers == 5)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
 
+        // P18ih
+        if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt"); 
+
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
         break;
 
@@ -346,6 +352,25 @@ Int_t StJetMakerTask::Init() {
     default :
       AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
       AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
+  }
+
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break;
+
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
   }
 
   // Create user objects.
@@ -401,6 +426,7 @@ Int_t StJetMakerTask::Init() {
   fjw.SetRecombScheme(recombScheme);  //fRecombScheme);
   fjw.SetMaxRap(1.2);
 
+  // ghost-area specifications
   double ghost_maxrap = 1.2;
   fastjet::GhostedAreaSpec area_spec(ghost_maxrap);
   fastjet::AreaDefinition area_def(fastjet::active_area_explicit_ghosts, area_spec);
@@ -476,8 +502,8 @@ Int_t StJetMakerTask::Init() {
 //
 //_______________________________________________________________________________________
 Int_t StJetMakerTask::Finish() {
-  //  Summarize the run.
 /*
+  //  Summarize the run.
   cout<<"StJetMakerTask::Finish()\n";
   cout<<"##### Jet parameters overview #####"<<endl;
   cout<<"type = "<<"   algorithm = "<<"  recombination scheme = "<<endl;
@@ -533,30 +559,33 @@ void StJetMakerTask::DeclareHistograms() {
   fProfEventBBCx = new TProfile("fProfEventBBCx", "Event averaged BBC coincidence rate", nRunBins, 0., nRunBinsMax);//, -100., 100.);
   fProfEventZDCx = new TProfile("fProfEventZDCx", "Event averaged ZDC coincidence rate", nRunBins, 0., nRunBinsMax);//, -100., 100.);
 
+  // track and tower plots
   fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "# track vs p_{T}", 150, 0., 30.);
   fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "# track vs #phi", 72, 0., 2.0*pi);
   fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "# track vs #eta", 40, -1.0, 1.0);
   fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "# track vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistNTowervsID = new TH1F("fHistNTowervsID", "# tower vs tower id", 4800, 0.5, 4800.5);
-  fHistNTowervsADC = new TH1F("fHistNTowervsADC", "# tower vs ADC", 100., 0., 100.);
+  fHistNTowervsADC = new TH1F("fHistNTowervsADC", "# tower vs ADC", 250., 0., 250.);
   fHistNTowervsE = new TH1F("fHistNTowervsE", "# tower vs energy", 100, 0., 20.0);
   fHistNTowervsEt = new TH1F("fHistNTowervsEt", "# tower vs transverse energy", 100, 0., 20.0);
   fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "# tower vs #phi", 144, 0., 2.0*pi);
   fHistNTowervsEta = new TH1F("fHistNTowervsEta", "# tower vs #eta", 40, -1.0, 1.0);
   fHistNTowervsPhivsEta = new TH2F("fHistNTowervsPhivsEta", "# vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
 
+  // jet track and jet tower plots
   fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
   fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2.0*pi);
   fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
   fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistJetNTowervsID = new TH1F("fHistJetNTowervsID", "Jet tower vs tower id", 4800, 0.5, 4800.5);
-  fHistJetNTowervsADC = new TH1F("fHistJetNTowervsADC", "Jet tower constituents vs ADC", 100., 0., 100.);
+  fHistJetNTowervsADC = new TH1F("fHistJetNTowervsADC", "Jet tower constituents vs ADC", 250., 0., 250.);
   fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
   fHistJetNTowervsEt = new TH1F("fHistJetNTowervsEt", "Jet tower constituents vs transverse energy", 100, 0., 20.0);
   fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2.0*pi);
   fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
   fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet tower constituents vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
 
+  // jet plots
   fHistNJetsvsPt = new TH1F("fHistNJetsvsPt", "NJets vs p_{T}", 100, 0., 100.0);
   fHistNJetsvsPhi = new TH1F("fHistNJetsvsPhi", "NJets vs #phi", 144, 0., 2.0*pi);
   fHistNJetsvsEta = new TH1F("fHistNJetsvsEta", "NJets vs #eta", 40, -1.0, 1.0);
@@ -1384,10 +1413,8 @@ Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert
   int nHitsMax = trk->nHitsMax();
   double nHitsRatio = 1.0*nHitsFit/nHitsMax;
 
-  // pt cut
-  if(pt < fMinJetTrackPt) return kFALSE;
-
   // jet track acceptance cuts now
+  if(pt < fMinJetTrackPt) return kFALSE;
   if(pt > fMaxJetTrackPt) return kFALSE; // 20.0 STAR, 100.0 ALICE
   if((eta < fJetTrackEtaMin) || (eta > fJetTrackEtaMax)) return kFALSE;
   if(phi < 0.0)    phi += 2.0*pi;
@@ -1436,7 +1463,7 @@ Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) {
 // Function: get cent bin on 0-8 or 0-15 scale
 //________________________________________________________________________
 Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
-{  // Get centrality bin.
+{
   Int_t centbin = -1;
 
   if(nBin == 16) { centbin = nBin - 1 - cent; }
@@ -2291,4 +2318,61 @@ Int_t StJetMakerTask::GetRunNo(int runid){
 
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
+}
+//
+//____________________________________________________________________________
+void StJetMakerTask::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StJetMakerTask::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StJetMakerTask::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StJetMakerTask::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
 }

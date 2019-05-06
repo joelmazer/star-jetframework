@@ -25,7 +25,7 @@ class StPicoTrack;
 class StRefMultCorr;
 class StPicoBTowHit;
 
-// my STAR classes
+// jet-framework classes
 class StEmcPosition2;
 class StJetMakerTask;
 class StJet;
@@ -187,10 +187,10 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual Int_t Finish();
 
     // Use one set to reject bad towers and another for hot towers
-    //void ResetBadTowerList( );
-    //void ResetDeadTowerList( );
-    //Bool_t AddBadTowers(TString csvfile);
-    //Bool_t AddDeadTowers(TString csvfile);
+    void ResetBadTowerList( );
+    void ResetDeadTowerList( );
+    Bool_t AddBadTowers(TString csvfile);
+    Bool_t AddDeadTowers(TString csvfile);
 
     static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
 
@@ -214,7 +214,9 @@ class StJetFrameworkPicoBase : public StMaker {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
-    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
+    virtual void            SetBadTowerListVers(UInt_t ibt)    { fBadTowerListVers = ibt; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -250,157 +252,162 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetEventPlaneMakerName(const char *epn)   { fEventPlaneMakerName = epn; }
 
     // add-to histogram name
-    virtual void           AddToHistogramsName(TString add)           { fAddToHistogramsName = add  ; }
-    virtual TString        GetAddedHistogramsStringToName() const     { return fAddToHistogramsName ; }
+    virtual void            AddToHistogramsName(TString add)           { fAddToHistogramsName = add  ; }
+    virtual TString         GetAddedHistogramsStringToName() const     { return fAddToHistogramsName ; }
 
     // bad and dead tower list functions and arrays
-    //Bool_t IsTowerOK( Int_t mTowId );
-    //Bool_t IsTowerDead( Int_t mTowId );
-    //std::set<Int_t> badTowers;
-    //std::set<Int_t> deadTowers;
+    Bool_t                  IsTowerOK( Int_t mTowId );
+    Bool_t                  IsTowerDead( Int_t mTowId );
+    std::set<Int_t>         badTowers;
+    std::set<Int_t>         deadTowers;
+    std::set<Int_t>         GetBadTowers()                   { return badTowers          ; }
+    std::set<Int_t>         GetDeadTowers()                  { return deadTowers         ; }
 
-    //Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-    Bool_t                 DoComparison(int myarr[], int elems);
-    Bool_t                 CheckForMB(int RunFlag, int type);
-    Bool_t                 CheckForHT(int RunFlag, int type);
+    //Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+    Bool_t                  DoComparison(int myarr[], int elems);
+    Bool_t                  CheckForMB(int RunFlag, int type);
+    Bool_t                  CheckForHT(int RunFlag, int type);
 
   protected:
-    Int_t                  GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
-    Int_t                  GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
-    Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-    Double_t               RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
-    Double_t               RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
-    Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
-    //Bool_t                 AcceptTower(StPicoBTowHit *tower, TVector3 Vertex, Int_t towerID);     // tower accept cuts function
-    Double_t               GetReactionPlane(); // get reaction plane angle
-    Int_t                  EventCounter();     // when called, provides Event #
-    Double_t               GetRhoValue(TString fRhoMakerNametemp);
-//    Bool_t                 DoComparison(int myarr[], int elems);
-//    Bool_t                 CheckForMB(int RunFlag, int type);
-//    Bool_t                 CheckForHT(int RunFlag, int type);
-    Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
-    Double_t               GetMaxTrackPt();
-    Int_t                  GetAnnuliBin(Double_t deltaR) const;
-    Int_t                  GetJetPtBin(Double_t jetpt) const;
-    Int_t                  GetJetEPBin(Double_t dEP) const;
-    Int_t                  Get4CentBin(Double_t scaledCent) const;
-    Double_t               ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
+    Int_t                   GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
+    Int_t                   GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
+    Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+    Double_t                RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
+    Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
+    Bool_t                  AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
+    //Bool_t                  AcceptTower(StPicoBTowHit *tower, TVector3 Vertex, Int_t towerID);     // tower accept cuts function
+    Double_t                GetReactionPlane(); // get reaction plane angle
+    Int_t                   EventCounter();     // when called, provides Event #
+    Double_t                GetRhoValue(TString fRhoMakerNametemp);
+//    Bool_t                  DoComparison(int myarr[], int elems);
+//    Bool_t                  CheckForMB(int RunFlag, int type);
+//    Bool_t                  CheckForHT(int RunFlag, int type);
+    Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
+    Double_t                GetMaxTrackPt();
+    Int_t                   GetAnnuliBin(Double_t deltaR) const;
+    Int_t                   GetJetPtBin(Double_t jetpt) const;
+    Int_t                   GetJetEPBin(Double_t dEP) const;
+    Int_t                   Get4CentBin(Double_t scaledCent) const;
+    Double_t                ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
+    Bool_t                  RejectRun(int RunFlag, int nRun) const;
 
-    static Double_t       *GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
-    static void            GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);
+    static Double_t        *GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
+    static void             GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);
 
     // switches
-    Bool_t                 doUsePrimTracks;         // primary track switch
-    Int_t                  fDebugLevel;             // debug printout level
-    Int_t                  fRunFlag;                // Run Flag enumerator value
-    Bool_t                 doppAnalysis;            // use pp analysis data
-    Bool_t                 doJetShapeAnalysis;      // perform jet shape analysis
-    Bool_t                 fCorrJetPt;              // correct jet pt by rho
-    Int_t                  fCentralityDef;          // Centrality Definition enumerator value
-    Bool_t                 fRequireCentSelection;   // require particular centrality bin
-    Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
+    Bool_t                  doUsePrimTracks;         // primary track switch
+    Int_t                   fDebugLevel;             // debug printout level
+    Int_t                   fRunFlag;                // Run Flag enumerator value
+    Bool_t                  doppAnalysis;            // use pp analysis data
+    Bool_t                  doJetShapeAnalysis;      // perform jet shape analysis
+    Bool_t                  fCorrJetPt;              // correct jet pt by rho
+    Int_t                   fCentralityDef;          // Centrality Definition enumerator value
+    Bool_t                  fRequireCentSelection;   // require particular centrality bin
+    Bool_t                  doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
 
     // centrality    
-    Double_t               fCentralityScaled;       // scaled by 5% centrality 
-    Int_t                  ref16;                   // multiplicity bin (16)
-    Int_t                  ref9;                    // multiplicity bin (9)
+    Double_t                fCentralityScaled;       // scaled by 5% centrality 
+    Int_t                   ref16;                   // multiplicity bin (16)
+    Int_t                   ref9;                    // multiplicity bin (9)
 
     // event
-    Double_t               Bfield;                  // event Bfield
-    TVector3               mVertex;                 // event vertex 3-vector
-    Double_t               zVtx;                    // z-vertex component
-    Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
+    Double_t                Bfield;                  // event Bfield
+    TVector3                mVertex;                 // event vertex 3-vector
+    Double_t                zVtx;                    // z-vertex component
+    Double_t                fMaxEventTrackPt;        // max track pt in the event (to cut on)    
+    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
+    UInt_t                  fBadTowerListVers;       // version of bad tower file list to use
 
     // cuts
-    Int_t                  fJetType;                // jet type (full, charged, neutral)
-    Double_t               fMinPtJet;               // min jet pt to keep jet in output
-    Double_t               fJetConstituentCut;      // min jet constituent
-    Double_t               fTrackBias;              // high pt track in jet bias
-    Double_t               fTowerBias;              // high E tower in jet bias
-    Double_t               fJetRad;                 // jet radius
-    Double_t               fEventZVtxMinCut;        // min event z-vertex cut
-    Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
-    Int_t                  fCentralitySelectionCut; // centrality selection cut
-    Double_t               fTrackPtMinCut;          // min track pt cut
-    Double_t               fTrackPtMaxCut;          // max track pt cut
-    Double_t               fTrackPhiMinCut;         // min track phi cut
-    Double_t               fTrackPhiMaxCut;         // max track phi cut
-    Double_t               fTrackEtaMinCut;         // min track eta cut
-    Double_t               fTrackEtaMaxCut;         // max track eta cut
-    Double_t               fTrackDCAcut;            // max track dca cut
-    Int_t                  fTracknHitsFit;          // requirement for track hits
-    Double_t               fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
-    Double_t               fTowerEMinCut;           // min tower energy cut
-    Double_t               fTowerEMaxCut;           // max tower energy cut
-    Double_t               fTowerEtaMinCut;         // min tower eta cut
-    Double_t               fTowerEtaMaxCut;         // max tower eta cut
-    Double_t               fTowerPhiMinCut;         // min tower phi cut
-    Double_t               fTowerPhiMaxCut;         // max tower phi cut
+    Int_t                   fJetType;                // jet type (full, charged, neutral)
+    Double_t                fMinPtJet;               // min jet pt to keep jet in output
+    Double_t                fJetConstituentCut;      // min jet constituent
+    Double_t                fTrackBias;              // high pt track in jet bias
+    Double_t                fTowerBias;              // high E tower in jet bias
+    Double_t                fJetRad;                 // jet radius
+    Double_t                fEventZVtxMinCut;        // min event z-vertex cut
+    Double_t                fEventZVtxMaxCut;        // max event z-vertex cut
+    Int_t                   fCentralitySelectionCut; // centrality selection cut
+    Double_t                fTrackPtMinCut;          // min track pt cut
+    Double_t                fTrackPtMaxCut;          // max track pt cut
+    Double_t                fTrackPhiMinCut;         // min track phi cut
+    Double_t                fTrackPhiMaxCut;         // max track phi cut
+    Double_t                fTrackEtaMinCut;         // min track eta cut
+    Double_t                fTrackEtaMaxCut;         // max track eta cut
+    Double_t                fTrackDCAcut;            // max track dca cut
+    Int_t                   fTracknHitsFit;          // requirement for track hits
+    Double_t                fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
+    Double_t                fTowerEMinCut;           // min tower energy cut
+    Double_t                fTowerEMaxCut;           // max tower energy cut
+    Double_t                fTowerEtaMinCut;         // min tower eta cut
+    Double_t                fTowerEtaMaxCut;         // max tower eta cut
+    Double_t                fTowerPhiMinCut;         // min tower phi cut
+    Double_t                fTowerPhiMaxCut;         // max tower phi cut
 
     // used for event plane calculation and resolution
-    StJet                 *fLeadingJet;//! leading jet
-    StJet                 *fSubLeadingJet;//! sub-leading jet
-    Float_t                fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
-    Int_t                  fTrackWeight; // track weight for Q-vector summation
+    StJet                  *fLeadingJet;//! leading jet
+    StJet                  *fSubLeadingJet;//! sub-leading jet
+    Float_t                 fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
+    Int_t                   fTrackWeight; // track weight for Q-vector summation
 
-    TClonesArray          *CloneAndReduceTrackList(TClonesArray* tracks);
+    TClonesArray           *CloneAndReduceTrackList(TClonesArray* tracks);
 
     // clonesarray collections of tracks and jets
-    TClonesArray          *fTracksME;//! track collection to slim down for mixed events
-    TClonesArray          *fJets;//!  jet array
-    TClonesArray          *fBGJets;//! background jets array
+    TClonesArray           *fTracksME;//! track collection to slim down for mixed events
+    TClonesArray           *fJets;//!  jet array
+    TClonesArray           *fBGJets;//! background jets array
     // added for Thomas - multiple jet collections
-    TClonesArray          *fJets1;//! jet array
-    TClonesArray          *fJets2;//! jet array
+    TClonesArray           *fJets1;//! jet array
+    TClonesArray           *fJets2;//! jet array
 
     // PicoDstMaker and PicoDst object pointer
-    StPicoDstMaker        *mPicoDstMaker;
-    StPicoDst             *mPicoDst;
-    StPicoEvent           *mPicoEvent;
-    StJetMakerTask        *JetMaker;
-    StJetMakerTask        *JetMakerBG;
-    StJetMakerTask        *JetMaker1; // for thomas, multiple jet collections
-    StJetMakerTask        *JetMaker2; // for thomas, multiple jet collection
-    StRho                 *RhoMaker;
-    StRho                 *RhoMaker1; // for thomas, multiple jet collections
-    StRho                 *RhoMaker2; // for thomas, multiple jet collections
-    StEventPlaneMaker     *EventPlaneMaker;
+    StPicoDstMaker         *mPicoDstMaker;
+    StPicoDst              *mPicoDst;
+    StPicoEvent            *mPicoEvent;
+    StJetMakerTask         *JetMaker;
+    StJetMakerTask         *JetMakerBG;
+    StJetMakerTask         *JetMaker1; // for thomas, multiple jet collections
+    StJetMakerTask         *JetMaker2; // for thomas, multiple jet collection
+    StRho                  *RhoMaker;
+    StRho                  *RhoMaker1; // for thomas, multiple jet collections
+    StRho                  *RhoMaker2; // for thomas, multiple jet collections
+    StEventPlaneMaker      *EventPlaneMaker;
 
     // position object
-    StEmcPosition2        *mEmcPosition;
+    StEmcPosition2         *mEmcPosition;
 
     // centrality objects
-    StRefMultCorr         *grefmultCorr;
-    StRefMultCorr         *refmultCorr;
-    StRefMultCorr         *refmult2Corr;
+    StRefMultCorr          *grefmultCorr;
+    StRefMultCorr          *refmultCorr;
+    StRefMultCorr          *refmult2Corr;
 
     // output file name string 
-    TString                mOutName;
-    TString                mOutNameEP;
-    TString                mOutNameQA;
+    TString                 mOutName;
+    TString                 mOutNameEP;
+    TString                 mOutNameQA;
 
     // maker names
-    TString                fJetMakerName;
-    TString                fJetBGMakerName;
-    TString                fRhoMakerName;
-    TString                fRhoSparseMakerName;
-    TString                fEventPlaneMakerName;
+    TString                 fJetMakerName;
+    TString                 fJetBGMakerName;
+    TString                 fRhoMakerName;
+    TString                 fRhoSparseMakerName;
+    TString                 fEventPlaneMakerName;
 
     // Rho objects
-    StRhoParameter        *GetRhoFromEvent(const char *name);
-    StRhoParameter        *fRho;//!<!          // event rho
-    StRhoParameter        *fRho1;//!<!         // temp for thomas
-    StRhoParameter        *fRho2;//!<!         // temp for thomas
-    Double_t               fRhoVal;//!<!       // event rho value, same for local rho
-    TString                fRhoName;///<       // rho name
+    StRhoParameter         *GetRhoFromEvent(const char *name);
+    StRhoParameter         *fRho;//!<!          // event rho
+    StRhoParameter         *fRho1;//!<!         // temp for thomas
+    StRhoParameter         *fRho2;//!<!         // temp for thomas
+    Double_t                fRhoVal;//!<!       // event rho value, same for local rho
+    TString                 fRhoName;///<       // rho name
 
     // add to histograms name
-    TString                fAddToHistogramsName; ///<  Add this string to histograms name.
+    TString                 fAddToHistogramsName; ///<  Add this string to histograms name.
 
     // counters 
-    Int_t                  mEventCounter;//!
-    Int_t                  mAllPVEventCounter;//!
-    Int_t                  mInputEventCounter;//!
+    Int_t                   mEventCounter;//!
+    Int_t                   mAllPVEventCounter;//!
+    Int_t                   mInputEventCounter;//!
 
     // counters get functions
     Int_t GetEventCounter()      {return mEventCounter;}
@@ -445,4 +452,5 @@ inline Double_t* StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t
   GenerateFixedBinArray(n, min, max, array);
   return array;
 }
+
 #endif

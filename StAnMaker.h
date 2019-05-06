@@ -71,6 +71,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -113,6 +114,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
@@ -131,6 +133,22 @@ class StAnMaker : public StJetFrameworkPicoBase {
     // jet histos
     TH1F *hJetPt;//!
     TH1F *hJetCorrPt;//!
+
+    // bad and dead tower list functions and arrays - add, reset, check (want to add these to base class)
+    void                   ResetBadTowerList( );
+    void                   ResetDeadTowerList( );
+    Bool_t                 AddBadTowers(TString csvfile);
+    Bool_t                 AddDeadTowers(TString csvfile);
+    Bool_t                 IsTowerOK( Int_t mTowId );
+    Bool_t                 IsTowerDead( Int_t mTowId );
+    std::set<Int_t>        badTowers;
+    std::set<Int_t>        deadTowers;
+
+    // bad run list - add, reset, check (want to add these to base class)
+    void                   ResetBadRunList( );
+    Bool_t                 AddBadRuns(TString csvfile);
+    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     // maker names
     TString                 fAnalysisMakerName;

@@ -138,6 +138,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doUseMainEPAngle = kFALSE;  // kTRUE: use 0.2-2.0 GeV charged tracks for event plane
+  doRejectBadRuns = kFALSE;
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -361,6 +362,25 @@ Int_t StMyAnalysisMaker3::Init() {
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
   //fJets->SetOwner(kTRUE);
+
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+  
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break; 
+  
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break; 
+  
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
+  }
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
@@ -1294,6 +1314,18 @@ Int_t StMyAnalysisMaker3::Make() {
     LOG_WARN << Form(" No fJets object! Skip! ") << endm;
     return kStWarn;
   }
+
+  // get base class pointer
+  // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
+  //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
+  //StJetFrameworkPicoBase *baseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  //if(!baseMaker) { cout<<"no baseMaker.. returning"<<endl;  return kStOK; }
+  //badTowers = baseMaker->GetBadTowers();
+  //for(int i = 0; i < 4800; i++) {
+  //  bool badtow = IsTowerOK(i);
+  //  if(!badtow) cout<<i<<", ";
+  //}  
+  //cout<<endl;
 
 /*
   // February 7th, 2019 - FIXME, fix this chunk!
@@ -3835,40 +3867,6 @@ Double_t StMyAnalysisMaker3::TestBool() {
   return kFALSE;
 }
 //
-// Function to check if Tower is OK or NOT
-//____________________________________________________________________________________________
-Bool_t StMyAnalysisMaker3::IsTowerOK( Int_t mTowId ){
-  //if( badTowers.size()==0 ){
-  if( badTowers.empty() ){
-    __ERROR("StMyAnalysisMaker3::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kTRUE;
-  }
-}
-//
-// Function to check if Tower is DEAD or NOT
-//____________________________________________________________________________________________
-Bool_t StMyAnalysisMaker3::IsTowerDead( Int_t mTowId ){
-  //if( deadTowers.size()==0 ){
-  if( deadTowers.empty() ){
-    __ERROR("StMyAnalysisMaker3::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( deadTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kTRUE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kFALSE;
-  }
-}
-//
 // function to calculate Jet v2 using the event plane method
 //____________________________________________________________________________________________
 void StMyAnalysisMaker3::GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin)
@@ -3921,4 +3919,177 @@ void StMyAnalysisMaker3::AddEventPoolsToOutput(Double_t minCent, Double_t maxCen
 
   // add vectors to output list
   fEventPoolOutputList.push_back(binVec);
+}
+//
+//____________________________________________________________________________
+void StMyAnalysisMaker3::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StMyAnalysisMaker3::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
+}
+//
+// Function to reset BAD Tower List
+//____________________________________________________________________________
+void StMyAnalysisMaker3::ResetBadTowerList( ){
+  badTowers.clear();
+}
+//
+// Add bad towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//______________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::AddBadTowers(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badTowers.insert( ientry );
+        __DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function to check if Tower is OK or NOT
+//____________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::IsTowerOK( Int_t mTowId ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
+    __ERROR("StMyAnalysisMaker3::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }
+}
+//
+// Function to reset Dead Tower List
+//____________________________________________________________________________
+void StMyAnalysisMaker3::ResetDeadTowerList( ){
+  deadTowers.clear();
+}
+//
+// Add dead towers from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//______________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::AddDeadTowers(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        deadTowers.insert( ientry );
+        __DEBUG(2, Form("Added bad tower # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function to check if Tower is DEAD or NOT
+//____________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::IsTowerDead( Int_t mTowId ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
+    __ERROR("StMyAnalysisMaker3::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
 }

@@ -23,3 +23,4 @@ readPicoDstJoel.C
 **Joel Mazer**
 
 ## Notes
+May 6th, 2019: added switch for loading and omitting bad runs

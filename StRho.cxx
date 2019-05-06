@@ -13,7 +13,7 @@
 #include "TH2F.h"
 #include "TVector3.h"
 
-// JetFramework includes
+// jet-framework includes
 #include "StJet.h"
 #include "StRhoParameter.h"
 #include "StJetMakerTask.h"
@@ -124,6 +124,7 @@ Int_t StRho::Finish() {
 void StRho::DeclareHistograms() {
     // weird that this next line is needed to remove cppcheck warning
     delete fHistMultvsRho;
+
     // mult was 150, 0, 1500
     fHistMultvsRho = new TH2F("fHistMultvsRho", "fHistMultvsRho", 160, 0., 800., 100, 0., 100.);
     fHistMultvsRho->GetXaxis()->SetTitle("Charged track multiplicity");

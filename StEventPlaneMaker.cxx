@@ -38,7 +38,7 @@
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 
-// my STAR includes
+// jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
 #include "StRho.h"
@@ -122,6 +122,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
+  doRejectBadRuns = kFALSE;
   fEmcTriggerEventType = 0; // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
   fMBEventType = 2;         // kVPDMB5
   fTriggerToUse = 0;        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
@@ -216,7 +217,6 @@ StEventPlaneMaker::~StEventPlaneMaker()
   if(hBBC_center_wy) delete hBBC_center_wy;
 
   if(bbc_res)        delete bbc_res;
-  if(zdc_psi)        delete zdc_psi;
   if(checkbbc)       delete checkbbc;
   if(psi2_tpc_bbc)   delete psi2_tpc_bbc;
   if(bbc_psi_e)      delete bbc_psi_e;
@@ -229,6 +229,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
   if(bbc_psi_fnl)    delete bbc_psi_fnl;
 
   if(zdc_res)        delete zdc_res;
+  if(zdc_psi)        delete zdc_psi;
   if(zdc_psi_e)      delete zdc_psi_e;
   if(zdc_psi_w)      delete zdc_psi_w;
   if(zdc_psi_evw)    delete zdc_psi_evw;
@@ -295,6 +296,25 @@ Int_t StEventPlaneMaker::Init() {
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
+
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+  
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break; 
+  
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break; 
+  
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
+  }
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
@@ -520,7 +540,6 @@ void StEventPlaneMaker::DeclareHistograms() {
 
   //// res_cen=new TProfile("res_cen","res vs. cen",10,0,10,-2,2);
   bbc_res = new TProfile("bbc_res", "", 10, 0, 10, -100, 100);
-  zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 2.5*pi);
   checkbbc = new TH1F("checkbbc", "difference between psi2 and bbc ps2", 288, -0.5*pi, 1.5*pi);
   psi2_tpc_bbc = new TH2F("psi2_tpc_bbc", "tpc psi2 vs. bbc psi2", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
   bbc_psi_e = new TH1F("bbc_psi_e", "bbc psi2", 288, -0.5*pi, 1.5*pi); // TODO - check order
@@ -533,7 +552,7 @@ void StEventPlaneMaker::DeclareHistograms() {
   bbc_psi_fnl = new TH1F("bbc_psi_fnl", "bbc psi2 corrected", 288, -0.5*pi, 1.5*pi); // TODO - check order
 
   zdc_res = new TProfile("zdc_res", "", 10, 0, 10, -100, 100);
-  //zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 1.5*pi);
+  zdc_psi = new TH1F("zdc_psi", "zdc psi1", 288, -0.5*pi, 2.5*pi); // -0.5, 1.5
   zdc_psi_e = new TH1F("zdc_psi_e", "zdc psi1", 288, -0.5*pi, 1.5*pi);
   zdc_psi_w = new TH1F("zdc_psi_w", "zdc psi1", 288, -0.5*pi, 1.5*pi);
   zdc_psi_evw = new TH2F("zdc_psi_evw", "zdc psi2 east vs. zdc psi2 west", 288, -0.5*pi, 1.5*pi, 288, -0.5*pi, 1.5*pi);
@@ -727,7 +746,6 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   }
 
   bbc_res->Write();
-  zdc_psi->Write();
   checkbbc->Write();
   psi2_tpc_bbc->Write();
   bbc_psi_e->Write();
@@ -740,6 +758,7 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   bbc_psi_fnl->Write();
 
   zdc_res->Write();
+  zdc_psi->Write();
   zdc_psi_e->Write();
   zdc_psi_w->Write();
   zdc_psi_evw->Write();
@@ -1259,7 +1278,6 @@ void StEventPlaneMaker::SetEPSumw2() {
 */
 
   bbc_res->Sumw2();
-  zdc_psi->Sumw2();
   checkbbc->Sumw2();
   psi2_tpc_bbc->Sumw2();
   bbc_psi_e->Sumw2();
@@ -1272,6 +1290,7 @@ void StEventPlaneMaker::SetEPSumw2() {
   bbc_psi_fnl->Sumw2();
 
   zdc_res->Sumw2();
+  zdc_psi->Sumw2();
   zdc_psi_e->Sumw2();
   zdc_psi_w->Sumw2();
   zdc_psi_evw->Sumw2();
@@ -3910,4 +3929,62 @@ Double_t StEventPlaneMaker::GetTPCShiftingValueNEW(Double_t tPhi_rcd, Int_t nhar
         } // METHOD switch
 
   return 0.0;
+}
+//
+//
+//____________________________________________________________________________
+void StEventPlaneMaker::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StEventPlaneMaker::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StEventPlaneMaker::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StEventPlaneMaker::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
 }

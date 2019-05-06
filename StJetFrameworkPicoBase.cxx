@@ -66,6 +66,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
+  fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
@@ -142,6 +144,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
+  fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
@@ -232,6 +236,28 @@ Int_t StJetFrameworkPicoBase::Init() {
       AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
   }
 */
+
+/*
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+  
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break; 
+  
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break; 
+  
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
+  }
+*/
+
 
 /*
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
@@ -1326,8 +1352,8 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(TVector3 &mom, const StPicoBTowHit* t
 
   return kTRUE;
 }
+
 //
-/*
 //____________________________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
   //if( badTowers.size()==0 ){
@@ -1370,6 +1396,7 @@ void StJetFrameworkPicoBase::ResetBadTowerList( ){
 // Add bad towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
+//____________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::AddBadTowers(TString csvfile){
   // open infile
   std::string line;
@@ -1404,6 +1431,7 @@ Bool_t StJetFrameworkPicoBase::AddBadTowers(TString csvfile){
 // Add dead towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
+//_________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::AddDeadTowers(TString csvfile){
   // open infile
   std::string line;
@@ -1439,7 +1467,7 @@ Bool_t StJetFrameworkPicoBase::AddDeadTowers(TString csvfile){
 void StJetFrameworkPicoBase::ResetDeadTowerList( ){
   deadTowers.clear();
 }
-*/
+
 //
 // function to convert 5% centrality to 10% bins
 // must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
@@ -1535,4 +1563,41 @@ Double_t StJetFrameworkPicoBase::ApplyTrackingEff(StPicoTrack *trk, Bool_t apply
 
   // return the single track reconstruction efficiency for the corresponding dataset
   return trEff;
+}
+//
+// Function: check for and reject bad runs
+//________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::RejectRun(int RunFlag, int nRun) const {
+  bool fRejectEvent = kFALSE;
+
+  int fBadRuns[] = {0,1};
+  //int *fBadRuns;
+
+  // RunFlag switch
+  switch(RunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
+        //fBadRuns = new int [3]; // FIXME 
+        break;
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        //fBadRuns = new int{0, 1, 4, 6};
+        break;
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        //fBadRuns = new int{1, 2, 3}; // FIXME
+        break;
+
+  } // RunFlag switch
+
+  size_t nBadRuns = sizeof(fBadRuns)/sizeof(fBadRuns[0]);
+
+  // loop over bad runs
+  for(int i = 0; i < nBadRuns; i++) {
+    // compare run to bad runs
+    if(nRun == fBadRuns[i]) { 
+      fRejectEvent = kTRUE;
+      break;
+    }
+  }
+
+
+  return fRejectEvent;
 }

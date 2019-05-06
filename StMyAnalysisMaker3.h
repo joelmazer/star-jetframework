@@ -95,6 +95,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
     virtual void            SetWriteJetQAHistograms(Bool_t w)  { doWriteJetQAHist = w; }
     virtual void            SetdoUseMainEPAngle(Bool_t m)      { doUseMainEPAngle = m; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -210,6 +211,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doUseMainEPAngle;        // use 0.2-2.0 GeV charged tracks for event plane
+    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
     Bool_t                  doIgnoreExternalME;      // does standared event mixing (without use of external approach)
 
     // cuts
@@ -427,10 +429,20 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TString                fEventMixerMakerName;
 
     // bad and dead tower list functions and arrays
-    Bool_t IsTowerOK( Int_t mTowId );
-    Bool_t IsTowerDead( Int_t mTowId );
-    std::set<Int_t> badTowers;
-    std::set<Int_t> deadTowers;
+    void                   ResetBadTowerList( );
+    void                   ResetDeadTowerList( );
+    Bool_t                 AddBadTowers(TString csvfile);
+    Bool_t                 AddDeadTowers(TString csvfile);
+    Bool_t                 IsTowerOK( Int_t mTowId );
+    Bool_t                 IsTowerDead( Int_t mTowId );
+    std::set<Int_t>        badTowers;
+    std::set<Int_t>        deadTowers;
+
+    // bad run list 
+    void                   ResetBadRunList( );
+    Bool_t                 AddBadRuns(TString csvfile);
+    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     // Event pool variables - TEST
     vector<vector<Double_t> >   fEventPoolOutputList; // vector representing a list of pools (given by value range) that will be saved

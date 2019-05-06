@@ -18,7 +18,14 @@ int tpc_recenter_getNP()
   //if(appendDate) { funcDate = Form("_STEP1_Feb1"); }
   //if(appendDate) { funcDate = Form("_STEP1_March30"); }
   //if(appendDate) { funcDate = Form("_STEP1_April28"); }
-  if(appendDate) { funcDate = Form("_STEP1_May14"); }
+  //if(appendDate) { funcDate = Form("_STEP1_May14"); }
+  //if(appendDate) { funcDate = Form("_STEP1_May26"); }
+  //if(appendDate) { funcDate = Form("_STEP1_May29"); }
+  //if(appendDate) { funcDate = Form("_STEP1_June6ch"); }  // charged jets
+  //if(appendDate) { funcDate = Form("_STEP1_June19_R02"); } // R=0.2 jets
+  //if(appendDate) { funcDate = Form("_STEP1_August28"); }
+  //if(appendDate) { funcDate = Form("_STEP1_Oct12_R03"); }   // R=0.3 jets
+  if(appendDate) { funcDate = Form("_STEP1_Dec4_R03"); }   // R=0.3 jets
 
   cout<<"funcbin = "<<funcBin<<endl;
   cout<<"funcDate = "<<funcDate<<endl;
@@ -31,8 +38,9 @@ int tpc_recenter_getNP()
   // "Method6": kRemoveLeadingSubJetConstituents
   const char *JetMethod = "";
   // add "_ch" to end for charged only jets
-  JetMethod = "_Method2ch_Run14"; // for charged jets
-  //JetMethod = "_Method2_Run14";  // TODO this will change for different methods
+  //JetMethod = "_Method2ch_Run14"; // for charged jets
+  //JetMethod = "_Method1_R03_Run14";  // TODO this will change for different methods
+  JetMethod = "_Method1_R03_Run14_NEW";  // TODO this will change for different methods
 
   // input calibration file with histograms
   //	TFile *f = new TFile("./Q_recentered.root");

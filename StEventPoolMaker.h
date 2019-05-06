@@ -20,7 +20,7 @@ class StPicoEvent;
 class StPicoTrack;
 class StRefMultCorr;
 
-// my STAR classes
+// jet-framework classes
 class StEventPoolManager;
 class StEventPool;
 

@@ -32,7 +32,7 @@
 #include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
 #include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
-// new includes
+// new STAR includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
@@ -41,6 +41,9 @@
 
 // old file kept
 #include "StPicoConstants.h"
+
+// extra includes
+#include "StJetPicoDefinitions.h"
 
 // centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -73,6 +76,7 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   grefmultCorrNEW = 0x0;
   mOutName = outName;
   fDoEffCorr = kFALSE;
+  doRejectBadRuns = kFALSE;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
@@ -121,6 +125,25 @@ Int_t StCentralityQA::Init() {
 
   // initialize the histograms
   DeclareHistograms();
+
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+  
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break; 
+  
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break; 
+  
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
+  }
 
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
@@ -721,4 +744,62 @@ void StCentralityQA::FillTowerTriggersArr() {
   }
 */
 
+}
+//
+//
+//____________________________________________________________________________
+void StCentralityQA::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StCentralityQA::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StCentralityQA::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StCentralityQA::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
 }

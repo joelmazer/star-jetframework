@@ -115,7 +115,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
 
         // input file for tests (based on Run) - updated for new Runs as needed - FIXME update for you own lists
         if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST) inputFile = "Run_15151042_files.list";;
+        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; //"Run_15151042_files.list";
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
@@ -138,6 +138,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if(RunYear == mRun12 && dopp) RunFlag = StJetFrameworkPicoBase::Run12_pp200;
         if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
         if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
+        Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
 
         // trigger flags - set as such
         // EmcTriggerEventType: selects which HT trigger to use
@@ -223,7 +224,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         jetTask->SetEmcTriggerEventType(EmcTriggerEventType);  // kIsHT1 or kIsHT2 or kIsHT3
         jetTask->SetTriggerToUse(TriggerToUse);
         jetTask->SetBadTowerListVers(TowerListToUse);
-        jetTask->SetdoConstituentSubtr(kFALSE); // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
+        jetTask->SetdoConstituentSubtr(kFALSE);  // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
+        jetTask->SetRejectBadRuns(RejectBadRuns);// switch to load and than omit bad runs
 
         // create JetFinder for background now (JetMakerBG) - background jets to be used in Rho Maker
         StJetMakerTask *jetTaskBG;
@@ -252,10 +254,11 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           jetTaskBG->SetTurnOnCentSelection(doCentSelection);
           jetTaskBG->SetCentralityBinCut(CentralitySelection);
           jetTaskBG->SetUseBBCCoincidenceRate(kFALSE);
-          jetTaskBG->SetEmcTriggerEventType(EmcTriggerEventType);  // kIsHT1 or kIsHT2 or kIsHT3
+          jetTaskBG->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
           jetTaskBG->SetTriggerToUse(TriggerToUse);
           jetTaskBG->SetBadTowerListVers(TowerListToUse);
           jetTaskBG->SetdoConstituentSubtr(kFALSE);
+          jetTaskBG->SetRejectBadRuns(RejectBadRuns);            // switch to load and than omit bad runs
         }
 
         bool dohisto = kFALSE;  // histogram switch for Rho Maker
@@ -275,23 +278,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         rhoTask->SetTurnOnCentSelection(doCentSelection);
         rhoTask->SetCentralityBinCut(CentralitySelection);
         rhoTask->SetUseBBCCoincidenceRate(kFALSE);
-
-/*
-        // Rho Sparse - for Ultra-peripheral centrality events
-        StRhoSparse *rhoTaskSparse = new StRhoSparse("StRhoSparse_JetsBG", kTRUE, outputFile, Form("%s", BGjetsName));
-        rhoTaskSparse->SetRunFlag(RunFlag);
-        rhoTaskSparse->SetdoppAnalysis(dopp);
-        rhoTaskSparse->SetCentralityDef(CentralityDefinition);
-        rhoTaskSparse->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
-        rhoTaskSparse->SetExcludeLeadJets(2);
-        rhoTaskSparse->SetJetMakerName("JetMaker");
-        rhoTaskSparse->SetJetBGMakerName("JetMakerBG");
-        rhoTaskSparse->SetDebugLevel(0); // 0 does nothing
-        rhoTaskSparse->SetTurnOnCentSelection(doCentSelection);
-        rhoTaskSparse->SetCentralityBinCut(CentralitySelection);
-        rhoTaskSparse->SetUseBBCCoincidenceRate(kFALSE);
-        //rhoTaskSparse->SetScaleFunction(sfunc); // don't NEED
-*/
+        rhoTask->SetRejectBadRuns(RejectBadRuns);     // switch to load and than omit bad runs
 
         // create the analysis maker!
         bool doCorrJetPt = kFALSE;
@@ -317,6 +304,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         anaMaker->SetTurnOnCentSelection(doCentSelection);    // run analysis for specific centrality: BOOLEAN
         anaMaker->SetCentralityBinCut(CentralitySelection);   // specific centrality range to run: if above is FALSE, this doesn't matter
         anaMaker->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
+        anaMaker->SetRejectBadRuns(RejectBadRuns);            // switch to load and than omit bad runs
         cout<<anaMaker->GetName()<<endl;  // print name of class instance
 
         // initialize chain

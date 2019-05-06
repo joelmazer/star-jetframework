@@ -91,12 +91,6 @@ class StPicoTrackClusterQA : public StMaker {
   void    DeclareHistograms();
   void    WriteHistograms();
 
-  // Use one set to reject bad towers
-  void ResetBadTowerList( );
-  void ResetDeadTowerList( );
-  Bool_t AddBadTowers(TString csvfile);
-  Bool_t AddDeadTowers(TString csvfile);
-
   // THnSparse Setup
   virtual THnSparse*      NewTHnSparseFTracks(const char* name, UInt_t entries);
   virtual void GetDimParamsTracks(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
@@ -115,7 +109,8 @@ class StPicoTrackClusterQA : public StMaker {
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
   virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
-  virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+  virtual void         SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+  virtual void         SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
   // track / cluster setters 
   virtual void         SetTrackPtRange(Double_t ptmi, Double_t ptma) { fTrackPtMinCut = ptmi; fTrackPtMaxCut = ptma; }
@@ -191,6 +186,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event cuts
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on) 
+  Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
   Double_t             fEventZVtxMinCut;        // min event z-vertex cut
   Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                fCentralitySelectionCut; // centrality selection cut
@@ -243,14 +239,14 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t               fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
   // Emc objects
-  StEmcGeom             *mGeom;
-  StEmcCollection       *mEmcCol; 
-  StBemcTables          *mBemcTables; 
+  StEmcGeom           *mGeom;
+  StEmcCollection     *mEmcCol; 
+  StBemcTables        *mBemcTables; 
   std::vector<BemcMatch> mBemcMatchedTracks;
 
-  towerMode              mTowerStatusMode;
-  Double_t               mTowerEnergyMin;
-  Float_t                mHadronicCorrFrac;
+  towerMode            mTowerStatusMode;
+  Double_t             mTowerEnergyMin;
+  Float_t              mHadronicCorrFrac;
 
  private:
   // OLD - part of tests
@@ -352,10 +348,20 @@ class StPicoTrackClusterQA : public StMaker {
   THnSparse      *fhnTowerQA;//!      // sparse of tower info
 
   // bad and dead tower list functions and arrays
-  Bool_t IsTowerOK( Int_t mTowId );
-  Bool_t IsTowerDead( Int_t mTowId );
-  std::set<Int_t> badTowers;
-  std::set<Int_t> deadTowers;
+  void                   ResetBadTowerList( );
+  void                   ResetDeadTowerList( );
+  Bool_t                 AddBadTowers(TString csvfile);
+  Bool_t                 AddDeadTowers(TString csvfile);
+  Bool_t                 IsTowerOK( Int_t mTowId );
+  Bool_t                 IsTowerDead( Int_t mTowId );
+  std::set<Int_t>        badTowers;
+  std::set<Int_t>        deadTowers;
+
+  // bad run list 
+  void                   ResetBadRunList( );
+  Bool_t                 AddBadRuns(TString csvfile);
+  Bool_t                 IsRunOK( Int_t mRunId );
+  std::set<Int_t>        badRuns;
 
   StPicoTrackClusterQA(const StPicoTrackClusterQA&);            // not implemented
   StPicoTrackClusterQA &operator=(const StPicoTrackClusterQA&); // not implemented

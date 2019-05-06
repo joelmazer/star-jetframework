@@ -25,7 +25,7 @@ class StPicoEvent;
 class StPicoTrack;
 class StRefMultCorr;
 
-// my STAR classes
+// jet-framework classes
 class StJetMakerTask;
 class StJet;
 class StRho;
@@ -94,7 +94,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
-    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // jet switches
     virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
@@ -182,6 +183,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doReadCalibFile;         // read calibration file switch
+    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
@@ -293,8 +295,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TProfile *hBBC_center_ey;//!
     TProfile *hBBC_center_wx;//!
     TProfile *hBBC_center_wy;//!
+
     TProfile *bbc_res;
-    TH1F *zdc_psi;//!
     TH1F *checkbbc;//!
     TH2F *psi2_tpc_bbc;//!
     TH1F *bbc_psi_e;//!
@@ -308,6 +310,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 
     //TH1F *zdc_psi;//! // declared already
     TProfile *zdc_res;//!
+    TH1F *zdc_psi;//!
     TH1F *zdc_psi_e;//!
     TH1F *zdc_psi_w;//!
     TH2F *zdc_psi_evw;//!
@@ -351,6 +354,12 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 //    TH1F                  *fDiffV3Resolution[9];//! difference of event plane angles for n=3
 //    TH1F                  *fDiffV4Resolution[9];//! difference of event plane angles for n=4
 //    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
+
+    // bad run list 
+    void                   ResetBadRunList( );
+    Bool_t                 AddBadRuns(TString csvfile);
+    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     // maker names
     TString                fAnalysisMakerName;

@@ -82,6 +82,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -158,6 +159,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
+  doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -338,6 +340,25 @@ Int_t StPicoTrackClusterQA::Init() {
       AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
   }
 
+  // Add bad run lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        break;
+  
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        break; 
+  
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
+        break; 
+  
+    default :
+      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
+  }
+
   // Centrality object setup
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
@@ -353,7 +374,7 @@ Int_t StPicoTrackClusterQA::Init() {
     case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
         break;
 
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14: 200 GeV AuAu
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -369,7 +390,7 @@ Int_t StPicoTrackClusterQA::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16: 200 GeV AuAu
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
@@ -2234,40 +2255,6 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
   return kFALSE;
 }
 //
-// Function to check if: mTowID is GOOD or BAD
-//____________________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
-  //if( badTowers.size()==0 ){
-  if( badTowers.empty() ){
-    __ERROR("StPicoTrackClusterQA::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kTRUE;
-  }
-}
-//
-// Function to check if: mTowID is DEAD or NOT
-//____________________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::IsTowerDead( Int_t mTowId ){
-  //if( deadTowers.size()==0 ){
-  if( deadTowers.empty() ){
-    __ERROR("StPicoTrackClusterQA::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( deadTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kTRUE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kFALSE;
-  }
-}
-//
 // Function to reset BAD Tower List
 //____________________________________________________________________________
 void StPicoTrackClusterQA::ResetBadTowerList( ){
@@ -2309,6 +2296,29 @@ Bool_t StPicoTrackClusterQA::AddBadTowers(TString csvfile){
   return kTRUE;
 }
 //
+// Function to check if: mTowID is GOOD or BAD
+//____________________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
+    __ERROR("StPicoTrackClusterQA::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }
+}
+//
+// Function to reset Dead Tower List
+//____________________________________________________________________________
+void StPicoTrackClusterQA::ResetDeadTowerList( ){
+  deadTowers.clear();
+}
+//
 // Add dead towers from comma separated values file
 // Can be split into arbitrary many lines
 // Lines starting with # will be ignored
@@ -2344,10 +2354,21 @@ Bool_t StPicoTrackClusterQA::AddDeadTowers(TString csvfile){
   return kTRUE;
 }
 //
-// Function to reset Dead Tower List
-//____________________________________________________________________________
-void StPicoTrackClusterQA::ResetDeadTowerList( ){
-  deadTowers.clear();
+// Function to check if: mTowID is DEAD or NOT
+//____________________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::IsTowerDead( Int_t mTowId ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
+    __ERROR("StPicoTrackClusterQA::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
 }
 //
 // Returns pt of hardest track in the event
@@ -2393,6 +2414,7 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
 void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
   // All non-test triggers for Run12
   // 27 entries, array goes from 0 - 26
+
   unsigned int triggers[] = {370001, 370011, 370021, 370022, 370031, 370032, 370301, 370341, 370361, 370501, 370511, 370521, 370522, 370531, 370541, 370542, 370546, 370601, 370611, 370621, 370641, 370701, 370801, 370980, 370981, 370982, 370983};
 
   // get trigger IDs from PicoEvent class and loop over them
@@ -2492,4 +2514,62 @@ Int_t StPicoTrackClusterQA::GetRunNo(int runid){
 
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
+}
+//
+//
+//____________________________________________________________________________
+void StPicoTrackClusterQA::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StPicoTrackClusterQA::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StPicoTrackClusterQA::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
 }

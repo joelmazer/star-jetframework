@@ -7,8 +7,8 @@
 int recenter_getAB()
 {
   // switch
-  bool doBBC = kFALSE; // ZDC
-//  bool doBBC = kTRUE;  // BBC
+//  bool doBBC = kFALSE; // ZDC
+  bool doBBC = kTRUE;  // BBC
   const char *method = "_Run14";
   
   // input calibration file with histograms
@@ -19,7 +19,10 @@ int recenter_getAB()
   // the bin# does not matter as it is only for TPC tracks not hit-based detectors like BBC and ZDC
 //  TFile *f = new TFile("./recenter_calib_file_bin0_STEP1_Jan20.root");
 //  TFile *f = new TFile("./recenter_calib_file_bin0_STEP1_Jan20.root");
-  TFile *f = new TFile("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file_bin0_STEP1_April28.root");
+//  TFile *f = new TFile("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file_bin0_STEP1_April28.root");
+//  TFile *f = new TFile("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file_bin0_STEP1_May26.root");
+  TFile *f = new TFile("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file_bin0_STEP1_May29.root");
+//  TFile *f = new TFile("/star/u/jmazer19/Y2017/STAR/temp/recenter_calib_file_STEP1_June19_R02.root");
 
   // output file
   if(doBBC){

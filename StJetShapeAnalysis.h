@@ -106,7 +106,8 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
-    virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
     virtual void            SetMinarackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -181,6 +182,7 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
+    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // cuts
     //Double_t                fMinPtJet;               // min jet pt to keep jet in output
@@ -190,65 +192,65 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Int_t                   fJetShapePtAssocBin;     // jet shape analysis - pt associated bin
 
     // event mixing
-    Int_t          fDoEventMixing;              // switch ON/off event mixing
-    Int_t          fMixingTracks;               // MAX # of mixing tracks to keep in pool, before removing old to add new
-    Int_t          fNMIXtracks;                 // MIN # of mixing track in pool before performing mixing
-    Int_t          fNMIXevents;                 // MIN # of mixing events in pool before performing mixing
-    Int_t          fCentBinSizeJS;              // centrality bin size of mixed event pools
-    Int_t          fReduceStatsCent;            // bins to use for reduced statistics of sparse
-    Bool_t         fDoFilterPtMixEvents;        // filter mixed event pool by pt (reduce memory) switch
-    Bool_t         fDoUseMultBins;              // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
+    Int_t                   fDoEventMixing;          // switch ON/off event mixing
+    Int_t                   fMixingTracks;           // MAX # of mixing tracks to keep in pool, before removing old to add new
+    Int_t                   fNMIXtracks;             // MIN # of mixing track in pool before performing mixing
+    Int_t                   fNMIXevents;             // MIN # of mixing events in pool before performing mixing
+    Int_t                   fCentBinSizeJS;          // centrality bin size of mixed event pools
+    Int_t                   fReduceStatsCent;        // bins to use for reduced statistics of sparse
+    Bool_t                  fDoFilterPtMixEvents;    // filter mixed event pool by pt (reduce memory) switch
+    Bool_t                  fDoUseMultBins;          // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
 
     // event selection types
-    UInt_t         fEmcTriggerEventType;        // Physics selection of event used for signal
-    UInt_t         fMBEventType;                // Physics selection of event used for MB
-    UInt_t         fMixingEventType;            // Physics selection of event used for mixed event
-    Int_t          fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
+    UInt_t                  fEmcTriggerEventType;    // Physics selection of event used for signal
+    UInt_t                  fMBEventType;            // Physics selection of event used for MB
+    UInt_t                  fMixingEventType;        // Physics selection of event used for mixed event
+    Int_t                   fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
     // tower to firing trigger type matched array
-    Bool_t         fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-    Bool_t         fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-    Bool_t         fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
 
     // used for event plane calculation and resolution
-    Double_t       fEventPlaneMaxTrackPtCut;    // max track pt cut for event plane calculation
-    Int_t          fHistCentBinMin;             // min centrality bin for histogram loop
-    Int_t          fHistCentBinMax;             // max centrality bin for histogram loop
-    Int_t          fHistZvertBinMin;            // min z-vertex bin for histogram loop
-    Int_t          fHistZvertBinMax;            // min z-vertex bin for histogram loop
+    Double_t                fEventPlaneMaxTrackPtCut;// max track pt cut for event plane calculation
+    Int_t                   fHistCentBinMin;         // min centrality bin for histogram loop
+    Int_t                   fHistCentBinMax;         // max centrality bin for histogram loop
+    Int_t                   fHistZvertBinMin;        // min z-vertex bin for histogram loop
+    Int_t                   fHistZvertBinMax;        // min z-vertex bin for histogram loop
 
     // global variables used with TPC event plane corrections
-    Double_t       TPC_PSI2;
-    Double_t       TPCA_PSI2;
-    Double_t       TPCB_PSI2;
-    Double_t       BBC_PSI2;
-    Double_t       ZDC_PSI2;
-    Double_t       BBC_PSI1;
-    Double_t       ZDC_PSI1;
-    Double_t       PSI2;
-    Double_t       RES;
+    Double_t                TPC_PSI2;
+    Double_t                TPCA_PSI2;
+    Double_t                TPCB_PSI2;
+    Double_t                BBC_PSI2;
+    Double_t                ZDC_PSI2;
+    Double_t                BBC_PSI1;
+    Double_t                ZDC_PSI1;
+    Double_t                PSI2;
+    Double_t                RES;
     // temp (possibly)
-    Double_t       TPC_raw_comb;
-    Double_t       TPC_raw_neg;
-    Double_t       TPC_raw_pos;
+    Double_t                TPC_raw_comb;
+    Double_t                TPC_raw_neg;
+    Double_t                TPC_raw_pos;
 
     // event pool
-    TClonesArray          *CloneAndReduceTrackList();
-    StEventPoolManager    *fPoolMgr;//!  // event pool Manager object
+    TClonesArray           *CloneAndReduceTrackList();
+    StEventPoolManager     *fPoolMgr;//!  // event pool Manager object
 
   private:
-    Int_t                  fRunNumber;
-    TString                fEPcalibFileName; 
-    Double_t               fEPTPCResolution;
-    Double_t               fEPTPCn;
-    Double_t               fEPTPCp;
-    Double_t               fEPTPC;
-    Double_t               fEPTPCcomb;
-    Double_t               fEPBBC;
-    Double_t               fEPZDC;
+    Int_t                   fRunNumber;
+    TString                 fEPcalibFileName; 
+    Double_t                fEPTPCResolution;
+    Double_t                fEPTPCn;
+    Double_t                fEPTPCp;
+    Double_t                fEPTPC;
+    Double_t                fEPTPCcomb;
+    Double_t                fEPBBC;
+    Double_t                fEPZDC;
 
     // switches
-    bool                   doComments;
+    bool                    doComments;
 
     // histograms
     TH1F *hEventPlane;//!   
@@ -323,6 +325,22 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     TH1F *hJetPtProfileBGCase1[4][4][4];//! jet profile case1 histograms in annuli bins
     TH1F *hJetPtProfileBGCase2[4][4][4];//! jet profile case2 histograms in annuli bins
     TH1F *hJetPtProfileBGCase3[4][4][4];//! jet profile case3 histograms in annuli bins
+
+    // bad and dead tower list functions and arrays
+    void                   ResetBadTowerList( );
+    void                   ResetDeadTowerList( );
+    Bool_t                 AddBadTowers(TString csvfile);
+    Bool_t                 AddDeadTowers(TString csvfile);
+    Bool_t                 IsTowerOK( Int_t mTowId );
+    Bool_t                 IsTowerDead( Int_t mTowId );
+    std::set<Int_t>        badTowers;
+    std::set<Int_t>        deadTowers;
+
+    // bad run list 
+    void                   ResetBadRunList( );
+    Bool_t                 AddBadRuns(TString csvfile);
+    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     // maker names
     TString                fAnalysisMakerName;

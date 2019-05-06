@@ -29,7 +29,7 @@
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 
-// my STAR includes
+// jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
@@ -46,7 +46,7 @@ ClassImp(StEventPoolMaker)
 //
 //__________________________________________________________________________________________
 StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
-  : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
+  : StJetFrameworkPicoBase(name)  //StMaker(name):
 {
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
@@ -320,6 +320,7 @@ void StEventPoolMaker::WriteHistograms() {
 // OLD user code says: //  Called every event after Make(). 
 //_____________________________________________________________________________
 void StEventPoolMaker::Clear(Option_t *opt) {
+
 }
 // 
 //  This method is called every event.
