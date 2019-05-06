@@ -20,7 +20,7 @@
 #include <THnSparse.h>
 #include "TVector3.h"
 
-// my includes
+// jet-framework includes
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StJetMakerTask.h"

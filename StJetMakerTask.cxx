@@ -95,6 +95,7 @@ StJetMakerTask::StJetMakerTask() :
   Bfield(0.0),
 //  mVertex(0x0),
   zVtx(0.0),
+  fRunNumber(0),
   fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
   fMBEventType(2),         // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
   fTriggerToUse(0),        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
@@ -185,6 +186,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   Bfield(0.0),
 //  mVertex(0x0),
   zVtx(0.0),
+  fRunNumber(0),
   fEmcTriggerEventType(0), // see StJetFrameworkPicoBase::fEMCTriggerFlagEnum
   fMBEventType(2),         // kVPDMB5, see StJetFrameworkPicoBase::fMBFlagEnum
   fTriggerToUse(0),        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
@@ -694,6 +696,12 @@ int StJetMakerTask::Make()
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
+  }
+
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV

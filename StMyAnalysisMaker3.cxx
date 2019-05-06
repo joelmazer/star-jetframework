@@ -1158,6 +1158,12 @@ Int_t StMyAnalysisMaker3::Make() {
     return kStWarn;
   }
 
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 35.0 GeV (30 Oct25, 2018)
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
@@ -1175,7 +1181,6 @@ Int_t StMyAnalysisMaker3::Make() {
 
   // get the Run #, fill, and event ID
   int RunId = mPicoEvent->runId();
-  fRunNumber = mPicoEvent->runId();
   int fillId = mPicoEvent->fillId();
   int eventId = mPicoEvent->eventId();
   double fBBCCoincidenceRate = mPicoEvent->BBCx();

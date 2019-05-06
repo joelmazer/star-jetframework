@@ -667,6 +667,12 @@ Int_t StJetShapeAnalysis::Make() {
     return kStWarn;
   }
 
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
@@ -683,7 +689,6 @@ Int_t StJetShapeAnalysis::Make() {
 
   // let me know the Run #, fill, and event ID
   int RunId = mPicoEvent->runId();
-  fRunNumber = mPicoEvent->runId();
   int fillId = mPicoEvent->fillId();
   int eventId = mPicoEvent->eventId();
   double fBBCCoincidenceRate = mPicoEvent->BBCx();

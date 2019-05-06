@@ -209,6 +209,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Double_t             Bfield;                  // event Bfield
   TVector3             mVertex;                 // event vertex 3-vector
   Double_t             zVtx;                    // z-vertex component
+  Int_t                fRunNumber;              // run number
 
   // event selection types
   UInt_t               fEmcTriggerEventType;    // Physics selection of event used for signal - HT or JP

@@ -659,6 +659,12 @@ int StPicoTrackClusterQA::Make()
     return kStWarn;
   }
 
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 

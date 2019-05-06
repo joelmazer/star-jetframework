@@ -283,6 +283,12 @@ Int_t StAnMaker::Make() {
     return kStWarn;
   }
 
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
@@ -298,7 +304,6 @@ Int_t StAnMaker::Make() {
 
   // get the Run #, fill, and event ID
   Int_t RunId = mPicoEvent->runId();
-  fRunNumber = mPicoEvent->runId();
   Int_t fillId = mPicoEvent->fillId();
   Int_t eventId = mPicoEvent->eventId();
   Double_t fBBCCoincidenceRate = mPicoEvent->BBCx();

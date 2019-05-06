@@ -15,10 +15,10 @@ class TH3F;
 
 // STAR classes
 class StMaker;
-class StRhoParameter;
-
-// classes for header
 class StRefMultCorr;
+
+// jet-framework classes
+class StRhoParameter;
 
 // might not want to inherit from 2 classes
 //class StRhoBase : public StJetMakerTask {
