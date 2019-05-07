@@ -33,6 +33,7 @@ class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
 
+// EMC and tower related classes
 class StEmcGeom;
 class StBemcTables; //v3.14
 class StEmcCluster;
@@ -61,7 +62,6 @@ struct BemcMatch {
   globalId(id), trackId(trkId), trackEta(trackEta), trackPhi(trackPhi), matchEta(matchEta), matchPhi(matchPhi) {};
   
 };
-
 
 class StPicoTrackClusterQA : public StMaker {
 //class StPicoTrackClusterQA : public StJetFrameworkPicoBase {
@@ -296,6 +296,16 @@ class StPicoTrackClusterQA : public StMaker {
   TH1            *fHistTriggerIDs;//!
 
   // event QA
+  TH1F           *fHistEventNTrig_MB30;//!
+  TH1F           *fHistEventNTrig_HT;//!
+  TProfile       *fProfEventRefMult_MB30;//!
+  TProfile       *fProfEventXvtx_MB30;//!
+  TProfile       *fProfEventYvtx_MB30;//!
+  TProfile       *fProfEventZvtx_MB30;//!
+  TProfile       *fProfEventRvtx_MB30;//!
+  TProfile       *fProfEventPerpvtx_MB30;//!
+  TProfile       *fProfEventBBCx_MB30;//!
+  TProfile       *fProfEventZDCx_MB30;//!
   TProfile       *fProfEventRefMult;//!
   TProfile       *fProfEventRanking;//!
   TProfile       *fProfEventZvtx;//!

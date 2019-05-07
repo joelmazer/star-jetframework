@@ -256,6 +256,15 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(hEmcTriggers)                    delete hEmcTriggers;
   if(fHistTriggerIDs)                 delete fHistTriggerIDs;
 
+  if(fHistEventNTrig_MB30)   delete fHistEventNTrig_MB30;
+  if(fHistEventNTrig_HT)     delete fHistEventNTrig_HT;
+  if(fProfEventXvtx_MB30)    delete fProfEventXvtx_MB30;
+  if(fProfEventYvtx_MB30)    delete fProfEventYvtx_MB30;
+  if(fProfEventZvtx_MB30)    delete fProfEventZvtx_MB30;
+  if(fProfEventRvtx_MB30)    delete fProfEventRvtx_MB30;
+  if(fProfEventPerpvtx_MB30) delete fProfEventPerpvtx_MB30;
+  if(fProfEventBBCx_MB30) delete fProfEventBBCx_MB30;
+  if(fProfEventZDCx_MB30) delete fProfEventZDCx_MB30;
   if(fProfEventRefMult) delete fProfEventRefMult;
   if(fProfEventRanking) delete fProfEventRanking;
   if(fProfEventZvtx) delete fProfEventZvtx;
@@ -487,7 +496,17 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
     fHistTriggerIDs = new TH1F("fHistTriggerIDs", "NTriggers vs trigger IDs", 30, 0.5, 30.5);
 
-    // event QA
+    // event QA histograms 
+    fHistEventNTrig_MB30 = new TH1F("fHistEventNTrig_MB30", "N triggered events for MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fHistEventNTrig_HT = new TH1F("fHistEventNTrig_HT", "N triggered events for HT (1, 2, 3) events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventRefMult_MB30 = new TProfile("fProfEventRefMult_MB30", "Event averaged refMult, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventZvtx_MB30 = new TProfile("fProfEventZvtx_MB30", "Event averaged primary z-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventYvtx_MB30 = new TProfile("fProfEventYvtx_MB30", "Event averaged primary y-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventXvtx_MB30 = new TProfile("fProfEventXvtx_MB30", "Event averaged primary x-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventRvtx_MB30 = new TProfile("fProfEventRvtx_MB30", "Event averaged primary R-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventPerpvtx_MB30 = new TProfile("fProfEventPerpvtx_MB30", "Event averaged primary perp-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventBBCx_MB30 = new TProfile("fProfEventBBCx_MB30", "Event averaged BBC coincidence rate, MB30 events", nRunBins, 0.5, nRunBinsMax);
+    fProfEventZDCx_MB30 = new TProfile("fProfEventZDCx_MB30", "Event averaged ZDC coincidence rate, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventRefMult = new TProfile("fProfEventRefMult", "Event averaged refMult", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
     fProfEventRanking = new TProfile("fProfEventRanking", "Event averaged vertex ranking", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
     fProfEventZvtx = new TProfile("fProfEventZvtx", "Event averaged primary z-Vertex", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
@@ -577,6 +596,18 @@ void StPicoTrackClusterQA::WriteHistograms() {
   hTriggerIds->Write();
   hEmcTriggers->Write();
   fHistTriggerIDs->Write();
+
+  // event QA histograms
+  fHistEventNTrig_MB30->Write();
+  fHistEventNTrig_HT->Write();
+  fProfEventRefMult_MB30->Write();
+  fProfEventZvtx_MB30->Write();
+  fProfEventYvtx_MB30->Write();
+  fProfEventXvtx_MB30->Write();
+  fProfEventRvtx_MB30->Write();
+  fProfEventPerpvtx_MB30->Write();
+  fProfEventBBCx_MB30->Write();
+  fProfEventZDCx_MB30->Write();
   fProfEventRefMult->Write();
   fProfEventRanking->Write();
   fProfEventZvtx->Write();
@@ -765,6 +796,23 @@ int StPicoTrackClusterQA::Make()
   if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
   if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
 
+  // check for HT event - only used for below historgrams
+  int RunId_Order = GetRunNo(fRunNumber);
+  bool fHaveHT1  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT1);
+  bool fHaveHT2  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);
+  bool fHaveHT3  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);
+  bool fHaveAnyHT= kFALSE;
+  if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
+
+  // MB30 and not HT events!!
+  if(fHaveMB30event && !fHaveAnyHT) {
+    fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1);
+  }
+  // HT and not MB30 events!!
+  if(!fHaveMB30event && fHaveAnyHT) {
+    fHistEventNTrig_HT->Fill(RunId_Order + 1., 1);
+  }
+
   // run tower QA for specific conditions
   if(fDoTowerQAforHT && fHaveEmcTrigger)  {
     RunEventQA();
@@ -950,6 +998,18 @@ void StPicoTrackClusterQA::SetSumw2() {
   hTriggerIds->Sumw2();
   hEmcTriggers->Sumw2();
   fHistTriggerIDs->Sumw2();
+
+  // event QA histograms
+  //fHistEventNTrig_MB30->Sumw2();
+  //fHistEventNTrig_HT->Sumw2();
+  //fProfEventRefMult_MB30->Sumw2();
+  //fProfEventZvtx_MB30->Sumw2();
+  //fProfEventYvtx_MB30->Sumw2();
+  //fProfEventXvtx_MB30->Sumw2();
+  //fProfEventRvtx_MB30->Sumw2();
+  //fProfEventPerpvtx_MB30->Sumw2();
+  //fProfEventBBCx_MB30->Sumw2();
+  //fProfEventZDCx_MB30->Sumw2();
   //fProfEventRefMult-Sumw2();
   //fProfEventRanking->Sumw2();
   //fProfEventZvtx->Sumw2();
@@ -2461,12 +2521,42 @@ void StPicoTrackClusterQA::RunEventQA() {
   float fZVtx = fPrimaryVertex.z();
   float fYVtx = fPrimaryVertex.y();
   float fXVtx = fPrimaryVertex.x();
+  float fPerp = fPrimaryVertex.Perp();
+  float fMag  = fPrimaryVertex.Mag();
   float fVzVPD = mPicoEvent->vzVpd();
   float ranking = mPicoEvent->ranking();
 
   // coincidence rates
   float fZDCx = mPicoEvent->ZDCx();
   float fBBCx = mPicoEvent->BBCx();
+
+  // =======================================================================================
+  // check for MB/HT event
+  bool fHaveMB30 = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
+  bool fHaveHT1  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT1);
+  bool fHaveHT2  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);
+  bool fHaveHT3  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);
+  bool fHaveAnyHT= kFALSE;
+  if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE; 
+
+  //bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  //if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  //if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
+
+  //  2. Run with 0 entries
+  //  3. Run without HT triggers
+  //  4. Run with less than 10 VPDMB30 events
+  if(fHaveMB30 && !fHaveAnyHT) {
+    fProfEventRefMult_MB30->Fill(RunId_Order + 1., refmult); // MB30: refmult
+    fProfEventXvtx_MB30->Fill(RunId_Order + 1., fXVtx);   // MB30: x-vert
+    fProfEventYvtx_MB30->Fill(RunId_Order + 1., fYVtx);   // MB30: y-vert
+    fProfEventZvtx_MB30->Fill(RunId_Order + 1., fZVtx);   // MB30: z-vert
+    fProfEventRvtx_MB30->Fill(RunId_Order + 1., fMag);    // MB30: R-vertex
+    fProfEventPerpvtx_MB30->Fill(RunId_Order + 1., fPerp); // MB30: transverse - vertex
+    fProfEventBBCx_MB30->Fill(RunId_Order + 1., fBBCx);  // MB30: BBC coincidence
+    fProfEventZDCx_MB30->Fill(RunId_Order + 1., fZDCx);  // MB30: ZDC coincidence
+  }
+  // =======================================================================================
 
   // print
   //if(TMath::Abs(fVzVPD) > 200)  cout<<"RefMult: "<<refmult<<"  Ranking: "<<ranking<<"  ZVtx: "<<fZVtx<<"  fVzVPD: "<<fVzVPD<<"  BBCx: "<<fBBCx<<"  ZDCx: "<<fZDCx<<endl;
