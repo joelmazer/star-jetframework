@@ -880,6 +880,7 @@ Centrality_def_grefmult_P17id_VpdMB30.txt - NEW (16)
     Double_t defaultPtBins[2] = {-9999., 9999.};
     Double_t* ptBins = defaultPtBins;
 
+    // check if fPoolMgr is set, else construct object
     if(!fPoolMgr) {
       cout<<"Don't have pre-existing fPoolMgr object, We will now create it!"<<endl;
       fPoolMgr = new StEventPoolManager(poolsize, trackDepth, nMultBinsJS, (Double_t*)multiplicityBinsJS, nZvBins, (Double_t*)zvBins, nEPBins, epBins, nPtBins, ptBins);
@@ -1129,6 +1130,7 @@ void StMyAnalysisMaker3::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StMyAnalysisMaker3::Make() {
+  // constants
   const double pi = 1.0*TMath::Pi();
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 

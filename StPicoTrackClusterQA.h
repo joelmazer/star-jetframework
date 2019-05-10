@@ -298,6 +298,15 @@ class StPicoTrackClusterQA : public StMaker {
   // event QA
   TH1F           *fHistEventNTrig_MB30;//!
   TH1F           *fHistEventNTrig_HT;//!
+  TH1F           *fHistRefMult_MB30;//!
+  TH1F           *fHistVzVPDVz_MB30;//!
+  TH2F           *fHistVyvsVx_MB30;//!
+  TH1F           *fHistRvtx_MB30;//!
+  TH1F           *fHistPerpvtx_MB30;//!
+  TH1F           *fHistZvtx_MB30;//!
+  TH1F           *fHistZDCx_MB30;//!
+  TH1F           *fHistEventID_MB30;//!
+  TH1F           *fHistRunID_MB30;//!
   TProfile       *fProfEventRefMult_MB30;//!
   TProfile       *fProfEventXvtx_MB30;//!
   TProfile       *fProfEventYvtx_MB30;//!

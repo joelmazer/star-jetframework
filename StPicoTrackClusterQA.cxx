@@ -258,6 +258,15 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
 
   if(fHistEventNTrig_MB30)   delete fHistEventNTrig_MB30;
   if(fHistEventNTrig_HT)     delete fHistEventNTrig_HT;
+  if(fHistRefMult_MB30) delete fHistRefMult_MB30;
+  if(fHistVzVPDVz_MB30) delete fHistVzVPDVz_MB30;
+  if(fHistVyvsVx_MB30)  delete fHistVyvsVx_MB30;
+  if(fHistRvtx_MB30)    delete fHistRvtx_MB30;
+  if(fHistPerpvtx_MB30) delete fHistPerpvtx_MB30;
+  if(fHistZvtx_MB30)    delete fHistZvtx_MB30;
+  if(fHistZDCx_MB30)    delete fHistZDCx_MB30;
+  if(fHistEventID_MB30) delete fHistEventID_MB30;
+  if(fHistRunID_MB30)   delete fHistRunID_MB30; 
   if(fProfEventXvtx_MB30)    delete fProfEventXvtx_MB30;
   if(fProfEventYvtx_MB30)    delete fProfEventYvtx_MB30;
   if(fProfEventZvtx_MB30)    delete fProfEventZvtx_MB30;
@@ -499,6 +508,15 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     // event QA histograms 
     fHistEventNTrig_MB30 = new TH1F("fHistEventNTrig_MB30", "N triggered events for MB30 events", nRunBins, 0.5, nRunBinsMax);
     fHistEventNTrig_HT = new TH1F("fHistEventNTrig_HT", "N triggered events for HT (1, 2, 3) events", nRunBins, 0.5, nRunBinsMax);
+    fHistRefMult_MB30 = new TH1F("fHistRefMult_MB30", "RefMult distribution, MB30 events", 140, 0., 700.);
+    fHistVzVPDVz_MB30 = new TH1F("fHistVzVPDVz_MB30", "Vz - VPDVz distribution, MB30 events", 65, -1100., 200.);
+    fHistVyvsVx_MB30 = new TH2F("fHistVyvsVx_MB30", "Vy vs Vx distribution, MB30 events", 160, -4.0, 4.0, 160, -4.0, 4.0);
+    fHistRvtx_MB30 = new TH1F("fHistRvtx_MB30", "Radial vertex distribution, MB30 events", 100, 0., 100.);
+    fHistPerpvtx_MB30 = new TH1F("fHistPerpvtx_MB30", "Perp-vertex distribution, MB30 events", 60, 0., 6.);
+    fHistZvtx_MB30 = new TH1F("fHistZvtx_MB30", "Z-vertex distribution, MB30 events", 100, -100., 100.);
+    fHistZDCx_MB30 = new TH1F("fHistZDCx_MB30", "Luminosity, ZDCx distribution, MB30 events", 1000, 15000., 65000.);
+    fHistEventID_MB30 = new TH1F("fHistEventID_MB30", "Event ID distribution", 140, 0., 7000000.0);
+    fHistRunID_MB30 = new TH1F("fHistRunID_MB30", "Run ID distribution", 200, 15000000., 15200000);
     fProfEventRefMult_MB30 = new TProfile("fProfEventRefMult_MB30", "Event averaged refMult, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventZvtx_MB30 = new TProfile("fProfEventZvtx_MB30", "Event averaged primary z-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventYvtx_MB30 = new TProfile("fProfEventYvtx_MB30", "Event averaged primary y-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
@@ -600,6 +618,15 @@ void StPicoTrackClusterQA::WriteHistograms() {
   // event QA histograms
   fHistEventNTrig_MB30->Write();
   fHistEventNTrig_HT->Write();
+  fHistRefMult_MB30->Write();
+  fHistVzVPDVz_MB30->Write();
+  fHistVyvsVx_MB30->Write();
+  fHistRvtx_MB30->Write();
+  fHistPerpvtx_MB30->Write();
+  fHistZvtx_MB30->Write();
+  fHistZDCx_MB30->Write();
+  fHistEventID_MB30->Write();
+  fHistRunID_MB30->Write();
   fProfEventRefMult_MB30->Write();
   fProfEventZvtx_MB30->Write();
   fProfEventYvtx_MB30->Write();
@@ -1000,8 +1027,17 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistTriggerIDs->Sumw2();
 
   // event QA histograms
-  //fHistEventNTrig_MB30->Sumw2();
-  //fHistEventNTrig_HT->Sumw2();
+  fHistEventNTrig_MB30->Sumw2();
+  fHistEventNTrig_HT->Sumw2();
+  fHistRefMult_MB30->Sumw2();
+  fHistVzVPDVz_MB30->Sumw2();
+  fHistVyvsVx_MB30->Sumw2();
+  fHistRvtx_MB30->Sumw2();
+  fHistPerpvtx_MB30->Sumw2();
+  fHistZvtx_MB30->Sumw2();
+  fHistZDCx_MB30->Sumw2();
+  fHistEventID_MB30->Sumw2();
+  fHistRunID_MB30->Sumw2();
   //fProfEventRefMult_MB30->Sumw2();
   //fProfEventZvtx_MB30->Sumw2();
   //fProfEventYvtx_MB30->Sumw2();
@@ -2509,6 +2545,7 @@ void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
 //________________________________________________________________________________________
 void StPicoTrackClusterQA::RunEventQA() {
   // get run ID, transform to run order for filling histogram of corrections
+  int fEventId = mPicoEvent->eventId();
   int fRunId = mPicoEvent->runId();
   int RunId_Order = GetRunNo(fRunId);// + 1;
   //if(RunId_Order < -1) return kStOK;
@@ -2543,18 +2580,27 @@ void StPicoTrackClusterQA::RunEventQA() {
   //if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
   //if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
 
-  //  2. Run with 0 entries
-  //  3. Run without HT triggers
-  //  4. Run with less than 10 VPDMB30 events
+  // MB30 histograms filled for QA
   if(fHaveMB30 && !fHaveAnyHT) {
+    fHistRefMult_MB30->Fill(refmult);        // MB30: refmult distribution
+    fHistVzVPDVz_MB30->Fill(fZVtx - fVzVPD); // MB30: Vz - VPDVz distribution
+    fHistVyvsVx_MB30->Fill(fXVtx, fYVtx);    // MB30: Vx vs Vy distribution
+    fHistRvtx_MB30->Fill(fMag);              // MB30: Radial vertex distribution
+    fHistPerpvtx_MB30->Fill(fPerp);          // MB30: Transverse vertex distribution
+    fHistZvtx_MB30->Fill(fZVtx);             // MB30: Vz distribution
+    fHistZDCx_MB30->Fill(fZDCx);             // MB30: ZDCx distribution
+    fHistEventID_MB30->Fill(fEventId);       // MB30: Event Id distribution
+    fHistRunID_MB30->Fill(fRunId);           // MB30: Run Id distribution
+
+    // profile plots, run-averaged
     fProfEventRefMult_MB30->Fill(RunId_Order + 1., refmult); // MB30: refmult
-    fProfEventXvtx_MB30->Fill(RunId_Order + 1., fXVtx);   // MB30: x-vert
-    fProfEventYvtx_MB30->Fill(RunId_Order + 1., fYVtx);   // MB30: y-vert
-    fProfEventZvtx_MB30->Fill(RunId_Order + 1., fZVtx);   // MB30: z-vert
-    fProfEventRvtx_MB30->Fill(RunId_Order + 1., fMag);    // MB30: R-vertex
-    fProfEventPerpvtx_MB30->Fill(RunId_Order + 1., fPerp); // MB30: transverse - vertex
-    fProfEventBBCx_MB30->Fill(RunId_Order + 1., fBBCx);  // MB30: BBC coincidence
-    fProfEventZDCx_MB30->Fill(RunId_Order + 1., fZDCx);  // MB30: ZDC coincidence
+    fProfEventXvtx_MB30->Fill(RunId_Order + 1., fXVtx);      // MB30: x-vert
+    fProfEventYvtx_MB30->Fill(RunId_Order + 1., fYVtx);      // MB30: y-vert
+    fProfEventZvtx_MB30->Fill(RunId_Order + 1., fZVtx);      // MB30: z-vert
+    fProfEventRvtx_MB30->Fill(RunId_Order + 1., fMag);       // MB30: R-vertex
+    fProfEventPerpvtx_MB30->Fill(RunId_Order + 1., fPerp);   // MB30: transverse - vertex
+    fProfEventBBCx_MB30->Fill(RunId_Order + 1., fBBCx);      // MB30: BBC coincidence
+    fProfEventZDCx_MB30->Fill(RunId_Order + 1., fZDCx);      // MB30: ZDC coincidence
   }
   // =======================================================================================
 
