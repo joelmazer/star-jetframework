@@ -96,19 +96,21 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
 
         // trigger flags - update default
-        Int_t EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT1 or kIsHT2 or kIsHT3 (set for Run14)
+        Int_t EmcTriggerEventType; // kIsHT1 or kIsHT2 or kIsHT3
         if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
+        if(RunYear == mRun14) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
         if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3;
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT
-        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
+        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
         Int_t TowerListToUse = 136; // Run14 136-122: jet-hadron, early jet shape // been using 51,  3, 79   - doesn't matter for charged jets
         if(dopp) TowerListToUse = 169;
         // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
         // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
+        // Run14 P18ih: 999 (initial) 
 
         // track flags
         bool usePrimaryTracks;

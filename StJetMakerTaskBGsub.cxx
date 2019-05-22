@@ -39,8 +39,6 @@
 
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
-//#include "StEmcUtil/projection/StEmcPosition.h"  // old
-//class StEmcPosition; // old
 #include "StEmcPosition2.h"
 //class StEmcPosition2;
 
@@ -124,6 +122,10 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fTrackEfficiency(1.),
   fJetTowerEMin(0.2),
   fJetTowerEMax(100.0),
+  fTrackEtaMin(-1.0),
+  fTrackEtaMax(1.0),
+  fTrackPhiMin(0.0),
+  fTrackPhiMax(2.0*TMath::Pi()),
   fJetTowerEtaMin(-1.0),
   fJetTowerEtaMax(1.0),
   fJetTowerPhiMin(0.0),
@@ -205,6 +207,10 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
   fMinJetTowerE(0.2),
+  fTrackEtaMin(-1.0),
+  fTrackEtaMax(1.0),
+  fTrackPhiMin(0.0),
+  fTrackPhiMax(2.0*TMath::Pi()),
   fJetTrackEtaMin(-1.0), 
   fJetTrackEtaMax(1.0),
   fJetTrackPhiMin(0.0),
@@ -634,6 +640,12 @@ int StJetMakerTaskBGsub::Make()
     mTowerStatusArr[i] = kFALSE;
   }
 
+  // get base class pointer
+  // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
+  //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
+  StJetFrameworkPicoBase *baseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!baseMaker) { cout<<"no baseMaker.. returning"<<endl;  return kStOK; }
+
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -724,11 +736,13 @@ int StJetMakerTaskBGsub::Make()
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
-  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
-  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
-  //bool fHaveAnyEvent = kTRUE;
+  // NEED to ADD new triggers and runs to StJetFrameworkPicoBase class !!
+  // different access method because this class doesn't inherit from base
+  bool fHaveMBevent    = baseMaker->CheckForMB(fRunFlag, fMBEventType);
+  bool fHaveMB5event   = baseMaker->CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
+  bool fHaveMB30event  = baseMaker->CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
+  bool fHaveEmcTrigger = baseMaker->CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveAnyEvent   = kTRUE;
 
   // fill trigger array
   FillEmcTriggersArr();
@@ -1233,6 +1247,48 @@ Bool_t StJetMakerTaskBGsub::IsLocked() const
   }
 }
 //
+// Function: track quality cuts
+//________________________________________________________________________
+Bool_t StJetMakerTaskBGsub::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
+  // constants: assume neutral pion mass
+  ///double pi0mass = Pico::mMass[0]; // GeV
+  double pi = 1.0*TMath::Pi();
+
+  // get momentum vector of track - global or primary track
+  TVector3 mTrkMom;
+  if(doUsePrimTracks) {
+    if(!(trk->isPrimary())) return kFALSE; // check if primary
+    // get primary track vector
+    mTrkMom = trk->pMom();
+  } else {
+    // get global track vector
+    mTrkMom = trk->gMom(Vert, B);
+  }
+
+  // track variables
+  double pt = mTrkMom.Perp();
+  double phi = mTrkMom.Phi();
+  double eta = mTrkMom.PseudoRapidity();
+  double dca = trk->gDCA(Vert).Mag();
+  int nHitsFit = trk->nHitsFit();
+  int nHitsMax = trk->nHitsMax();
+  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
+
+  // track acceptance cuts now - note difference from AcceptJetTrack()
+  if((eta < fTrackEtaMin) || (eta > fTrackEtaMax)) return kFALSE;
+  if(phi < 0.0)    phi += 2.0*pi;
+  if(phi > 2.0*pi) phi -= 2.0*pi;
+  if((phi < fTrackPhiMin) || (phi > fTrackPhiMax)) return kFALSE;
+
+  // additional quality cuts for tracks
+  if(dca > fJetTrackDCAcut)            return kFALSE;
+  if(nHitsFit < fJetTracknHitsFit)     return kFALSE;
+  if(nHitsRatio < fJetTracknHitsRatio) return kFALSE;
+
+  // passed all above cuts - keep track and fill input vector to fastjet
+  return kTRUE;
+}
+//
 // Function: jet track quality cuts
 //________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
@@ -1473,238 +1529,6 @@ Bool_t StJetMakerTaskBGsub::GetMomentum(TVector3 &mom, const StPicoBTowHit* towe
 //
 //
 //_________________________________________________________________________
-Bool_t StJetMakerTaskBGsub::CheckForMB(int RunFlag, int type) {
-  // Run11 triggers: pp
-  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
-
-  // Run12 (200 GeV pp) triggers: 1) VPDMB
-  int arrMB_Run12[] = {370001, 370011, 370983};
-
-  // Run13 triggers: pp
-  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
-
-  // Run14 triggers: 200 GeV AuAu
-  int arrMB_Run14[] = {450014};
-  int arrMB30_Run14[] = {450010, 450020};
-  int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-  // additional 30: 4, 5, 450201, 450202, 450211, 450212
-  // 1: VPDMB-5   Run:            15075055 - 15076099
-  // 1: VPDMB-5-p-nobsmd-hlt Run: 15081020 - 15090048
-  // 4: VPDMB-5-p-nobsmd-hlt Run: 15090049 - 15167007
-
-  // Run16 triggers: 200 GeV AuAu
-  int arrMB_Run16[] = {520021};
-  int arrMB5_Run16[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-  int arrMB10_Run16[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-
-  // Run17 triggers: 510 GeV pp
-  int arrMB30_Run17[] = {570001, 590001};
-  int arrMB100_Run17[] = {590002};
-  int arrMBnovtx_Run17[] = {55, 570004};
-
-  // run flag selection to check for MB firing
-  switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11 pp
-        switch(type) {
-          case StJetFrameworkPicoBase::kVPDMB :
-              if((DoComparison(arrMB_Run11, sizeof(arrMB_Run11)/sizeof(*arrMB_Run11)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run11, sizeof(arrMB_Run11)/sizeof(*arrMB_Run11)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kRun12main :  // update if needed
-              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB :
-              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13 pp
-        switch(type) {
-          case StJetFrameworkPicoBase::kVPDMB :
-              if((DoComparison(arrMB_Run13, sizeof(arrMB_Run13)/sizeof(*arrMB_Run13)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run13, sizeof(arrMB_Run13)/sizeof(*arrMB_Run13)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        switch(type) { 
-          case StJetFrameworkPicoBase::kRun14main :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run14, sizeof(arrMB5_Run14)/sizeof(*arrMB5_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB30 :
-              if((DoComparison(arrMB30_Run14, sizeof(arrMB30_Run14)/sizeof(*arrMB30_Run14)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run14, sizeof(arrMB_Run14)/sizeof(*arrMB_Run14)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kRun16main :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB5 :
-              if((DoComparison(arrMB5_Run16, sizeof(arrMB5_Run16)/sizeof(*arrMB5_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB10 :
-              if((DoComparison(arrMB10_Run16, sizeof(arrMB10_Run16)/sizeof(*arrMB10_Run16)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB_Run16, sizeof(arrMB_Run16)/sizeof(*arrMB_Run16)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kVPDMB30 :
-              if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMB100 :
-              if((DoComparison(arrMB100_Run17, sizeof(arrMB100_Run17)/sizeof(*arrMB100_Run17)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kVPDMBnovtx :
-              if((DoComparison(arrMBnovtx_Run17, sizeof(arrMBnovtx_Run17)/sizeof(*arrMBnovtx_Run17)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrMB30_Run17, sizeof(arrMB30_Run17)/sizeof(*arrMB30_Run17)))) { return kTRUE; }
-        }
-        break;
-
-  } // RunFlag switch
-
-  // return status
-  return kFALSE;
-
-} // MB function
-//
-//
-// check to see if the event was EMC triggered for High Towers
-//____________________________________________________________________________
-Bool_t StJetMakerTaskBGsub::CheckForHT(int RunFlag, int type) {
-  // Run12 (200 GeV pp) triggers:
-  int arrHT1_Run12[] = {370511, 370546};
-  int arrHT2_Run12[] = {370521, 370522, 370531, 370980};
-  int arrHT3_Run12[] = {380206, 380216}; // NO HT3 triggers in this dataset
-
-  // Run14 triggers:
-  int arrHT1_Run14[] = {450201, 450211, 460201};
-  int arrHT2_Run14[] = {450202, 450212, 460202, 460212};
-  int arrHT3_Run14[] = {450203, 450213, 460203};
-
-  // Run16 triggers:
-  int arrHT1_Run16[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-  int arrHT2_Run16[] = {530202, 540203};
-  int arrHT3_Run16[] = {520203, 530213};
-
-  // Run17 triggers: (HT1 and HT2 not exclusive)
-  int arrHT1_Run17[] = {29, 570204, 570214};
-  int arrHT2_Run17[] = {30, 31, 570205, 570215};
-  int arrHT3_Run17[] = {16, 570201, 590201};
-
-  // run flag selection to check for MB firing
-  switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
-              if((DoComparison(arrHT1_Run12, sizeof(arrHT1_Run12)/sizeof(*arrHT1_Run12)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT2 :
-              if((DoComparison(arrHT2_Run12, sizeof(arrHT2_Run12)/sizeof(*arrHT2_Run12)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT3 :
-              if((DoComparison(arrHT3_Run12, sizeof(arrHT3_Run12)/sizeof(*arrHT3_Run12)))) { return kTRUE; }
-              break;
-          default :
-              if((DoComparison(arrHT2_Run12, sizeof(arrHT2_Run12)/sizeof(*arrHT2_Run12)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
-              if((DoComparison(arrHT1_Run14, sizeof(arrHT1_Run14)/sizeof(*arrHT1_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT2 :
-              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT3 :
-              if((DoComparison(arrHT3_Run14, sizeof(arrHT3_Run14)/sizeof(*arrHT3_Run14)))) { return kTRUE; }
-              break;
-          default :  // default to HT2
-              if((DoComparison(arrHT2_Run14, sizeof(arrHT2_Run14)/sizeof(*arrHT2_Run14)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
-              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT2 :
-              if((DoComparison(arrHT2_Run16, sizeof(arrHT2_Run16)/sizeof(*arrHT2_Run16)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT3 :
-              if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run16)/sizeof(*arrHT3_Run16)))) { return kTRUE; }
-              break;
-          default :  // Run16 only has HT1's
-              if((DoComparison(arrHT1_Run16, sizeof(arrHT1_Run16)/sizeof(*arrHT1_Run16)))) { return kTRUE; }
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17 pp (510 GeV)
-        switch(type) {
-          case StJetFrameworkPicoBase::kIsHT1 :
-              if((DoComparison(arrHT1_Run17, sizeof(arrHT1_Run17)/sizeof(*arrHT1_Run17)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT2 :
-              if((DoComparison(arrHT2_Run17, sizeof(arrHT2_Run17)/sizeof(*arrHT2_Run17)))) { return kTRUE; }
-              break;
-          case StJetFrameworkPicoBase::kIsHT3 :
-              if((DoComparison(arrHT3_Run16, sizeof(arrHT3_Run17)/sizeof(*arrHT3_Run17)))) { return kTRUE; }
-              break;
-          default : // HT3
-              if((DoComparison(arrHT3_Run17, sizeof(arrHT3_Run17)/sizeof(*arrHT3_Run17)))) { return kTRUE; }
-        }
-        break;
-
-  } // RunFlag switch
-
-  return kFALSE;
-}
-//
-//
-//________________________________________________________________________
-Bool_t StJetMakerTaskBGsub::DoComparison(int myarr[], int elems) {
-  //std::cout << "Length of array = " << (sizeof(myarr)/sizeof(*myarr)) << std::endl;
-  bool match = kFALSE;
-
-  // loop over specific physics selection array and compare to specific event trigger
-  for(int i = 0; i < elems; i++) {
-    if(mPicoEvent->isTrigger(myarr[i])) match = kTRUE;
-    if(match) break;
-  }
-  //cout<<"elems: "<<elems<<"  match: "<<match<<endl;
-
-  return match;
-}
-//
-//
-//_________________________________________________________________________
 void StJetMakerTaskBGsub::FillEmcTriggersArr() {
   // zero out trigger array and get number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = kFALSE; }
@@ -1757,7 +1581,7 @@ Double_t StJetMakerTaskBGsub::GetMaxTrackPt()
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
-    if(!(AcceptJetTrack(track, Bfield, mVertex))) { continue; }
+    if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
 
     // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;

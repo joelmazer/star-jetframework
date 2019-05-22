@@ -17,12 +17,21 @@ class StEmcPosition2;
 class TClonesArray;
 class TObjArray;
 class TList;
+class TF1;
 class TH1;
+class TH1F;
 class TH2;
+class TH2F;
+class TH3;
+class TProfile;
+class TString;
 
 // STAR classes
 class StPicoDst;
 class StPicoDstMaker;
+class StPicoEvent;
+class StPicoTrack;
+class StPicoBTowHit;
 
 // Jet classes
 class StFJWrapper;
@@ -35,7 +44,7 @@ class StRefMultCorr;
 #include "StFJWrapper.h"
 #include "FJ_includes.h"
 #include "StJet.h"
-#include "StMyAnalysisMaker.h"
+#include "StJetFrameworkPicoBase.h"
 
 namespace fastjet {
   class PseudoJet;
@@ -117,6 +126,10 @@ class StJetMakerTask : public StMaker {
   virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
+
+  // track setters
+  void         SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMin = etmi; fTrackEtaMax = etma; }
+  void         SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMax = ptmi; fTrackPhiMax = ptma; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -210,14 +223,12 @@ class StJetMakerTask : public StMaker {
   //Int_t FindJets(); // use this if want to return NJets found
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
-  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
-  Bool_t                 AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // tower accept cuts function
+  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // track accept cuts function
+  Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // jet track accept cuts function
+  Bool_t                 AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // jet tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
-  Bool_t                 CheckForMB(int RunFlag, int type);
-  Bool_t                 CheckForHT(int RunFlag, int type);
-  Bool_t                 DoComparison(int myarr[], int elems);
   void                   FillEmcTriggersArr();
   Double_t               GetMaxTrackPt();
   void                   RunEventQA();
@@ -305,6 +316,10 @@ class StJetMakerTask : public StMaker {
   Double_t               fMinJetClusPt;           // min jet cluster transverse momentum cut
   Double_t               fMinJetClusE;            // min jet cluster energy cut
   Double_t               fMinJetTowerE;           // min jet tower energy cut - not used (use mTowerEnergyMin)
+  Double_t               fTrackEtaMin;            // min track eta cut
+  Double_t               fTrackEtaMax;            // max track eta cut
+  Double_t               fTrackPhiMin;            // min track phi cut
+  Double_t               fTrackPhiMax;            // max track phi cut
   Double_t               fJetTrackEtaMin;         // min jet track eta cut
   Double_t               fJetTrackEtaMax;         // max jet track eta cut
   Double_t               fJetTrackPhiMin;         // min jet track phi cut

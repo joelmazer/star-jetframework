@@ -196,6 +196,11 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst");   // reading Pico's
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
+        // create base class maker pointer, TEST
+        StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase("baseClassMaker");
+        baseMaker->SetRunFlag(RunFlag);           // run flag (year)
+        baseMaker->SetBadTowerListVers(TowerListToUse);
+        
         // create JetFinder first (JetMaker)
         // task Name, track constituent cut, doHistos, output file name
         StJetMakerTask *jetTask = new StJetMakerTask("JetMaker", fJetConstituentCut, kTRUE, outputFile);

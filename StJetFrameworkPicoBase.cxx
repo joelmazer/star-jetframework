@@ -1078,9 +1078,11 @@ Bool_t StJetFrameworkPicoBase::DoComparison(int myarr[], int elems) {
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) { LOG_WARN << " No PicoDstMaker! Skip! " << endm;  return kStWarn; }
+
   // construct PicoDst object from maker
   mPicoDst = static_cast<StPicoDst*>(mPicoDstMaker->picoDst());
   if(!mPicoDst) { LOG_WARN << " No PicoDst! Skip! " << endm; return kStWarn; }
+
   // create pointer to PicoEvent 
   mPicoEvent = static_cast<StPicoEvent*>(mPicoDst->event());
   if(!mPicoEvent) { LOG_WARN << " No PicoEvent! Skip! " << endm; return kStWarn; }
@@ -1102,19 +1104,22 @@ Bool_t StJetFrameworkPicoBase::DoComparison(int myarr[], int elems) {
 //_________________________________________________________________________
 Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   // Run11 triggers: pp
-  int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
+  int arrMB_Run11[] = {320000, 320001, 320011, 320021, 330021};
 
   // Run12 (200 GeV pp) triggers: 1) VPDMB, 2) vpd-zdc-mb
   int arrMB_Run12[] = {370001, 370011, 370983};
 
   // Run13 triggers: pp
-  int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
+  int arrMB_Run13[] = {430001, 430011, 430021, 430031};
 
   // Run14 triggers: 200 GeV AuAu
   int arrMB_Run14[] = {450014};
   int arrMB30_Run14[] = {450010, 450020};
   int arrMB5_Run14[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-  // additional 30: 4, 5, 450201, 450202, 450211, 450212
+  // additional 30: 450201, 450202, 450211, 450212
+  // 1: VPDMB-5   Run:            15075055 - 15076099
+  // 1: VPDMB-5-p-nobsmd-hlt Run: 15081020 - 15090048
+  // 4: VPDMB-5-p-nobsmd-hlt Run: 15090049 - 15167007
 
   // Run16 triggers: 200 GeV AuAu
   int arrMB_Run16[] = {520021};
@@ -1124,7 +1129,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   // Run17 triggers: 510 GeV pp
   int arrMB30_Run17[] = {570001, 590001};
   int arrMB100_Run17[] = {590002};
-  int arrMBnovtx_Run17[] = {55, 570004};
+  int arrMBnovtx_Run17[] = {570004};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1234,9 +1239,9 @@ Bool_t StJetFrameworkPicoBase::CheckForHT(int RunFlag, int type) {
   int arrHT3_Run16[] = {520203, 530213};
 
   // Run17 triggers: (HT1 and HT2 not exclusive) 510 GeV pp
-  int arrHT1_Run17[] = {29, 570204, 570214};
-  int arrHT2_Run17[] = {30, 31, 570205, 570215};
-  int arrHT3_Run17[] = {16, 570201, 590201};
+  int arrHT1_Run17[] = {570204, 570214};
+  int arrHT2_Run17[] = {570205, 570215};
+  int arrHT3_Run17[] = {570201, 590201};
 
   // run flag selection to check for MB firing
   switch(RunFlag) {
@@ -1487,7 +1492,7 @@ Int_t StJetFrameworkPicoBase::GetCentBin10(Int_t cbin) const {
 }
 //
 // Returns pt of hardest track in the event
-//
+//__________________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
 {
   // get # of tracks

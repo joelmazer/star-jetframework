@@ -317,7 +317,7 @@ void LoadLibs()
   gSystem->Load("$FASTJET/lib/libfastjetcontribfragile");
 
   // add include path to use its functionality
-  gSystem->AddIncludePath("-I/global/homes/j/jmazer/STAR/Y2017/mytestinstalldir/FastJet/fastjet-install/include");
+  gSystem->AddIncludePath("-I/star/u/jmazer19/Y2017/STAR/FastJet/fastjet-install/include");
 
   // load the system libraries - these were defaults
   gROOT->LoadMacro("$STAR/StRoot/StMuDSTMaker/COMMON/macros/loadSharedLibraries.C");
