@@ -729,46 +729,6 @@ void StAnMaker::FillEmcTriggers() {
     if(emcTrig->isJP2()) { fEmcTriggerArr[StJetFrameworkPicoBase::kIsJP2] = 1; }
   }
 }
-
-//
-// this function is not used in this class, but kept to keep track of the USEFUL triggers from various Runs 
-//_____________________________________________________________________________
-void StAnMaker::FillEventTriggerQA() {
-  // Run12 pp 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    int arrHT1[] = {370511, 370546, 390203};
-    int arrHT2[] = {370521, 370522, 370531, 370980, 380204, 380205, 380207, 380208};
-    //int arrHT3[] = {380206, 380216}; // NO HT3 triggers in this dataset
-    int arrMB[] = {370001, 370011, 370983, 380001, 380002, 380005};
-  }
-
-  // Run14 AuAu 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212, 460202, 460212};
-    int arrBHT3[] = {460203, 450213, 460203};
-    int arrMB[] = {450014};
-    int arrMB30[] = {450010, 450020};
-    int arrCentral5[] = {450010, 450020};
-    int arrCentral[] = {460101, 460111};
-    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // hard-coded trigger Ids for run16
-    int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {530202, 540203};
-    int arrBHT3[] = {520203, 530213};
-    int arrMB[] = {520021};
-    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
-  }
-
-}
-
 //
 // elems: sizeof(myarr)/sizeof(*myarr) prior to passing to function
 // upon passing the array collapses to a pointer and can not get size anymore

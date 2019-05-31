@@ -50,17 +50,13 @@
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
-// my STAR includes
+// jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h" // Run12 pp
-#include "runlistP16ij.h"
-#include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
 // include header that has all the event plane correction headers - with calibration/correction values
 #include "StPicoEPCorrectionsIncludes.h"
@@ -77,7 +73,7 @@ ClassImp(StMyAnalysisMaker)
 //
 //________________________________________________________________________________________
 StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
-  : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
+  : StJetFrameworkPicoBase(name)
 {
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0; 
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
@@ -196,65 +192,65 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
   if(hEventPlane)    delete hEventPlane;
   if(fHistEPTPCnAlt) delete fHistEPTPCnAlt;
   if(fHistEPTPCpAlt) delete fHistEPTPCpAlt;
-  delete fHistEPTPCn;
-  delete fHistEPTPCp;
-  delete fHistEPBBC;
-  delete fHistEPZDC;
-  delete hEventZVertex;
-  delete hCentrality;
-  delete hMultiplicity;
-  delete hRhovsCent;
+  if(fHistEPTPCn)    delete fHistEPTPCn;
+  if(fHistEPTPCp)    delete fHistEPTPCp;
+  if(fHistEPBBC)     delete fHistEPBBC;
+  if(fHistEPZDC)     delete fHistEPZDC;
+  if(hEventZVertex)  delete hEventZVertex;
+  if(hCentrality)    delete hCentrality;
+  if(hMultiplicity)  delete hMultiplicity;
+  if(hRhovsCent)     delete hRhovsCent;
   for(int i=0; i<9; i++){ // centrality
-    delete hTrackPhi[i];
-    delete hTrackEta[i];
-    delete hTrackPt[i];
+    if(hTrackPhi[i]) delete hTrackPhi[i];
+    if(hTrackEta[i]) delete hTrackEta[i];
+    if(hTrackPt[i])  delete hTrackPt[i];
   }
-  delete hTrackEtavsPhi;
+  if(hTrackEtavsPhi) delete hTrackEtavsPhi;
 
-  delete hJetPt;
-  delete hJetCorrPt;
-  delete hJetPt2;
-  delete hJetE;
-  delete hJetEta;
-  delete hJetPhi;
-  delete hJetNEF;
-  delete hJetArea;
-  delete hJetTracksPt;
-  delete hJetTracksPhi;
-  delete hJetTracksEta;
-  delete hJetTracksZ;
-  delete hJetPtvsArea;
-  delete hJetEventEP;
-  delete hJetPhivsEP;
+  if(hJetPt)        delete hJetPt;
+  if(hJetCorrPt)    delete hJetCorrPt;
+  if(hJetPt2)       delete hJetPt2;
+  if(hJetE)         delete hJetE;
+  if(hJetEta)       delete hJetEta;
+  if(hJetPhi)       delete hJetPhi;
+  if(hJetNEF)       delete hJetNEF;
+  if(hJetArea)      delete hJetArea;
+  if(hJetTracksPt)  delete hJetTracksPt;
+  if(hJetTracksPhi) delete hJetTracksPhi;
+  if(hJetTracksEta) delete hJetTracksEta;
+  if(hJetTracksZ)   delete hJetTracksZ;
+  if(hJetPtvsArea)  delete hJetPtvsArea;
+  if(hJetEventEP)   delete hJetEventEP;
+  if(hJetPhivsEP)   delete hJetPhivsEP;
 
-  delete hJetPtIn;
-  delete hJetPhiIn;
-  delete hJetEtaIn;
-  delete hJetEventEPIn;
-  delete hJetPhivsEPIn;
-  delete hJetPtMid;
-  delete hJetPhiMid;
-  delete hJetEtaMid;
-  delete hJetEventEPMid;
-  delete hJetPhivsEPMid;
-  delete hJetPtOut;
-  delete hJetPhiOut;
-  delete hJetEtaOut;
-  delete hJetEventEPOut;
-  delete hJetPhivsEPOut;
+  if(hJetPtIn)  delete hJetPtIn;
+  if(hJetPhiIn) delete hJetPhiIn;
+  if(hJetEtaIn) delete hJetEtaIn;
+  if(hJetEventEPIn) delete hJetEventEPIn;
+  if(hJetPhivsEPIn) delete hJetPhivsEPIn;
+  if(hJetPtMid)  delete hJetPtMid;
+  if(hJetPhiMid) delete hJetPhiMid;
+  if(hJetEtaMid) delete hJetEtaMid;
+  if(hJetEventEPMid) delete hJetEventEPMid;
+  if(hJetPhivsEPMid) delete hJetPhivsEPMid;
+  if(hJetPtOut)  delete hJetPtOut;
+  if(hJetPhiOut) delete hJetPhiOut;
+  if(hJetEtaOut) delete hJetEtaOut;
+  if(hJetEventEPOut) delete hJetEventEPOut;
+  if(hJetPhivsEPOut) delete hJetPhivsEPOut;
 
-  delete fHistJetHEtaPhi;
-  delete fHistEventSelectionQA;
-  delete fHistEventSelectionQAafterCuts;
-  delete hTriggerIds;
-  delete hEmcTriggers;
-  delete hMixEvtStatZVtx;
-  delete hMixEvtStatCent;
-  delete hMixEvtStatZvsCent;
+  if(fHistJetHEtaPhi) delete fHistJetHEtaPhi;
+  if(fHistEventSelectionQA) delete fHistEventSelectionQA;
+  if(fHistEventSelectionQAafterCuts) delete fHistEventSelectionQAafterCuts;
+  if(hTriggerIds)  delete hTriggerIds;
+  if(hEmcTriggers) delete hEmcTriggers;
+  if(hMixEvtStatZVtx)    delete hMixEvtStatZVtx;
+  if(hMixEvtStatCent)    delete hMixEvtStatCent;
+  if(hMixEvtStatZvsCent) delete hMixEvtStatZvsCent;
 
-  delete hTPCepDebug;
-  delete hBBCepDebug;
-  delete hZDCepDebug;
+  if(hTPCepDebug) delete hTPCepDebug;
+  if(hBBCepDebug) delete hBBCepDebug;
+  if(hZDCepDebug) delete hZDCepDebug;
 
   if(hZDCDis_W) delete hZDCDis_W;
   if(hZDCDis_E) delete hZDCDis_E;
@@ -1813,7 +1809,7 @@ Int_t StMyAnalysisMaker::Make() {
   //cout<<"end of event counter = "<<mInputEventCounter<<endl;
 
   // fill Event Trigger QA
-  //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
+  FillEventTriggerQA(fHistEventSelectionQAafterCuts);
   //StMemStat::PrintMem("MyAnalysisMaker at end of make");
 
   return kStOK;
@@ -2300,74 +2296,6 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
   return tracksClone;
 }
 //
-// Function:  track quality cuts
-//________________________________________________________________________
-Bool_t StMyAnalysisMaker::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
-  // constants: assume neutral pion mass
-  //double pi0mass = Pico::mMass[0]; // GeV
-  double pi = 1.0*TMath::Pi();
-
-  // primary track switch: get momentum vector of track - global or primary track
-  TVector3 mTrkMom;
-  if(doUsePrimTracks) {
-    if(!(trk->isPrimary())) return kFALSE; // check if primary
-    // get primary track vector
-    mTrkMom = trk->pMom();
-  } else {
-    // get global track vector
-    mTrkMom = trk->gMom(Vert, B);
-  }
-
-  // track variables
-  double pt = mTrkMom.Perp();
-  double phi = mTrkMom.Phi();
-  double eta = mTrkMom.PseudoRapidity();
-  //double px = mTrkMom.x();
-  //double py = mTrkMom.y();
-  //double pz = mTrkMom.z();
-  //double p = mTrkMom.Mag();
-  //double energy = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
-  //short charge = trk->charge();
-  ///double dca = (trk->dcaPoint() - mPicoEvent->primaryVertex()).mag();
-  double dca = trk->gDCA(Vert).Mag();
-  int nHitsFit = trk->nHitsFit();
-  int nHitsMax = trk->nHitsMax();
-  double nHitsRatio = 1.0*nHitsFit/nHitsMax;
-
-  // track pt, eta, phi cuts
-  if(pt < fTrackPtMinCut) return kFALSE;
-  if(pt > fTrackPtMaxCut) return kFALSE; // 20.0 STAR -> 30.0 GeV, 100.0 ALICE
-  if((eta < fTrackEtaMinCut) || (eta > fTrackEtaMaxCut)) return kFALSE;
-  if(phi < 0.0)    phi += 2.0*pi;
-  if(phi > 2.0*pi) phi -= 2.0*pi;
-  if((phi < fTrackPhiMinCut) || (phi > fTrackPhiMaxCut)) return kFALSE;
-    
-  // additional quality cuts for tracks
-  if(dca > fTrackDCAcut) return kFALSE;
-  if(nHitsFit < fTracknHitsFit) return kFALSE;
-  if(nHitsRatio < fTracknHitsRatio) return kFALSE;
-
-  // passed all above cuts - keep track and fill input vector to fastjet
-  return kTRUE;
-}
-
-/*
-//________________________________________________________________________
-Bool_t StMyAnalysisMaker::AcceptJet(StJet *jet) { // for jets
-  // applies all jet cuts except pt
-  if ((jet->Phi() < fPhimin) || (jet->Phi() > fPhimax)) return kFALSE;
-  if ((jet->Eta() < fEtamin) || (jet->Eta() > fEtamax)) return kFALSE;
-  if (jet->Area() < fAreacut) return 0;
-  // prevents 0 area jets from sneaking by when area cut == 0
-  if (jet->Area() == 0) return kFALSE;
-  // exclude jets with extremely high pt tracks which are likely misreconstructed
-  if(jet->MaxTrackPt() > 20) return kFALSE;
-
-  // jet passed all above cuts
-  return kTRUE;
-}
-*/
-//
 //
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
@@ -2426,123 +2354,6 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   h->LabelsOption("v");
   //h->LabelsDeflate("X");
 
-  return h;
-}
-//
-// Trigger QA histogram, label bins
-// check and fill a Event Selection QA histogram for different trigger selections after cuts
-//_____________________________________________________________________________ 
-TH1* StMyAnalysisMaker::FillEventTriggerQA(TH1* h) {
-  // Run12 pp 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    // Run12 (200 GeV pp) triggers:
-    int arrHT1[] = {370511, 370546};
-    int arrHT2[] = {370521, 370522, 370531, 370980};
-    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
-    int arrMB[] = {370001, 370011, 370983};
-
-    // fill for kAny 
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
-    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB");
-  }
-
-  // Run14 AuAu 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrHT1[] = {450201, 450211, 460201};
-    int arrHT2[] = {450202, 450212, 460202, 460212};
-    int arrHT3[] = {460203, 450213, 460203};
-    int arrMB[] = {450014};
-    int arrMB30[] = {450010, 450020};
-    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-    int arrCentral5[] = {450010, 450020};
-    int arrCentral[] = {460101, 460111};
-    
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
-    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
- 
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central-5");
-    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // hard-coded trigger Ids for run16
-    //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrHT2[] = {530202, 540203};
-    int arrHT3[] = {520203, 530213};
-    int arrMB[] = {520021};
-    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
-    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-p-sst");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central");
-    h->GetXaxis()->SetBinLabel(8, "");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
-  }
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-  
   return h;
 }
 //
@@ -3693,62 +3504,6 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
   }
 
   return kStOk;
-}
-//
-// this function checks for the bin number of the run from a runlist header 
-// in order to apply various corrections and fill run-dependent histograms
-// _________________________________________________________________________________
-Int_t StMyAnalysisMaker::GetRunNo(int runid){ 
-  //1287 - Liang
-
-  // Run12 pp (200 GeV)
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    for(int i = 0; i < 857; i++) {
-      if(Run12pp_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run14 AuAu
-  // Run14AuAu_IdNo: SL17id
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
-    for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_P18ih_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
-    for(int i = 0; i < 1359; i++){
-      if(Run16AuAu_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
-  return -999;
-}
-//
-// this is code from Liang to get the Vz region for event plane corrections
-// __________________________________________________________________________________
-Int_t StMyAnalysisMaker::GetVzRegion(double Vz) // 0-14, 15          0-19, 20
-{
-  /////////if(fabs(Vz >= 30.)) return 999;  // THIS CUT IS ALREADY DONE
-  //int regionvz=int((Vz+30)/6.);  // bin width is equal to 6 centi-meters
-  //int regionvz = int((Vz+30.)/4.); // bin width is equal to 4 centi-meters
-  //if(regionvz >= 15 || regionvz <= -1) return 999;   // FIXME! don't need this
-
-  // 0-19, 20 bins (-40 to 40)
-  int regionvz = int((Vz+40.)/4.); // bin width is equal to 4 centi-meters
-  if(regionvz >= 20 || regionvz <= -1) return 999;
-
-  return regionvz;
 }
 //
 // Calculate TPC event plane angle with correction

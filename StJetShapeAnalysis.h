@@ -45,7 +45,8 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
       kDebugGeneralEvt,
       kDebugCentrality,
       kDebugEventPlaneCalc,
-      kDebugJetvsEPtype
+      kDebugJetvsEPtype, 
+      kDebugRhoEstimate
     };
 
     // enumerator for TPC event plane method
@@ -161,19 +162,13 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
 
   protected:
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    TrackQA();
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
-    Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
-
-    // Added from Liang
-    Int_t                   GetRunNo(int runid);
-    Int_t                   GetVzRegion(double Vz);
 
     // switches
     Int_t                   fJetShapeJetType;        // type of jets to use for jet shape analysis

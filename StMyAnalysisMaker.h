@@ -185,11 +185,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Double_t                RelativePhi(Double_t mphi, Double_t vphi) const;      // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
-    Bool_t                  AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
-    Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                  DoComparison(int myarr[], int elems);
     void                    SetSumw2(); // set errors weights 
     void                    SetEPSumw2(); // set errors weights for event plane histograms
@@ -205,8 +202,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t                   ZDC_EP_Cal(int ref9, int region_vz, int n);
     Double_t                BBC_GetPhi(int e_w,int iTile); //east == 0
     Double_t                ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
-    Int_t                   GetRunNo(int runid);
-    Int_t                   GetVzRegion(double Vz);
 
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch

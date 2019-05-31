@@ -44,10 +44,6 @@
 #include "StRho.h"
 #include "StJetMakerTask.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h" // Run12 pp
-#include "runlistP16ij.h"
-#include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 #include "StPicoEPCorrectionsIncludes.h"
 
 // old file kept
@@ -157,7 +153,7 @@ StEventPlaneMaker::~StEventPlaneMaker()
 { /*  */
   // destructor
   if(hCentrality)    delete hCentrality;
-  if(hCentralityEP)   delete hCentralityEP;
+  if(hCentralityEP)  delete hCentralityEP;
   if(hEventPlane)    delete hEventPlane;
   if(fHistEPTPCn)    delete fHistEPTPCn;
   if(fHistEPTPCp)    delete fHistEPTPCp;
@@ -282,17 +278,19 @@ Int_t StEventPlaneMaker::Init() {
   // initialize the histograms
   DeclareHistograms();
 
+  // Calibration parameters can be read in from .root files or from various header function
+  // will need to uncomment the below and in the BBC, ZDC, and TPC functions
   // initialize calibration file for event plane
   //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
   ////fCalibFile = new TFile(fEPcalibFileName.Data(), "READ");
 
 //  fCalibFile = new TFile("StRoot/StMyAnalysisMaker/corrections/recenter_calib_file.root", "READ");
-  fCalibFile = new TFile("./recenter_calib_file.root", "READ");
-  if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
+  //fCalibFile = new TFile("recenter_calib_file.root", "READ");
+  //if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
 
 //  fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/corrections/shift_calib_file.root", "READ");
-  fCalibFile2 = new TFile("./shift_calib_file.root", "READ");
-  if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
+  //fCalibFile2 = new TFile("shift_calib_file.root", "READ");
+  //if(!fCalibFile2) cout<<"shift_calib_file.root does not exist.."<<endl;
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
@@ -383,8 +381,8 @@ Int_t StEventPlaneMaker::Init() {
 //_______________________________________________________________________________________
 Int_t StEventPlaneMaker::Finish() { 
   // close event plane calibration files (if open)
-  if(fCalibFile->IsOpen())  fCalibFile->Close();
-  if(fCalibFile2->IsOpen()) fCalibFile2->Close();
+  //if(fCalibFile->IsOpen())  fCalibFile->Close();
+  //if(fCalibFile2->IsOpen()) fCalibFile2->Close();
 
 /*
   //  Write event plane histos to file and close it.
@@ -1043,22 +1041,6 @@ Int_t StEventPlaneMaker::Make() {
   return kStOK;
 }
 //
-/*
-//________________________________________________________________________
-Bool_t StEventPlaneMaker::AcceptJet(StJet *jet) { // for jets
-  // applies all jet cuts except pt
-  if ((jet->Phi() < fPhimin) || (jet->Phi() > fPhimax)) return kFALSE;
-  if ((jet->Eta() < fEtamin) || (jet->Eta() > fEtamax)) return kFALSE;
-  if (jet->Area() < fAreacut) return 0;
-  // prevents 0 area jets from sneaking by when area cut == 0
-  if (jet->Area() == 0) return kFALSE;
-  // exclude jets with extremely high pt tracks which are likely misreconstructed
-  if(jet->MaxTrackPt() > 20) return kFALSE;
-  // jet passed all above cuts
-  return kTRUE;
-}
-*/
-//
 //_________________________________________________________________________
 TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
@@ -1101,123 +1083,6 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   h->LabelsOption("v");
   //h->LabelsDeflate("X");
 
-  return h;
-}
-//
-// Trigger QA histogram, label bins
-// check and fill a Event Selection QA histogram for different trigger selections after cuts
-//_____________________________________________________________________________
-TH1* StEventPlaneMaker::FillEventTriggerQA(TH1* h) {
-  // Run12 pp 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    // Run12 (200 GeV pp) triggers:
-    int arrHT1[] = {370511, 370546};
-    int arrHT2[] = {370521, 370522, 370531, 370980};
-    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
-    int arrMB[] = {370001, 370011, 370983};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
-    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB");
-  }
-
-  // Run14 AuAu 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrHT1[] = {450201, 450211, 460201};
-    int arrHT2[] = {450202, 450212, 460202, 460212};
-    int arrHT3[] = {460203, 450213, 460203};
-    int arrMB[] = {450014};
-    int arrMB30[] = {450010, 450020};
-    int arrCentral5[] = {450010, 450020};
-    int arrCentral[] = {460101, 460111};
-    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
-    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
- 
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central-5");
-    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // hard-coded trigger Ids for run16
-    //int arrHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrHT2[] = {530202, 540203};
-    int arrHT3[] = {520203, 530213};
-    int arrMB[] = {520021};
-    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos    
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
-    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-p-sst");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central");
-    h->GetXaxis()->SetBinLabel(8, "");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
-  }
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-  
   return h;
 }
 //
@@ -2223,63 +2088,6 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 }
 //
 //
-// this function checks for the bin number of the run from a runlist header 
-// in order to apply various corrections and fill run-dependent histograms
-// 1287 - Liang
-// _________________________________________________________________________________
-Int_t StEventPlaneMaker::GetRunNo(int runid){ 
-  // Run12 pp (200 GeV)
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    for(int i = 0; i < 857; i++) {
-      if(Run12pp_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run14 AuAu
-  // Run14AuAu_IdNo: SL17id
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
-    for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_P18ih_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
-    for(int i = 0; i < 1359; i++){
-      if(Run16AuAu_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
-  return -999;
-}
-//
-//
-// this is code from Liang to get the Vz region for event plane corrections
-// __________________________________________________________________________________
-Int_t StEventPlaneMaker::GetVzRegion(double Vz) // 0-14, 15          0-19, 20
-{
-  /////////if(fabs(Vz >= 30.)) return 999;  // THIS CUT IS ALREADY DONE
-  //int regionvz=int((Vz+30)/6.);  // bin width is equal to 6 centi-meters
-  //int regionvz = int((Vz+30.)/4.); // bin width is equal to 4 centi-meters
-  //if(regionvz >= 15 || regionvz <= -1) return 999;   // FIXME! don't need this
-
-  // 0-19, 20 bins (-40 to 40)
-  int regionvz = int((Vz+40.)/4.); // bin width is equal to 4 centi-meters
-  if(regionvz >= 20 || regionvz <= -1) return 999;
-
-  return regionvz;
-}
-//
-//
 // Calculate TPC event plane angle with correction
 // ___________________________________________________________________________________
 Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin) {
@@ -2534,7 +2342,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations // FIXME - why is this 0.25??
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations

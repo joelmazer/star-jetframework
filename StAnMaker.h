@@ -105,8 +105,6 @@ class StAnMaker : public StJetFrameworkPicoBase {
     Double_t                RelativePhi(Double_t mphi, Double_t vphi) const;      // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
     void                    FillEmcTriggers();                          // EmcTrigger counter histo
-    void                    FillEventTriggerQA();                           // filled event trigger QA plots
-    Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     Bool_t                  DoComparison(int myarr[], int elems);
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function

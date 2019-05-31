@@ -570,14 +570,14 @@ void StJetMakerTask::DeclareHistograms() {
   fProfEventZDCx = new TProfile("fProfEventZDCx", "Event averaged ZDC coincidence rate", nRunBins, 0., nRunBinsMax);//, -100., 100.);
 
   // track and tower plots
-  fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "# track vs p_{T}", 150, 0., 30.);
+  fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "# track vs p_{T}", 200, 0., 40.);
   fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "# track vs #phi", 72, 0., 2.0*pi);
   fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "# track vs #eta", 40, -1.0, 1.0);
   fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "# track vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistNTowervsID = new TH1F("fHistNTowervsID", "# tower vs tower id", 4800, 0.5, 4800.5);
-  fHistNTowervsADC = new TH1F("fHistNTowervsADC", "# tower vs ADC", 250., 0., 250.);
-  fHistNTowervsE = new TH1F("fHistNTowervsE", "# tower vs energy", 100, 0., 20.0);
-  fHistNTowervsEt = new TH1F("fHistNTowervsEt", "# tower vs transverse energy", 100, 0., 20.0);
+  fHistNTowervsADC = new TH1F("fHistNTowervsADC", "# tower vs ADC", 250, 0., 250.);
+  fHistNTowervsE = new TH1F("fHistNTowervsE", "# tower vs energy", 200, 0., 40.0);
+  fHistNTowervsEt = new TH1F("fHistNTowervsEt", "# tower vs transverse energy", 200, 0., 40.0);
   fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "# tower vs #phi", 144, 0., 2.0*pi);
   fHistNTowervsEta = new TH1F("fHistNTowervsEta", "# tower vs #eta", 40, -1.0, 1.0);
   fHistNTowervsPhivsEta = new TH2F("fHistNTowervsPhivsEta", "# vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
@@ -588,9 +588,9 @@ void StJetMakerTask::DeclareHistograms() {
   fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
   fHistJetNTrackvsPhivsEta = new TH2F("fHistJetNTrackvsPhivsEta", "Jet track constituents vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistJetNTowervsID = new TH1F("fHistJetNTowervsID", "Jet tower vs tower id", 4800, 0.5, 4800.5);
-  fHistJetNTowervsADC = new TH1F("fHistJetNTowervsADC", "Jet tower constituents vs ADC", 250., 0., 250.);
-  fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 100, 0., 20.0);
-  fHistJetNTowervsEt = new TH1F("fHistJetNTowervsEt", "Jet tower constituents vs transverse energy", 100, 0., 20.0);
+  fHistJetNTowervsADC = new TH1F("fHistJetNTowervsADC", "Jet tower constituents vs ADC", 250, 0., 250.);
+  fHistJetNTowervsE = new TH1F("fHistJetNTowervsE", "Jet tower constituents vs energy", 150, 0., 30.0);
+  fHistJetNTowervsEt = new TH1F("fHistJetNTowervsEt", "Jet tower constituents vs transverse energy", 150, 0., 30.0);
   fHistJetNTowervsPhi = new TH1F("fHistJetNTowervsPhi", "Jet tower constituents vs #phi", 144, 0., 2.0*pi);
   fHistJetNTowervsEta = new TH1F("fHistJetNTowervsEta", "Jet tower constituents vs #eta", 40, -1.0, 1.0);
   fHistJetNTowervsPhivsEta = new TH2F("fHistJetNTowervsPhivsEta", "Jet tower constituents vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);

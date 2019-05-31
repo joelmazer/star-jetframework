@@ -269,12 +269,14 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                  CheckForHT(int RunFlag, int type);
 
   protected:
+    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Int_t                   GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Int_t                   GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
     Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Double_t                RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
-    Bool_t                  AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);// track accept cuts function
+    Bool_t                  AcceptJet(StJet *jet);                                   // jets accept cuts function
+    Bool_t                  AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert); // track accept cuts function
     //Bool_t                  AcceptTower(StPicoBTowHit *tower, TVector3 Vertex, Int_t towerID);     // tower accept cuts function
     Double_t                GetReactionPlane(); // get reaction plane angle
     Int_t                   EventCounter();     // when called, provides Event #
@@ -290,6 +292,9 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                   Get4CentBin(Double_t scaledCent) const;
     Double_t                ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
     Bool_t                  RejectRun(int RunFlag, int nRun) const;
+    Int_t                   GetRunNo(int runid);
+    Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
+    Int_t                   GetVzRegion(double Vz);
 
     static Double_t        *GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
     static void             GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);

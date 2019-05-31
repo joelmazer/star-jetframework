@@ -36,8 +36,13 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
+#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 
-// jet-framework STAR includes
+// jet-framework includes
 #include "StEventPlaneMaker.h"
 #include "StJetFrameworkPicoBase.h"
 #include "StRhoParameter.h"
@@ -45,17 +50,6 @@
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
-#include "runlistP12id.h"
-#include "runlistP16ij.h"
-#include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
-
-// new STAR includes
-#include "StRoot/StPicoEvent/StPicoEvent.h"
-#include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
-#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 
 // old file kept
 #include "StPicoConstants.h"
@@ -69,7 +63,7 @@ ClassImp(StJetShapeAnalysis)
 //
 //______________________________________________________________________________________
 StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
-  : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
+  : StJetFrameworkPicoBase(name)
 {
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
@@ -404,7 +398,7 @@ void StJetShapeAnalysis::DeclareHistograms() {
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
     hTrackEta[i] = new TH1F(Form("hTrackEta%d", i), Form("track distribution vs #eta, centr%d", i), 40, -1.0, 1.0);
-    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 120, 0., 30.0);
+    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 150, 0., 30.0);
   }
   hTrackEtavsPhi = new TH2F(Form("hTrackEtavsPhi"), Form("track distribution: #eta vs #phi"), 144, 0, 2*pi, 40, -1.0, 1.0);
 
@@ -729,7 +723,7 @@ Int_t StJetShapeAnalysis::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them 
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
 
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
@@ -837,7 +831,7 @@ Int_t StJetShapeAnalysis::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  if(fDebugLevel == kDebugEmcTrigger) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
+  if(fDebugLevel == kDebugRhoEstimate) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
   // cache the leading + subleading jets within acceptance
@@ -1112,7 +1106,7 @@ Int_t StJetShapeAnalysis::Make() {
   } // jet loop
 
   // fill Event Trigger QA
-  //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
+  FillEventTriggerQA(fHistEventSelectionQAafterCuts);
 
   return kStOK;
 }
@@ -1176,133 +1170,6 @@ TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
   h->LabelsOption("v");
   //h->LabelsDeflate("X");
 
-  return h;
-}
-//
-// Trigger QA histogram, label bins 
-// check and fill a Event Selection QA histogram for different trigger selections after cuts
-//_____________________________________________________________________________
-TH1* StJetShapeAnalysis::FillEventTriggerQA(TH1* h) {
-  // Run12 pp 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    // Run12 (200 GeV pp) triggers:
-    int arrHT1[] = {370511, 370546};
-    int arrHT2[] = {370521, 370522, 370531, 370980};
-    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
-    int arrMB[] = {370001, 370011, 370983};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
-    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB");
-  }
-
-  // Run14 AuAu 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212, 460202, 460212};
-    int arrBHT3[] = {460203, 450213, 460203};
-    int arrMB[] = {450014};
-    int arrMB30[] = {450010, 450020};
-    int arrCentral5[] = {450010, 450020};
-    int arrCentral[] = {460101, 460111};
-    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
-    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
-
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 13; h->Fill(bin); } // HT2 && MB
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 14; h->Fill(bin); } // HT2 && MB30
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 15; h->Fill(bin); } // HT1 && MB
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 16; h->Fill(bin); } // HT1 && MB30
- 
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central-5");
-    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
-    h->GetXaxis()->SetBinLabel(13, "HT2*VPDMB30 && MB");
-    h->GetXaxis()->SetBinLabel(14, "HT2*VPDMB30 && MB30");
-    h->GetXaxis()->SetBinLabel(15, "HT1*VPDMB30 && MB");
-    h->GetXaxis()->SetBinLabel(16, "HT1*VPDMB30 && MB30");
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // hard-coded trigger Ids for run16
-    //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {530202, 540203};
-    int arrBHT3[] = {520203, 530213};
-    int arrMB[] = {520021};
-    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
-    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-p-sst");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central");
-    h->GetXaxis()->SetBinLabel(8, "");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
-  }
-
-  // set general label
-  h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-  
   return h;
 }
 //
@@ -1533,45 +1400,6 @@ void StJetShapeAnalysis::SetSumw2() {
 
 }
 //
-// this function checks for the bin number of the run from a runlist header 
-// in order to apply various corrections and fill run-dependent histograms
-// 1287 - Liang
-// _________________________________________________________________________________
-Int_t StJetShapeAnalysis::GetRunNo(int runid){ 
-  // Run12 pp (200 GeV)
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    for(int i = 0; i < 857; i++) {
-      if(Run12pp_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run14 AuAu
-  // Run14AuAu_IdNo: SL17id
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
-    for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_P18ih_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
-    for(int i = 0; i < 1359; i++){
-      if(Run16AuAu_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
-  return -999;
-}
-//
 // track QA function to fill some histograms with track information
 //
 //_____________________________________________________________________________
@@ -1678,7 +1506,7 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
   // tower constituent fired trigger
   Bool_t mFiredTrigger = kFALSE;
 
-  // loop over constituents towers
+  // loop over constituent towers
   for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
     int ArrayIndex = jet->ClusterAt(itow);
 
@@ -1688,7 +1516,7 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
     
     // tower ID: get from index of array shifted by +1
     int towID = ArrayIndex + 1;
-    if(towID < 0) kFALSE;
+    if(towID < 0) continue;
 
     // change flag to true if jet tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID]) mFiredTrigger = kTRUE;
@@ -1699,43 +1527,6 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
 
   return mFiredTrigger;
 }  
-//
-// function to calcuate delta R between a jet centroid and a track
-//___________________________________________________________________________________________
-Double_t StJetShapeAnalysis::GetDeltaR(StJet *jet, StPicoTrack *trk) {
-  // delta r
-  double deltaR = -99.;
-  double pi = 1.0*TMath::Pi();
-
-  // get track momentum vector 
-  TVector3 mTrkMom;
-  if(doUsePrimTracks) {
-    if(!(trk->isPrimary())) return -99.; // check if primary
-    // get primary track vector
-    mTrkMom = trk->pMom();
-  } else {
-    // get global track vector
-    mTrkMom = trk->gMom(mVertex, Bfield);
-  }
-
-  // track variables
-  double tphi = mTrkMom.Phi();
-  if(tphi > 2.0*pi) tphi -= 2.0*pi;
-  if(tphi < 0.0   ) tphi += 2.0*pi;
-  double teta = mTrkMom.PseudoRapidity();
-
-  // jet variables
-  double jphi = jet->Phi();
-  double jeta = jet->Eta();
-
-  // calculate radial distance
-  double deltaEta = 1.0*TMath::Abs(jeta - teta);
-  double deltaPhi = 1.0*TMath::Abs(jphi - tphi);
-  if(deltaPhi > 1.0*pi) deltaPhi = 2.0*pi - deltaPhi;
-  deltaR = 1.0*TMath::Sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
-
-  return deltaR;
-}
 //
 // function that does jet shape analysis
 //___________________________________________________________________________________________
@@ -1815,7 +1606,8 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       // track variables
       double tpt = mTrkMom.Perp();
       double tphi = mTrkMom.Phi();
-      if(tphi < 0.0) tphi += 2.0*pi; // require 0,2pi interval
+      if(tphi < 0.0   ) tphi += 2.0*pi; // require 0,2pi interval
+      if(tphi > 2.0*pi) tphi -= 2.0*pi; 
       double teta = mTrkMom.PseudoRapidity();
 
       // cut on track pt range 
@@ -2075,6 +1867,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
             // get Femto track pointer
             StFemtoTrack *trk = static_cast<StFemtoTrack*>(bgTracks->At(ibg));
             if(!trk) continue;
+
             double Mphi = trk->Phi();
             double Meta = trk->Eta();
             double Mpt = trk->Pt();

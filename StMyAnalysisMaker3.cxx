@@ -44,21 +44,6 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
-
-// my STAR includes
-#include "StEventPlaneMaker.h"
-#include "StJetFrameworkPicoBase.h"
-#include "StRhoParameter.h"
-#include "StRho.h"
-#include "StJetMakerTask.h"
-#include "StEventPoolManager.h"
-#include "StFemtoTrack.h"
-#include "runlistP12id.h" // Run12 pp
-#include "runlistP16ij.h"
-#include "runlistP17id.h" // SL17i - Run14, now SL18b (March20)
-#include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
-
-// new includes
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
@@ -68,6 +53,15 @@
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 #include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
 #include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
+
+// jet-framework includes
+#include "StEventPlaneMaker.h"
+#include "StJetFrameworkPicoBase.h"
+#include "StRhoParameter.h"
+#include "StRho.h"
+#include "StJetMakerTask.h"
+#include "StEventPoolManager.h"
+#include "StFemtoTrack.h"
 
 // old file kept
 #include "StPicoConstants.h"
@@ -80,7 +74,7 @@ ClassImp(StMyAnalysisMaker3)
 
 //______________________________________________________________________________
 StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
-  : StJetFrameworkPicoBase(name)  //StMaker(name): Oct3
+  : StJetFrameworkPicoBase(name)
 {
   doUsePrimTracks = kFALSE;
   fDebugLevel = 0;
@@ -126,8 +120,6 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   JetMaker = 0;
   RhoMaker = 0;
   grefmultCorr = 0x0;
-  refmultCorr = 0x0;  // FIXME TEST
-  refmult2Corr = 0x0; // FIXME TEST
   mOutName = outName;
   mOutNameEP = "";
   mOutNameQA = "";
@@ -168,6 +160,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doIgnoreExternalME = kTRUE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
+  fBadTowerListVers = 0;
   for(int i=0; i<4801; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
@@ -192,86 +185,90 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
 StMyAnalysisMaker3::~StMyAnalysisMaker3()
 { /*  */
   // destructor
-  delete hdEPReactionPlaneFnc;
-  delete hdEPEventPlaneFncN2;
-  delete hdEPEventPlaneFncP2;
-  delete hdEPEventPlaneFnc2;
-  delete hdEPEventPlaneClass;
-  delete hReactionPlaneFnc;
-  delete hEventPlaneFncN2;
-  delete hEventPlaneFncP2;
-  delete hEventPlaneFnc2;
-  delete hEventPlaneClass;
+  if(hdEPReactionPlaneFnc) delete hdEPReactionPlaneFnc;
+  if(hdEPEventPlaneFncN2)  delete hdEPEventPlaneFncN2;
+  if(hdEPEventPlaneFncP2)  delete hdEPEventPlaneFncP2;
+  if(hdEPEventPlaneFnc2)   delete hdEPEventPlaneFnc2;
+  if(hdEPEventPlaneClass)  delete hdEPEventPlaneClass;
+  if(hReactionPlaneFnc)    delete hReactionPlaneFnc;
+  if(hEventPlaneFncN2)     delete hEventPlaneFncN2;
+  if(hEventPlaneFncP2)     delete hEventPlaneFncP2;
+  if(hEventPlaneFnc2)      delete hEventPlaneFnc2;
+  if(hEventPlaneClass)     delete hEventPlaneClass;
 
-  delete hEventPlane;
-  delete fHistEPTPCn;
-  delete fHistEPTPCp;
-  delete fHistEPBBC;
-  delete fHistEPZDC;
-  delete hEventZVertex;
-  delete hCentrality;
-  delete hMultiplicity;
-  delete hRhovsCent;
-  for(int i=0; i<5; i++) { delete hdEPtrk[i]; }
-  for(int i=0; i<9; i++){ // centrality
-    delete hTrackPhi[i];
-    delete hTrackEta[i];
-    delete hTrackPt[i];
+  if(hEventPlane)   delete hEventPlane;
+  if(fHistEPTPCn)   delete fHistEPTPCn;
+  if(fHistEPTPCp)   delete fHistEPTPCp;
+  if(fHistEPBBC)    delete fHistEPBBC;
+  if(fHistEPZDC)    delete fHistEPZDC;
+  if(hEventZVertex) delete hEventZVertex;
+  if(hCentrality)   delete hCentrality;
+  if(hMultiplicity) delete hMultiplicity;
+  if(hStats)        delete hStats;
+  if(hRhovsCent)    delete hRhovsCent;
+  for(int i=0; i<5; i++) { 
+    if(hdEPtrk[i])  delete hdEPtrk[i]; 
   }
-  delete hTrackEtavsPhi;
+  for(int i=0; i<9; i++){ // centrality
+    if(hTrackPhi[i]) delete hTrackPhi[i];
+    if(hTrackEta[i]) delete hTrackEta[i];
+    if(hTrackPt[i])  delete hTrackPt[i];
+  }
+  if(hTrackEtavsPhi) delete hTrackEtavsPhi;
 
-  delete hJetPt;
-  delete hJetCorrPt;
-  delete hJetLeadingPt;
-  delete hJetSubLeadingPt;
-  delete hJetLeadingPtAj;
-  delete hJetSubLeadingPtAj;
-  delete hJetDiJetAj;
-  delete hJetE;
-  delete hJetEta;
-  delete hJetPhi;
-  delete hJetNEF;
-  delete hJetArea;
-  delete hJetTracksPt;
-  delete hJetTracksPhi;
-  delete hJetTracksEta;
-  delete hJetTracksZ;
-  delete hJetPtvsArea;
-  delete hJetEventEP;
-  delete hJetPhivsEP;
+  if(hJetPt)             delete hJetPt;
+  if(hJetCorrPt)         delete hJetCorrPt;
+  if(hJetLeadingPt)      delete hJetLeadingPt;
+  if(hJetSubLeadingPt)   delete hJetSubLeadingPt;
+  if(hJetLeadingPtAj)    delete hJetLeadingPtAj;
+  if(hJetSubLeadingPtAj) delete hJetSubLeadingPtAj;
+  if(hJetDiJetAj)        delete hJetDiJetAj;
+  if(hJetE)              delete hJetE;
+  if(hJetEta)            delete hJetEta;
+  if(hJetPhi)            delete hJetPhi;
+  if(hJetNEF)            delete hJetNEF;
+  if(hJetArea)           delete hJetArea;
+  if(hJetTracksPt)       delete hJetTracksPt;
+  if(hJetTracksPhi)      delete hJetTracksPhi;
+  if(hJetTracksEta)      delete hJetTracksEta;
+  if(hJetTracksZ)        delete hJetTracksZ;
+  if(hJetPtvsArea)       delete hJetPtvsArea;
+  if(hJetEventEP)        delete hJetEventEP;
+  if(hJetPhivsEP)        delete hJetPhivsEP;
 
-  delete hJetPtIn;
-  delete hJetPhiIn;
-  delete hJetEtaIn;
-  delete hJetEventEPIn;
-  delete hJetPhivsEPIn;
-  delete hJetPtMid;
-  delete hJetPhiMid;
-  delete hJetEtaMid;
-  delete hJetEventEPMid;
-  delete hJetPhivsEPMid;
-  delete hJetPtOut;
-  delete hJetPhiOut;
-  delete hJetEtaOut;
-  delete hJetEventEPOut;
-  delete hJetPhivsEPOut;
+  if(hJetPtIn)       delete hJetPtIn;
+  if(hJetPhiIn)      delete hJetPhiIn;
+  if(hJetEtaIn)      delete hJetEtaIn;
+  if(hJetEventEPIn)  delete hJetEventEPIn;
+  if(hJetPhivsEPIn)  delete hJetPhivsEPIn;
+  if(hJetPtMid)      delete hJetPtMid;
+  if(hJetPhiMid)     delete hJetPhiMid;
+  if(hJetEtaMid)     delete hJetEtaMid;
+  if(hJetEventEPMid) delete hJetEventEPMid;
+  if(hJetPhivsEPMid) delete hJetPhivsEPMid;
+  if(hJetPtOut)      delete hJetPtOut;
+  if(hJetPhiOut)     delete hJetPhiOut;
+  if(hJetEtaOut)     delete hJetEtaOut;
+  if(hJetEventEPOut) delete hJetEventEPOut;
+  if(hJetPhivsEPOut) delete hJetPhivsEPOut;
 
-  delete fHistJetHEtaPhi;
-  delete fHistEventSelectionQA;
-  delete fHistEventSelectionQAafterCuts;
-  delete hTriggerIds;
-  delete hEmcTriggers;
-  delete hMixEvtStatZVtx;
-  delete hMixEvtStatCent;
-  delete hMixEvtStatZvsCent;
-  delete hTriggerEvtStatZVtx;
-  delete hTriggerEvtStatCent;
-  delete hTriggerEvtStatZvsCent;
-  delete hMBvsMult;
-  delete hMB5vsMult;
-  delete hMB30vsMult;
-  delete hHTvsMult;
-  delete hNMixEvents;
+  if(fHistJetHEtaPhi)        delete fHistJetHEtaPhi;
+  if(fHistEventSelectionQA)  delete fHistEventSelectionQA;
+  if(fHistEventSelectionQAafterCuts) delete fHistEventSelectionQAafterCuts;
+  if(hTriggerIds)            delete hTriggerIds;
+  if(hEmcTriggers)           delete hEmcTriggers;
+  if(hBadTowerFiredTrigger)  delete hBadTowerFiredTrigger;
+  if(hMixEvtStatZVtx)        delete hMixEvtStatZVtx;
+  if(hMixEvtStatCent)        delete hMixEvtStatCent;
+  if(hMixEvtStatZvsCent)     delete hMixEvtStatZvsCent;
+  if(hTriggerEvtStatZVtx)    delete hTriggerEvtStatZVtx;
+  if(hTriggerEvtStatCent)    delete hTriggerEvtStatCent;
+  if(hTriggerEvtStatZvsCent) delete hTriggerEvtStatZvsCent;
+  if(hMBvsMult)              delete hMBvsMult;
+  if(hMB5vsMult)             delete hMB5vsMult;
+  if(hMB30vsMult)            delete hMB30vsMult;
+  if(hHTvsMult)              delete hHTvsMult;
+  if(hNMixEvents)            delete hNMixEvents;
 
   if(hTPCvsBBCep) delete hTPCvsBBCep;
   if(hTPCvsZDCep) delete hTPCvsZDCep;
@@ -280,7 +277,7 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   for(int k=0; k<4; k++) {
     for(int j=0; j<4; j++) {
       for(int i=0; i<4; i++) {
-        delete fProfJetV2[k][j][i];
+        if(fProfJetV2[k][j][i]) delete fProfJetV2[k][j][i];
       }
     }
   }
@@ -289,27 +286,27 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
         for(int i=0; i<4; i++) {
-          delete hJetCounter[k][j][i];
-          delete hJetCounterCase1[k][j][i];
-          delete hJetCounterCase2[k][j][i];
-          delete hJetCounterCase3BG[k][j][i];
+          if(hJetCounter[k][j][i])        delete hJetCounter[k][j][i];
+          if(hJetCounterCase1[k][j][i])   delete hJetCounterCase1[k][j][i];
+          if(hJetCounterCase2[k][j][i])   delete hJetCounterCase2[k][j][i];
+          if(hJetCounterCase3BG[k][j][i]) delete hJetCounterCase3BG[k][j][i];
 
           for(int p=0; p<9; p++) {
-            delete hJetShape[k][j][i][p];
-            delete hJetShapeCase1[k][j][i][p];
-            delete hJetShapeCase2[k][j][i][p];
-            delete hJetShapeBG[k][j][i][p];
-            delete hJetShapeBGCase1[k][j][i][p];
-            delete hJetShapeBGCase2[k][j][i][p];
-            delete hJetShapeBGCase3[k][j][i][p];
+            if(hJetShape[k][j][i][p])        delete hJetShape[k][j][i][p];
+            if(hJetShapeCase1[k][j][i][p])   delete hJetShapeCase1[k][j][i][p];
+            if(hJetShapeCase2[k][j][i][p])   delete hJetShapeCase2[k][j][i][p];
+            if(hJetShapeBG[k][j][i][p])      delete hJetShapeBG[k][j][i][p];
+            if(hJetShapeBGCase1[k][j][i][p]) delete hJetShapeBGCase1[k][j][i][p];
+            if(hJetShapeBGCase2[k][j][i][p]) delete hJetShapeBGCase2[k][j][i][p];
+            if(hJetShapeBGCase3[k][j][i][p]) delete hJetShapeBGCase3[k][j][i][p];
 
-            delete hJetPtProfile[k][j][i][p];
-            delete hJetPtProfileCase1[k][j][i][p];
-            delete hJetPtProfileCase2[k][j][i][p];
-            delete hJetPtProfileBG[k][j][i][p];
-            delete hJetPtProfileBGCase1[k][j][i][p];
-            delete hJetPtProfileBGCase2[k][j][i][p];
-            delete hJetPtProfileBGCase3[k][j][i][p];
+            if(hJetPtProfile[k][j][i][p])        delete hJetPtProfile[k][j][i][p];
+            if(hJetPtProfileCase1[k][j][i][p])   delete hJetPtProfileCase1[k][j][i][p];
+            if(hJetPtProfileCase2[k][j][i][p])   delete hJetPtProfileCase2[k][j][i][p];
+            if(hJetPtProfileBG[k][j][i][p])      delete hJetPtProfileBG[k][j][i][p];
+            if(hJetPtProfileBGCase1[k][j][i][p]) delete hJetPtProfileBGCase1[k][j][i][p];
+            if(hJetPtProfileBGCase2[k][j][i][p]) delete hJetPtProfileBGCase2[k][j][i][p];
+            if(hJetPtProfileBGCase3[k][j][i][p]) delete hJetPtProfileBGCase3[k][j][i][p];
           }
         }
       }
@@ -326,9 +323,9 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   }
 
   // delete sparses
-  delete fhnJH;
-  delete fhnMixedEvents;
-  delete fhnCorr;
+  if(fhnJH)          delete fhnJH;
+  if(fhnMixedEvents) delete fhnMixedEvents;
+  if(fhnCorr)        delete fhnCorr;
 
   // clear and delete objects
 //  fJets->Clear(); delete fJets;
@@ -337,7 +334,7 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
 
   // Clear unnecessary pools before saving - FIXME
   fPoolMgr->ClearPools();
-  delete fListOfPools;
+  if(fListOfPools) delete fListOfPools;
 }
 //
 // initialize objects & set up
@@ -363,6 +360,7 @@ Int_t StMyAnalysisMaker3::Init() {
   //fJets->SetName(fJetsName);
   //fJets->SetOwner(kTRUE);
 
+  // ===============================================================================================
   // Add bad run lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
@@ -382,6 +380,49 @@ Int_t StMyAnalysisMaker3::Init() {
       AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
   }
 
+  // ===============================================================================================
+  // Add dead + bad tower lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        if(fBadTowerListVers == 102) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_102.txt");
+        if(fBadTowerListVers == 1)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_Rag.txt"); // Raghav's Zg list
+        if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
+        if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
+
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
+        if(fBadTowerListVers ==  2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
+        if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
+        if(fBadTowerListVers ==  79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
+        if(fBadTowerListVers == 122) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79_ALT.txt");
+        if(fBadTowerListVers == 136) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_136.txt");
+        if(fBadTowerListVers == 283) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_283.txt");
+
+        if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
+        if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
+        if(fBadTowerListVers == 5)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
+
+        // P18ih
+        if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt");
+
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
+        break;
+
+    default :
+      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
+  }
+
+  // ===============================================================================================
   // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
@@ -395,10 +436,8 @@ Int_t StMyAnalysisMaker3::Init() {
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
-          default: // this is the default for Run14
+          default: 
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              refmult2Corr = CentralityMaker::instance()->getgRefMultCorr();
-              refmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;
 
@@ -419,7 +458,7 @@ Int_t StMyAnalysisMaker3::Init() {
           default:
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
-        break; // added May20
+        break;
 
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -565,6 +604,29 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 100, -50, 50);
   hCentrality = new TH1F("hCentrality", "No. events vs centrality", nHistCentBins, 0, 100); 
   hMultiplicity = new TH1F("hMultiplicity", "No. events vs multiplicity", kHistMultBins, 0, kHistMultMax);
+
+  hStats = new TH1F("hStats", "QA stats for cuts and objects", 25, 0.5, 25.5);
+  hStats->GetXaxis()->SetBinLabel(1, "total events");
+  hStats->GetXaxis()->SetBinLabel(2, "good run event");
+  hStats->GetXaxis()->SetBinLabel(3, "passed max trk pt cut");
+  hStats->GetXaxis()->SetBinLabel(4, "passed z-vtx cut");
+  hStats->GetXaxis()->SetBinLabel(5, "passed cent cut");
+  hStats->GetXaxis()->SetBinLabel(6, "post cent selection");
+  hStats->GetXaxis()->SetBinLabel(7, "have jet object");
+  hStats->GetXaxis()->SetBinLabel(8, "have jets");
+  hStats->GetXaxis()->SetBinLabel(9, "have rho object");
+  hStats->GetXaxis()->SetBinLabel(10, "");
+  hStats->GetXaxis()->SetBinLabel(11, "do jet shape analysis");
+  hStats->GetXaxis()->SetBinLabel(12, "");
+  hStats->GetXaxis()->SetBinLabel(13, "");
+  hStats->GetXaxis()->SetBinLabel(14, "");
+  hStats->GetXaxis()->SetBinLabel(15, "");
+  hStats->GetXaxis()->SetBinLabel(16, "");
+  hStats->GetXaxis()->SetBinLabel(17, "");
+  hStats->GetXaxis()->SetBinLabel(18, "");
+  hStats->GetXaxis()->SetBinLabel(19, "");
+  hStats->GetXaxis()->SetBinLabel(20, "");
+
   hRhovsCent = new TH2F("hRhovsCent", "#rho vs centrality", 20, 0, 100, 200, 0, 200);
 
   for(int i=0; i<5; i++) { // pt bins
@@ -624,6 +686,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hTriggerIds = new TH1F("hTriggerIds", "Trigger Id distribution", 100, 0.5, 100.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
+  hBadTowerFiredTrigger = new TH1F("hBadTowerFiredTrigger", "# bad tower fired trigger vs tower Id", 4800, 0.5, 4800.5);
   hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
   hMixEvtStatCent = new TH1F("hMixEvtStatCent", "no of events in pool vs Centrality", nHistCentBins, 0, 100);
   hMixEvtStatZvsCent = new TH2F("hMixEvtStatZvsCent", "no of events: zvtx vs Centality", nHistCentBins, 0, 100, 20, -40.0, 40.0);
@@ -1051,6 +1114,7 @@ void StMyAnalysisMaker3::WriteHistograms() {
   hEventZVertex->Write();
   hCentrality->Write();
   hMultiplicity->Write();
+  hStats->Write();
   hRhovsCent->Write();
 
   // jet histos
@@ -1081,6 +1145,7 @@ void StMyAnalysisMaker3::WriteHistograms() {
   fHistEventSelectionQAafterCuts->Write();
   hTriggerIds->Write();
   hEmcTriggers->Write();
+  hBadTowerFiredTrigger->Write();
   hMixEvtStatZVtx->Write();
   hMixEvtStatCent->Write();
   hMixEvtStatZvsCent->Write();
@@ -1110,7 +1175,7 @@ void StMyAnalysisMaker3::WriteHistograms() {
     }
   }
 
-  // TODO - may decide to move elsewhere
+  // event plane method: jet v2 histograms
   for(int k=0; k<4; k++) {
     for(int j=0; j<4; j++) {
       for(int i=0; i<4; i++) {
@@ -1130,6 +1195,8 @@ void StMyAnalysisMaker3::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StMyAnalysisMaker3::Make() {
+  hStats->Fill(1);
+
   // constants
   const double pi = 1.0*TMath::Pi();
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
@@ -1164,10 +1231,12 @@ Int_t StMyAnalysisMaker3::Make() {
   fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
     if( !IsRunOK(fRunNumber) ) return kStOK;
+    hStats->Fill(2);
   }
 
-  // cut event on max track pt > 35.0 GeV (30 Oct25, 2018)
+  // cut event on max track pt > 35.0 GeV (lowered to 30 on Oct 25, 2018)
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
+  hStats->Fill(3);
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -1180,6 +1249,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // cut on (-30, 30) when using NEW centrality definitions - perhaps cut on (-28, 28)
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
+  hStats->Fill(4);
 
   // get the Run #, fill, and event ID
   int RunId = mPicoEvent->runId();
@@ -1236,7 +1306,8 @@ Int_t StMyAnalysisMaker3::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
+  hStats->Fill(5);
  
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
@@ -1259,11 +1330,13 @@ Int_t StMyAnalysisMaker3::Make() {
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
   else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
+  else if (centbin>5 && centbin<10) cbin = 4; // 30-50%
   else if (centbin>9 && centbin<16) cbin = 5; // 50-80%
   else cbin = -99;
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
+  hStats->Fill(6);
   // ============================ end of CENTRALITY ============================== //
 
   // ========================= Trigger Info =============================== //
@@ -1322,6 +1395,16 @@ Int_t StMyAnalysisMaker3::Make() {
     return kStWarn;
   }
 
+  // fill stats histo to do QA
+  hStats->Fill(7);
+  if(fJets->GetEntries() > 0) hStats->Fill(8);
+
+  // check if bad/dead towers fired trigger and kill event if true
+  if(DidBadTowerFireTrigger()) { return kStOK; }
+
+  return kStOK;
+  // ======================================================
+
   // get base class pointer
   // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
   //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
@@ -1341,13 +1424,12 @@ Int_t StMyAnalysisMaker3::Make() {
   deadTowers = JetMaker->GetDeadTowers();
   if(DidBadTowerFireTrigger()) { 
     cout<<"FOUND PROBLEM.. a bad tower fired the trigger: "<<GetName()<<endl;  
-    return kStWarn;
+    return kStOK;
   }
 */
 
 /*
-  // TEST: the below is snippet of code for getting jets and their cosntituents using
-  // constituent subtractor method in StJetMakerTask
+  // TEST: the below is snippet of code for getting jets and their constituents using constituent subtractor method in StJetMakerTask
   //
 
   // get JetMaker collection of jets with background subtraction
@@ -1401,7 +1483,8 @@ Int_t StMyAnalysisMaker3::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  if(fDebugLevel == kDebugEmcTrigger) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
+  hStats->Fill(9);
+  if(fDebugLevel == kDebugRhoEstimate) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
   // cache the leading + subleading jets within acceptance
@@ -1518,6 +1601,8 @@ Int_t StMyAnalysisMaker3::Make() {
   // ========================== Jet Shape Analysis ===================================== //
   int jsret = -99;
   if(doJetShapeAnalysis) {
+    hStats->Fill(11);
+
     // declare pool pointer
     StEventPool *pool = 0x0;
 
@@ -1773,19 +1858,14 @@ Int_t StMyAnalysisMaker3::Make() {
     // loop over constituent towers
     for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
       int ArrayIndex = jet->ClusterAt(itow);
+
+      // get tower pointer
       StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
       if(!tow){ continue; }
 
       //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
-      int towID = -1;
-      if( gROOT->GetClass("StPicoBTowHit")->GetClassVersion() < 3) {
-        //towID = tow->id();
-      } else {
-        //towID = tow->numericIndex2SoftId(ArrayIndex);
-      }
-
       // tower ID: get from index of array shifted by +1
-      towID = ArrayIndex + 1;
+      int towID = ArrayIndex + 1;
       if(towID < 0) continue;
 
       int containsTower = jet->ContainsTower(ArrayIndex);
@@ -2037,7 +2117,6 @@ Int_t StMyAnalysisMaker3::Make() {
         if((jet->GetMaxTrackPt() > fTrackBias) || (jet->GetMaxTowerE() > fTowerBias)) {
           // Fill mixed-event histos here: loop over nMix events
           for(int jMix = 0; jMix < nMix; jMix++) {
- 
             // get jMix'th event
             bgTracks = pool->GetEvent(jMix);
             //TObjArray *bgTracks = pool->GetEvent(jMix);
@@ -2418,30 +2497,13 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
   return tracksClone;
 }
 //
-/*
-//________________________________________________________________________
-Bool_t StMyAnalysisMaker3::AcceptJet(StJet *jet) { // for jets
-  // applies all jet cuts except pt
-  if ((jet->Phi() < fPhimin) || (jet->Phi() > fPhimax)) return kFALSE;
-  if ((jet->Eta() < fEtamin) || (jet->Eta() > fEtamax)) return kFALSE;
-  if (jet->Area() < fAreacut) return 0;
-  // prevents 0 area jets from sneaking by when area cut == 0
-  if (jet->Area() == 0) return kFALSE;
-  // exclude jets with extremely high pt tracks which are likely misreconstructed
-  if(jet->MaxTrackPt() > 20) return kFALSE;
-
-  // jet passed all above cuts
-  return kTRUE;
-}
-*/
-//
 //
 //_________________________________________________________________________
 TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
+  //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
@@ -2461,11 +2523,13 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
     bool isJP1 = emcTrig->isJP1();
     bool isJP2 = emcTrig->isJP2();
 
-    // print some EMCal Trigger info
-    if(fDebugLevel == kDebugEmcTrigger) {
-      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
-      cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
-      cout<<"  isJP0: "<<isJP0<<"  isJP1: "<<isJP1<<"  isJP2: "<<isJP2<<endl;
+    // print some EMCal Trigger info: exclude JP2, JP1
+    if(emcTrig->flag() != 112 && emcTrig->flag() != 96) { // FIXME - here for test May 30, 2019
+      if(fDebugLevel == kDebugEmcTrigger) {
+        cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
+        cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
+        cout<<"  isJP0: "<<isJP0<<"  isJP1: "<<isJP1<<"  isJP2: "<<isJP2<<endl;
+      }
     }
 
     // fill for valid triggers
@@ -2495,133 +2559,6 @@ TH1* StMyAnalysisMaker3::FillEmcTriggersHist(TH1* h) {
   h->LabelsOption("v");
   //h->LabelsDeflate("X");
 
-  return h;
-}
-//
-// Trigger QA histogram, label bins 
-// check and fill a Event Selection QA histogram for different trigger selections after cuts
-//_____________________________________________________________________________
-TH1* StMyAnalysisMaker3::FillEventTriggerQA(TH1* h) {
-  // Run12 pp 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    // Run12 (200 GeV pp) triggers:
-    int arrHT1[] = {370511, 370546};
-    int arrHT2[] = {370521, 370522, 370531, 370980};
-    //int arrHT3[] = {380206, 380216}; // NO HT3 triggered events
-    int arrMB[] = {370001, 370011, 370983};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, ""); //"VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, ""); //"Central-5");
-    h->GetXaxis()->SetBinLabel(8, ""); //"Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB");
-  }
-
-  // Run14 AuAu 200 GeV
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    int arrBHT1[] = {450201, 450211, 460201};
-    int arrBHT2[] = {450202, 450212, 460202, 460212};
-    int arrBHT3[] = {460203, 450213, 460203};
-    int arrMB[] = {450014};
-    int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
-    int arrMB30[] = {450010, 450020};
-    int arrCentral5[] = {450010, 450020};
-    int arrCentral[] = {460101, 460111};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); } // Central-5
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); }    // Central & Central-mon
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }    // VPDMB-5 
-    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
-
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 13; h->Fill(bin); } // HT2 && MB
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 14; h->Fill(bin); } // HT2 && MB30
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 15; h->Fill(bin); } // HT1 && MB
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1)) && DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 16; h->Fill(bin); } // HT1 && MB30
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(2, "BHT1*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(3, "BHT2*VPDMB-30");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-nobsmd");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central-5");
-    h->GetXaxis()->SetBinLabel(8, "Central or Central-mon");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-30");
-    h->GetXaxis()->SetBinLabel(13, "HT2*VPDMB30 && MB");
-    h->GetXaxis()->SetBinLabel(14, "HT2*VPDMB30 && MB30");
-    h->GetXaxis()->SetBinLabel(15, "HT1*VPDMB30 && MB");
-    h->GetXaxis()->SetBinLabel(16, "HT1*VPDMB30 && MB30");
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // hard-coded trigger Ids for run16
-    //int arrBHT0[] = {520606, 520616, 520626, 520636, 520646, 520656};
-    int arrBHT1[] = {520201, 520211, 520221, 520231, 520241, 520251, 520261, 520605, 520615, 520625, 520635, 520645, 520655, 550201, 560201, 560202, 530201, 540201};
-    int arrBHT2[] = {530202, 540203};
-    int arrBHT3[] = {520203, 530213};
-    int arrMB[] = {520021};
-    int arrMB5[] = {520001, 520002, 520003, 520011, 520012, 520013, 520021, 520022, 520023, 520031, 520033, 520041, 520042, 520043, 520051, 520822, 520832, 520842, 570702};
-    int arrMB10[] = {520007, 520017, 520027, 520037, 520201, 520211, 520221, 520231, 520241, 520251, 520261, 520601, 520611, 520621, 520631, 520641};
-    int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
-
-    // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
-
-    // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrBHT1, sizeof(arrBHT1)/sizeof(*arrBHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrBHT2, sizeof(arrBHT2)/sizeof(*arrBHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrBHT3, sizeof(arrBHT3)/sizeof(*arrBHT3))) { bin = 4; h->Fill(bin); } // HT3
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); } // Central-5 & Central-novtx
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }    // VPDMB-5 
-    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); } // VPDMB-10
-
-    // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(2, "BHT1");
-    h->GetXaxis()->SetBinLabel(3, "BHT2");
-    h->GetXaxis()->SetBinLabel(4, "BHT3");
-    h->GetXaxis()->SetBinLabel(5, "VPDMB-5-p-sst");
-    h->GetXaxis()->SetBinLabel(6, "");
-    h->GetXaxis()->SetBinLabel(7, "Central");
-    h->GetXaxis()->SetBinLabel(8, "");
-    h->GetXaxis()->SetBinLabel(10, "VPDMB-5");
-    h->GetXaxis()->SetBinLabel(11, "VPDMB-10");
-  }
-
-  // set general label
-  h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-  
   return h;
 }
 //
@@ -2726,6 +2663,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   //hEventZVertex->Sumw2();
   //hCentrality->Sumw2();
   //hMultiplicity->Sumw2();
+  //hStats->Sumw2();
   //hRhovsCent->Sumw2();
   for(int i=0; i<5; i++) { hdEPtrk[i]->Sumw2(); }
   for(int i=0; i<9; i++){ // centrality
@@ -2776,6 +2714,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   //fHistEventSelectionQAafterCuts->Sumw2();
   //hTriggerIds->Sumw2();
   //hEmcTriggers->Sumw2();
+  //hBadTowerFiredTrigger->Sumw2()
   hMixEvtStatZVtx->Sumw2();
   hMixEvtStatCent->Sumw2();
   hMixEvtStatZvsCent->Sumw2();
@@ -2916,7 +2855,7 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations - FIXME why is this 0.25??
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
       if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
       if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
@@ -2989,7 +2928,6 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
       trackweight = 1.0;
     }
 
-    // test - Jan15 for random subevents
     // generate random distribution from 0 -> 1: and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     ////double randomNum = gRandom->Rndm();  // > 0.5?
@@ -3071,50 +3009,6 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   // standard event plane distributions as function of centrality
   fHistEPTPCn->Fill(fCentralityScaled, fEPTPCn);
   fHistEPTPCp->Fill(fCentralityScaled, fEPTPCp);
-}
-//
-// 1) get the binning for: ref9 and region_vz
-// 2) get function: GetRunNo( );
-// 3) 
-//
-// this function checks for the bin number of the run from a runlist header 
-// in order to apply various corrections and fill run-dependent histograms
-// 1287 - Liang
-// _________________________________________________________________________________
-Int_t StMyAnalysisMaker3::GetRunNo(int runid){ 
-  // Run12 pp (200 GeV)
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    for(int i = 0; i < 857; i++) {
-      if(Run12pp_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run14 AuAu
-  // Run14AuAu_IdNo: SL17id
-  // Run14AuAu_P18ih_IdNo: SL18ih
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
-    for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_P18ih_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
-    for(int i = 0; i < 1359; i++){
-      if(Run16AuAu_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
-  return -999;
 }
 //
 // Fill event plane resolution histograms
@@ -3318,9 +3212,10 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
   // tower constituent fired trigger
   Bool_t mFiredTrigger = kFALSE;
 
-  // loop over constituents towers
+  // loop over constituent towers
   for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
     int towerIndex = jet->ClusterAt(itow);
+
     // get tower pointer
     StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerIndex));
     if(!tow) continue;
@@ -3339,15 +3234,19 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
   return mFiredTrigger;
 }  
 //
-// function to require that a jet constituent tower fired a HT trigger
+// function to check if a bad tower fired the events HT trigger
 //___________________________________________________________________________________________
 Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
   // bad/dead tower fired trigger
-  Bool_t mBadTowerFiredTrigger = kFALSE;
+  bool mBadTowerFiredTrigger = kFALSE;
+  bool mBadTowerFiring = kFALSE;
 
   // loop over towers
   int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
+    // update switch
+    mBadTowerFiredTrigger = kFALSE;
+
     // get tower pointer
     StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
     if(!tow) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
@@ -3359,54 +3258,27 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
     // check if tower is bad or dead - functions return kTRUE if ok and kFALSE if NOT dead 
     // isTowerOK(towID) = kTRUE if tower is OK and not dead
     // isTowerDead(towID) = kTRUE if tower is dead, = kFALSE if tower is NOT dead
-    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID)); // FIXME
+//    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID)); // FIXME
+    bool isTowOk = (IsTowerOK(towID)); // FIXME
 
     // change flag to true if jet tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
 
-    if(mBadTowerFiredTrigger == kTRUE) cout<<"Bad tower fired trigger, towID: "<<towID<<endl;
-  } // tower constituent loop
+    // for bad tower firings: fill histo, inform user, return kTRUE
+    if(mBadTowerFiredTrigger == kTRUE) {
+      hBadTowerFiredTrigger->Fill(towID);
+      mBadTowerFiring = kTRUE;
+      cout<<"Bad tower fired trigger, towID: "<<towID<<endl;
+      //break;
+    }
 
-  return mBadTowerFiredTrigger;
-}
-//
-// function to calcuate delta R between a jet centroid and a track
-//___________________________________________________________________________________________
-Double_t StMyAnalysisMaker3::GetDeltaR(StJet *jet, StPicoTrack *trk) {
-  // constants
-  double deltaR = -99.;
-  double pi = 1.0*TMath::Pi();
+  } // tower loop
 
-  // get track momentum vector 
-  TVector3 mTrkMom;
-  if(doUsePrimTracks) {
-    if(!(trk->isPrimary())) return -99.;
-    // get primary track vector
-    mTrkMom = trk->pMom();
-  } else {
-    // get global track vector
-    mTrkMom = trk->gMom(mVertex, Bfield);
-  }
-
-  // track variables
-  double tphi = mTrkMom.Phi();
-  if(tphi > 2.0*pi) tphi -= 2.0*pi;
-  if(tphi < 0.0   ) tphi += 2.0*pi;
-  double teta = mTrkMom.PseudoRapidity();
-
-  // jet variables
-  double jphi = jet->Phi();
-  double jeta = jet->Eta();
-
-  // calculate radial distance
-  double deltaEta = 1.0*TMath::Abs(jeta - teta);
-  double deltaPhi = 1.0*TMath::Abs(jphi - tphi);
-  if(deltaPhi > 1.0*pi) deltaPhi = 2.0*pi - deltaPhi;
-  deltaR = 1.0*TMath::Sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
-
-  return deltaR;
+  // kTRUE: bad tower fired trigger
+  //return mBadTowerFiredTrigger;
+  return mBadTowerFiring;
 }
 // ===========================================================================================
 // ===========================================================================================

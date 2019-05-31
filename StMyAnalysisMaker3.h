@@ -111,6 +111,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+    virtual void            SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -179,10 +180,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
 
   protected:
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
-    Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     void                    SetSumw2(); // set errors weights 
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
@@ -191,14 +190,9 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Bool_t                  DidBadTowerFireTrigger();
-    Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin);
     Double_t                TestBool();
     void                    GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin);
-
-    // Added from Liang
-    Int_t                   GetRunNo(int runid);
-    Int_t                   GetVzRegion(double Vz);
 
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
@@ -240,6 +234,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     UInt_t                  fMBEventType;            // Physics selection of event used for MB
     UInt_t                  fMixingEventType;        // Physics selection of event used for mixed event
     Int_t                   fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
+    UInt_t                  fBadTowerListVers;       // version of bad tower file list to use
+
 
     // tower to firing trigger type matched array
     Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
@@ -316,6 +312,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hEventZVertex;//!
     TH1F *hCentrality;//!
     TH1F *hMultiplicity;//!
+    TH1F *hStats;//!
     TH2F *hRhovsCent;//!
     TH1F *hdEPtrk[5];//!
     TH1F *hTrackPhi[9];//!
@@ -368,6 +365,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
+    TH1  *hBadTowerFiredTrigger;//!
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!

@@ -154,9 +154,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 
   protected:
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
-    Bool_t                  AcceptJet(StJet *jet);           // jets accept cuts function
     void                    SetEPSumw2(); // set errors weights for event plane histograms
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
@@ -174,8 +172,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Int_t                   ZDC_EP_Cal(int ref9, int region_vz, int n);
     Double_t                BBC_GetPhi(int e_w,int iTile); //east == 0
     Double_t                ZDCSMD_GetPosition(int id_order,int eastwest,int verthori,int strip);
-    Int_t                   GetRunNo(int runid);
-    Int_t                   GetVzRegion(double Vz);
 
     // switches
     Int_t                   fDoEffCorr;              // efficiency correction to tracks

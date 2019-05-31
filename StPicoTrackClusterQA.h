@@ -2,16 +2,12 @@
 #define STPICOTRACKCLUSTERQA_H
 // $Id$
 
-// base class
-//class StJetFrameworkPicoBase;
-
+// C++ includes
 #include <set>
 
-// includes
-//#include "StJetFrameworkPicoBase.h"
+// STAR includes
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
-
 #include "StMuDSTMaker/COMMON/StMuDstMaker.h"
 #include "StMuDSTMaker/COMMON/StMuDst.h"
 #include "StMuDSTMaker/COMMON/StMuEvent.h"
@@ -22,7 +18,9 @@ class TClonesArray;
 class TObjArray;
 class TList;
 class TH1;
+class TH1F;
 class TH2;
+class TH2F;
 class THnSparse;
 class TProfile;
 
@@ -32,19 +30,18 @@ class StChain;
 class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
+class StPicoTrack;
+class StPicoBTowHit;
 
 // EMC and tower related classes
 class StEmcGeom;
 class StBemcTables; //v3.14
 class StEmcCluster;
 class StEmcCollection;
-
 class StEmcPosition2;
 
 // centrality class
 class StRefMultCorr;
-
-#include "StMyAnalysisMaker.h"
 
 /*  Used to store track & tower matching 
  *  information between computation steps     
@@ -162,10 +159,10 @@ class StPicoTrackClusterQA : public StMaker {
   void                 RunFiredTriggerQA();  
   Bool_t               AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
   Bool_t               AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
-  Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                       // centrality bin
+  Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                 // centrality bin
   Bool_t               SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
-  TH1*                 FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-  TH1*                 FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+  TH1*                 FillEmcTriggersHist(TH1* h);                              // EmcTrigger counter histo
+  TH1*                 FillEventTriggerQA(TH1* h);                               // fill event trigger QA plots
   Bool_t               DoComparison(int myarr[], int elems);
   Bool_t               CheckForMB(int RunFlag, int type);
   Bool_t               CheckForHT(int RunFlag, int type);

@@ -25,7 +25,7 @@
 #include <THnSparse.h>
 #include "TVector3.h"
 
-// StRoot classes
+// StRoot includes
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoArrays.h"
@@ -44,7 +44,7 @@
 #include "StEmcPosition2.h"
 #include "StJetFrameworkPicoBase.h"
 
-// for towers/clusters:
+// towers/clusters related includes:
 #include "StMuDSTMaker/COMMON/StMuTrack.h"
 #include "StEmcRawMaker/StBemcRaw.h"
 #include "StEmcRawMaker/StBemcTables.h"
@@ -57,11 +57,11 @@
 #include "StEmcModule.h"
 #include "StEmcDetector.h"
 
-// centrality
+// centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
-// towers
+// tower includes
 #include "StJetPicoTower.h"
 #include "StJetPicoDefinitions.h"
 
@@ -478,21 +478,21 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     Double_t nRunBinsMax = (Double_t)nRunBins + 0.5;
 
     // track histograms
-    fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 150, 0., 30.);
+    fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 200, 0., 40.);
     fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "Ntracks vs #phi", 144, 0., 2.0*pi);
     fHistNTrackvsEta = new TH1F("fHistNTrackvsEta", "Ntracks vs #eta", 40, -1.0, 1.0);
     fHistNTrackvsPhivsEta = new TH2F("fHistNTrackvsPhivsEta", "Ntrack vs #phi vs #eta", 144, 0, 2.0*pi, 40, -1.0, 1.0);
 
     // Tower histograms
-    fHistNHadCorrTowervsE = new TH1F("fHistNHadCorrTowervsE", "NHadCorrTowers vs energy", 100, 0., 20.0);
-    fHistNHadCorrTowervsEt = new TH1F("fHistNHadCorrTowervsEt", "NHadCorrTowers vs transverse energy", 100, 0., 20.0);
+    fHistNHadCorrTowervsE = new TH1F("fHistNHadCorrTowervsE", "NHadCorrTowers vs energy", 200, 0., 40.0);
+    fHistNHadCorrTowervsEt = new TH1F("fHistNHadCorrTowervsEt", "NHadCorrTowers vs transverse energy", 200, 0., 40.0);
     fHistNHadCorrTowervsPhi = new TH1F("fHistNHadCorrTowervsPhi", "NHadCorrTowers vs #phi", 144, 0., 2.0*pi);
     fHistNHadCorrTowervsEta = new TH1F("fHistNHadCorrTowervsEta", "NHadCorrTowers vs #eta", 40, -1.0, 1.0);
     fHistNHadCorrTowervsPhivsEta = new TH2F("fHistNHadCorrTowervsPhivsEta", "NHadCorrTowers vs #phi vs #eta", 144, 0, 2.0*pi, 40, -1.0, 1.0);
     fHistNHadCorrTowerHOTvsTowID = new TH1F("fHistNHadCorrTowerHOTvsTowID", "NHadCorrTowers HOT vs tower ID", 4800, 0.5, 4800.5);
     fHistNTowervsADC = new TH1F("fHistNTowervsADC", "Ntowers vs ADC", 100., 0., 100.);
-    fHistNTowervsE = new TH1F("fHistNTowervsE", "Ntowers vs energy", 100, 0., 20.0);
-    fHistNTowervsEt = new TH1F("fHistNTowervsEt", "Ntowers vs transverse energy", 100, 0., 20.0);
+    fHistNTowervsE = new TH1F("fHistNTowervsE", "Ntowers vs energy", 200, 0., 40.0);
+    fHistNTowervsEt = new TH1F("fHistNTowervsEt", "Ntowers vs transverse energy", 200, 0., 40.0);
     fHistNTowervsPhi = new TH1F("fHistNTowervsPhi", "Ntowers vs #phi", 144, 0., 2.0*pi);
     fHistNTowervsEta = new TH1F("fHistNTowervsEta", "Ntowers vs #eta", 40, -1.0, 1.0);
     fHistNTowervsPhivsEta = new TH2F("fHistNTowervsPhivsEta", "Ntowers vs #phi vs #eta", 144, 0, 2.0*pi, 40, -1.0, 1.0);
@@ -881,7 +881,7 @@ int StPicoTrackClusterQA::Make()
   ////mPicoDst->printBEmcPidTraits();
 
   // fill Event QA after cuts
-  //FillEventTriggerQA(fHistEventSelectionQAafterCuts);
+  FillEventTriggerQA(fHistEventSelectionQAafterCuts);
 
   return kStOK;
 }
@@ -1392,14 +1392,13 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int arrMB[] = {370001, 370011, 370983};
 
     // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
+    h->Fill(1);
 
     // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 10; h->Fill(bin); } // VPDMB
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { h->Fill(2); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { h->Fill(3); } // HT2
+    //if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { h->Fill(4); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { h->Fill(10); } // VPDMB
 
     // label bins of the analysis trigger selection summary
     h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
@@ -1426,18 +1425,17 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int arrMB5[] = {450005, 450008, 450009, 450014, 450015, 450018, 450024, 450025, 450050, 450060};
 
     // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
+    h->Fill(1);
 
     // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3 
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); } // MB 
-    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { bin = 7; h->Fill(bin); }// Central-5
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 8; h->Fill(bin); } // Central & Central-mon
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); }// VPDMB-5 
-    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { bin = 11; h->Fill(bin); } // VPDMB-30
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { h->Fill(2); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { h->Fill(3); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { h->Fill(4); } // HT3 
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { h->Fill(5); } // MB 
+    if(DoComparison(arrCentral5, sizeof(arrCentral5)/sizeof(*arrCentral5))) { h->Fill(7); }// Central-5
+    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { h->Fill(8); } // Central & Central-mon
+    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { h->Fill(10); }// VPDMB-5 
+    if(DoComparison(arrMB30, sizeof(arrMB30)/sizeof(*arrMB30))) { h->Fill(11); } // VPDMB-30
 
     // label bins of the analysis trigger selection summary
     h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
@@ -1465,17 +1463,16 @@ TH1* StPicoTrackClusterQA::FillEventTriggerQA(TH1* h) {
     int arrCentral[] = {520101, 520111, 520121, 520131, 520141, 520103, 520113, 520123};
 
     // fill for kAny
-    int bin = 0;
-    bin = 1; h->Fill(bin);
+    h->Fill(1);
 
     // check if event triggers meet certain criteria and fill histos
-    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { bin = 2; h->Fill(bin); } // HT1
-    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { bin = 3; h->Fill(bin); } // HT2
-    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { bin = 4; h->Fill(bin); } // HT3
-    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { bin = 5; h->Fill(bin); }  // MB
-    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { bin = 7; h->Fill(bin); }// Central-5 & Central-novtx
-    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { bin = 10; h->Fill(bin); } // VPDMB-5 
-    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { bin = 11; h->Fill(bin); }// VPDMB-10
+    if(DoComparison(arrHT1, sizeof(arrHT1)/sizeof(*arrHT1))) { h->Fill(2); } // HT1
+    if(DoComparison(arrHT2, sizeof(arrHT2)/sizeof(*arrHT2))) { h->Fill(3); } // HT2
+    if(DoComparison(arrHT3, sizeof(arrHT3)/sizeof(*arrHT3))) { h->Fill(4); } // HT3
+    if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { h->Fill(5); }  // MB
+    if(DoComparison(arrCentral, sizeof(arrCentral)/sizeof(*arrCentral))) { h->Fill(7); }// Central-5 & Central-novtx
+    if(DoComparison(arrMB5, sizeof(arrMB5)/sizeof(*arrMB5))) { h->Fill(10); } // VPDMB-5 
+    if(DoComparison(arrMB10, sizeof(arrMB10)/sizeof(*arrMB10))) { h->Fill(11); }// VPDMB-10
 
     // label bins of the analysis trigger selection summary
     h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
@@ -2087,6 +2084,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     }
 
     // continue for no HT trigger or if JetPatch
+    //if(flag == 96) continue;                           // also JetPatch triggers - FIXME TODO
     if(flag == 112) continue;                          // JetPatch triggers
     if(!isHT0 && !isHT1 && !isHT2 && !isHT3) continue; // have a HT trigger
 

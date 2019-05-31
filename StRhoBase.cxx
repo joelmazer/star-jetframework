@@ -24,7 +24,6 @@
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StJetMakerTask.h"
-#include "StMyAnalysisMaker.h"
 
 // STAR includes
 #include "StMaker.h"
@@ -203,7 +202,7 @@ Int_t StRhoBase::Init()
   }
 */
 
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  // RunFlag depedent centrality definitions specifically requested for given run period
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -346,18 +345,14 @@ void StRhoBase::DeclareHistograms()
   fHistRhovsCent->GetXaxis()->SetTitle("Centrality (%)");
   fHistRhovsCent->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
 
-  //if (fParticleCollArray.GetEntriesFast()>0) {
-    fHistRhovsNtrackvsMult = new TH3F("fHistRhovsNtrackvsMult", "fHistRhovsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
-    fHistRhovsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
-    fHistRhovsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
-    fHistRhovsNtrackvsMult->GetZaxis()->SetTitle("mult");
-  //}
+  fHistRhovsNtrackvsMult = new TH3F("fHistRhovsNtrackvsMult", "fHistRhovsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
+  fHistRhovsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
+  fHistRhovsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
+  fHistRhovsNtrackvsMult->GetZaxis()->SetTitle("mult");
 
-  //if (fClusterCollArray.GetEntriesFast()>0) {
-    fHistRhovsNcluster = new TH2F("fHistRhovsNcluster", "fHistRhovsNcluster", 50, 0, 1500, fNbins, fMinBinPt, fMaxBinPt*2);
-    fHistRhovsNcluster->GetXaxis()->SetTitle("No. of clusters");
-    fHistRhovsNcluster->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
-  //}
+  fHistRhovsNcluster = new TH2F("fHistRhovsNcluster", "fHistRhovsNcluster", 50, 0, 1500, fNbins, fMinBinPt, fMaxBinPt*2);
+  fHistRhovsNcluster->GetXaxis()->SetTitle("No. of clusters");
+  fHistRhovsNcluster->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
 
   //if (fJetCollArray.GetEntriesFast()>0) {
     fHistJetPtvsCent = new TH2F("fHistJetPtvsCent", "fHistJetPtvsCent", 101, -1,  100, fNbins, fMinBinPt, fMaxBinPt);
@@ -376,19 +371,17 @@ void StRhoBase::DeclareHistograms()
     fHistNjetvsCent->GetXaxis()->SetTitle("Centrality (%)");
     fHistNjetvsCent->GetYaxis()->SetTitle("No. of jets");
 
-    //if (fParticleCollArray.GetEntriesFast()>0) {
-      fHistJetPtvsNtrack = new TH2F("fHistJetPtvsNtrack", "fHistJetPtvsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt);
-      fHistJetPtvsNtrack->GetXaxis()->SetTitle("No. of tracks");
-      fHistJetPtvsNtrack->GetYaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
+    fHistJetPtvsNtrack = new TH2F("fHistJetPtvsNtrack", "fHistJetPtvsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt);
+    fHistJetPtvsNtrack->GetXaxis()->SetTitle("No. of tracks");
+    fHistJetPtvsNtrack->GetYaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
 
-      fHistJetAreavsNtrack = new TH2F("fHistJetAreavsNtrack", "fHistJetAreavsNtrack", 150, Ntrackrange[0], Ntrackrange[1], 100, 0, 1);
-      fHistJetAreavsNtrack->GetXaxis()->SetTitle("No. of tracks");
-      fHistJetAreavsNtrack->GetYaxis()->SetTitle("Jet area");
+    fHistJetAreavsNtrack = new TH2F("fHistJetAreavsNtrack", "fHistJetAreavsNtrack", 150, Ntrackrange[0], Ntrackrange[1], 100, 0, 1);
+    fHistJetAreavsNtrack->GetXaxis()->SetTitle("No. of tracks");
+    fHistJetAreavsNtrack->GetYaxis()->SetTitle("Jet area");
 
-      fHistNjetvsNtrack = new TH2F("fHistNjetvsNtrack", "fHistNjetvsNtrack", 150, Ntrackrange[0], Ntrackrange[1], 150, -0.5, 149.5);
-      fHistNjetvsNtrack->GetXaxis()->SetTitle("No. of tracks");
-      fHistNjetvsNtrack->GetYaxis()->SetTitle("No. of jets");
-    //}
+    fHistNjetvsNtrack = new TH2F("fHistNjetvsNtrack", "fHistNjetvsNtrack", 150, Ntrackrange[0], Ntrackrange[1], 150, -0.5, 149.5);
+    fHistNjetvsNtrack->GetXaxis()->SetTitle("No. of tracks");
+    fHistNjetvsNtrack->GetYaxis()->SetTitle("No. of jets");
 
     TString name;
     for (Int_t i = 0; i < 4; i++) {
@@ -416,11 +409,9 @@ void StRhoBase::DeclareHistograms()
     fHistDeltaRhovsCent->GetXaxis()->SetTitle("Centrality (%)");
     fHistDeltaRhovsCent->GetYaxis()->SetTitle("#Delta#rho (GeV/c * rad^{-1})");
 
-    //if (fParticleCollArray.GetEntriesFast()>0) {
-      fHistDeltaRhovsNtrack = new TH2F("fHistDeltaRhovsNtrack", "fHistDeltaRhovsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, -fMaxBinPt, fMaxBinPt);
-      fHistDeltaRhovsNtrack->GetXaxis()->SetTitle("No. of tracks");
-      fHistDeltaRhovsNtrack->GetYaxis()->SetTitle("#Delta#rho (GeV/c * rad^{-1})");
-    //}
+    fHistDeltaRhovsNtrack = new TH2F("fHistDeltaRhovsNtrack", "fHistDeltaRhovsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, -fMaxBinPt, fMaxBinPt);
+    fHistDeltaRhovsNtrack->GetXaxis()->SetTitle("No. of tracks");
+    fHistDeltaRhovsNtrack->GetYaxis()->SetTitle("#Delta#rho (GeV/c * rad^{-1})");
   //}
 
   //if(fScaleFunction) {
@@ -428,29 +419,23 @@ void StRhoBase::DeclareHistograms()
     fHistRhoScaledvsCent->GetXaxis()->SetTitle("Centrality (%)");
     fHistRhoScaledvsCent->GetYaxis()->SetTitle("#rho_{scaled} (GeV/c * rad^{-1})");
 
-    //if (fParticleCollArray.GetEntriesFast()>0) {
-      fHistRhoScaledvsNtrackvsMult = new TH3F("fHistRhoScaledvsNtrackvsMult", "fHistRhoScaledvsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
-      fHistRhoScaledvsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
-      fHistRhoScaledvsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
-      fHistRhoScaledvsNtrackvsMult->GetZaxis()->SetTitle("mult");
-    //}
+    fHistRhoScaledvsNtrackvsMult = new TH3F("fHistRhoScaledvsNtrackvsMult", "fHistRhoScaledvsNtrackvsMult", 150, Ntrackrange[0], Ntrackrange[1], fNbins, fMinBinPt, fMaxBinPt*2,100, Mult[0], Mult[1]);
+    fHistRhoScaledvsNtrackvsMult->GetXaxis()->SetTitle("No. of tracks");
+    fHistRhoScaledvsNtrackvsMult->GetYaxis()->SetTitle("#rho (GeV/c * rad^{-1})");
+    fHistRhoScaledvsNtrackvsMult->GetZaxis()->SetTitle("mult");
 
-    //if (fClusterCollArray.GetEntriesFast()>0) {
-      fHistRhoScaledvsNcluster = new TH2F("fHistRhoScaledvsNcluster", "fHistRhoScaledvsNcluster", 50, 0, 1500, fNbins, fMinBinPt, fMaxBinPt*2);
-      fHistRhoScaledvsNcluster->GetXaxis()->SetTitle("No. of clusters");
-      fHistRhoScaledvsNcluster->GetYaxis()->SetTitle("#rho_{scaled} (GeV/c * rad^{-1})");
-    //}
+    fHistRhoScaledvsNcluster = new TH2F("fHistRhoScaledvsNcluster", "fHistRhoScaledvsNcluster", 50, 0, 1500, fNbins, fMinBinPt, fMaxBinPt*2);
+    fHistRhoScaledvsNcluster->GetXaxis()->SetTitle("No. of clusters");
+    fHistRhoScaledvsNcluster->GetYaxis()->SetTitle("#rho_{scaled} (GeV/c * rad^{-1})");
 
     //if (!fCompareRhoScaledName.IsNull()) {
       fHistDeltaRhoScalevsCent = new TH2F("fHistDeltaRhoScalevsCent", "fHistDeltaRhoScalevsCent", 101, -1, 100, fNbins, -fMaxBinPt, fMaxBinPt);
       fHistDeltaRhoScalevsCent->GetXaxis()->SetTitle("Centrality (%)");
       fHistDeltaRhoScalevsCent->GetYaxis()->SetTitle("#Delta#rho_{scaled} (GeV/c * rad^{-1})");
       
-      //if (fParticleCollArray.GetEntriesFast()>0) {
-	fHistDeltaRhoScalevsNtrack = new TH2F("fHistDeltaRhoScalevsNtrack", "fHistDeltaRhoScalevsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, -fMaxBinPt, fMaxBinPt);
-	fHistDeltaRhoScalevsNtrack->GetXaxis()->SetTitle("No. of tracks");
-	fHistDeltaRhoScalevsNtrack->GetYaxis()->SetTitle("#Delta#rho_{scaled} (GeV/c * rad^{-1})");
-      //}
+      fHistDeltaRhoScalevsNtrack = new TH2F("fHistDeltaRhoScalevsNtrack", "fHistDeltaRhoScalevsNtrack", 150, Ntrackrange[0], Ntrackrange[1], fNbins, -fMaxBinPt, fMaxBinPt);
+      fHistDeltaRhoScalevsNtrack->GetXaxis()->SetTitle("No. of tracks");
+      fHistDeltaRhoScalevsNtrack->GetYaxis()->SetTitle("#Delta#rho_{scaled} (GeV/c * rad^{-1})");
     //}
   //}
 
@@ -536,7 +521,7 @@ Int_t StRhoBase::Make()
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
 
   // test for now FIXME
   double fCent = 0.0;
@@ -616,7 +601,7 @@ Bool_t StRhoBase::FillHistograms()
   
   fHistRhovsCent->Fill(fCent, fOutRho->GetVal());
 
-  //fHistRhovsNtrackvsMult->Fill(Ntracks, fOutRho->GetVal(),multA+multC);
+  //fHistRhovsNtrackvsMult->Fill(Ntracks, fOutRho->GetVal(), multA+multC);
   fHistRhovsNcluster->Fill(Nclusters, fOutRho->GetVal());
   if(fCompareRho) {
     fHistDeltaRhovsCent->Fill(fCent, fOutRho->GetVal() - fCompareRho->GetVal());
@@ -626,7 +611,7 @@ Bool_t StRhoBase::FillHistograms()
   // scaled Rho
   if(fOutRhoScaled) {
     fHistRhoScaledvsCent->Fill(fCent, fOutRhoScaled->GetVal());
-    //fHistRhoScaledvsNtrackvsMult->Fill(Ntracks, fOutRhoScaled->GetVal(),multA+multC);
+    //fHistRhoScaledvsNtrackvsMult->Fill(Ntracks, fOutRhoScaled->GetVal(), multA+multC);
     //fHistRhoScaledvsNcluster->Fill(Nclusters,  fOutRhoScaled->GetVal());
     if (fCompareRhoScaled) {
       fHistDeltaRhoScalevsCent->Fill(fCent, fOutRhoScaled->GetVal() - fCompareRhoScaled->GetVal());

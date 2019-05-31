@@ -15,14 +15,18 @@
 
 // this class is adapted from the class AliEmcalJet
 //
+
+// Root Includes
+#include "Riostream.h"
+
+// jet-framework includes
 #include "StJet.h"
 #include "StVParticle.h"
+
+// STAR includes
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-
-#include "Riostream.h"
-
 
 /// \cond CLASSIMP
 ClassImp(StJet);
