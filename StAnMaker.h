@@ -112,7 +112,6 @@ class StAnMaker : public StJetFrameworkPicoBase {
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
-    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal

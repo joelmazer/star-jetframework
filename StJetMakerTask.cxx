@@ -12,7 +12,7 @@
 
 #include "StJetMakerTask.h"
 
-// root classes
+// ROOT includes
 #include "TROOT.h"
 #include <TChain.h>
 #include <TClonesArray.h>
@@ -27,7 +27,7 @@
 #include <sstream>
 #include <fstream>
 
-// StRoot classes
+// StRoot includes
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoArrays.h"
@@ -45,7 +45,7 @@
 #include "StEmcPosition2.h"
 class StEmcPosition2;
 
-// jet class and fastjet wrapper
+// jet class and fastjet wrapper and dataset (Run#'s) 
 #include "StJet.h"
 #include "StFJWrapper.h"
 #include "StJetFrameworkPicoBase.h"
@@ -66,9 +66,6 @@ class StMaker;
 class StChain;
 class StPicoDstMaker;
 class StPicoEvent;
-
-//#include "StMyAnalysisMaker3.h"
-//class StMyAnalysisMaker3;
 
 // constants - definitions
 const Int_t StJetMakerTask::fgkConstIndexShift = 100000;
@@ -734,6 +731,7 @@ int StJetMakerTask::Make()
   Int_t centbin, cent16;
   Double_t refCorr2;
 
+  // centrality setup (for non-pp analyses)
   if(!doppAnalysis) {
     // initialize event-by-event by RunID
     grefmultCorr->init(RunId);
@@ -759,7 +757,7 @@ int StJetMakerTask::Make()
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
 
   // event activity - compensate for pp or AuAu
   double kEventActivity = (doppAnalysis) ? (double)grefMult : refCorr2;
@@ -773,7 +771,7 @@ int StJetMakerTask::Make()
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
-  //if(fRequireCentSelection) { if(!baseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStWarn; }
+  //if(fRequireCentSelection) { if(!baseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOK; }
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   // NEED to ADD new triggers and runs to StJetFrameworkPicoBase class !!
@@ -1536,7 +1534,7 @@ Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentral
   // -- Example usage:
   //    Int_t cent16 = grefmultCorr->getCentralityBin16();
   //    Int_t centbin = GetCentBin(cent16, 16);
-  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStWarn; (or StOk to suppress warnings)
+  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK; (or StOk to suppress warnings)
   //
   // other bins can be added if needed...
 

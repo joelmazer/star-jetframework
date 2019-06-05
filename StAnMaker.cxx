@@ -300,7 +300,7 @@ Int_t StAnMaker::Make() {
   zVtx = mVertex.z();
   
   // Z-vertex cut: the Aj analysis cut on (-40, 40) for reference
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // get the Run #, fill, and event ID
   Int_t RunId = mPicoEvent->runId();
@@ -324,7 +324,6 @@ Int_t StAnMaker::Make() {
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
-    if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
     cent9 = grefmultCorr->getCentralityBin9();
 
     // re-order binning to be from central -> peripheral
@@ -341,7 +340,7 @@ Int_t StAnMaker::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them 
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything

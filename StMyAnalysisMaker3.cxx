@@ -1261,7 +1261,6 @@ Int_t StMyAnalysisMaker3::Make() {
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
@@ -1400,9 +1399,9 @@ Int_t StMyAnalysisMaker3::Make() {
   if(fJets->GetEntries() > 0) hStats->Fill(8);
 
   // check if bad/dead towers fired trigger and kill event if true
-  if(DidBadTowerFireTrigger()) { return kStOK; }
+  if(DidBadTowerFireTrigger()) { return kStOK; } // TODO - fill a hStat after 
+  hStats->Fill(9); 
 
-  return kStOK;
   // ======================================================
 
   // get base class pointer
@@ -1483,7 +1482,7 @@ Int_t StMyAnalysisMaker3::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  hStats->Fill(9);
+  hStats->Fill(10);
   if(fDebugLevel == kDebugRhoEstimate) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
 
   // =========== Leading and Subleading Jets ============= //
@@ -1601,7 +1600,7 @@ Int_t StMyAnalysisMaker3::Make() {
   // ========================== Jet Shape Analysis ===================================== //
   int jsret = -99;
   if(doJetShapeAnalysis) {
-    hStats->Fill(11);
+    hStats->Fill(12);
 
     // declare pool pointer
     StEventPool *pool = 0x0;
@@ -2806,16 +2805,15 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
   if(fExcludeLeadingJetsFromFit > 0 ) {    // remove the leading jet from EP estimate
     // check for leading jet
     if(fLeadingJet) {
-      excludeInEta = fLeadingJet->Eta();
       excludeInPhi = fLeadingJet->Phi();
-      //cout<<"leading: pt = "<<fLeadingJet->Pt()<<"  eta = "<<fLeadingJet->Eta()<<"  phi = "<<fLeadingJet->Phi()<<endl;
+      if(fDebugLevel == kDebugLeadSubLeadJets) cout<<"leading: pt = "<<fLeadingJet->Pt()<<"  eta = "<<fLeadingJet->Eta()<<"  phi = "<<fLeadingJet->Phi()<<endl;
     }
 
     // check for subleading jet
     if(fSubLeadingJet) {
       excludeInEtaSub = fSubLeadingJet->Eta();
       excludeInPhiSub = fSubLeadingJet->Phi();
-      //cout<<"subleading: pt = "<<fSubLeadingJet->Pt()<<"  eta = "<<fSubLeadingJet->Eta()<<"  phi = "<<fSubLeadingJet->Phi()<<endl;
+      if(fDebugLevel == kDebugLeadSubLeadJets) cout<<"subleading: pt = "<<fSubLeadingJet->Pt()<<"  eta = "<<fSubLeadingJet->Eta()<<"  phi = "<<fSubLeadingJet->Phi()<<endl;
     }
   } // leading jets
 
@@ -3234,17 +3232,19 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
   return mFiredTrigger;
 }  
 //
+// FIXME TODO - still working on how this function will perform.. May 31, 2019
 // function to check if a bad tower fired the events HT trigger
 //___________________________________________________________________________________________
 Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
   // bad/dead tower fired trigger
   bool mBadTowerFiredTrigger = kFALSE;
   bool mBadTowerFiring = kFALSE;
+  int nGood = 0;
 
   // loop over towers
   int nTowers = mPicoDst->numberOfBTowHits();
   for(int itow = 0; itow < nTowers; itow++) {
-    // update switch
+    // update status
     mBadTowerFiredTrigger = kFALSE;
 
     // get tower pointer
@@ -3261,10 +3261,18 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
 //    bool isTowOk = (IsTowerOK(towID) && !IsTowerDead(towID)); // FIXME
     bool isTowOk = (IsTowerOK(towID)); // FIXME
 
-    // change flag to true if jet tower fired trigger
+    // change flag to true if bad tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
+
+    // check if good tower fired trigger
+    if( ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID] && isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID] && isTowOk )) {
+      nGood++;
+      //cout<<"TriggerType: "<<fEmcTriggerEventType<<"    Legit tower firing, towID: "<<towID<<endl;
+    }
 
     // for bad tower firings: fill histo, inform user, return kTRUE
     if(mBadTowerFiredTrigger == kTRUE) {
@@ -3275,6 +3283,19 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
     }
 
   } // tower loop
+
+  // total good firings:
+  //cout<<"nGood: "<<nGood<<endl;
+
+  // ===========================================
+  // TODO - TODO - TODO - TODO
+  // problem is: a few towers always fire when BAD
+  // - 1) reject event if any bad tower fires a HT of interest?
+  // - 2) keep event if there are good tower(s) that fire an event that a bad tower also fired in?
+  // 	> this seems the way to go, else we would be eliminating nearly all events
+  //
+  // - Note: tower 3405!
+  // ===========================================
 
   // kTRUE: bad tower fired trigger
   //return mBadTowerFiredTrigger;
@@ -3742,12 +3763,6 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     }       // end of event mixing
 
     return kStOK;
-}
-//
-// This is strictly set up for a test
-//___________________________________________________________________________________________
-Double_t StMyAnalysisMaker3::TestBool() {
-  return kFALSE;
 }
 //
 // function to calculate Jet v2 using the event plane method

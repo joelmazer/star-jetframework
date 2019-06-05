@@ -6,7 +6,7 @@
 #include "StJetFrameworkPicoBase.h"
 #include "StMaker.h"
 
-// root classes
+// Root classes
 class TString;
 class TF1;
 class TH1F;
@@ -21,7 +21,6 @@ class StRefMultCorr;
 class StRhoParameter;
 
 // might not want to inherit from 2 classes
-//class StRhoBase : public StJetMakerTask {
 //class StRhoBase : public StMaker {  // TODO need to check if this is fine
 class StRhoBase : public StJetFrameworkPicoBase {
 
@@ -73,7 +72,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
 
   // event parameters
   Bool_t                 doUseBBCCoincidenceRate;
-  Double_t               fMaxEventTrackPt;
+  Double_t fMaxEventTrackPt;
 
   TString                fOutRhoName;                    // name of output rho object
   TString                fOutRhoScaledName;              // name of output scaled rho object

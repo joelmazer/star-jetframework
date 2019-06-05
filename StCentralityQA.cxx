@@ -23,17 +23,15 @@
 #include "StRoot/StPicoEvent/StPicoDst.h"
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StMaker.h"
+#include "StRoot/StPicoEvent/StPicoEvent.h"
+#include "StRoot/StPicoEvent/StPicoTrack.h"
+#include "StRoot/StPicoEvent/StPicoBTowHit.h" 
+#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
+#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  
 
 // jet-framework includes
 #include "StJetFrameworkPicoBase.h"
 #include "StFemtoTrack.h"
-
-// new STAR includes
-#include "StRoot/StPicoEvent/StPicoEvent.h"
-#include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
-#include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
-#include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
 
 // old file kept
 #include "StPicoConstants.h"
@@ -381,7 +379,7 @@ Int_t StCentralityQA::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
 
   // centrality / multiplicity histograms
   ///hMultiplicity->Fill(refCorr2);
@@ -429,7 +427,7 @@ Int_t StCentralityQA::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16NEW == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16NEW == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
 
   // centrality / multiplicity histograms
   ///hMultiplicityNEW->Fill(refCorr2NEW);

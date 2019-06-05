@@ -983,7 +983,7 @@ Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t 
   // -- Example usage:
   //    Int_t cent16 = grefmultCorr->getCentralityBin16();
   //    Int_t centbin = GetCentBin(cent16, 16);
-  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStWarn; (or StOk to suppress warnings)
+  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK; (or StOk to suppress warnings)
   //
   // other bins can be added if needed...
 
@@ -1784,13 +1784,13 @@ Bool_t StJetFrameworkPicoBase::AcceptJet(StJet *jet) { // for jets
   // applies all jet cuts except pt
   if ((jet->Phi() < fPhimin) || (jet->Phi() > fPhimax)) return kFALSE;
   if ((jet->Eta() < fEtamin) || (jet->Eta() > fEtamax)) return kFALSE;
-  if (jet->Area() < fAreacut) return 0;
+  if (jet->Area() < fAreacut) return kFALSE;
 
   // prevents 0 area jets from sneaking by when area cut == 0
   if (jet->Area() == 0) return kFALSE;
 
   // exclude jets with extremely high pt tracks which are likely misreconstructed
-  if(jet->MaxTrackPt() > 20) return kFALSE;
+  if(jet->MaxTrackPt() > 30) return kFALSE;
 
   // jet passed all above cuts
   return kTRUE;

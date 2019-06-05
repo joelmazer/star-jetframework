@@ -260,7 +260,7 @@ Int_t StRhoSparse::Make()
   } 
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
   Double_t fCent = centbin * 5.0;
 
   // cut on centrality for analysis before doing anything

@@ -48,7 +48,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
       kDebugCentrality,
       kDebugEventPlaneCalc,
       kDebugJetvsEPtype,
-      kDebugRhoEstimate
+      kDebugRhoEstimate,
+      kDebugLeadSubLeadJets
     };
 
     // enumerator for TPC event plane method
@@ -191,7 +192,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Bool_t                  DidBadTowerFireTrigger();
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin);
-    Double_t                TestBool();
     void                    GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin);
 
     // switches
@@ -234,8 +234,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     UInt_t                  fMBEventType;            // Physics selection of event used for MB
     UInt_t                  fMixingEventType;        // Physics selection of event used for mixed event
     Int_t                   fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
-    UInt_t                  fBadTowerListVers;       // version of bad tower file list to use
-
 
     // tower to firing trigger type matched array
     Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array

@@ -179,7 +179,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doReadCalibFile;         // read calibration file switch
-    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal

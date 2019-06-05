@@ -1200,7 +1200,7 @@ Int_t StMyAnalysisMaker::Make() {
   zVtx = mVertex.z();
   
   // Z-vertex cut - the Aj analysis cut on (-40, 40) for reference
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk; //kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
   // let me know the Run #, fill, and event ID
@@ -1252,7 +1252,7 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
   
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);

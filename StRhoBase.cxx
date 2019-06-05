@@ -480,7 +480,7 @@ Int_t StRhoBase::Make()
   double zVtx = mVertex.z();
 
   // zvertex cut - per the Aj analysis
-  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStWarn;
+  if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOK;
 
   // get JetMaker
   JetMaker = static_cast<StJetMakerTask*>(GetMaker(fJetMakerName));

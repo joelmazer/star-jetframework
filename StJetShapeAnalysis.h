@@ -177,7 +177,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
-    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
     // cuts
     //Double_t                fMinPtJet;               // min jet pt to keep jet in output

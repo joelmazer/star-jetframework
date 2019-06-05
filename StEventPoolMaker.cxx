@@ -407,7 +407,7 @@ Int_t StEventPoolMaker::Make() {
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStWarn; // maybe kStOk; - this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
 
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
