@@ -119,12 +119,13 @@ class StJetMakerTask : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-  virtual void         SetEmcTriggerEventType(UInt_t te)   { fEmcTriggerEventType = te; }
-  virtual void         SetMBEventType(UInt_t mbe)       { fMBEventType = mbe; }   
-  virtual void         SetTriggerToUse(UInt_t ttu)      { fTriggerToUse = ttu; }
-  virtual void         SetBadTowerListVers(UInt_t ibt)  { fBadTowerListVers = ibt; }
+  virtual void         SetEmcTriggerEventType(UInt_t te) { fEmcTriggerEventType = te; }
+  virtual void         SetMBEventType(UInt_t mbe)        { fMBEventType = mbe; }   
+  virtual void         SetTriggerToUse(UInt_t ttu)       { fTriggerToUse = ttu; }
+  virtual void         SetBadTowerListVers(UInt_t ibt)   { fBadTowerListVers = ibt; }
   virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
+  virtual void         SetMaxEventTowerE(Double_t mxE)   { fMaxEventTowerE = mxE; }
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
 
   // track setters
@@ -230,7 +231,8 @@ class StJetMakerTask : public StMaker {
   Bool_t                 SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
   void                   FillEmcTriggersArr();
-  Double_t               GetMaxTrackPt();
+  Double_t               GetMaxTrackPt();               // find max track pt in event
+  Double_t               GetMaxTowerE();                // find max tower E in event
   void                   RunEventQA();
   void                   SetSumw2(); // set errors weights 
   Int_t                  GetRunNo(int runid);
@@ -261,6 +263,7 @@ class StJetMakerTask : public StMaker {
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Bool_t                 doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
   Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
+  Double_t               fMaxEventTowerE;         // max tower E in the event (to cut on)    
   Bool_t                 doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
   // event variables

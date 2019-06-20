@@ -113,9 +113,9 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           doBackgroundJets = kFALSE; // don't do a rho background calculation when using pp collisions   
         }
 
-        // input file for tests (based on Run) - updated for new Runs as needed - FIXME update for you own lists
+        // input file for tests (based on Run) - updated for new Runs as needed - FIXME update for your own lists
         if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; //"Run_15151042_files.list";
+        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; // "Run_15151042_files.list";
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
@@ -124,9 +124,10 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         // Centrality Selection can be set up in certain classes, to only run for a given centrality range
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050; // set as an example
         Int_t CentralityDefinition;
-        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30;  // no centrality defintion for Run 12 pp
+        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18id_VpdMB30;  // no centrality defintion for Run 12 pp
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;       // Run14
-        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        if(RunYEar == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
@@ -164,13 +165,11 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         Int_t fJetType;
         if(RunYear == mRun12) fJetType = kFullJet;
         if(RunYear == mRun14) fJetType = kFullJet; // kChargedJet
-        //fJetType = kChargedJet; // running Run14 analaysis for charged jets
         if(RunYear == mRun16) fJetType = kChargedJet;
         if(RunYear == mRun17) fJetType = kFullJet;
         double fJetRadius = 0.3;  // 0.4, 0.3, 0.2
-        double fJetConstituentCut = 0.2; // correlation analysis: 2.0, jet shape analysis: 1.0 (been using 2.0 for corrections)
-        Int_t fJetShapeAnalysisJetType = kLeadingJets;  // Jet shape jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets
-        bool fDoJetShapeAnalysis = kTRUE; // switch for doing jet shape analysis - only usefuly when using StMyAnalysisMaker3
+        double fJetConstituentCut = 0.2; // correlation analysis: 2.0, jet shape analysis: 2.0 (been using 2.0 for corrections)
+        Int_t fJetAnalysisJetType = kLeadingJets;  // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets (need to set up in analysis when you want to use)
         cout<<"fJetType: "<<fJetType<<endl;
 
         // event plane type and selection
@@ -178,7 +177,9 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         Int_t EventPlaneTrackWeightMethod = StJetFrameworkPicoBase::kPtLinear2Const5Weight;
 
         // update settings for new centrality definitions
-        if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
+        if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
+        ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
         // =============================================================================== //
         // =============================================================================== //
@@ -204,21 +205,21 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         // create JetFinder first (JetMaker)
         // task Name, track constituent cut, doHistos, output file name
         StJetMakerTask *jetTask = new StJetMakerTask("JetMaker", fJetConstituentCut, kTRUE, outputFile);
-        jetTask->SetJetType(fJetType);          //jetType
-        jetTask->SetJetAlgo(antikt_algorithm);  //jetAlgo
-        jetTask->SetRecombScheme(BIpt2_scheme); //recomb
-        jetTask->SetRadius(fJetRadius);
+        jetTask->SetJetType(fJetType);          // jetType
+        jetTask->SetJetAlgo(antikt_algorithm);  // jetAlgo
+        jetTask->SetRecombScheme(BIpt2_scheme); // recombination scheme
+        jetTask->SetRadius(fJetRadius);         // jet radius
         jetTask->SetJetsName("Jets");
         jetTask->SetMinJetPt(10.0);             // 15.0 signal jets
         jetTask->SetMaxJetTrackPt(30.0);        // max track constituent
         jetTask->SetMinJetTowerE(fJetConstituentCut);  // 2.0 correlations
         jetTask->SetHadronicCorrFrac(1.0);      // fractional hadronic correction
-        jetTask->SetGhostArea(0.005);
-        jetTask->SetMinJetArea(0.0);
+        jetTask->SetGhostArea(0.005);           // ghost area
+        jetTask->SetMinJetArea(0.0);            // minimum jet area
         jetTask->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // fiducial eta acceptance
-        jetTask->SetJetPhiRange(0,2*pi);        // phi acceptance
+        jetTask->SetJetPhiRange(0,2.0*pi);      // phi acceptance
         jetTask->SetUsePrimaryTracks(usePrimaryTracks);
-        jetTask->SetRunFlag(RunFlag);
+        jetTask->SetRunFlag(RunFlag);           // run flag      
         jetTask->SetdoppAnalysis(dopp);         // pp switch
         jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
         jetTask->SetUseBBCCoincidenceRate(kFALSE);
@@ -241,16 +242,16 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           jetTaskBG->SetJetType(fJetType);          // jetType
           jetTaskBG->SetJetAlgo(kt_algorithm);      // jetAlgo
           jetTaskBG->SetRecombScheme(BIpt2_scheme); // recombination scheme
-          jetTaskBG->SetRadius(fJetRadius);         // 0.4
+          jetTaskBG->SetRadius(fJetRadius);         // jet radius
           jetTaskBG->SetJetsName("JetsBG");
           jetTaskBG->SetMinJetPt(0.0);
           jetTaskBG->SetMaxJetTrackPt(30.0);
           jetTaskBG->SetMinJetTowerE(fJetConstituentCut);     // inclusive: 0.2
-          jetTaskBG->SetHadronicCorrFrac(1.0);
-          jetTaskBG->SetGhostArea(0.005);
-          jetTaskBG->SetMinJetArea(0.0);
+          jetTaskBG->SetHadronicCorrFrac(1.0);      // hadronic correlation fraction 0-1
+          jetTaskBG->SetGhostArea(0.005);           // ghost area
+          jetTaskBG->SetMinJetArea(0.0);            // minimum jet area
           jetTaskBG->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // -0.5,0.5
-          jetTaskBG->SetJetPhiRange(0, 2*pi);   // 0,pi
+          jetTaskBG->SetJetPhiRange(0, 2.0*pi);   // 0,pi
           jetTaskBG->SetUsePrimaryTracks(usePrimaryTracks);
           jetTaskBG->SetRunFlag(RunFlag);
           jetTaskBG->SetdoppAnalysis(dopp);
@@ -299,7 +300,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         anaMaker->SetJetMaxTowerE(0.0);                  // jet tower bias
         anaMaker->SetMinTrackPt(0.2);                    // track quality cut (not related to constituents!)
         anaMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);   // can be tighter for Run16 (-20,20)
-        anaMaker->SetTrackPhiRange(0.0, 2*TMath::Pi());  // track phi acceptance
+        anaMaker->SetTrackPhiRange(0.0, 2.0*TMath::Pi());// track phi acceptance
         anaMaker->SetTrackEtaRange(-1.0, 1.0);           // track eta acceptance
         anaMaker->SetJetConstituentCut(fJetConstituentCut);   // 0.2 for inclusive 
         anaMaker->SetRunFlag(RunFlag);                        // run flag: i.e. - Run14, Run16...

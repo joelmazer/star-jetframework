@@ -8,11 +8,11 @@
 #include "StPicoTrackClusterQA.h"
 #include "StMemStat.h"
 
-// C++ classes
+// C++ includes
 #include <sstream>
 #include <fstream>
 
-// root classes
+// ROOT includes
 #include <TChain.h>
 #include <TClonesArray.h>
 #include "TH1F.h"
@@ -82,6 +82,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -159,6 +160,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -169,7 +171,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fAnalysisMakerName(name),
   fTracksName("Tracks"),
   fCaloName("Clusters"),
-  fTrackPtMinCut(0.2), //0.20
+  fTrackPtMinCut(0.2),
   fTrackPtMaxCut(30.0), 
   fClusterPtMinCut(0.2),
   fClusterPtMaxCut(100.0),
@@ -267,6 +269,8 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistZDCx_MB30)    delete fHistZDCx_MB30;
   if(fHistEventID_MB30) delete fHistEventID_MB30;
   if(fHistRunID_MB30)   delete fHistRunID_MB30; 
+  if(fProfEventTrackPt_MB30) delete fProfEventTrackPt_MB30;
+  if(fProfEventRefMult_MB30) delete fProfEventRefMult_MB30;
   if(fProfEventXvtx_MB30)    delete fProfEventXvtx_MB30;
   if(fProfEventYvtx_MB30)    delete fProfEventYvtx_MB30;
   if(fProfEventZvtx_MB30)    delete fProfEventZvtx_MB30;
@@ -274,6 +278,7 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fProfEventPerpvtx_MB30) delete fProfEventPerpvtx_MB30;
   if(fProfEventBBCx_MB30) delete fProfEventBBCx_MB30;
   if(fProfEventZDCx_MB30) delete fProfEventZDCx_MB30;
+  if(fProfEventTrackPt) delete fProfEventTrackPt;
   if(fProfEventRefMult) delete fProfEventRefMult;
   if(fProfEventRanking) delete fProfEventRanking;
   if(fProfEventZvtx) delete fProfEventZvtx;
@@ -344,8 +349,10 @@ Int_t StPicoTrackClusterQA::Init() {
 
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
+        //AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
@@ -399,6 +406,9 @@ Int_t StPicoTrackClusterQA::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -517,6 +527,7 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistZDCx_MB30 = new TH1F("fHistZDCx_MB30", "Luminosity, ZDCx distribution, MB30 events", 1000, 15000., 65000.);
     fHistEventID_MB30 = new TH1F("fHistEventID_MB30", "Event ID distribution", 140, 0., 7000000.0);
     fHistRunID_MB30 = new TH1F("fHistRunID_MB30", "Run ID distribution", 200, 15000000., 15200000);
+    fProfEventTrackPt_MB30 = new TProfile("fProfEventTrackPt_MB30", "Event averaged track p_{T}, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventRefMult_MB30 = new TProfile("fProfEventRefMult_MB30", "Event averaged refMult, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventZvtx_MB30 = new TProfile("fProfEventZvtx_MB30", "Event averaged primary z-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventYvtx_MB30 = new TProfile("fProfEventYvtx_MB30", "Event averaged primary y-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
@@ -525,14 +536,15 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fProfEventPerpvtx_MB30 = new TProfile("fProfEventPerpvtx_MB30", "Event averaged primary perp-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventBBCx_MB30 = new TProfile("fProfEventBBCx_MB30", "Event averaged BBC coincidence rate, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventZDCx_MB30 = new TProfile("fProfEventZDCx_MB30", "Event averaged ZDC coincidence rate, MB30 events", nRunBins, 0.5, nRunBinsMax);
-    fProfEventRefMult = new TProfile("fProfEventRefMult", "Event averaged refMult", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventRanking = new TProfile("fProfEventRanking", "Event averaged vertex ranking", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventZvtx = new TProfile("fProfEventZvtx", "Event averaged primary z-Vertex", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventYvtx = new TProfile("fProfEventYvtx", "Event averaged primary y-Vertex", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventXvtx = new TProfile("fProfEventXvtx", "Event averaged primary x-Vertex", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventVzVPD = new TProfile("fProfEventVzVPD", "Event averaged VzVPD", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventBBCx = new TProfile("fProfEventBBCx", "Event averaged BBC coincidence rate", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
-    fProfEventZDCx = new TProfile("fProfEventZDCx", "Event averaged ZDC coincidence rate", nRunBins, 0.5, nRunBinsMax);//, -100., 100.);
+    fProfEventTrackPt = new TProfile("fProfEventTrackPt", "Event averaged track p_{T}", nRunBins, 0.5, nRunBinsMax);
+    fProfEventRefMult = new TProfile("fProfEventRefMult", "Event averaged refMult", nRunBins, 0.5, nRunBinsMax);
+    fProfEventRanking = new TProfile("fProfEventRanking", "Event averaged vertex ranking", nRunBins, 0.5, nRunBinsMax);
+    fProfEventZvtx = new TProfile("fProfEventZvtx", "Event averaged primary z-Vertex", nRunBins, 0.5, nRunBinsMax);
+    fProfEventYvtx = new TProfile("fProfEventYvtx", "Event averaged primary y-Vertex", nRunBins, 0.5, nRunBinsMax);
+    fProfEventXvtx = new TProfile("fProfEventXvtx", "Event averaged primary x-Vertex", nRunBins, 0.5, nRunBinsMax);
+    fProfEventVzVPD = new TProfile("fProfEventVzVPD", "Event averaged VzVPD", nRunBins, 0.5, nRunBinsMax);
+    fProfEventBBCx = new TProfile("fProfEventBBCx", "Event averaged BBC coincidence rate", nRunBins, 0.5, nRunBinsMax);
+    fProfEventZDCx = new TProfile("fProfEventZDCx", "Event averaged ZDC coincidence rate", nRunBins, 0.5, nRunBinsMax);
 
     // trigger histograms, zero and negative entries QA
     fHistNZeroEHT1vsID = new TH1F("fHistNZeroEHT1vsID", "NTowers fired HT1 with zero E vs tower ID", 4800, 0.5, 4800.5);
@@ -627,6 +639,7 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fHistZDCx_MB30->Write();
   fHistEventID_MB30->Write();
   fHistRunID_MB30->Write();
+  fProfEventTrackPt_MB30->Write();
   fProfEventRefMult_MB30->Write();
   fProfEventZvtx_MB30->Write();
   fProfEventYvtx_MB30->Write();
@@ -635,6 +648,7 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fProfEventPerpvtx_MB30->Write();
   fProfEventBBCx_MB30->Write();
   fProfEventZDCx_MB30->Write();
+  fProfEventTrackPt->Write();
   fProfEventRefMult->Write();
   fProfEventRanking->Write();
   fProfEventZvtx->Write();
@@ -694,6 +708,7 @@ void StPicoTrackClusterQA::Clear(Option_t *opt) {
 //________________________________________________________________________
 int StPicoTrackClusterQA::Make()
 {
+  // counter
   fGoodTrackCounter = 0;
 
   // get PicoDstMaker 
@@ -726,6 +741,9 @@ int StPicoTrackClusterQA::Make()
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
 
@@ -737,7 +755,6 @@ int StPicoTrackClusterQA::Make()
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // ============================ CENTRALITY ============================== //
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int RunId = mPicoEvent->runId();
   float fBBCCoincidenceRate = mPicoEvent->BBCx();
   float fZDCCoincidenceRate = mPicoEvent->ZDCx();
@@ -757,12 +774,13 @@ int StPicoTrackClusterQA::Make()
 
     cent16 = grefmultCorr->getCentralityBin16();
     centbin = GetCentBin(cent16, 16);
+
   } else {
     centbin = 0, cent16 = 0;
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1 && fDebugLevel != 99) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
   fCentralityScaled = centbin*5.0;
 
   // cut on centrality for analysis before doing anything
@@ -893,19 +911,31 @@ void StPicoTrackClusterQA::RunTrackQA()
   // assume neutral pion mass
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
+  int fRunId = mPicoEvent->runId();
+  int RunId_Order = GetRunNo(fRunId);
+
+  // check for MB/HT event
+  bool fHaveMB30 = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
+  bool fHaveHT1  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT1);
+  bool fHaveHT2  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);
+  bool fHaveHT3  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);
+  bool fHaveAnyHT= kFALSE;
+  if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
 
   // track variables
-  unsigned int ntracks = mPicoDst->numberOfTracks();
+  int ntracks = mPicoDst->numberOfTracks();
 
   // loop over ALL tracks in PicoDst 
-  for(unsigned short iTracks = 0; iTracks < ntracks; iTracks++){
+  for(int iTracks = 0; iTracks < ntracks; iTracks++){
     // get track pointer
     StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(iTracks));
-    if(!trk){ continue; }
+    if(!trk) continue;
 
     // TODO - double check this, was commenting out for test before (Feb21, 2018)
     // acceptance and kinematic quality cuts
-    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+    if(fDebugLevel != 99) { 
+      if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
+    }
 
     // get momentum vector of track - global or primary track
     TVector3 mTrkMom;
@@ -938,6 +968,12 @@ void StPicoTrackClusterQA::RunTrackQA()
     fHistNTrackvsPhi->Fill(phi);
     fHistNTrackvsEta->Fill(eta);
     fHistNTrackvsPhivsEta->Fill(phi, eta);
+    fProfEventTrackPt->Fill(RunId_Order + 1., pt);
+
+    // MB30 histograms filled for QA
+    if(fHaveMB30 && !fHaveAnyHT) {
+      fProfEventTrackPt_MB30->Fill(RunId_Order + 1., pt);
+    }
 
     // fill track sparse
     Double_t trackEntries[5] = {fCentralityScaled, pt, eta, phi, zVtx};
@@ -948,16 +984,16 @@ void StPicoTrackClusterQA::RunTrackQA()
   } // track loop
 
   // looping over clusters - STAR: matching already done, get # of clusters and set position variables
-  unsigned int nclus = mPicoDst->numberOfBEmcPidTraits();
+  int nclus = mPicoDst->numberOfBEmcPidTraits();
   TVector3  towPosition, clusPosition;
 
   // print EMCal cluster info
   if(fDebugLevel == 7) mPicoDst->printBEmcPidTraits();
 
-  // loop over ALL clusters in PicoDst and add to jet //TODO
-  for(unsigned short iClus = 0; iClus < nclus; iClus++){
+  // loop over ALL clusters in PicoDst //TODO
+  for(int iClus = 0; iClus < nclus; iClus++){
     StPicoBEmcPidTraits *cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
-    if(!cluster){ continue; }
+    if(!cluster) continue; 
 
     // print index of associated track in the event (debug = 2)
     if(fDebugLevel == 8) cout<<"iClus = "<<iClus<<"  trackIndex = "<<cluster->trackIndex()<<"  nclus = "<<nclus<<endl;
@@ -986,9 +1022,6 @@ void StPicoTrackClusterQA::RunTrackQA()
 
     if(fDebugLevel == 8) cout<<"cluster bemcId = "<<cluster->bemcId()<<"  cluster btowId = "<<cluster->btowId();
     if(fDebugLevel == 8) cout<<"  cluster trackIndex = "<<cluster->trackIndex()<<"  trkId = "<<trk->id()<<endl;
-
-    // April 9, 2018: removed ton of useless code that was here just to originally figure out tower - track matching and indexing
-    // add some useful QA code back here soon!
 
     // fill tower sparse
     //Double_t towerEntries[5] = {fCentralityScaled, cluster->bemcE0(), towEta, towPhi, zVtx};
@@ -1038,6 +1071,7 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistZDCx_MB30->Sumw2();
   fHistEventID_MB30->Sumw2();
   fHistRunID_MB30->Sumw2();
+  //fProfEventTrackPt_MB30->Sumw2();
   //fProfEventRefMult_MB30->Sumw2();
   //fProfEventZvtx_MB30->Sumw2();
   //fProfEventYvtx_MB30->Sumw2();
@@ -1046,7 +1080,8 @@ void StPicoTrackClusterQA::SetSumw2() {
   //fProfEventPerpvtx_MB30->Sumw2();
   //fProfEventBBCx_MB30->Sumw2();
   //fProfEventZDCx_MB30->Sumw2();
-  //fProfEventRefMult-Sumw2();
+  //fProfEventTrackPt->Sumw2();
+  //fProfEventRefMult->Sumw2();
   //fProfEventRanking->Sumw2();
   //fProfEventZvtx->Sumw2();
   //fProfEventYvtx->Sumw2();
@@ -1554,9 +1589,9 @@ void StPicoTrackClusterQA::GetDimParamsTracks(Int_t iEntry, TString &label, Int_
 
     case 0:
       label = "centrality 5% bin";
-      nbins = 20; //16;
+      nbins = 20;
       xmin = 0.;
-      xmax = 100.; //16.;
+      xmax = 100.;
       break;
 
     case 1:
@@ -1633,9 +1668,9 @@ void StPicoTrackClusterQA::GetDimParamsTowers(Int_t iEntry, TString &label, Int_
 
     case 0:
       label = "centrality 5% bin";
-      nbins = 20; //16;
+      nbins = 20;
       xmin = 0.;
-      xmax = 100.; //16.;
+      xmax = 100.;
       break;
 
     case 1:
@@ -1816,7 +1851,7 @@ Int_t StPicoTrackClusterQA::MuFindSMDClusterHits(StEmcCollection* coll, Double_t
   else return 0;
 }
 //
-// function to get tower QA for hadronically corrected towers
+// function to do tower QA for hadronically corrected towers
 //________________________________________________________________________
 void StPicoTrackClusterQA::RunHadCorrTowerQA()
 {
@@ -2088,8 +2123,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     if(flag == 112) continue;                          // JetPatch triggers
     if(!isHT0 && !isHT1 && !isHT2 && !isHT3) continue; // have a HT trigger
 
-    // get associated tower - minus 1 to get array element
-    // get tower pointer
+    // get associated tower pointer - minus 1 to get array element
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(emcTrigID-1));
     if(!tower) { cout<<"No tower pointer... iTow = "<<emcTrigID<<endl; continue; }
 
@@ -2483,7 +2517,7 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
   for(int i = 0; i < nTrack; i++) {
     // get track pointer
     StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
-    if(!track) { continue; }
+    if(!track) continue; 
 
     // apply standard track cuts - (can apply more restrictive cuts below)
     if(!(AcceptTrack(track, Bfield, mVertex))) { continue; }
@@ -2508,13 +2542,47 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
   return fMaxTrackPt;
 }
 //
+// Function: Returns E of most energetic tower in the event
+//_________________________________________________________________________________________________
+Double_t StPicoTrackClusterQA::GetMaxTowerE()
+{
+  // get # of towers
+  int nTowers = mPicoDst->numberOfBTowHits();
+  double fMaxTowerE = -99;
+
+  // loop over all towers
+  for(int i = 0; i < nTowers; i++) {
+    // get tower pointer
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
+    if(!tower) continue;
+
+    // tower position - from vertex and ID: shouldn't need additional eta correction
+    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    //double towerPhi = towerPosition.Phi();
+    //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
+    //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
+    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEuncorr = tower->energy();               // uncorrected energy
+    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+
+    // get max tower
+    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+  }
+
+  return fMaxTowerE;
+}
+//
 // fill trigger ids of the dataset into a histogram
-// only currently set up for run 12 pp (200 GeV) - FIXME set up for more runs
+// only currently set up for Run12 pp (200 GeV) - FIXME set up for more runs
 //________________________________________________________________________
 void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
-  // All non-test triggers for Run12
-  // 27 entries, array goes from 0 - 26
+  // All non-test triggers for Run12 Run14
+/*
+  // Run14 AuAu (200 GeV) - 51, 0-50
+  unsigned int triggers[] = {440001, 440004, 440005, 440006, 440007, 440015, 440016, 440017, 440050, 440061, 440064, 450005, 450008, 450009, 450010, 450011, 450012, 450013, 450014, 450015, 450018, 450020, 450021, 450023, 450024, 450025, 450050, 450060, 450103, 450201, 450202, 450203, 450211, 450212, 450213, 450600, 450601, 460001, 460002, 460003, 460005, 460007, 460012, 460101, 460102, 460111, 460201, 460202, 460203, 460212, 490016};
+*/
 
+  // Run12 pp (200 GeV) - 27, 0-26
   unsigned int triggers[] = {370001, 370011, 370021, 370022, 370031, 370032, 370301, 370341, 370361, 370501, 370511, 370521, 370522, 370531, 370541, 370542, 370546, 370601, 370611, 370621, 370641, 370701, 370801, 370980, 370981, 370982, 370983};
 
   // get trigger IDs from PicoEvent class and loop over them
@@ -2590,7 +2658,7 @@ void StPicoTrackClusterQA::RunEventQA() {
     fHistEventID_MB30->Fill(fEventId);       // MB30: Event Id distribution
     fHistRunID_MB30->Fill(fRunId);           // MB30: Run Id distribution
 
-    // profile plots, run-averaged
+    // profile plots, run-averaged 
     fProfEventRefMult_MB30->Fill(RunId_Order + 1., refmult); // MB30: refmult
     fProfEventXvtx_MB30->Fill(RunId_Order + 1., fXVtx);      // MB30: x-vert
     fProfEventYvtx_MB30->Fill(RunId_Order + 1., fYVtx);      // MB30: y-vert
@@ -2633,8 +2701,8 @@ Int_t StPicoTrackClusterQA::GetRunNo(int runid){
 
   // Run14 AuAu (200 GeV)
   // Run14AuAu_IdNo: SL17id
+  // 1654 for Run14 AuAu, new picoDst production is 830
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
     for(int i = 0; i < 830; i++) {
       if(Run14AuAu_P18ih_IdNo[i] == runid) {
         return i;
@@ -2643,8 +2711,8 @@ Int_t StPicoTrackClusterQA::GetRunNo(int runid){
   }
 
   // Run16 AuAu (200 GeV)
+  // 1359 for Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
     for(int i = 0; i < 1359; i++){
       if(Run16AuAu_IdNo[i] == runid) {
         return i;

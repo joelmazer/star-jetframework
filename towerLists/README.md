@@ -18,7 +18,7 @@ Y2012\_BadTowers_155.txt
 Y2012\_BadTowers_Rag.txt
 ```
 
-## Run 14:
+## Run 14 AuAu (200 GeV):
 ### Dead Towers
 ```
 Y2014\_DeadTowers.txt
@@ -36,8 +36,6 @@ Y2014\_BadTowers50\_ALT.txt
 
 ```
 Y2014\_AltBadTowers3.txt
-Y2014\_AltBadTowers\_79.txt
-Y2014\_AltBadTowers\_79\_ALT.txt
 Y2014\_AltBadTowers\_283.txt
 ```
 In April of 2019, Run14 was finally reproduction with a new production library. And new tower lists are consequently being investigated.

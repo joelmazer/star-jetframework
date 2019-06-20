@@ -82,6 +82,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -176,6 +177,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -325,16 +327,10 @@ Int_t StJetMakerTaskBGsub::Init() {
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
         if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
-        if(fBadTowerListVers ==  2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
         if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
-        if(fBadTowerListVers ==  79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
-        if(fBadTowerListVers == 122) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79_ALT.txt");
         if(fBadTowerListVers == 136) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_136.txt");
-        if(fBadTowerListVers == 283) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_283.txt");
-
         if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
-        if(fBadTowerListVers == 5)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
 
         // P18ih
         if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt");
@@ -458,6 +454,9 @@ Int_t StJetMakerTaskBGsub::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -645,7 +644,10 @@ int StJetMakerTaskBGsub::Make()
   // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
   //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
   StJetFrameworkPicoBase *baseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
-  if(!baseMaker) { cout<<"no baseMaker.. returning"<<endl;  return kStOK; }
+  if(!baseMaker) { 
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn; 
+  }
 
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
@@ -676,6 +678,9 @@ int StJetMakerTaskBGsub::Make()
 
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
+
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -1602,6 +1607,36 @@ Double_t StJetMakerTaskBGsub::GetMaxTrackPt()
   }
 
   return fMaxTrackPt;
+}
+//
+// Function: Returns E of most energetic tower in the event
+//_________________________________________________________________________________________________
+Double_t StJetMakerTaskBGsub::GetMaxTowerE()
+{
+  // get # of towers
+  int nTowers = mPicoDst->numberOfBTowHits();
+  double fMaxTowerE = -99;
+
+  // loop over all towers
+  for(int i = 0; i < nTowers; i++) {
+    // get tower pointer
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
+    if(!tower) continue;
+
+    // tower position - from vertex and ID: shouldn't need additional eta correction
+    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    //double towerPhi = towerPosition.Phi();
+    //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
+    //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
+    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEuncorr = tower->energy();               // uncorrected energy
+    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+
+    // get max tower
+    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+  }
+
+  return fMaxTowerE;
 }
 //
 // FastJet Constituent Subtractor method

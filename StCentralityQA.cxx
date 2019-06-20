@@ -155,8 +155,9 @@ Int_t StCentralityQA::Init() {
 
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-
+              //grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+ 
 /*
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
@@ -164,6 +165,9 @@ Int_t StCentralityQA::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -318,6 +322,9 @@ Int_t StCentralityQA::Make() {
 
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
+
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

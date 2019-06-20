@@ -60,8 +60,8 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
       kRemoveLeadingSubJetConstituents // greater than 2 GeV
     };
 
-    // enumerator for TPC event plane method
-    enum fJetShapeJetTypeEnum {
+    // enumerator for jet analysis jet type
+    enum fJetAnalysisJetTypeEnum {
       kInclusiveJets,
       kLeadingJets,
       kSubLeadingJets
@@ -88,7 +88,7 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp; }
     virtual void            SetdoJetShapeAnalysis(Bool_t js)   { doJetShapeAnalysis = js; }
-    virtual void            SetJetShapeJetType(Int_t t)        { fJetShapeJetType  = t; }
+    virtual void            SetJetAnalysisJetType(Int_t t)        { fJetAnalysisJetType  = t; }
     virtual void            SetdoRequireAjSelection(Bool_t d)  { doRequireAjSelection = d; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
@@ -171,7 +171,7 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
 
     // switches
-    Int_t                   fJetShapeJetType;        // type of jets to use for jet shape analysis
+    Int_t                   fJetAnalysisJetType;     // type of jets to use for jet analysis
     Bool_t                  doRequireAjSelection;    // requirement of Aj selection on jets for Jet Shape Analysis
     Bool_t                  doWriteTrackQAHist;      // write track QA histograms
     Int_t                   fDoEffCorr;              // efficiency correction to tracks
@@ -277,9 +277,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     TH2F *hJetPtvsArea;//!
     TH1F *hJetEventEP;//!
     TH2F *hJetPhivsEP;//!
-
-    // correlation histo
-    TH2  *fHistJetHEtaPhi;//!
 
     // QA histos
     TH1  *fHistEventSelectionQA;//! 

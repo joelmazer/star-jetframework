@@ -42,7 +42,7 @@
 // old file, kept for useful constants
 #include "StPicoConstants.h"
 
-// centrality
+// centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
@@ -70,6 +70,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   fBadTowerListVers(0),
   fJetType(0),
@@ -148,6 +149,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   fBadTowerListVers(0),
   fJetType(0),
@@ -277,6 +279,9 @@ Int_t StJetFrameworkPicoBase::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -456,7 +461,7 @@ Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
   return jetEPBin;
 }
 //
-// this function generate a jet name based on input
+// this function generates a jet name based on input
 //___________________________________________________________________________________________
 TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag)
 {
@@ -536,10 +541,10 @@ TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t j
 //
 // Function: to calculate relative Phi
 //________________________________________________________________________
-Double_t StJetFrameworkPicoBase::RelativePhi(Double_t mphi,Double_t vphi) const
+Double_t StJetFrameworkPicoBase::RelativePhi(Double_t jphi, Double_t tphi) const
 {
   // calculate relative phi
-  double dphi = mphi-vphi;
+  double dphi = jphi - tphi;
 
   // set dphi to operate on adjusted scale
   if(dphi < -0.5*TMath::Pi()) dphi += 2.*TMath::Pi();
@@ -820,8 +825,7 @@ Double_t StJetFrameworkPicoBase::GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParam
 // _____________________________________________________________________________________________
 StJet* StJetFrameworkPicoBase::GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho) {
   // return pointer to the highest pt jet (before/after background subtraction) within acceptance
-  // only rudimentary cuts are applied on this level, hence the implementation outside of
-  // the framework
+  // only rudimentary cuts are applied on this level, hence the implementation outside of the framework
 
   // ================= JetMaker ================ //
   // get JetMaker
@@ -935,7 +939,7 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
     } else { // rho parameter provided
       // return subleading jet after background subtraction
-      // FIXME: Fixed October 26, 2018: returned leadingjet, and didn't subtract bg from subleading
+      // BUG: Fixed October 26, 2018: returned leadingjet, and didn't subtract bg from subleading
       //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
@@ -1536,6 +1540,36 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
   return fMaxTrackPt;
 }
 //
+// Function: Returns E of most energetic tower in the event
+//_________________________________________________________________________________________________
+Double_t StJetFrameworkPicoBase::GetMaxTowerE()
+{
+  // get # of towers
+  int nTowers = mPicoDst->numberOfBTowHits();
+  double fMaxTowerE = -99;
+
+  // loop over all towers
+  for(int i = 0; i < nTowers; i++) {
+    // get tower pointer
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
+    if(!tower) continue;
+
+    // tower position - from vertex and ID: shouldn't need additional eta correction
+    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    //double towerPhi = towerPosition.Phi();
+    //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
+    //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
+    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEuncorr = tower->energy();               // uncorrected energy
+    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+
+    // get max tower
+    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+  }
+
+  return fMaxTowerE;
+}
+//
 // Returns correction for tracking efficiency
 //
 //Double_t StJetFrameworkPicoBase::ApplyTrackingEffpp(StPicoTrack *trk)
@@ -1754,8 +1788,8 @@ Int_t StJetFrameworkPicoBase::GetRunNo(int runid){
 
   // Run14 AuAu
   // Run14AuAu_IdNo: SL17id
+  // 1654 for Run14 AuAu, new picoDst production is 830
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
     for(int i = 0; i < 830; i++) {
       if(Run14AuAu_P18ih_IdNo[i] == runid) {
         return i;
@@ -1764,8 +1798,8 @@ Int_t StJetFrameworkPicoBase::GetRunNo(int runid){
   }
 
   // Run16 AuAu
+  // 1359 for Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
     for(int i = 0; i < 1359; i++){
       if(Run16AuAu_IdNo[i] == runid) {
         return i;

@@ -423,7 +423,9 @@ Int_t StMyAnalysisMaker::Init() {
           case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
               break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              break; case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
               break;
           default:
@@ -1192,6 +1194,9 @@ Int_t StMyAnalysisMaker::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
 

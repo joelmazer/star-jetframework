@@ -16,11 +16,9 @@ readPicoDstQA.C
 readPicoDst.C
 * OLD version that needs to be updated
 
-readPicoDstJoel.C
-* OLD version that needs to be updated
-
 ## Author
 **Joel Mazer**
 
 ## Notes
 May 6th, 2019: added switch for loading and omitting bad runs
+June 10th, 2019: removed readPicoDstJoel.C, updated for new centrality definitions

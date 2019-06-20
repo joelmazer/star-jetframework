@@ -40,8 +40,8 @@
 
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
-//#include "StEmcUtil/projection/StEmcPosition.h" // old
-//class StEmcPosition; // old
+//#include "StEmcUtil/projection/StEmcPosition.h" // old - uses StThreeVectorF
+//class StEmcPosition; // old - uses StThreeVectorF
 #include "StEmcPosition2.h"
 class StEmcPosition2;
 
@@ -88,6 +88,7 @@ StJetMakerTask::StJetMakerTask() :
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -183,6 +184,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
+  fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -208,7 +210,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetEtaMin(-0.6), 
   fJetEtaMax(0.6),
   fGhostArea(0.005),
-  fMinJetTrackPt(mintrackPt), //0.20
+  fMinJetTrackPt(mintrackPt),
   fMaxJetTrackPt(30.0), 
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
@@ -334,16 +336,10 @@ Int_t StJetMakerTask::Init() {
 
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
-        if(fBadTowerListVers ==  2)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");// Alt list
         if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
-        if(fBadTowerListVers ==  79) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79.txt");
-        if(fBadTowerListVers == 122) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_79_ALT.txt");
         if(fBadTowerListVers == 136) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_136.txt");
-        if(fBadTowerListVers == 283) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_283.txt");
-
         if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
-        if(fBadTowerListVers == 5)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers5.txt");
 
         // P18ih
         if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt"); 
@@ -462,6 +458,9 @@ Int_t StJetMakerTask::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -680,7 +679,10 @@ int StJetMakerTask::Make()
   // this class does not inherit from base class: StJetFrameworkPicoBase, but we want to reduce redundancy
   //StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase();
   StJetFrameworkPicoBase *baseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
-  if(!baseMaker) { cout<<"no baseMaker.. returning"<<endl;  return kStOK; }
+  if(!baseMaker) { 
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn; 
+  }
  
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
@@ -711,6 +713,9 @@ int StJetMakerTask::Make()
 
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
+
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -770,9 +775,10 @@ int StJetMakerTask::Make()
   fHistCentrality->Fill(centralityScaled);
 
   // cut on centrality for analysis before doing anything
-  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; } // Pico::kSkipThisEvent; }
+  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
   //if(fRequireCentSelection) { if(!baseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOK; }
 
+  // ============================ Triggers ============================== //
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
   // NEED to ADD new triggers and runs to StJetFrameworkPicoBase class !!
   // different access method because this class doesn't inherit from base
@@ -912,6 +918,8 @@ void StJetMakerTask::FindJets()
 
       // matched track index
       int trackIndex = cluster->trackIndex();
+    
+      // get pointer to StPicoTrack: with trackIndex
       StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
@@ -1007,9 +1015,6 @@ void StJetMakerTask::FindJets()
         continue;
       }
       //if(TowerDead) continue; // FIXME should I turn this back on?
-
-      // this was ONLY for a test to see if KNOWN bad towers were removed
-      //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || towerID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"towerID = "<<towerID<<"  E = "<<towerE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
       // get components from Energy (p - momentum) - the below lines 'converts' the tower energy to momentum:
       TVector3 mom;
@@ -1881,6 +1886,36 @@ Double_t StJetMakerTask::GetMaxTrackPt()
   return fMaxTrackPt;
 }
 //
+// Function: Returns E of most energetic tower in the event
+//_________________________________________________________________________________________________
+Double_t StJetMakerTask::GetMaxTowerE()
+{
+  // get # of towers
+  int nTowers = mPicoDst->numberOfBTowHits();
+  double fMaxTowerE = -99;
+
+  // loop over all towers
+  for(int i = 0; i < nTowers; i++) {
+    // get tower pointer
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
+    if(!tower) continue;
+
+    // tower position - from vertex and ID: shouldn't need additional eta correction
+    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    //double towerPhi = towerPosition.Phi();
+    //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
+    //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
+    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEuncorr = tower->energy();               // uncorrected energy
+    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+
+    // get max tower
+    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+  }
+
+  return fMaxTowerE;
+}
+//
 /**
  * This method fills the jet output branch (TClonesArray) with the jet found by the FastJet wrapper.
  * This is for constituent subtractor performed to jets
@@ -2116,8 +2151,8 @@ Int_t StJetMakerTask::GetRunNo(int runid){
 
   // Run14 AuAu
   // Run14AuAu_IdNo: SL17id
+  // 1654 for Run14 AuAu (OLD), new picoDst production is 830
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    // 1654 for Run14 AuAu, new picoDst production is 830
     for(int i = 0; i < 830; i++) {
       if(Run14AuAu_P18ih_IdNo[i] == runid) {
         return i;
@@ -2126,8 +2161,8 @@ Int_t StJetMakerTask::GetRunNo(int runid){
   }
 
   // Run16 AuAu
+  // 1359 for Run16 AuAu
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    // 1359 for Run16 AuAu
     for(int i = 0; i < 1359; i++){
       if(Run16AuAu_IdNo[i] == runid) {
         return i;

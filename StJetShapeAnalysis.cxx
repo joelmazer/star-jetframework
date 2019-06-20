@@ -70,7 +70,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fRunFlag = 0;
   doppAnalysis = kFALSE;
   doJetShapeAnalysis = kFALSE;
-  fJetShapeJetType = kLeadingJets; // see header, LJ, SubLJ, inclusive
+  fJetAnalysisJetType = kLeadingJets; // see header, LJ, SubLJ, inclusive
   doRequireAjSelection = kFALSE;
   fCorrJetPt = kFALSE;
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
@@ -184,7 +184,6 @@ StJetShapeAnalysis::~StJetShapeAnalysis()
   delete hJetEventEP;
   delete hJetPhivsEP;
 
-  delete fHistJetHEtaPhi;
   delete fHistEventSelectionQA;
   delete fHistEventSelectionQAafterCuts;
   delete hTriggerIds;
@@ -283,6 +282,9 @@ Int_t StJetShapeAnalysis::Init() {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
@@ -343,8 +345,8 @@ Int_t StJetShapeAnalysis::Finish() {
       fout->cd();
       //fout->mkdir(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
       //fout->cd(Form("JetShapeAnalysis_bin%i", fTPCptAssocBin));
-      //fout->mkdir(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
-      //fout->cd(Form("JetShapeAnalysis%i_bin%i", fJetShapeJetType, fJetShapePtAssocBin));
+      //fout->mkdir(Form("JetShapeAnalysis%i_bin%i", fJetAnalysisJetType, fJetShapePtAssocBin));
+      //fout->cd(Form("JetShapeAnalysis%i_bin%i", fJetAnalysisJetType, fJetShapePtAssocBin));
       fout->mkdir(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
       fout->cd(Form("JetShapeAnalysis_bin%i", fJetShapePtAssocBin));
       WriteJetShapeHistograms();
@@ -422,7 +424,6 @@ void StJetShapeAnalysis::DeclareHistograms() {
   hJetPtvsArea = new TH2F("hJetPtvsArea", "Jet p_{T} vs Jet area", 100, 0, 100, 100, 0, 1);
   hJetEventEP = new TH1F("hJetEventEP", "no of jet events vs event plane", 72, 0.0, 1.0*pi);
   hJetPhivsEP = new TH2F("hJetPhivsEP", "Jet #phi vs event plane", 72, 0.0, 2*pi, 72, 0.0, 1.0*pi);
-  fHistJetHEtaPhi = new TH2F("fHistJetHEtaPhi", "Jet-hadron #Delta#eta-#Delta#phi", 72, -1.8, 1.8, 72, -0.5*pi, 1.5*pi);
 
   // Event Selection QA histo
   fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
@@ -608,8 +609,6 @@ void StJetShapeAnalysis::WriteHistograms() {
   hJetEventEP->Write();
   hJetPhivsEP->Write();
 
-  fHistJetHEtaPhi->Write();
-
   // QA histos
   fHistEventSelectionQA->Write(); 
   fHistEventSelectionQAafterCuts->Write();
@@ -670,6 +669,9 @@ Int_t StJetShapeAnalysis::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
+  // cut event on max tower E > 30.0 GeV
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
 
@@ -690,9 +692,6 @@ Int_t StJetShapeAnalysis::Make() {
   if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
   Int_t centbin, cent9, cent16;
@@ -858,7 +857,7 @@ Int_t StJetShapeAnalysis::Make() {
   // set up event plane maker here..
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
-  double angle2, angle2n, angle2p, angle2comb, tpc2EP;
+  double tpc2EP;
   if(doEPAnalysis) {
     if(!doTPCptassocBin) {
       EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
@@ -936,12 +935,12 @@ Int_t StJetShapeAnalysis::Make() {
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
     if(doRequireAjSelection) {
-      if(doAjSelection && fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(doAjSelection && fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
     } else {
-      if(fHaveEmcTrigger && fJetShapeJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
     }
     // subleading jets
-    if(fHaveEmcTrigger && fJetShapeJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
+    if(fHaveEmcTrigger && fJetAnalysisJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
     //if(fDoEventMixing > 0 && fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - AuAu, kMB - pp (excluding HT)
@@ -969,13 +968,8 @@ Int_t StJetShapeAnalysis::Make() {
 
   // get number of jets, tracks, and global tracks in events
   Int_t njets = fJets->GetEntries();
-  const Int_t ntracks = mPicoDst->numberOfTracks();
-  Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
 
   // ====================== Jet loop below ============================
-  // loop over Jets in the event: initialize some parameter variables
-  Int_t ijethi = -1;
-  Double_t highestjetpt = 0.0;
   for(int ijet = 0; ijet < njets; ijet++) {  // JET LOOP
     // Run - Trigger Selection to process jets from
     if(!doJetAnalysis) continue;
@@ -992,7 +986,6 @@ Int_t StJetShapeAnalysis::Make() {
     double jetEta = jet->Eta();
     double jetPhi = jet->Phi();    
     double jetNEF = jet->NEF();
-    //double dEP = RelativeEPJET(jet->Phi(), rpAngle);         // difference between jet and EP
 
     // FIXME, double check, might want to code this nicer
     double dEP = (!doppAnalysis) ? RelativeEPJET(jetPhi, TPC_PSI2) : -999; // CORRECTED event plane angle - STEP3
@@ -1009,65 +1002,6 @@ Int_t StJetShapeAnalysis::Make() {
     // TODO check that jet contains a tower that fired the trigger
     if(!DidTowerConstituentFireTrigger(jet)) { continue; }
 
-    // loop over constituent tracks
-    for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
-      int trackid = jet->TrackAt(itrk);      
-
-      // get track pointer
-      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackid));
-      if(!trk){ continue; }
-
-      // get momentum three vector
-      TVector3 mTrkMom;
-      if(doUsePrimTracks) {
-        if(!(trk->isPrimary())) return kFALSE; // check if primary
-        // get primary track vector
-        mTrkMom = trk->pMom();
-      } else {
-        // get global track vector
-        mTrkMom = trk->gMom(mVertex, Bfield);
-      }
-
-      // track variables
-      double phi = mTrkMom.Phi();
-      double eta = mTrkMom.PseudoRapidity();
-      double pt = mTrkMom.Perp();
-      double px = mTrkMom.x();
-      double py = mTrkMom.y();
-      double pz = mTrkMom.z();
-      double jetZ = jet->GetZ(px, py, pz);
-
-      // shift angle (0, 2*pi) 
-      if(phi < 0.0)    phi += 2.0*pi;
-      if(phi > 2.0*pi) phi -= 2.0*pi;
-
-      // fill jet track constituent histograms
-      hJetTracksPt->Fill(pt);
-      hJetTracksPhi->Fill(phi);
-      hJetTracksEta->Fill(eta);
-      hJetTracksZ->Fill(jetZ);
-
-    } // constituent track loop
-
-/*
-    // loop over constituent towers
-    for(int itow = 0; itow < jet->GetNumberOfClusters(); itow++) {
-      int ArrayIndex = jet->ClusterAt(itow);
-
-      // get tower pointer
-      StPicoBTowHit *tow = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(ArrayIndex));
-      if(!tow){ continue; }
-
-      //int towID = tow->id(); // ArrayIndex = towID - 1 because of array element numbering different than ids which start at 1
-      // tower ID: get from index of array shifted by +1
-      int towID = ArrayIndex + 1;
-      if(towID < 0) continue;
-
-      int containsTower = jet->ContainsTower(ArrayIndex);
-      cout<<">= 0: "<<containsTower<<"  itow = "<<itow<<"  id = "<<towID<<"  ArrIndex = "<<ArrayIndex<<"  towE = "<<tow->energy()<<endl;
-    } // constituent tower loop
-*/
-
     // fill some jet histograms
     hJetPt->Fill(jetpt);
     hJetCorrPt->Fill(corrjetpt);
@@ -1079,30 +1013,6 @@ Int_t StJetShapeAnalysis::Make() {
     hJetPtvsArea->Fill(jetpt, jetarea);
     hJetEventEP->Fill(TPC_PSI2);
     hJetPhivsEP->Fill(jetPhi, TPC_PSI2);
-
-    // get nTracks and maxTrackPt
-    double maxtrackpt = jet->GetMaxTrackPt();
-    int NtrackConstit = jet->GetNumberOfTracks();
-    if(doComments) cout<<"Jet# = "<<ijet<<"  JetPt = "<<jetpt<<"  JetE = "<<jetE<<endl;
-    if(doComments) cout<<"MaxtrackPt = "<<maxtrackpt<<"  NtrackConstit = "<<NtrackConstit<<endl;
-
-    // get highest Pt jet in event (leading jet)
-    if(highestjetpt < jetpt){
-      ijethi = ijet;
-      highestjetpt = jetpt;
-    }
-
-    // set up and fill Jet-Hadron trigger jets THnSparse
-    // ====================================================================================
-    double jetptselected;
-    if(fCorrJetPt) { jetptselected = corrjetpt; 
-    } else { jetptselected = jetpt; }
-
-    //} // check on max track and tower pt/E
-
-    // =============== jet shape analysis ================
-    //if(doJetShapeAnalysis) JetShapeAnalysis(jet, 0x0, refCorr2); // FIXME
-
   } // jet loop
 
   // fill Event Trigger QA
@@ -1353,7 +1263,6 @@ void StJetShapeAnalysis::SetSumw2() {
   hJetEventEP->Sumw2();
   hJetPhivsEP->Sumw2();
 
-  fHistJetHEtaPhi->Sumw2();
   //fHistEventSelectionQA->Sumw2();
   //fHistEventSelectionQAafterCuts->Sumw2();
   //hTriggerIds->Sumw2();

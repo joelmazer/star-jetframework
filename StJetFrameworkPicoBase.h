@@ -36,59 +36,59 @@ class StEventPlaneMaker;
 class StJetFrameworkPicoBase : public StMaker {
   public:
 
-  // debug flags for specifics
-  enum fDebugFlagEnum_t {
-    kDebugNothing, // don't want lowest elements to be used
-    kDebugFillJets = 11,
-    kDebugMixedEvents = 12,
-    kDebugEmcTrigger = 13
-    //kDebugGeneralEvt,
-    //kDebugCentrality,
-    //kDebugEventPlaneCalc
-  };
+    // debug flags for specifics
+    enum fDebugFlagEnum_t {
+      kDebugNothing, // don't want lowest elements to be used
+      kDebugFillJets = 11,
+      kDebugMixedEvents = 12,
+      kDebugEmcTrigger = 13
+      //kDebugGeneralEvt,
+      //kDebugCentrality,
+      //kDebugEventPlaneCalc
+    };
 
-  // debug flags for tower lists
-  enum fBadTowerListsEnum_t {
-    kAltBadTow, 
-    kBadTow1,
-    kBadTow2,
-    kBadTow3,
-    kBadTow4,
-    kBadTow5
-  };
+    // debug flags for tower lists
+    enum fBadTowerListsEnum_t {
+      kAltBadTow, 
+      kBadTow1,
+      kBadTow2,
+      kBadTow3,
+      kBadTow4,
+      kBadTow5
+    };
 
-  // jet type enumerator
-  enum EJetType_t {
-    kFullJet,
-    kChargedJet,
-    kNeutralJet
-  };
+    // jet type enumerator
+    enum EJetType_t {
+      kFullJet,
+      kChargedJet,
+      kNeutralJet
+    };
 
-  // jet algorithm enumerator
-  enum EJetAlgo_t {
-    kt_algorithm                    = 0,
-    antikt_algorithm                = 1,
-    cambridge_algorithm             = 2,
-    genkt_algorithm                 = 3,
-    cambridge_for_passive_algorithm = 11,
-    genkt_for_passive_algorithm     = 13,
-    plugin_algorithm                = 99,
-    undefined_jet_algorithm         = 999
-  };
+    // jet algorithm enumerator
+    enum EJetAlgo_t {
+      kt_algorithm                    = 0,
+      antikt_algorithm                = 1,
+      cambridge_algorithm             = 2,
+      genkt_algorithm                 = 3,
+      cambridge_for_passive_algorithm = 11,
+      genkt_for_passive_algorithm     = 13,
+      plugin_algorithm                = 99,
+      undefined_jet_algorithm         = 999
+    };
 
-  // jet recombination schme enumerator
-  enum ERecoScheme_t {
-    E_scheme        = 0,
-    pt_scheme       = 1,
-    pt2_scheme      = 2,
-    Et_scheme       = 3,
-    Et2_scheme      = 4,
-    BIpt_scheme     = 5,
-    BIpt2_scheme    = 6,
-    WTA_pt_scheme   = 7,
-    WTA_modp_scheme = 8,
-    external_scheme = 99
-  };
+    // jet recombination schme enumerator
+    enum ERecoScheme_t {
+      E_scheme        = 0,
+      pt_scheme       = 1,
+      pt2_scheme      = 2,
+      Et_scheme       = 3,
+      Et2_scheme      = 4,
+      BIpt_scheme     = 5,
+      BIpt2_scheme    = 6,
+      WTA_pt_scheme   = 7,
+      WTA_modp_scheme = 8,
+      external_scheme = 99
+    };
 
     // event plane track weight type enumerator
     enum EPtrackWeightTypeEnum {
@@ -144,13 +144,14 @@ class StJetFrameworkPicoBase : public StMaker {
     //getgRefMultCorr();           // For grefmult //Run14 AuAu200GeV
     //getgRefMultCorr_P16id();     // For grefmult //Run14 AuAu200GeV, P16id
     //getgRefMultCorr_P17id_VpdMB30();// For grefmult //Run14 AuAu200GeV, P17id for VPDMB-30; |vz| < 30
+    //getgRefMultCorr_P18ih_VpdMB30();// For grefmult //Run14 AuAu200GeV, P18ih for VPDMB-30; |vz| < 30 (new - June10, 2019)
     //getgRefMultCorr_VpdMB30();   // for VPDMB-30; |vz| < 30
     //getgRefMultCorr_VpdMBnoVtx();// for VPDMB-noVtx; |vz| < 100
     // centrality enum
     enum fCentralityDefEnum {
       krefmult, krefmult2, krefmult3,
       kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30,
-      kgrefmult_P17id_VpdMB30      
+      kgrefmult_P17id_VpdMB30, kgrefmult_P18ih_VpdMB30      
     };    
 
     // centrality bin range
@@ -215,6 +216,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
     virtual void            SetBadTowerListVers(UInt_t ibt)    { fBadTowerListVers = ibt; }
 
@@ -285,7 +287,8 @@ class StJetFrameworkPicoBase : public StMaker {
 //    Bool_t                  CheckForMB(int RunFlag, int type);
 //    Bool_t                  CheckForHT(int RunFlag, int type);
     Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
-    Double_t                GetMaxTrackPt();
+    Double_t                GetMaxTrackPt();               // find max track pt in event
+    Double_t                GetMaxTowerE();                // find max tower E in event
     Int_t                   GetAnnuliBin(Double_t deltaR) const;
     Int_t                   GetJetPtBin(Double_t jetpt) const;
     Int_t                   GetJetEPBin(Double_t dEP) const;
@@ -320,6 +323,7 @@ class StJetFrameworkPicoBase : public StMaker {
     TVector3                mVertex;                 // event vertex 3-vector
     Double_t                zVtx;                    // z-vertex component
     Double_t                fMaxEventTrackPt;        // max track pt in the event (to cut on)    
+    Double_t                fMaxEventTowerE;         // max tower E in the event (to cut on)    
     Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
     UInt_t                  fBadTowerListVers;       // version of bad tower file list to use
 
@@ -435,11 +439,11 @@ class StJetFrameworkPicoBase : public StMaker {
  */
 inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array)
 {
-  Double_t binWidth = (max-min)/n;
-  array[0] = min;
-  for (Int_t i = 1; i <= n; i++) {
-    array[i] = array[i-1]+binWidth;
-  }
+    Double_t binWidth = (max-min)/n;
+    array[0] = min;
+    for (Int_t i = 1; i <= n; i++) {
+      array[i] = array[i-1]+binWidth;
+    }
 }
 
 /**
@@ -453,9 +457,9 @@ inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min,
  */
 inline Double_t* StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max)
 {
-  Double_t *array = new Double_t[n+1];
-  GenerateFixedBinArray(n, min, max, array);
-  return array;
+    Double_t *array = new Double_t[n+1];
+    GenerateFixedBinArray(n, min, max, array);
+    return array;
 }
 
 #endif

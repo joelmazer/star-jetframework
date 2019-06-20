@@ -107,6 +107,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
   virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+  virtual void         SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
   virtual void         SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
   // track / cluster setters 
@@ -166,7 +167,8 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t               DoComparison(int myarr[], int elems);
   Bool_t               CheckForMB(int RunFlag, int type);
   Bool_t               CheckForHT(int RunFlag, int type);
-  Double_t             GetMaxTrackPt();
+  Double_t             GetMaxTrackPt();               // find max track pt in event
+  Double_t             GetMaxTowerE();                // find max tower E in event
   void                 FillTriggerIDs(TH1* h);
   void                 SetSumw2(); // set errors weights 
   Int_t                GetRunNo(int runid);
@@ -183,6 +185,7 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event cuts
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on) 
+  Double_t             fMaxEventTowerE;         // max tower E in the event (to cut on)    
   Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
   Double_t             fEventZVtxMinCut;        // min event z-vertex cut
   Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
@@ -304,6 +307,7 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistZDCx_MB30;//!
   TH1F           *fHistEventID_MB30;//!
   TH1F           *fHistRunID_MB30;//!
+  TProfile       *fProfEventTrackPt_MB30;//!
   TProfile       *fProfEventRefMult_MB30;//!
   TProfile       *fProfEventXvtx_MB30;//!
   TProfile       *fProfEventYvtx_MB30;//!
@@ -312,6 +316,7 @@ class StPicoTrackClusterQA : public StMaker {
   TProfile       *fProfEventPerpvtx_MB30;//!
   TProfile       *fProfEventBBCx_MB30;//!
   TProfile       *fProfEventZDCx_MB30;//!
+  TProfile       *fProfEventTrackPt;//!
   TProfile       *fProfEventRefMult;//!
   TProfile       *fProfEventRanking;//!
   TProfile       *fProfEventZvtx;//!

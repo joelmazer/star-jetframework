@@ -78,9 +78,10 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // centrality global flags - no centrality for pp collisions
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
         Int_t CentralityDefinition;
-        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30;  // no centrality defintion for Run 12 pp
+        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp 
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;                 // Run14 P16id ??FIXME???
-        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;           // Run16
         //if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
@@ -98,7 +99,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // trigger flags - update default
         Int_t EmcTriggerEventType; // kIsHT1 or kIsHT2 or kIsHT3
         if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
-        if(RunYear == mRun14) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
+        if(RunYear == mRun14) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT2 Run14
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
         if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3;
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
@@ -127,7 +128,9 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Int_t EventPlaneTrackWeightMethod = StJetFrameworkPicoBase::kPtLinear2Const5Weight;
 
         // update settings for new centrality definitions
-        if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30) { ZVtxMin = -28.0; ZVtxMax = 28.0; }
+        if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
+          CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
+        ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
         // =============================================================================== //
         // =============================================================================== //
@@ -149,7 +152,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // QA task - MB events
         StPicoTrackClusterQA *Task = new StPicoTrackClusterQA("TrackClusterQA", kTRUE, outputFile);
         Task->SetTrackPtRange(0.2, 30.0);
-        Task->SetTrackPhiRange(0., 2.*pi);
+        Task->SetTrackPhiRange(0., 2.0*pi);
         Task->SetTrackEtaRange(-1.0, 1.0);
         Task->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
         Task->SetClusterPtRange(0.2, 100.0);
@@ -171,7 +174,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // QA task - HT events
         StPicoTrackClusterQA *Task2 = new StPicoTrackClusterQA("TrackClusterQAHT", kTRUE, outputFile);
         Task2->SetTrackPtRange(0.2, 30.0);
-        Task2->SetTrackPhiRange(0., 2.*pi);
+        Task2->SetTrackPhiRange(0., 2.0*pi);
         Task2->SetTrackEtaRange(-1.0, 1.0);
         Task2->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
         Task2->SetClusterPtRange(0.2, 100.0);
@@ -194,7 +197,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // QA task - HT1
         StPicoTrackClusterQA *Task1 = new StPicoTrackClusterQA("TrackClusterQAHT1", kTRUE, outputFile);
         Task1->SetTrackPtRange(0.2, 30.0);
-        Task1->SetTrackPhiRange(0., 2.*pi);
+        Task1->SetTrackPhiRange(0., 2.0*pi);
         Task1->SetTrackEtaRange(-1.0, 1.0);
         Task1->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
         Task1->SetClusterPtRange(0.2, 100.0);
@@ -214,7 +217,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // QA task - HT2
         StPicoTrackClusterQA *Task2 = new StPicoTrackClusterQA("TrackClusterQAHT2", kTRUE, outputFile);
         Task2->SetTrackPtRange(0.2, 30.0);
-        Task2->SetTrackPhiRange(0., 2.*pi);
+        Task2->SetTrackPhiRange(0., 2.0*pi);
         Task2->SetTrackEtaRange(-1.0, 1.0);
         Task2->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
         Task2->SetClusterPtRange(0.2, 100.0);
