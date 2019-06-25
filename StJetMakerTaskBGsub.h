@@ -93,6 +93,7 @@ class StJetMakerTaskBGsub : public StMaker {
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
   virtual void         SetMaxEventTowerE(Double_t mxE)   { fMaxEventTowerE = mxE; }
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
+  virtual void         SetBadRunListVers(Int_t i)        { fBadRunListVers = i; }
 
   // common setters
   void                 SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -218,6 +219,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on)    
   Double_t             fMaxEventTowerE;         // max tower E in the event (to cut on)    
   Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
+  Int_t                fBadRunListVers;         // version of bad runs file list to use
 
   // event variables
   Double_t             Bfield;                  // event Bfield

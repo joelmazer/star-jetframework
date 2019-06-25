@@ -109,6 +109,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
   virtual void         SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
   virtual void         SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
+  virtual void         SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
   // track / cluster setters 
   virtual void         SetTrackPtRange(Double_t ptmi, Double_t ptma) { fTrackPtMinCut = ptmi; fTrackPtMaxCut = ptma; }
@@ -187,6 +188,7 @@ class StPicoTrackClusterQA : public StMaker {
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on) 
   Double_t             fMaxEventTowerE;         // max tower E in the event (to cut on)    
   Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
+  Int_t                fBadRunListVers;         // version of bad runs file list to use
   Double_t             fEventZVtxMinCut;        // min event z-vertex cut
   Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                fCentralitySelectionCut; // centrality selection cut

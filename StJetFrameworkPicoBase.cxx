@@ -72,6 +72,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
+  fBadRunListVers(999),
   fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
@@ -152,6 +153,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
   fBadTowerListVers(0),
+  fBadRunListVers(999),
   fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
@@ -252,7 +254,9 @@ Int_t StJetFrameworkPicoBase::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)

@@ -134,6 +134,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   fTPCptAssocBin = -99;
   doUseMainEPAngle = kFALSE;  // kTRUE: use 0.2-2.0 GeV charged tracks for event plane
   doRejectBadRuns = kFALSE;
+  fBadRunListVers = 999;
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -378,7 +379,9 @@ Int_t StMyAnalysisMaker3::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)

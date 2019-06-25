@@ -72,6 +72,7 @@ class StAnMaker : public StJetFrameworkPicoBase {
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
+    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut

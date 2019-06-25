@@ -71,6 +71,7 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   mOutName = outName;
   fDoEffCorr = kFALSE;
   doRejectBadRuns = kFALSE;
+  fBadRunListVers = 999;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
@@ -128,7 +129,9 @@ Int_t StCentralityQA::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)

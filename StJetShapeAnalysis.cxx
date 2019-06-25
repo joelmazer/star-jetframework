@@ -80,6 +80,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   doRejectBadRuns = kFALSE;
+  fBadRunListVers = 999;
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 2.0;
@@ -249,7 +250,9 @@ Int_t StJetShapeAnalysis::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)

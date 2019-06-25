@@ -127,7 +127,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18id_VpdMB30;  // no centrality defintion for Run 12 pp
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;       // Run14
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
-        if(RunYEar == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
+        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 

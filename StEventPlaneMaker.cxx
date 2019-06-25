@@ -119,6 +119,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
   doRejectBadRuns = kFALSE;
+  fBadRunListVers = 999;
   fEmcTriggerEventType = 0; // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
   fMBEventType = 2;         // kVPDMB5
   fTriggerToUse = 0;        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
@@ -303,7 +304,9 @@ Int_t StEventPlaneMaker::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)

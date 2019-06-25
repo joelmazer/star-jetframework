@@ -99,7 +99,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
     virtual void            SetWriteJetQAHistograms(Bool_t w)  { doWriteJetQAHist = w; }
     virtual void            SetdoUseMainEPAngle(Bool_t m)      { doUseMainEPAngle = m; }
-    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -116,6 +115,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetBadTowerListVers(UInt_t ibt)    { fBadTowerListVers = ibt; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
+    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -209,6 +210,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doUseMainEPAngle;        // use 0.2-2.0 GeV charged tracks for event plane
     Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
+    Int_t                   fBadRunListVers;         // version of bad runs file list to use
     Bool_t                  doIgnoreExternalME;      // does standared event mixing (without use of external approach)
     Bool_t                  doRunAnalysis;           // switch to run jet shape / jet-hadron correlation analyses
     Bool_t                  doJetHadronCorrelationAnalysis; // perform jet-hadron correlation analysis

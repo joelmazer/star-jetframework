@@ -84,6 +84,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
+  fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -162,6 +163,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
+  fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -373,7 +375,9 @@ Int_t StPicoTrackClusterQA::Init() {
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
   
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
@@ -933,9 +937,7 @@ void StPicoTrackClusterQA::RunTrackQA()
 
     // TODO - double check this, was commenting out for test before (Feb21, 2018)
     // acceptance and kinematic quality cuts
-    if(fDebugLevel != 99) { 
-      if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
-    }
+    if(!AcceptTrack(trk, Bfield, mVertex)) { continue; }
 
     // get momentum vector of track - global or primary track
     TVector3 mTrkMom;
