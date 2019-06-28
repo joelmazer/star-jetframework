@@ -1122,8 +1122,9 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   // Run11 triggers: pp
   int arrMB_Run11[] = {320000, 320001, 320011, 320021, 330021};
 
-  // Run12 (200 GeV pp) triggers: 1) VPDMB, 2) vpd-zdc-mb
-  int arrMB_Run12[] = {370001, 370011, 370983};
+  // Run12 (200 GeV pp) triggers: 1) VPDMB, 370011-main
+  int arrMB_Run12[] = {370011};
+  int arrMB_Run12extra[] = {370001, 370011};
 
   // Run13 triggers: pp
   int arrMB_Run13[] = {430001, 430011, 430021, 430031};
@@ -1165,7 +1166,7 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
               if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
               break;
           case StJetFrameworkPicoBase::kVPDMB :
-              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
+              if((DoComparison(arrMB_Run12extra, sizeof(arrMB_Run12extra)/sizeof(*arrMB_Run12extra)))) { return kTRUE; }
               break;
           default :
               if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }

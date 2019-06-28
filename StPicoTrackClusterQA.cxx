@@ -491,6 +491,9 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) nRunBins = 1359;
     Double_t nRunBinsMax = (Double_t)nRunBins + 0.5;
 
+    // tweak refmult plot binnings for pp datasets
+    int nFactor = (doppAnalysis) ? 5 : 1;
+
     // track histograms
     fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 200, 0., 40.);
     fHistNTrackvsPhi = new TH1F("fHistNTrackvsPhi", "Ntracks vs #phi", 144, 0., 2.0*pi);
@@ -519,18 +522,25 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
     fHistTriggerIDs = new TH1F("fHistTriggerIDs", "NTriggers vs trigger IDs", 30, 0.5, 30.5);
 
+    // run range for runID histogram
+    int nRunBinSize = 200;
+    double runMin = 0, runMax = 0;
+    if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   { runMin = 13000000.; runMax = 13100000.; }
+    if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) { runMin = 15050000.; runMax = 15200000.; }
+    if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) { runMin = 17050000.; runMax = 17150000.; }
+
     // event QA histograms 
     fHistEventNTrig_MB30 = new TH1F("fHistEventNTrig_MB30", "N triggered events for MB30 events", nRunBins, 0.5, nRunBinsMax);
     fHistEventNTrig_HT = new TH1F("fHistEventNTrig_HT", "N triggered events for HT (1, 2, 3) events", nRunBins, 0.5, nRunBinsMax);
-    fHistRefMult_MB30 = new TH1F("fHistRefMult_MB30", "RefMult distribution, MB30 events", 140, 0., 700.);
+    fHistRefMult_MB30 = new TH1F("fHistRefMult_MB30", "RefMult distribution, MB30 events", 140*nFactor, 0., 700.);
     fHistVzVPDVz_MB30 = new TH1F("fHistVzVPDVz_MB30", "Vz - VPDVz distribution, MB30 events", 65, -1100., 200.);
     fHistVyvsVx_MB30 = new TH2F("fHistVyvsVx_MB30", "Vy vs Vx distribution, MB30 events", 160, -4.0, 4.0, 160, -4.0, 4.0);
-    fHistRvtx_MB30 = new TH1F("fHistRvtx_MB30", "Radial vertex distribution, MB30 events", 100, 0., 100.);
-    fHistPerpvtx_MB30 = new TH1F("fHistPerpvtx_MB30", "Perp-vertex distribution, MB30 events", 60, 0., 6.);
+    fHistRvtx_MB30 = new TH1F("fHistRvtx_MB30", "Radial vertex distribution, MB30 events", 500, 0., 100.);
+    fHistPerpvtx_MB30 = new TH1F("fHistPerpvtx_MB30", "Perp-vertex distribution, MB30 events", 100, 0., 5.);
     fHistZvtx_MB30 = new TH1F("fHistZvtx_MB30", "Z-vertex distribution, MB30 events", 100, -100., 100.);
     fHistZDCx_MB30 = new TH1F("fHistZDCx_MB30", "Luminosity, ZDCx distribution, MB30 events", 1000, 15000., 65000.);
     fHistEventID_MB30 = new TH1F("fHistEventID_MB30", "Event ID distribution", 140, 0., 7000000.0);
-    fHistRunID_MB30 = new TH1F("fHistRunID_MB30", "Run ID distribution", 200, 15000000., 15200000);
+    fHistRunID_MB30 = new TH1F("fHistRunID_MB30", "Run ID distribution", nRunBinSize, runMin, runMax);
     fProfEventTrackPt_MB30 = new TProfile("fProfEventTrackPt_MB30", "Event averaged track p_{T}, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventRefMult_MB30 = new TProfile("fProfEventRefMult_MB30", "Event averaged refMult, MB30 events", nRunBins, 0.5, nRunBinsMax);
     fProfEventZvtx_MB30 = new TProfile("fProfEventZvtx_MB30", "Event averaged primary z-Vertex, MB30 events", nRunBins, 0.5, nRunBinsMax);
@@ -854,13 +864,12 @@ int StPicoTrackClusterQA::Make()
   if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
 
   // MB30 and not HT events!!
-  if(fHaveMB30event && !fHaveAnyHT) {
-    fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1);
-  }
+  if(fHaveMB30event && !fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
+  if(fRunForMB      && !fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
+
   // HT and not MB30 events!!
-  if(!fHaveMB30event && fHaveAnyHT) {
-    fHistEventNTrig_HT->Fill(RunId_Order + 1., 1);
-  }
+  if(!fHaveMB30event && fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }
+  if(!fRunForMB      && fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }
 
   // run tower QA for specific conditions
   if(fDoTowerQAforHT && fHaveEmcTrigger)  {
@@ -926,6 +935,12 @@ void StPicoTrackClusterQA::RunTrackQA()
   bool fHaveAnyHT= kFALSE;
   if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
 
+  // switches for QA analysis
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB30) ? kTRUE : kFALSE;
+
   // track variables
   int ntracks = mPicoDst->numberOfTracks();
 
@@ -972,8 +987,8 @@ void StPicoTrackClusterQA::RunTrackQA()
     fHistNTrackvsPhivsEta->Fill(phi, eta);
     fProfEventTrackPt->Fill(RunId_Order + 1., pt);
 
-    // MB30 histograms filled for QA
-    if(fHaveMB30 && !fHaveAnyHT) {
+    // MB30 histograms filled for QA - pp or AuAu
+    if(fRunForMB && !fHaveAnyHT) {
       fProfEventTrackPt_MB30->Fill(RunId_Order + 1., pt);
     }
 
@@ -2046,7 +2061,7 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
   //double pi0mass = Pico::mMass[0]; // GeV
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
 
-  // set flags for triggers - HAVE TO DO IT RUN-BY-RUN by of problems with STAR and how it saves them
+  // set flags for triggers - HAVE TO DO IT RUN-BY-RUN because of problems with STAR and how it saves them
   UInt_t HT0flag, HT1flag, HT2flag, HT3flag, JP0flag, JP1flag, JP2flag;
   if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
     HT1flag = 10;
@@ -2185,8 +2200,9 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
   // Run11 triggers: pp
   int arrMB_Run11[] = {13, 320000, 320001, 320011, 320021, 330021};
 
-  // Run12 (200 GeV pp) triggers: 1) VPDMB
-  int arrMB_Run12[] = {370001, 370011, 370983};
+  // Run12 (200 GeV pp) triggers: 1) VPDMB, 370011-main
+  int arrMB_Run12[] = {370011};
+  int arrMB_Run12extra[] = {370001, 370011};
 
   // Run13 triggers: pp
   int arrMB_Run13[] = {39, 430001, 430011, 430021, 430031};
@@ -2225,7 +2241,7 @@ Bool_t StPicoTrackClusterQA::CheckForMB(int RunFlag, int type) {
               if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
               break;
           case StJetFrameworkPicoBase::kVPDMB :
-              if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
+              if((DoComparison(arrMB_Run12extra, sizeof(arrMB_Run12extra)/sizeof(*arrMB_Run12extra)))) { return kTRUE; }
               break;
           default :
               if((DoComparison(arrMB_Run12, sizeof(arrMB_Run12)/sizeof(*arrMB_Run12)))) { return kTRUE; }
@@ -2644,12 +2660,13 @@ void StPicoTrackClusterQA::RunEventQA() {
   bool fHaveAnyHT= kFALSE;
   if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE; 
 
-  //bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
-  //if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
-  //if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB30) ? kTRUE : kFALSE;
 
   // MB30 histograms filled for QA
-  if(fHaveMB30 && !fHaveAnyHT) {
+  if(fRunForMB && !fHaveAnyHT) {
     fHistRefMult_MB30->Fill(refmult);        // MB30: refmult distribution
     fHistVzVPDVz_MB30->Fill(fZVtx - fVzVPD); // MB30: Vz - VPDVz distribution
     fHistVyvsVx_MB30->Fill(fXVtx, fYVtx);    // MB30: Vx vs Vy distribution
