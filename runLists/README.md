@@ -8,12 +8,15 @@ All current bad runs lists are for MID-luminosity runs.
 
 1. Run 12 pp (200 GeV)\
 	* P12id:\ 
+
         a) including no HT triggers cut (24): `Y2012_BadRuns_P12id_w_missing_HT.txt`\
         b) NOT including a HT trigger cut (12): `Y2012_BadRuns_P12id_wo_missing_HT.txt`
 
 2. Run 14 AuAu (200 GeV)\
-	* P16ij:\
-	* P17id:\
+	* P16ij:
+
+	* P17id:
+
 	* P18ih: newest library used for production of this dataset\
         a) including no HT triggers cut (58): `Y2014_BadRuns_P18ih_w_missing_HT.txt`\
         b) NOT including a HT trigger cut (37): `Y2014_BadRuns_P18ih_wo_missing_HT.txt`

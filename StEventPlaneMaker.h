@@ -77,9 +77,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     void    DeclareHistograms();
     void    WriteEventPlaneHistograms();
 
-    // ep stuff - Nov15
-    void    InitParameters();
-   
     // THnSparse Setup
     virtual THnSparse*      NewTHnSparseEP(const char* name, UInt_t entries);
     virtual void            GetDimParamsEP(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
@@ -95,6 +92,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
+    virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
     virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 

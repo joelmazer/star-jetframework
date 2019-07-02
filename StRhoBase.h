@@ -44,6 +44,7 @@ class StRhoBase : public StJetFrameworkPicoBase {
   void                   SetEventZVtxRange(Double_t zmi, Double_t zma)         { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma;     }
   virtual void           SetUseBBCCoincidenceRate(Bool_t b)                    { doUseBBCCoincidenceRate = b; }
   virtual void           SetMaxEventTrackPt(Double_t mxpt)                     { fMaxEventTrackPt = mxpt; }
+  virtual void           SetMaxEventTowerE(Double_t mxE)                       { fMaxEventTowerE = mxE; }
 
   void                   SetOutRhoName(const char *name)                       { fOutRhoName           = name    ;
                                                                                  fOutRhoScaledName     = Form("%s_Scaled",name);     }
@@ -72,7 +73,8 @@ class StRhoBase : public StJetFrameworkPicoBase {
 
   // event parameters
   Bool_t                 doUseBBCCoincidenceRate;
-  Double_t fMaxEventTrackPt;
+  Double_t               fMaxEventTrackPt;               // max track pt in the event (to cut on)  
+  Double_t               fMaxEventTowerE;                // max tower E in the event (to cut on)  
 
   TString                fOutRhoName;                    // name of output rho object
   TString                fOutRhoScaledName;              // name of output scaled rho object

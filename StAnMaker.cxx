@@ -81,6 +81,7 @@ StAnMaker::StAnMaker(const char* name, StPicoDstMaker *picoMaker, const char* ou
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   doUseBBCCoincidenceRate = kFALSE, // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
+  fMaxEventTowerE = 30.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
@@ -135,12 +136,11 @@ Int_t StAnMaker::Init() {
   // Add bad run lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
         break;
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
@@ -299,7 +299,7 @@ Int_t StAnMaker::Make() {
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

@@ -290,12 +290,13 @@ class StPicoTrackClusterQA : public StMaker {
   TH2F           *fHistNTowervsPhivsEta;//!
   TH1F           *fHistNTowerHOTvsTowID;//!
 
-  // QA histos
-  TH1            *fHistEventSelectionQA;//! 
-  TH1            *fHistEventSelectionQAafterCuts;//!
-  TH1            *hTriggerIds;//!
-  TH1            *hEmcTriggers;//!
-  TH1            *fHistTriggerIDs;//!
+  // trigger / event selection QA histos
+  TH1F           *fHistEventSelectionQA;//! 
+  TH1F           *fHistEventSelectionQAafterCuts;//!
+  TH1F           *fHistEventSelectionTrg;//!
+  TH1F           *hTriggerIds;//!
+  TH1F           *hEmcTriggers;//!
+  TH1F           *fHistTriggerIDs;//!
 
   // event QA
   TH1F           *fHistEventNTrig_MB30;//!
@@ -327,7 +328,18 @@ class StPicoTrackClusterQA : public StMaker {
   TProfile       *fProfEventVzVPD;//!
   TProfile       *fProfEventBBCx;//!
   TProfile       *fProfEventZDCx;//!
-  
+ 
+  // trigger histos for hot tower (threshold levels for varying bad tower lists)
+  TH1F           *fHistNFiredHT1vsID200MeV;//!
+  TH1F           *fHistNFiredHT2vsID200MeV;//!
+  TH1F           *fHistNFiredHT3vsID200MeV;//!
+  TH1F           *fHistNFiredHT1vsID1000MeV;//!
+  TH1F           *fHistNFiredHT2vsID1000MeV;//!
+  TH1F           *fHistNFiredHT3vsID1000MeV;//!
+  TH1F           *fHistNFiredHT1vsID2000MeV;//!
+  TH1F           *fHistNFiredHT2vsID2000MeV;//!
+  TH1F           *fHistNFiredHT3vsID2000MeV;//!
+ 
   // trigger histos for zero and negative energy
   TH1F           *fHistNZeroEHT1vsID;//!
   TH1F           *fHistNZeroEHT2vsID;//!

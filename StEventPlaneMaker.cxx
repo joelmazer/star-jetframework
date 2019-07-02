@@ -112,6 +112,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralitySelectionCut = -99;
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
+  fMaxEventTowerE = 30.0;
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -144,8 +145,6 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
-
-  InitParameters();
 }
 //
 //
@@ -274,8 +273,6 @@ StEventPlaneMaker::~StEventPlaneMaker()
 //
 //_______________________________________________________________________________
 Int_t StEventPlaneMaker::Init() {
-  //StJetFrameworkPicoBase::Init();
-
   // initialize the histograms
   DeclareHistograms();
 
@@ -299,12 +296,11 @@ Int_t StEventPlaneMaker::Init() {
   // Add bad run lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
         break;
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
@@ -851,7 +847,7 @@ Int_t StEventPlaneMaker::Make() {
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -1215,12 +1211,6 @@ void StEventPlaneMaker::SetEPSumw2() {
 */
 
 }
-//
-// Initialize parameters
-// __________________________________________________________________________________
-void StEventPlaneMaker::InitParameters()
-{
-}  
 //
 //
 // ________________________________________________________________________________________

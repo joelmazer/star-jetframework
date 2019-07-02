@@ -152,8 +152,8 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(30.0),
   doRejectBadRuns(kFALSE),
-  fBadTowerListVers(0),
   fBadRunListVers(999),
+  fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
   fTrackBias(0.2),
@@ -249,12 +249,11 @@ Int_t StJetFrameworkPicoBase::Init() {
   // Add bad run lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
+        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
         break;
   
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P17id.txt");
-        //AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
         break; 
@@ -1675,7 +1674,6 @@ TH1* StJetFrameworkPicoBase::FillEventTriggerQA(TH1* h) {
     if(DoComparison(arrMB, sizeof(arrMB)/sizeof(*arrMB))) { h->Fill(10); } // VPDMB
 
     // label bins of the analysis trigger selection summary
-    h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
     h->GetXaxis()->SetBinLabel(2, "BHT1");
     h->GetXaxis()->SetBinLabel(3, "BHT2");
     h->GetXaxis()->SetBinLabel(4, "BHT3");
@@ -1768,7 +1766,7 @@ TH1* StJetFrameworkPicoBase::FillEventTriggerQA(TH1* h) {
   }
 
   // set general label
-  h->GetXaxis()->SetBinLabel(1, "un-identified trigger");
+  h->GetXaxis()->SetBinLabel(1, "Any trigger");
 
   // set x-axis labels vertically
   h->LabelsOption("v");
