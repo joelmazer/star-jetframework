@@ -141,7 +141,8 @@ class StJetFrameworkPicoBase : public StMaker {
       kTriggerANY = 0,
       kTriggerMB  = 1, // corresponding to specific MB selection
       kTriggerHT  = 2, // corresponding to specific HT selection
-      kTriggerJP  = 3  // corresponding to specific JP selection
+      kTriggerJP  = 3, // corresponding to specific JP selection
+      kTriggerMB30HT2HT3 = 4 // corresponding to selection used in some QA: MB30 || HT2 || HT3
     };
 
     // Centrality Interfaces:

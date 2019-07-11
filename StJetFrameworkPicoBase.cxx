@@ -1545,6 +1545,8 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
 }
 //
 // Function: Returns E of most energetic tower in the event
+// TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
+//      and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetMaxTowerE()
 {

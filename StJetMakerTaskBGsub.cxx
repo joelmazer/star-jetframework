@@ -82,7 +82,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   Bfield(0.0),
@@ -178,7 +178,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fCentralitySelectionCut(-99),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   Bfield(0.0),
@@ -683,7 +683,7 @@ int StJetMakerTaskBGsub::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -1613,6 +1613,8 @@ Double_t StJetMakerTaskBGsub::GetMaxTrackPt()
 }
 //
 // Function: Returns E of most energetic tower in the event
+// TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
+//      and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
 Double_t StJetMakerTaskBGsub::GetMaxTowerE()
 {

@@ -82,7 +82,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
@@ -161,7 +161,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
@@ -254,6 +254,7 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistNTowervsPhivsEta) delete fHistNTowervsPhivsEta;
   if(fHistNTowerHOTvsTowID) delete fHistNTowerHOTvsTowID;
 
+  if(fHistEventCounter)               delete fHistEventCounter;
   if(fHistEventSelectionQA)           delete fHistEventSelectionQA;
   if(fHistEventSelectionQAafterCuts)  delete fHistEventSelectionQAafterCuts;
   if(fHistEventSelectionTrg)          delete fHistEventSelectionTrg;
@@ -298,15 +299,18 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistNNegEHT2vsID)  delete fHistNNegEHT2vsID;
   if(fHistNNegEHT3vsID)  delete fHistNNegEHT3vsID;
 
-  if(fHistNFiredHT1vsID200MeV)  delete fHistNFiredHT1vsID200MeV;
-  if(fHistNFiredHT2vsID200MeV)  delete fHistNFiredHT2vsID200MeV;
-  if(fHistNFiredHT3vsID200MeV)  delete fHistNFiredHT3vsID200MeV;
-  if(fHistNFiredHT1vsID1000MeV) delete fHistNFiredHT1vsID1000MeV;
-  if(fHistNFiredHT2vsID1000MeV) delete fHistNFiredHT2vsID1000MeV;
-  if(fHistNFiredHT3vsID1000MeV) delete fHistNFiredHT3vsID1000MeV;
-  if(fHistNFiredHT1vsID2000MeV) delete fHistNFiredHT1vsID2000MeV;
-  if(fHistNFiredHT2vsID2000MeV) delete fHistNFiredHT2vsID2000MeV;
-  if(fHistNFiredHT3vsID2000MeV) delete fHistNFiredHT3vsID2000MeV;
+  if(fHistNFiredHT1vsIDEt200MeV)  delete fHistNFiredHT1vsIDEt200MeV;
+  if(fHistNFiredHT2vsIDEt200MeV)  delete fHistNFiredHT2vsIDEt200MeV;
+  if(fHistNFiredHT3vsIDEt200MeV)  delete fHistNFiredHT3vsIDEt200MeV;
+  if(fHistNFiredHT1vsIDEt1000MeV) delete fHistNFiredHT1vsIDEt1000MeV;
+  if(fHistNFiredHT2vsIDEt1000MeV) delete fHistNFiredHT2vsIDEt1000MeV;
+  if(fHistNFiredHT3vsIDEt1000MeV) delete fHistNFiredHT3vsIDEt1000MeV;
+  if(fHistNFiredHT1vsIDEt2000MeV) delete fHistNFiredHT1vsIDEt2000MeV;
+  if(fHistNFiredHT2vsIDEt2000MeV) delete fHistNFiredHT2vsIDEt2000MeV;
+  if(fHistNFiredHT3vsIDEt2000MeV) delete fHistNFiredHT3vsIDEt2000MeV;
+  if(fHistNFiredvsIDEt200MeV)   delete fHistNFiredvsIDEt200MeV;
+  if(fHistNFiredvsIDEt1000MeV)  delete fHistNFiredvsIDEt1000MeV;
+  if(fHistNFiredvsIDEt2000MeV)  delete fHistNFiredvsIDEt2000MeV;
 
   if(fHistNFiredHT0vsID) delete fHistNFiredHT0vsID;
   if(fHistNFiredHT1vsID) delete fHistNFiredHT1vsID;
@@ -527,6 +531,7 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistNTowerHOTvsTowID = new TH1F("fHistNTowerHOTvsTowID", "NTowerHOT vs tower ID", 4800, 0.5, 4800.5);
 
     // Event Selection QA histograms
+    fHistEventCounter = new TH1F("fHistEventCounter", "event counter for tower firing normalization", 20, 0.5, 20.5);
     fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
     fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
     fHistEventSelectionTrg = new TH1F("fHistEventSelectionTrg", "Trigger Selection Counter for use with tower QA", 20, 0.5, 20.5);
@@ -576,20 +581,23 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistNZeroEHT1vsID = new TH1F("fHistNZeroEHT1vsID", "NTowers fired HT1 with zero E vs tower ID", 4800, 0.5, 4800.5);
     fHistNZeroEHT2vsID = new TH1F("fHistNZeroEHT2vsID", "NTowers fired HT2 with zero E vs tower ID", 4800, 0.5, 4800.5);
     fHistNZeroEHT3vsID = new TH1F("fHistNZeroEHT3vsID", "NTowers fired HT3 with zero E vs tower ID", 4800, 0.5, 4800.5);
-    fHistNNegEHT1vsID = new TH1F("fHistNNegEHT1vsID", "NTowers fired HT1 with negative E vs tower ID", 4800, 0.5, 4800.5);
-    fHistNNegEHT2vsID = new TH1F("fHistNNegEHT2vsID", "NTowers fired HT2 with negative E vs tower ID", 4800, 0.5, 4800.5);
-    fHistNNegEHT3vsID = new TH1F("fHistNNegEHT3vsID", "NTowers fired HT3 with negative E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT1vsID  = new TH1F("fHistNNegEHT1vsID",  "NTowers fired HT1 with negative E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT2vsID  = new TH1F("fHistNNegEHT2vsID",  "NTowers fired HT2 with negative E vs tower ID", 4800, 0.5, 4800.5);
+    fHistNNegEHT3vsID  = new TH1F("fHistNNegEHT3vsID",  "NTowers fired HT3 with negative E vs tower ID", 4800, 0.5, 4800.5);
 
     // trigger histograms: firing towers reaching threshold for alt bad tower lists
-    fHistNFiredHT1vsID200MeV  = new TH1F("fHistNFiredHT1vsID200MeV",  "NTrig fired HT1 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT2vsID200MeV  = new TH1F("fHistNFiredHT2vsID200MeV",  "NTrig fired HT2 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT3vsID200MeV  = new TH1F("fHistNFiredHT3vsID200MeV",  "NTrig fired HT3 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT1vsID1000MeV = new TH1F("fHistNFiredHT1vsID1000MeV", "NTrig fired HT1 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT2vsID1000MeV = new TH1F("fHistNFiredHT2vsID1000MeV", "NTrig fired HT2 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT3vsID1000MeV = new TH1F("fHistNFiredHT3vsID1000MeV", "NTrig fired HT3 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT1vsID2000MeV = new TH1F("fHistNFiredHT1vsID2000MeV", "NTrig fired HT1 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT2vsID2000MeV = new TH1F("fHistNFiredHT2vsID2000MeV", "NTrig fired HT2 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
-    fHistNFiredHT3vsID2000MeV = new TH1F("fHistNFiredHT3vsID2000MeV", "NTrig fired HT3 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT1vsIDEt200MeV  = new TH1F("fHistNFiredHT1vsIDEt200MeV",  "NTrig fired HT1 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT2vsIDEt200MeV  = new TH1F("fHistNFiredHT2vsIDEt200MeV",  "NTrig fired HT2 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT3vsIDEt200MeV  = new TH1F("fHistNFiredHT3vsIDEt200MeV",  "NTrig fired HT3 vs tower ID, above 0.2 MeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT1vsIDEt1000MeV = new TH1F("fHistNFiredHT1vsIDEt1000MeV", "NTrig fired HT1 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT2vsIDEt1000MeV = new TH1F("fHistNFiredHT2vsIDEt1000MeV", "NTrig fired HT2 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT3vsIDEt1000MeV = new TH1F("fHistNFiredHT3vsIDEt1000MeV", "NTrig fired HT3 vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT1vsIDEt2000MeV = new TH1F("fHistNFiredHT1vsIDEt2000MeV", "NTrig fired HT1 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT2vsIDEt2000MeV = new TH1F("fHistNFiredHT2vsIDEt2000MeV", "NTrig fired HT2 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredHT3vsIDEt2000MeV = new TH1F("fHistNFiredHT3vsIDEt2000MeV", "NTrig fired HT3 vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredvsIDEt200MeV  = new TH1F("fHistNFiredvsIDEt200MeV",  "NTrig fired vs tower ID, above 0.2 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredvsIDEt1000MeV = new TH1F("fHistNFiredvsIDEt1000MeV", "NTrig fired vs tower ID, above 1.0 GeV", 4800, 0.5, 4800.5);
+    fHistNFiredvsIDEt2000MeV = new TH1F("fHistNFiredvsIDEt2000MeV", "NTrig fired vs tower ID, above 2.0 GeV", 4800, 0.5, 4800.5);
 
     // trigger histograms: firing towers QA
     fHistNFiredHT0vsID = new TH1F("fHistNFiredHT0vsID", "NTrig fired HT0 vs tower ID", 4800, 0.5, 4800.5);
@@ -658,6 +666,7 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fHistNTowerHOTvsTowID->Write();
 
   // QA histograms
+  fHistEventCounter->Write();
   fHistEventSelectionQA->Write();
   fHistEventSelectionQAafterCuts->Write();
   fHistEventSelectionTrg->Write();
@@ -703,15 +712,18 @@ void StPicoTrackClusterQA::WriteHistograms() {
   fHistNNegEHT1vsID->Write();
   fHistNNegEHT2vsID->Write();
   fHistNNegEHT3vsID->Write();
-  fHistNFiredHT1vsID200MeV->Write();
-  fHistNFiredHT2vsID200MeV->Write();
-  fHistNFiredHT3vsID200MeV->Write();
-  fHistNFiredHT1vsID1000MeV->Write();
-  fHistNFiredHT2vsID1000MeV->Write();
-  fHistNFiredHT3vsID1000MeV->Write();
-  fHistNFiredHT1vsID2000MeV->Write();
-  fHistNFiredHT2vsID2000MeV->Write();
-  fHistNFiredHT3vsID2000MeV->Write();
+  fHistNFiredHT1vsIDEt200MeV->Write();
+  fHistNFiredHT2vsIDEt200MeV->Write();
+  fHistNFiredHT3vsIDEt200MeV->Write();
+  fHistNFiredHT1vsIDEt1000MeV->Write();
+  fHistNFiredHT2vsIDEt1000MeV->Write();
+  fHistNFiredHT3vsIDEt1000MeV->Write();
+  fHistNFiredHT1vsIDEt2000MeV->Write();
+  fHistNFiredHT2vsIDEt2000MeV->Write();
+  fHistNFiredHT3vsIDEt2000MeV->Write();
+  fHistNFiredvsIDEt200MeV->Write();
+  fHistNFiredvsIDEt1000MeV->Write();
+  fHistNFiredvsIDEt2000MeV->Write();
   fHistNFiredHT0vsID->Write();
   fHistNFiredHT1vsID->Write();
   fHistNFiredHT2vsID->Write();
@@ -789,7 +801,7 @@ int StPicoTrackClusterQA::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -856,8 +868,7 @@ int StPicoTrackClusterQA::Make()
   //cout<<endl;
   // ======================== end of Triggers ============================= //
 
-  // Event QA print-out
-  // printing available information from the PicoDst objects
+  // Event QA print-out - printing available information from the PicoDst objects
 /*
   StPicoTrack *t = mPicoDst->track(1);
   if(t) t->Print();
@@ -896,6 +907,9 @@ int StPicoTrackClusterQA::Make()
   bool fHaveAnyHT= kFALSE;
   if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
 
+  // for comparison to Hanseul
+  bool fHaveMB30HT2HT3 = (fHaveMB30event || fHaveHT2 || fHaveHT3) ? kTRUE : kFALSE;
+
   // MB30 and not HT events!!
   if(fHaveMB30event && !fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
   if(fRunForMB      && !fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
@@ -905,24 +919,59 @@ int StPicoTrackClusterQA::Make()
   if(!fRunForMB      && fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }
 
   // run tower QA for specific conditions
-  if(fDoTowerQAforHT && fHaveEmcTrigger)  {
+  if(fDoTowerQAforHT && fHaveEmcTrigger && fTriggerToUse != StJetFrameworkPicoBase::kTriggerMB30HT2HT3)  {
     FillEventTriggerQA(fHistEventSelectionTrg);
     RunEventQA();
     RunFiredTriggerQA();  //cout<<"HT.."<<endl; } // HT trigger
     RunTrackQA(); 
     RunTowerQA();
     RunHadCorrTowerQA();
+
+    if(fHaveHT1) fHistEventCounter->Fill(1);
+    if(fHaveHT2) fHistEventCounter->Fill(2);
+    if(fHaveHT3) fHistEventCounter->Fill(3);
+    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
+    if(fRunForMB) fHistEventCounter->Fill(7);
+    if(fHaveMB30event) fHistEventCounter->Fill(8);
+     
   }
 
   // look for firing trigger specifically requested
   //if(!fDoTowerQAforHT && fHaveMBevent) {
-  if(!fDoTowerQAforHT && fRunForMB) { // updated MB type Dec4, 2018
+  if(!fDoTowerQAforHT && fRunForMB && fTriggerToUse != StJetFrameworkPicoBase::kTriggerMB30HT2HT3) { // updated MB type Dec4, 2018
     FillEventTriggerQA(fHistEventSelectionTrg);
     RunEventQA();
     RunFiredTriggerQA();
     RunTrackQA();
     RunTowerQA(); 
     RunHadCorrTowerQA();
+
+    if(fHaveHT1) fHistEventCounter->Fill(1);
+    if(fHaveHT2) fHistEventCounter->Fill(2);
+    if(fHaveHT3) fHistEventCounter->Fill(3);
+    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
+    if(fRunForMB) fHistEventCounter->Fill(7);
+    if(fHaveMB30event) fHistEventCounter->Fill(8);
+  }
+
+  // this selection is specifically to match the selection Hanseul used in his tower QA
+  if(fHaveMB30HT2HT3 && fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB30HT2HT3) {
+    FillEventTriggerQA(fHistEventSelectionTrg);
+    RunEventQA();
+    RunFiredTriggerQA();
+    RunTrackQA();
+    RunTowerQA();
+    RunHadCorrTowerQA();
+
+    if(fHaveHT1) fHistEventCounter->Fill(1);
+    if(fHaveHT2) fHistEventCounter->Fill(2);
+    if(fHaveHT3) fHistEventCounter->Fill(3);
+    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
+    if(fRunForMB) fHistEventCounter->Fill(7);
+    if(fHaveMB30event) fHistEventCounter->Fill(8);
   }
 
 /*
@@ -1105,6 +1154,7 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistNTowerHOTvsTowID->Sumw2();
 
   // QA histograms
+  fHistEventCounter->Sumw2();
   fHistEventSelectionQA->Sumw2();
   fHistEventSelectionQAafterCuts->Sumw2();
   fHistEventSelectionTrg->Sumw2();
@@ -1150,15 +1200,18 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistNNegEHT1vsID->Sumw2();
   fHistNNegEHT2vsID->Sumw2();
   fHistNNegEHT3vsID->Sumw2();
-  fHistNFiredHT1vsID200MeV->Sumw2();
-  fHistNFiredHT2vsID200MeV->Sumw2();
-  fHistNFiredHT3vsID200MeV->Sumw2();
-  fHistNFiredHT1vsID1000MeV->Sumw2();
-  fHistNFiredHT2vsID1000MeV->Sumw2();
-  fHistNFiredHT3vsID1000MeV->Sumw2();
-  fHistNFiredHT1vsID2000MeV->Sumw2();
-  fHistNFiredHT2vsID2000MeV->Sumw2();
-  fHistNFiredHT3vsID2000MeV->Sumw2();
+  fHistNFiredHT1vsIDEt200MeV->Sumw2();
+  fHistNFiredHT2vsIDEt200MeV->Sumw2();
+  fHistNFiredHT3vsIDEt200MeV->Sumw2();
+  fHistNFiredHT1vsIDEt1000MeV->Sumw2();
+  fHistNFiredHT2vsIDEt1000MeV->Sumw2();
+  fHistNFiredHT3vsIDEt1000MeV->Sumw2();
+  fHistNFiredHT1vsIDEt2000MeV->Sumw2();
+  fHistNFiredHT2vsIDEt2000MeV->Sumw2();
+  fHistNFiredHT3vsIDEt2000MeV->Sumw2();
+  fHistNFiredvsIDEt200MeV->Sumw2();
+  fHistNFiredvsIDEt1000MeV->Sumw2();
+  fHistNFiredvsIDEt2000MeV->Sumw2();
   fHistNFiredHT0vsID->Sumw2();
   fHistNFiredHT1vsID->Sumw2();
   fHistNFiredHT2vsID->Sumw2();
@@ -2079,9 +2132,15 @@ void StPicoTrackClusterQA::RunTowerQA()
     double towerEta = towerPosition.PseudoRapidity();
     int towerADC = tower->adc();
     double towerE = tower->energy();
+    double towerEt = towerE / (1.0*TMath::CosH(towerEta));
+
+    // fill for fired triggers - NEW July1, 2019 - looking for triggers meeting thresholds
+    // want this filled before any energy corrections
+    if(towerEt >= 0.2) fHistNFiredvsIDEt200MeV->Fill(towerID);
+    if(towerEt >= 1.0) fHistNFiredvsIDEt1000MeV->Fill(towerID);
+    if(towerEt >= 2.0) fHistNFiredvsIDEt2000MeV->Fill(towerID);
 
     // cut on transvere tower energy - corrected or not
-    double towerEt = towerE / (1.0*TMath::CosH(towerEta));
     if(towerEt < 0) towerEt = 0.0;
     if(towerEt < mTowerEnergyMin) continue;
 
@@ -2219,17 +2278,6 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
       continue;
     }
 
-    // fill for fired triggers - NEW July1, 2019 - looking for triggers meeting thresholds
-    if(towerEt >= 0.2 && isHT1) fHistNFiredHT1vsID200MeV->Fill(emcTrigID);
-    if(towerEt >= 0.2 && isHT2) fHistNFiredHT2vsID200MeV->Fill(emcTrigID);
-    if(towerEt >= 0.2 && isHT3) fHistNFiredHT3vsID200MeV->Fill(emcTrigID);
-    if(towerEt >= 1.0 && isHT1) fHistNFiredHT1vsID1000MeV->Fill(emcTrigID);
-    if(towerEt >= 1.0 && isHT2) fHistNFiredHT2vsID1000MeV->Fill(emcTrigID);
-    if(towerEt >= 1.0 && isHT3) fHistNFiredHT3vsID1000MeV->Fill(emcTrigID);
-    if(towerEt >= 2.0 && isHT1) fHistNFiredHT1vsID2000MeV->Fill(emcTrigID);
-    if(towerEt >= 2.0 && isHT2) fHistNFiredHT2vsID2000MeV->Fill(emcTrigID);
-    if(towerEt >= 2.0 && isHT3) fHistNFiredHT3vsID2000MeV->Fill(emcTrigID);
-
     // fill for fired triggers
     if(isHT0) fHistNFiredHT0vsID->Fill(emcTrigID);
     if(isHT1 && (flag == HT1flag)) fHistNFiredHT1vsID->Fill(emcTrigID);
@@ -2245,6 +2293,18 @@ void StPicoTrackClusterQA::RunFiredTriggerQA()
     if(isHT1 && (flag == HT1flag)) fHistHT1IDvsFiredEt->Fill(towerEt, emcTrigID);
     if(isHT2 && (flag == HT2flag)) fHistHT2IDvsFiredEt->Fill(towerEt, emcTrigID);
     if(isHT3 && (flag == HT3flag)) fHistHT3IDvsFiredEt->Fill(towerEt, emcTrigID);
+
+    // fill for fired triggers - NEW July1, 2019 - looking for triggers meeting thresholds
+    // want this filled before any energy corrections
+    if(towerEt >= 0.2 && isHT1) fHistNFiredHT1vsIDEt200MeV->Fill(towerID);
+    if(towerEt >= 0.2 && isHT2) fHistNFiredHT2vsIDEt200MeV->Fill(towerID);
+    if(towerEt >= 0.2 && isHT3) fHistNFiredHT3vsIDEt200MeV->Fill(towerID);
+    if(towerEt >= 1.0 && isHT1) fHistNFiredHT1vsIDEt1000MeV->Fill(towerID);
+    if(towerEt >= 1.0 && isHT2) fHistNFiredHT2vsIDEt1000MeV->Fill(towerID);
+    if(towerEt >= 1.0 && isHT3) fHistNFiredHT3vsIDEt1000MeV->Fill(towerID);
+    if(towerEt >= 2.0 && isHT1) fHistNFiredHT1vsIDEt2000MeV->Fill(towerID);
+    if(towerEt >= 2.0 && isHT2) fHistNFiredHT2vsIDEt2000MeV->Fill(towerID);
+    if(towerEt >= 2.0 && isHT3) fHistNFiredHT3vsIDEt2000MeV->Fill(towerID);
 
   } // trigger loop
 
@@ -2617,12 +2677,16 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
 }
 //
 // Function: Returns E of most energetic tower in the event
+// TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
+// 	and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
 Double_t StPicoTrackClusterQA::GetMaxTowerE()
 {
   // get # of towers
   int nTowers = mPicoDst->numberOfBTowHits();
   double fMaxTowerE = -99;
+
+  cout<<"1: "<<fMaxTowerE<<"   nTowers: "<<nTowers<<endl;
 
   // loop over all towers
   for(int i = 0; i < nTowers; i++) {
@@ -2637,7 +2701,7 @@ Double_t StPicoTrackClusterQA::GetMaxTowerE()
     //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
     //double towerEta = towerPosition.PseudoRapidity();
     double towerEuncorr = tower->energy();               // uncorrected energy
-    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+    //double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); // should this be used instead?
 
     // get max tower
     if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
@@ -2659,13 +2723,20 @@ void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
   // Run12 pp (200 GeV) - 27, 0-26
   unsigned int triggersRun12[] = {370001, 370011, 370021, 370022, 370031, 370032, 370301, 370341, 370361, 370501, 370511, 370521, 370522, 370531, 370541, 370542, 370546, 370601, 370611, 370621, 370641, 370701, 370801, 370980, 370981, 370982, 370983};
 
+  // get size of trigger ID arrays:
+  size_t nRun12IDs = sizeof(triggersRun12)/sizeof(triggersRun12[0]);
+  size_t nRun14IDs = sizeof(triggersRun14)/sizeof(triggersRun14[0]);
+  int nLoopMax = 0;
+  if(StJetFrameworkPicoBase::Run12_pp200)   nLoopMax = nRun12IDs;
+  if(StJetFrameworkPicoBase::Run14_AuAu200) nLoopMax = nRun14IDs;
+
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
   for(unsigned int i = 0; i < mytriggers.size(); i++) {
 
     // check for valid, non-test trigger ID
     if(mytriggers[i] > 1000) {
-      for(int j = 0; j < 27; j++) {
+      for(int j = 0; j < nLoopMax; j++) {
         if(mytriggers[i] == triggersRun12[j] && fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   h->Fill(j + 1);
         if(mytriggers[i] == triggersRun14[j] && fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) h->Fill(j + 1);
 
@@ -2674,7 +2745,7 @@ void StPicoTrackClusterQA::FillTriggerIDs(TH1 *h) {
   }     // loop over triggers
 
   // label bins of the analysis trigger selection summary
-  for(int i = 0; i < 27; i++) {
+  for(int i = 0; i < nLoopMax; i++) {
     if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   h->GetXaxis()->SetBinLabel(i+1, Form("%i", triggersRun12[i]));
     if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) h->GetXaxis()->SetBinLabel(i+1, Form("%i", triggersRun14[i]));
   }

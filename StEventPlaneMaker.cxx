@@ -112,7 +112,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralitySelectionCut = -99;
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 30.0;
+  fMaxEventTowerE = 1000.0; // 30.0
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -847,7 +847,7 @@ Int_t StEventPlaneMaker::Make() {
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

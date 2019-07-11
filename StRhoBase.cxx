@@ -42,7 +42,7 @@ StRhoBase::StRhoBase() :
   StJetFrameworkPicoBase(),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -94,7 +94,7 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   StJetFrameworkPicoBase(name),
   doUseBBCCoincidenceRate(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerE(1000.0), // 30.0
   fOutRhoName(),
   fOutRhoScaledName(),
   fCompareRhoName(),
@@ -481,7 +481,7 @@ Int_t StRhoBase::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get vertex 3 vector and declare variables
   TVector3 mVertex = mPicoEvent->primaryVertex();

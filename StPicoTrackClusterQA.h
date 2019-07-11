@@ -126,6 +126,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fTowerPhiMinCut = tpmi; fTowerPhiMaxCut = tpmx; }
 
   // event selection
+  virtual void         SetTriggerToUse(UInt_t ttu)        { fTriggerToUse = ttu; }
   virtual void         SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
   virtual void         SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }       
   virtual void         SetDoTowerQAforHT(Bool_t m)        { fDoTowerQAforHT = m; }
@@ -233,6 +234,7 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                fRunNumber;              // Run number
 
   // event selection types
+  UInt_t               fTriggerToUse;               // trigger to use for analysis
   UInt_t               fEmcTriggerEventType;        // Physics selection of event used for signal
   UInt_t               fMBEventType;                // Physics selection of event used for MB
   Int_t                fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
@@ -291,6 +293,7 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNTowerHOTvsTowID;//!
 
   // trigger / event selection QA histos
+  TH1F           *fHistEventCounter;//!
   TH1F           *fHistEventSelectionQA;//! 
   TH1F           *fHistEventSelectionQAafterCuts;//!
   TH1F           *fHistEventSelectionTrg;//!
@@ -330,15 +333,18 @@ class StPicoTrackClusterQA : public StMaker {
   TProfile       *fProfEventZDCx;//!
  
   // trigger histos for hot tower (threshold levels for varying bad tower lists)
-  TH1F           *fHistNFiredHT1vsID200MeV;//!
-  TH1F           *fHistNFiredHT2vsID200MeV;//!
-  TH1F           *fHistNFiredHT3vsID200MeV;//!
-  TH1F           *fHistNFiredHT1vsID1000MeV;//!
-  TH1F           *fHistNFiredHT2vsID1000MeV;//!
-  TH1F           *fHistNFiredHT3vsID1000MeV;//!
-  TH1F           *fHistNFiredHT1vsID2000MeV;//!
-  TH1F           *fHistNFiredHT2vsID2000MeV;//!
-  TH1F           *fHistNFiredHT3vsID2000MeV;//!
+  TH1F           *fHistNFiredHT1vsIDEt200MeV;//!
+  TH1F           *fHistNFiredHT2vsIDEt200MeV;//!
+  TH1F           *fHistNFiredHT3vsIDEt200MeV;//!
+  TH1F           *fHistNFiredHT1vsIDEt1000MeV;//!
+  TH1F           *fHistNFiredHT2vsIDEt1000MeV;//!
+  TH1F           *fHistNFiredHT3vsIDEt1000MeV;//!
+  TH1F           *fHistNFiredHT1vsIDEt2000MeV;//!
+  TH1F           *fHistNFiredHT2vsIDEt2000MeV;//!
+  TH1F           *fHistNFiredHT3vsIDEt2000MeV;//!
+  TH1F           *fHistNFiredvsIDEt200MeV;//!
+  TH1F           *fHistNFiredvsIDEt1000MeV;//!
+  TH1F           *fHistNFiredvsIDEt2000MeV;//!
  
   // trigger histos for zero and negative energy
   TH1F           *fHistNZeroEHT1vsID;//!

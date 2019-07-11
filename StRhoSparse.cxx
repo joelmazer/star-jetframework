@@ -201,7 +201,7 @@ Int_t StRhoSparse::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
   // get vertex 3 vector and declare variables
   TVector3 mVertex = mPicoEvent->primaryVertex();

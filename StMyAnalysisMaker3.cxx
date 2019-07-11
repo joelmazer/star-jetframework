@@ -94,7 +94,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doWriteJetQAHist = kTRUE;
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 30.0;
+  fMaxEventTowerE = 1000.0; // 30.0
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 2; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
@@ -1268,7 +1268,7 @@ Int_t StMyAnalysisMaker3::Make() {
   hStats->Fill(3);
 
   // cut event on max tower E > 30.0 GeV
-  if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
   hStats->Fill(4);
 
   // get event B (magnetic) field
