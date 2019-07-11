@@ -532,6 +532,17 @@ void StPicoTrackClusterQA::DeclareHistograms() {
 
     // Event Selection QA histograms
     fHistEventCounter = new TH1F("fHistEventCounter", "event counter for tower firing normalization", 20, 0.5, 20.5);
+    fHistEventCounter->GetXaxis()->SetBinLabel(1, "HT1");
+    fHistEventCounter->GetXaxis()->SetBinLabel(2, "HT2");
+    fHistEventCounter->GetXaxis()->SetBinLabel(3, "HT3");
+    fHistEventCounter->GetXaxis()->SetBinLabel(4, "any HT");
+    fHistEventCounter->GetXaxis()->SetBinLabel(6, "MB30 | HT2 | HT3");
+    fHistEventCounter->GetXaxis()->SetBinLabel(7, "MB5 | MB30");
+    fHistEventCounter->GetXaxis()->SetBinLabel(8, "MB30");
+    fHistEventCounter->GetXaxis()->SetBinLabel(10, "Any");
+    // set x-axis labels vertically
+    fHistEventCounter->LabelsOption("v");
+
     fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
     fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
     fHistEventSelectionTrg = new TH1F("fHistEventSelectionTrg", "Trigger Selection Counter for use with tower QA", 20, 0.5, 20.5);
@@ -927,14 +938,13 @@ int StPicoTrackClusterQA::Make()
     RunTowerQA();
     RunHadCorrTowerQA();
 
-    if(fHaveHT1) fHistEventCounter->Fill(1);
-    if(fHaveHT2) fHistEventCounter->Fill(2);
-    if(fHaveHT3) fHistEventCounter->Fill(3);
-    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveHT1)        fHistEventCounter->Fill(1);
+    if(fHaveHT2)        fHistEventCounter->Fill(2);
+    if(fHaveHT3)        fHistEventCounter->Fill(3);
+    if(fHaveAnyHT)      fHistEventCounter->Fill(4);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
-    if(fRunForMB) fHistEventCounter->Fill(7);
-    if(fHaveMB30event) fHistEventCounter->Fill(8);
-     
+    if(fRunForMB)       fHistEventCounter->Fill(7);
+    if(fHaveMB30event)  fHistEventCounter->Fill(8);
   }
 
   // look for firing trigger specifically requested
@@ -947,13 +957,13 @@ int StPicoTrackClusterQA::Make()
     RunTowerQA(); 
     RunHadCorrTowerQA();
 
-    if(fHaveHT1) fHistEventCounter->Fill(1);
-    if(fHaveHT2) fHistEventCounter->Fill(2);
-    if(fHaveHT3) fHistEventCounter->Fill(3);
-    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveHT1)        fHistEventCounter->Fill(1);
+    if(fHaveHT2)        fHistEventCounter->Fill(2);
+    if(fHaveHT3)        fHistEventCounter->Fill(3);
+    if(fHaveAnyHT)      fHistEventCounter->Fill(4);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
-    if(fRunForMB) fHistEventCounter->Fill(7);
-    if(fHaveMB30event) fHistEventCounter->Fill(8);
+    if(fRunForMB)       fHistEventCounter->Fill(7);
+    if(fHaveMB30event)  fHistEventCounter->Fill(8);
   }
 
   // this selection is specifically to match the selection Hanseul used in his tower QA
@@ -965,14 +975,17 @@ int StPicoTrackClusterQA::Make()
     RunTowerQA();
     RunHadCorrTowerQA();
 
-    if(fHaveHT1) fHistEventCounter->Fill(1);
-    if(fHaveHT2) fHistEventCounter->Fill(2);
-    if(fHaveHT3) fHistEventCounter->Fill(3);
-    if(fHaveAnyHT) fHistEventCounter->Fill(4);
+    if(fHaveHT1)        fHistEventCounter->Fill(1);
+    if(fHaveHT2)        fHistEventCounter->Fill(2);
+    if(fHaveHT3)        fHistEventCounter->Fill(3);
+    if(fHaveAnyHT)      fHistEventCounter->Fill(4);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
-    if(fRunForMB) fHistEventCounter->Fill(7);
-    if(fHaveMB30event) fHistEventCounter->Fill(8);
+    if(fRunForMB)       fHistEventCounter->Fill(7);
+    if(fHaveMB30event)  fHistEventCounter->Fill(8);
   }
+
+  // fill for any event
+  fHistEventCounter->Fill(10);
 
 /*
   int nTracks = mPicoDst->numberOfTracks();
