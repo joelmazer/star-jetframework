@@ -154,77 +154,77 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
 StJetShapeAnalysis::~StJetShapeAnalysis()
 { /*  */
   // destructor
-  delete hEventPlane;
-  delete hEventZVertex;
-  delete hCentrality;
-  delete hMultiplicity;
-  delete hRhovsCent;
+  if(hEventPlane)    delete hEventPlane;
+  if(hEventZVertex)  delete hEventZVertex;
+  if(hCentrality)    delete hCentrality;
+  if(hMultiplicity)  delete hMultiplicity;
+  if(hRhovsCent)     delete hRhovsCent;
   for(int i=0; i<9; i++){ // centrality
-    delete hTrackPhi[i];
-    delete hTrackEta[i];
-    delete hTrackPt[i];
+    if(hTrackPhi[i]) delete hTrackPhi[i];
+    if(hTrackEta[i]) delete hTrackEta[i];
+    if(hTrackPt[i])  delete hTrackPt[i];
   }
-  delete hTrackEtavsPhi;
+  if(hTrackEtavsPhi) delete hTrackEtavsPhi;
 
-  delete hJetPt;
-  delete hJetCorrPt;
-  delete hJetLeadingPt;
-  delete hJetSubLeadingPt;
-  delete hJetLeadingPtAj;
-  delete hJetSubLeadingPtAj;
-  delete hJetDiJetAj;
-  delete hJetE;
-  delete hJetEta;
-  delete hJetPhi;
-  delete hJetNEF;
-  delete hJetArea;
-  delete hJetTracksPt;
-  delete hJetTracksPhi;
-  delete hJetTracksEta;
-  delete hJetTracksZ;
-  delete hJetPtvsArea;
-  delete hJetEventEP;
-  delete hJetPhivsEP;
+  if(hJetPt)             delete hJetPt;
+  if(hJetCorrPt)         delete hJetCorrPt;
+  if(hJetLeadingPt)      delete hJetLeadingPt;
+  if(hJetSubLeadingPt)   delete hJetSubLeadingPt;
+  if(hJetLeadingPtAj)    delete hJetLeadingPtAj;
+  if(hJetSubLeadingPtAj) delete hJetSubLeadingPtAj;
+  if(hJetDiJetAj)        delete hJetDiJetAj;
+  if(hJetE)              delete hJetE;
+  if(hJetEta)            delete hJetEta;
+  if(hJetPhi)            delete hJetPhi;
+  if(hJetNEF)            delete hJetNEF;
+  if(hJetArea)           delete hJetArea;
+  if(hJetTracksPt)       delete hJetTracksPt;
+  if(hJetTracksPhi)      delete hJetTracksPhi;
+  if(hJetTracksEta)      delete hJetTracksEta;
+  if(hJetTracksZ)        delete hJetTracksZ;
+  if(hJetPtvsArea)       delete hJetPtvsArea;
+  if(hJetEventEP)        delete hJetEventEP;
+  if(hJetPhivsEP)        delete hJetPhivsEP;
 
-  delete fHistEventSelectionQA;
-  delete fHistEventSelectionQAafterCuts;
-  delete hTriggerIds;
-  delete hEmcTriggers;
-  delete hMixEvtStatZVtx;
-  delete hMixEvtStatCent;
-  delete hMixEvtStatZvsCent;
-  delete hTriggerEvtStatZVtx;
-  delete hTriggerEvtStatCent;
-  delete hTriggerEvtStatZvsCent;
-  delete hMBvsMult;
-  delete hMB5vsMult;
-  delete hMB30vsMult;
-  delete hHTvsMult;
-  delete hNMixEvents;
+  if(fHistEventSelectionQA)          delete fHistEventSelectionQA;
+  if(fHistEventSelectionQAafterCuts) delete fHistEventSelectionQAafterCuts;
+  if(hTriggerIds)            delete hTriggerIds;
+  if(hEmcTriggers)           delete hEmcTriggers;
+  if(hMixEvtStatZVtx)        delete hMixEvtStatZVtx;
+  if(hMixEvtStatCent)        delete hMixEvtStatCent;
+  if(hMixEvtStatZvsCent)     delete hMixEvtStatZvsCent;
+  if(hTriggerEvtStatZVtx)    delete hTriggerEvtStatZVtx;
+  if(hTriggerEvtStatCent)    delete hTriggerEvtStatCent;
+  if(hTriggerEvtStatZvsCent) delete hTriggerEvtStatZvsCent;
+  if(hMBvsMult)   delete hMBvsMult;
+  if(hMB5vsMult)  delete hMB5vsMult;
+  if(hMB30vsMult) delete hMB30vsMult;
+  if(hHTvsMult)   delete hHTvsMult;
+  if(hNMixEvents) delete hNMixEvents;
 
   if(doJetShapeAnalysis) {
     for(int k=0; k<4; k++) {
       for(int j=0; j<4; j++) {
         for(int i=0; i<4; i++) {
-          delete hJetShape[k][j][i];
-          delete hJetShapeCase1[k][j][i];
-          delete hJetShapeCase2[k][j][i];
-          delete hJetShapeBG[k][j][i];
-          delete hJetShapeBGCase1[k][j][i];
-          delete hJetShapeBGCase2[k][j][i];
-          delete hJetShapeBGCase3[k][j][i];
-          delete hJetCounter[k][j][i];
-          delete hJetCounterCase1[k][j][i];
-          delete hJetCounterCase2[k][j][i];
-          delete hJetCounterCase3BG[k][j][i];
+          if(hJetShape[k][j][i])            delete hJetShape[k][j][i];
+          if(hJetShapeCase1[k][j][i])       delete hJetShapeCase1[k][j][i];
+          if(hJetShapeCase2[k][j][i])       delete hJetShapeCase2[k][j][i];
+          if(hJetShapeBG[k][j][i])          delete hJetShapeBG[k][j][i];
+          if(hJetShapeBGCase1[k][j][i])     delete hJetShapeBGCase1[k][j][i];
+          if(hJetShapeBGCase2[k][j][i])     delete hJetShapeBGCase2[k][j][i];
+          if(hJetShapeBGCase3[k][j][i])     delete hJetShapeBGCase3[k][j][i];
+          if(hJetCounter[k][j][i])          delete hJetCounter[k][j][i];
+          if(hJetCounterCase1[k][j][i])     delete hJetCounterCase1[k][j][i];
+          if(hJetCounterCase2[k][j][i])     delete hJetCounterCase2[k][j][i];
+          if(hJetCounterCase3BG[k][j][i])   delete hJetCounterCase3BG[k][j][i];
 
-          delete hJetPtProfile[k][j][i];
-          delete hJetPtProfileCase1[k][j][i];
-          delete hJetPtProfileCase2[k][j][i];
-          delete hJetPtProfileBG[k][j][i];
-          delete hJetPtProfileBGCase1[k][j][i];
-          delete hJetPtProfileBGCase2[k][j][i];
-          delete hJetPtProfileBGCase3[k][j][i];
+          if(hJetPtProfile[k][j][i])        delete hJetPtProfile[k][j][i];
+          if(hJetPtProfileCase1[k][j][i])   delete hJetPtProfileCase1[k][j][i];
+          if(hJetPtProfileCase2[k][j][i])   delete hJetPtProfileCase2[k][j][i];
+          if(hJetPtProfileBG[k][j][i])      delete hJetPtProfileBG[k][j][i];
+          if(hJetPtProfileBGCase1[k][j][i]) delete hJetPtProfileBGCase1[k][j][i];
+          if(hJetPtProfileBGCase2[k][j][i]) delete hJetPtProfileBGCase2[k][j][i];
+          if(hJetPtProfileBGCase3[k][j][i]) delete hJetPtProfileBGCase3[k][j][i];
         }
       }
     }
@@ -337,7 +337,6 @@ Int_t StJetShapeAnalysis::Finish() {
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
-    //fout->ls();
     fout->cd();
     fout->mkdir(fAnalysisMakerName);
     fout->cd(fAnalysisMakerName);
@@ -830,7 +829,6 @@ Int_t StJetShapeAnalysis::Make() {
   }
 
   // get rho/area value from rho object     fRho->ls("");
-  //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
   if(fDebugLevel == kDebugRhoEstimate) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<endl;
@@ -857,7 +855,6 @@ Int_t StJetShapeAnalysis::Make() {
   double rpAngle = GetReactionPlane();
   hEventPlane->Fill(rpAngle);
 
-  // set up event plane maker here..
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
   double tpc2EP;
@@ -888,7 +885,6 @@ Int_t StJetShapeAnalysis::Make() {
       TPC_PSI2 = tpc2EP;
     }
   }
-
   // ===================================================================================
 
   // ========================== Jet Shape Analysis ===================================== //
@@ -1235,10 +1231,10 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
 void StJetShapeAnalysis::SetSumw2() {
   // set sum weights
   hEventPlane->Sumw2();
-  //hEventZVertex->Sumw2();
-  //hCentrality->Sumw2();
-  //hMultiplicity->Sumw2();
-  //hRhovsCent->Sumw2();
+  hEventZVertex->Sumw2();
+  hCentrality->Sumw2();
+  hMultiplicity->Sumw2();
+  hRhovsCent->Sumw2();
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Sumw2();
     hTrackEta[i]->Sumw2();
@@ -1266,10 +1262,10 @@ void StJetShapeAnalysis::SetSumw2() {
   hJetEventEP->Sumw2();
   hJetPhivsEP->Sumw2();
 
-  //fHistEventSelectionQA->Sumw2();
-  //fHistEventSelectionQAafterCuts->Sumw2();
-  //hTriggerIds->Sumw2();
-  //hEmcTriggers->Sumw2();
+  fHistEventSelectionQA->Sumw2();
+  fHistEventSelectionQAafterCuts->Sumw2();
+  hTriggerIds->Sumw2();
+  hEmcTriggers->Sumw2();
   hMixEvtStatZVtx->Sumw2();
   hMixEvtStatCent->Sumw2();
   hMixEvtStatZvsCent->Sumw2();
@@ -1390,24 +1386,6 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
 
     //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }
-
-/*
-  // loop over towers and add input vectors to fastjet
-  int nTowers = mPicoDst->numberOfBTOWHits();
-  for(int itow = 0; itow < nTowers; itow++) {
-    // get tower pointer
-    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
-    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
-
-    // tower ID: get from index of array shifted by +1
-    int towerID = itow + 1;
-    if(towerID < 0) continue; // double check these aren't still in the event list
-
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT2: "<<fTowerToTriggerTypeHT2[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT3: "<<fTowerToTriggerTypeHT3[towerID]<<"  adc = "<<tower->adc()<<endl;
-  }
-*/
 
 }
 //

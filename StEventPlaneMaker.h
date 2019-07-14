@@ -256,7 +256,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH2F *fHistEPBBC;//!
     TH2F *fHistEPZDC;//!
     TH1F *hTrackPhi[9];//!
-    TH1F *hTrackPt[9];//!
 
     // QA histos
     TH1 *fHistEventSelectionQA;//! 
@@ -302,7 +301,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH1F *bbc_psi_sft;//!
     TH1F *bbc_psi_fnl;//!
 
-    //TH1F *zdc_psi;//! // declared already
     TProfile *zdc_res;//!
     TH1F *zdc_psi;//!
     TH1F *zdc_psi_e;//!

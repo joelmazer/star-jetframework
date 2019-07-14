@@ -159,9 +159,8 @@ StEventPlaneMaker::~StEventPlaneMaker()
   if(fHistEPTPCp)    delete fHistEPTPCp;
   if(fHistEPBBC)     delete fHistEPBBC;
   if(fHistEPZDC)     delete fHistEPZDC;
-  for(int i=0; i<9; i++){ // centrality
+  for(int i=0; i<9; i++){ // centrality bins
     if(hTrackPhi[i]) delete hTrackPhi[i];
-    if(hTrackPt[i])  delete hTrackPt[i];
   }
 
   if(fHistEventSelectionQA)          delete fHistEventSelectionQA;
@@ -427,19 +426,18 @@ void StEventPlaneMaker::DeclareHistograms() {
   double pi = 1.0*TMath::Pi();
 
   // QA histos
-  hCentrality = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100);
+  hCentrality   = new TH1F("hCentrality", "No. events vs centrality", 20, 0, 100);
   hCentralityEP = new TH1F("hCentralityEP", "No. events vs centrality for EP res", 20, 0, 100);
 
   hEventPlane = new TH1F("hEventPlane", "Event plane distribution", 72, 0.0, 1.0*pi);
   fHistEPTPCn = new TH2F("fHistEPTPCn", "", 20, 0., 100., 72, -pi, pi);
   fHistEPTPCp = new TH2F("fHistEPTPCp", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPBBC = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, -pi, pi);
-  fHistEPZDC = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPBBC  = new TH2F("fHistEPBBC", "", 20, 0., 100., 72, -pi, pi);
+  fHistEPZDC  = new TH2F("fHistEPZDC", "", 20, 0., 100., 72, -pi, pi);
 
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i] = new TH1F(Form("hTrackPhi%d", i), Form("track distribution vs #phi, centr%d", i), 144, 0, 2*pi);
-    hTrackPt[i] = new TH1F(Form("hTrackPt%d", i), Form("track distribution vs p_{T}, centr%d", i), 120, 0., 30.0);
   }
 
   // Event Selection QA histo
@@ -522,6 +520,7 @@ void StEventPlaneMaker::DeclareHistograms() {
   }
 
   // set binning for run based corrections - run dependent
+  // adjust for new Runs where Event Plane is desired - TODO
   Int_t nRunBins = 1; // - just a default
   if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) nRunBins = 830; //1654;
   if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) nRunBins = 1359;
@@ -703,7 +702,6 @@ void StEventPlaneMaker::WriteEventPlaneHistograms() {
   // track phi distribution for centrality
   for(int i=0; i<9; i++){ // centrality
     //hTrackPhi[i]->Write();  // comment out May 17 TODO
-    //hTrackPt[i]->Write();   // comment out May 17 TODO
   }
 
   // QA histos
@@ -869,8 +867,6 @@ Int_t StEventPlaneMaker::Make() {
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_refmult.txt
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
   int grefMult = mPicoEvent->grefMult();
   //int refMult = mPicoEvent->refMult();
   Int_t centbin, cent9, cent16;
@@ -881,7 +877,6 @@ Int_t StEventPlaneMaker::Make() {
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
@@ -913,8 +908,7 @@ Int_t StEventPlaneMaker::Make() {
   // ============================ end of CENTRALITY ============================== //
 
   // ========================= Trigger Info =============================== //
-  // looking at the EMCal triggers - used for QA and deciding on HT triggers
-  // fill Event Trigger QA
+  // looking at the EMCal triggers - used for QA and deciding on HT triggers: fill Event Trigger QA
   FillEventTriggerQA(fHistEventSelectionQA);
   FillEmcTriggersHist(hEmcTriggers);
  
@@ -1051,7 +1045,6 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   // number of Emcal Triggers
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
-  //if(fDebugLevel == kDebugEmcTrigger) { cout<<"nEmcTrigger = "<<nEmcTrigger<<endl; }
 
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
@@ -1095,8 +1088,8 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
 // __________________________________________________________________________________
 void StEventPlaneMaker::SetEPSumw2() {
   // set sum weights
-  //hCentrality->Sumw2();
-  //hCentralityEP->Sumw2();
+  hCentrality->Sumw2();
+  hCentralityEP->Sumw2();
 
   hEventPlane->Sumw2();
   fHistEPTPCn->Sumw2();
@@ -1105,7 +1098,6 @@ void StEventPlaneMaker::SetEPSumw2() {
   fHistEPZDC->Sumw2();
   for(int i=0; i<9; i++){ // centrality
     hTrackPhi[i]->Sumw2();
-    hTrackPt[i]->Sumw2();
   }
 
   fHistEventSelectionQA->Sumw2();
@@ -1611,7 +1603,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       hBBC_shift_A[ref9][region_vz]->Fill(s - 0.5, bAn);
       hBBC_shift_B[ref9][region_vz]->Fill(s - 0.5, bBn);
 
-      // add east/west shifts here... TODO
+      // add east/west shifts here... TODO - shouldn't be needed, full shift is performed
     }	
   }
 

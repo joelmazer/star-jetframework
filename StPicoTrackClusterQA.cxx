@@ -120,7 +120,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   zVtx(0.0),
   fRunNumber(0),
   fEmcTriggerEventType(0),
-  fMBEventType(2),  // kVPDMB5
+  fMBEventType(2),  // kVPDMB
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
   mBemcTables(0x0),
@@ -199,7 +199,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   zVtx(0.0),
   fRunNumber(0),
   fEmcTriggerEventType(0),
-  fMBEventType(2),   // kVPDMB5
+  fMBEventType(2),   // kVPDMB
   mGeom(StEmcGeom::instance("bemc")),
   mEmcCol(0),
   mBemcTables(0x0),
@@ -308,22 +308,22 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistNFiredHT1vsIDEt2000MeV) delete fHistNFiredHT1vsIDEt2000MeV;
   if(fHistNFiredHT2vsIDEt2000MeV) delete fHistNFiredHT2vsIDEt2000MeV;
   if(fHistNFiredHT3vsIDEt2000MeV) delete fHistNFiredHT3vsIDEt2000MeV;
-  if(fHistNFiredvsIDEt200MeV)   delete fHistNFiredvsIDEt200MeV;
-  if(fHistNFiredvsIDEt1000MeV)  delete fHistNFiredvsIDEt1000MeV;
-  if(fHistNFiredvsIDEt2000MeV)  delete fHistNFiredvsIDEt2000MeV;
+  if(fHistNFiredvsIDEt200MeV)     delete fHistNFiredvsIDEt200MeV;
+  if(fHistNFiredvsIDEt1000MeV)    delete fHistNFiredvsIDEt1000MeV;
+  if(fHistNFiredvsIDEt2000MeV)    delete fHistNFiredvsIDEt2000MeV;
 
-  if(fHistNFiredHT0vsID) delete fHistNFiredHT0vsID;
-  if(fHistNFiredHT1vsID) delete fHistNFiredHT1vsID;
-  if(fHistNFiredHT2vsID) delete fHistNFiredHT2vsID;
-  if(fHistNFiredHT3vsID) delete fHistNFiredHT3vsID;
-  if(fHistHT0FiredEtvsID) delete fHistHT0FiredEtvsID;
-  if(fHistHT1FiredEtvsID) delete fHistHT1FiredEtvsID;
-  if(fHistHT2FiredEtvsID) delete fHistHT2FiredEtvsID;
-  if(fHistHT3FiredEtvsID) delete fHistHT3FiredEtvsID;
-  if(fHistHT0IDvsFiredEt) delete fHistHT0IDvsFiredEt;
-  if(fHistHT1IDvsFiredEt) delete fHistHT1IDvsFiredEt;
-  if(fHistHT2IDvsFiredEt) delete fHistHT2IDvsFiredEt;
-  if(fHistHT3IDvsFiredEt) delete fHistHT3IDvsFiredEt;
+  if(fHistNFiredHT0vsID)   delete fHistNFiredHT0vsID;
+  if(fHistNFiredHT1vsID)   delete fHistNFiredHT1vsID;
+  if(fHistNFiredHT2vsID)   delete fHistNFiredHT2vsID;
+  if(fHistNFiredHT3vsID)   delete fHistNFiredHT3vsID;
+  if(fHistHT0FiredEtvsID)  delete fHistHT0FiredEtvsID;
+  if(fHistHT1FiredEtvsID)  delete fHistHT1FiredEtvsID;
+  if(fHistHT2FiredEtvsID)  delete fHistHT2FiredEtvsID;
+  if(fHistHT3FiredEtvsID)  delete fHistHT3FiredEtvsID;
+  if(fHistHT0IDvsFiredEt)  delete fHistHT0IDvsFiredEt;
+  if(fHistHT1IDvsFiredEt)  delete fHistHT1IDvsFiredEt;
+  if(fHistHT2IDvsFiredEt)  delete fHistHT2IDvsFiredEt;
+  if(fHistHT3IDvsFiredEt)  delete fHistHT3IDvsFiredEt;
 
   if(fHistNFiredHT0vsFlag) delete fHistNFiredHT0vsFlag;
   if(fHistNFiredHT1vsFlag) delete fHistNFiredHT1vsFlag;
@@ -333,17 +333,17 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fHistNFiredJP1vsFlag) delete fHistNFiredJP1vsFlag;
   if(fHistNFiredJP2vsFlag) delete fHistNFiredJP2vsFlag;
 
-  if(fHistNFiredHT0vsADC) delete fHistNFiredHT0vsADC;
-  if(fHistNFiredHT1vsADC) delete fHistNFiredHT1vsADC;
-  if(fHistNFiredHT2vsADC) delete fHistNFiredHT2vsADC;
-  if(fHistNFiredHT3vsADC) delete fHistNFiredHT3vsADC;
-  if(fHistNFiredJP0vsADC) delete fHistNFiredJP0vsADC;
-  if(fHistNFiredJP1vsADC) delete fHistNFiredJP1vsADC;
-  if(fHistNFiredJP2vsADC) delete fHistNFiredJP2vsADC;
+  if(fHistNFiredHT0vsADC)  delete fHistNFiredHT0vsADC;
+  if(fHistNFiredHT1vsADC)  delete fHistNFiredHT1vsADC;
+  if(fHistNFiredHT2vsADC)  delete fHistNFiredHT2vsADC;
+  if(fHistNFiredHT3vsADC)  delete fHistNFiredHT3vsADC;
+  if(fHistNFiredJP0vsADC)  delete fHistNFiredJP0vsADC;
+  if(fHistNFiredJP1vsADC)  delete fHistNFiredJP1vsADC;
+  if(fHistNFiredJP2vsADC)  delete fHistNFiredJP2vsADC;
 
-  if(fhnTrackQA)          delete fhnTrackQA;
-  if(fhnTowerQA)          delete fhnTowerQA;
-  if(mEmcPosition)        delete mEmcPosition;
+  if(fhnTrackQA)           delete fhnTrackQA;
+  if(fhnTowerQA)           delete fhnTowerQA;
+  if(mEmcPosition)         delete mEmcPosition;
 }
 //
 //_____________________________________________________________________________
@@ -536,6 +536,7 @@ void StPicoTrackClusterQA::DeclareHistograms() {
     fHistEventCounter->GetXaxis()->SetBinLabel(2, "HT2");
     fHistEventCounter->GetXaxis()->SetBinLabel(3, "HT3");
     fHistEventCounter->GetXaxis()->SetBinLabel(4, "any HT");
+    fHistEventCounter->GetXaxis()->SetBinLabel(5, "MB | HT2 | HT3");
     fHistEventCounter->GetXaxis()->SetBinLabel(6, "MB30 | HT2 | HT3");
     fHistEventCounter->GetXaxis()->SetBinLabel(7, "MB5 | MB30");
     fHistEventCounter->GetXaxis()->SetBinLabel(8, "MB30");
@@ -902,34 +903,35 @@ int StPicoTrackClusterQA::Make()
 */
 
   // switches for QA analysis
-  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);
-  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
-  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
-  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fHaveMBevent = CheckForMB(fRunFlag, fMBEventType);                           // generic MB, set in readMacro
+  bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);       // MB5
+  bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);     // MB30
+  bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);                // HT trigger, set in readMacro
   bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
-  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
-  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;                    // pp analysis
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE; // NON-pp analysis
 
   // check for HT event - only used for below historgrams
   int RunId_Order = GetRunNo(fRunNumber);
-  bool fHaveHT1  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT1);
-  bool fHaveHT2  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);
-  bool fHaveHT3  = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);
-  bool fHaveAnyHT= kFALSE;
-  if(fHaveHT1 || fHaveHT2 || fHaveHT3) fHaveAnyHT = kTRUE;
+  bool fHaveHT1   = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT1);  // HT1
+  bool fHaveHT2   = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);  // HT2
+  bool fHaveHT3   = CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);  // HT3
+  bool fHaveAnyHT = (fHaveHT1 || fHaveHT2 || fHaveHT3) ? kTRUE : kFALSE;   // any HT (1,2,3)
 
   // for comparison to Hanseul
   bool fHaveMB30HT2HT3 = (fHaveMB30event || fHaveHT2 || fHaveHT3) ? kTRUE : kFALSE;
+  bool fHaveMBHT2HT3 = (doppAnalysis && (fRunForMB || fHaveHT2 || fHaveHT3)) ? kTRUE : kFALSE;
 
   // MB30 and not HT events!!
-  if(fHaveMB30event && !fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
-  if(fRunForMB      && !fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); }
+  if(fHaveMB30event && !fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); } // NON-pp
+  if(fRunForMB      && !fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_MB30->Fill(RunId_Order + 1., 1); } // pp
 
   // HT and not MB30 events!!
-  if(!fHaveMB30event && fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }
-  if(!fRunForMB      && fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }
+  if(!fHaveMB30event && fHaveAnyHT && !doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }   // NON-pp
+  if(!fRunForMB      && fHaveAnyHT &&  doppAnalysis) { fHistEventNTrig_HT->Fill(RunId_Order + 1., 1); }   // pp
 
   // run tower QA for specific conditions
+  // 1) want HT, 2) have EMC trigger: HT, 3) and NOT requesting the MB30-HT2-HT3 
   if(fDoTowerQAforHT && fHaveEmcTrigger && fTriggerToUse != StJetFrameworkPicoBase::kTriggerMB30HT2HT3)  {
     FillEventTriggerQA(fHistEventSelectionTrg);
     RunEventQA();
@@ -942,12 +944,14 @@ int StPicoTrackClusterQA::Make()
     if(fHaveHT2)        fHistEventCounter->Fill(2);
     if(fHaveHT3)        fHistEventCounter->Fill(3);
     if(fHaveAnyHT)      fHistEventCounter->Fill(4);
+    if(fHaveMBHT2HT3)   fHistEventCounter->Fill(5);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
     if(fRunForMB)       fHistEventCounter->Fill(7);
     if(fHaveMB30event)  fHistEventCounter->Fill(8);
   }
 
   // look for firing trigger specifically requested
+  // 1) DON'T want HT, 2) have MB trigger: HT, 3) and NOT requesting the MB30-HT2-HT3 
   //if(!fDoTowerQAforHT && fHaveMBevent) {
   if(!fDoTowerQAforHT && fRunForMB && fTriggerToUse != StJetFrameworkPicoBase::kTriggerMB30HT2HT3) { // updated MB type Dec4, 2018
     FillEventTriggerQA(fHistEventSelectionTrg);
@@ -961,13 +965,18 @@ int StPicoTrackClusterQA::Make()
     if(fHaveHT2)        fHistEventCounter->Fill(2);
     if(fHaveHT3)        fHistEventCounter->Fill(3);
     if(fHaveAnyHT)      fHistEventCounter->Fill(4);
+    if(fHaveMBHT2HT3)   fHistEventCounter->Fill(5);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
     if(fRunForMB)       fHistEventCounter->Fill(7);
     if(fHaveMB30event)  fHistEventCounter->Fill(8);
   }
 
   // this selection is specifically to match the selection Hanseul used in his tower QA
-  if(fHaveMB30HT2HT3 && fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB30HT2HT3) {
+  // 1) NOT doing pp analysis, 2) have MB30 | HT2 | HT3, 3) requesting MB30-HT2-HT3, 4) fDoTowerQAforHT - off
+  //     or
+  // 1) doing pp analysis, 2) have MB | HT2 | HT3, 3) requesting MB-HT2-HT3, 4) fDoTowerQAforHT - off
+  if( (!doppAnalysis && fHaveMB30HT2HT3 && fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB30HT2HT3 && !fDoTowerQAforHT)  || 
+      ( doppAnalysis && fHaveMBHT2HT3   && fTriggerToUse == StJetFrameworkPicoBase::kTriggerMBHT2HT3 && fDoTowerQAforHT) ) {
     FillEventTriggerQA(fHistEventSelectionTrg);
     RunEventQA();
     RunFiredTriggerQA();
@@ -979,6 +988,7 @@ int StPicoTrackClusterQA::Make()
     if(fHaveHT2)        fHistEventCounter->Fill(2);
     if(fHaveHT3)        fHistEventCounter->Fill(3);
     if(fHaveAnyHT)      fHistEventCounter->Fill(4);
+    if(fHaveMBHT2HT3)   fHistEventCounter->Fill(5);
     if(fHaveMB30HT2HT3) fHistEventCounter->Fill(6);
     if(fRunForMB)       fHistEventCounter->Fill(7);
     if(fHaveMB30event)  fHistEventCounter->Fill(8);
