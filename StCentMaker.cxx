@@ -11,7 +11,6 @@
 
 // ROOT includes
 #include "TH1F.h"
-#include "TH2F.h"
 #include "TFile.h"
 #include "TParameter.h"
 
@@ -49,7 +48,6 @@ StCentMaker::StCentMaker(const char* name, StPicoDstMaker *picoMaker, const char
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fMaxEventTowerE = 1000.0; // 30.0
-  fRunNumber = 0;
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
@@ -65,9 +63,6 @@ StCentMaker::StCentMaker(const char* name, StPicoDstMaker *picoMaker, const char
   kref16 = -99; kref9 = -99;
   kCentralityScaled = -99;
 
-  Bfield = 0.0;
-//  mVertex = 0x0;
-  zVtx = 0.0;
   fEmcTriggerEventType = 0; 
   fMBEventType = 2;
   doComments = mDoComments;
@@ -78,11 +73,10 @@ StCentMaker::StCentMaker(const char* name, StPicoDstMaker *picoMaker, const char
 StCentMaker::~StCentMaker()
 { /*  */
   // destructor
-  if(hEventZVertex) delete hEventZVertex;
-  if(hCentrality)   delete hCentrality;
-  if(hMultiplicity) delete hMultiplicity;
-
-  if(fHistEventSelectionQA)           delete fHistEventSelectionQA;
+  if(hEventZVertex)         delete hEventZVertex;
+  if(hCentrality)           delete hCentrality;
+  if(hMultiplicity)         delete hMultiplicity;
+  if(fHistEventSelectionQA) delete fHistEventSelectionQA;
 }
 
 //_____________________________________________________________________________
@@ -110,7 +104,7 @@ Int_t StCentMaker::Init() {
       AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
   }
 
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
+  // switch on Run Flag specifically requested for given run period for centrality definition setup
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
         break;
@@ -204,10 +198,7 @@ Int_t StCentMaker::Finish() {
 //_____________________________________________________________________________
 void StCentMaker::DeclareHistograms() {
   // setup for centrality binning
-  int nHistCentBins;
-  int fCentBinSize = 5;
-  if(fCentBinSize == 10) nHistCentBins = 10;
-  if(fCentBinSize ==  5) nHistCentBins = 20;
+  int nHistCentBins = 20;
 
   // QA histos
   hEventZVertex = new TH1F("hEventZVertex", "z-vertex distribution", 200, -100., 100.);
@@ -269,7 +260,7 @@ Int_t StCentMaker::Make() {
   }
 
   // get run number, check bad runs list if desired (kFALSE if bad)
-  fRunNumber = mPicoEvent->runId();
+  int fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
     if( !IsRunOK(fRunNumber) ) return kStOK;
   }
@@ -280,24 +271,18 @@ Int_t StCentMaker::Make() {
   // cut event on max tower E > 30.0 GeV
   //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
 
-  // get event B (magnetic) field
-  Bfield = mPicoEvent->bField(); 
-
   // get vertex 3-vector and z-vertex component
-  mVertex = mPicoEvent->primaryVertex();
-  zVtx = mVertex.z();
+  TVector3 mVertex = mPicoEvent->primaryVertex();
+  double zVtx = mVertex.z();
  
   // commented out for now, but centrality was configured with 30 cm z-vertex data 
   // Z-vertex cut - the Aj analysis cut on (-40, 40) for reference
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
-  // let me know the Run #, fill, and event ID
-  int fillId = mPicoEvent->fillId();
-  int eventId = mPicoEvent->eventId();
+  // coincidence rates used for corrected multiplicity calculation
   double fBBCCoincidenceRate = mPicoEvent->BBCx();
   double fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<fRunNumber<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
@@ -369,7 +354,6 @@ void StCentMaker::SetSumw2() {
   hEventZVertex->Sumw2();
   hCentrality->Sumw2();
   hMultiplicity->Sumw2();
-  
   fHistEventSelectionQA->Sumw2();
 }
 

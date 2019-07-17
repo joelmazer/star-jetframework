@@ -9,11 +9,6 @@ class TClonesArray;
 class TF1;
 class TH1;
 class TH1F;
-class TH2;
-class TH2F;
-class TH3;
-class THnSparse;
-class TProfile;
 class TString;
 
 // STAR classes
@@ -48,7 +43,6 @@ class StCentMaker : public StJetFrameworkPicoBase {
     void    WriteHistograms();
 
     // switches
-    virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp; }
@@ -94,9 +88,6 @@ class StCentMaker : public StJetFrameworkPicoBase {
     Double_t                kCentralityScaled;           // scaled centrality in 5% ranges
 
   private:
-    // variables
-    Int_t                   fRunNumber;
-
     // switches
     bool                    doComments;
 
@@ -104,9 +95,7 @@ class StCentMaker : public StJetFrameworkPicoBase {
     TH1F *hEventZVertex;//!
     TH1F *hCentrality;//!
     TH1F *hMultiplicity;//!
-
-    // QA histos
-    TH1  *fHistEventSelectionQA;//! 
+    TH1F *fHistEventSelectionQA;//! 
 
     // bad run list 
     void                   ResetBadRunList( );
