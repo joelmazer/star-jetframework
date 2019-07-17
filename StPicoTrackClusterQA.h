@@ -133,13 +133,12 @@ class StPicoTrackClusterQA : public StMaker {
 
   // efficiency correction setter
   virtual void         SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
+  void                 SetTrackEfficiency(Double_t t)   { fTrackEfficiency  = t     ; } 
+  Double_t             GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
   // common setters
   void                 SetClusName(const char *n)       { fCaloName      = n;  }
   void                 SetTracksName(const char *n)     { fTracksName    = n;  }
-  void                 SetTrackEfficiency(Double_t t)   { fTrackEfficiency  = t     ; }
-
-  Double_t             GetTrackEfficiency()             { return fTrackEfficiency   ; }
 
   /* define if tower status should be used to reject towers, or if all
    * towers should be accepted - default is to accept all towers, then
