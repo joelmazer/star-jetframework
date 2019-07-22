@@ -108,6 +108,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   RhoMaker1(0x0),
   RhoMaker2(0x0),
   EventPlaneMaker(0x0),
+  mCentMaker(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0),
   refmultCorr(0x0),
@@ -143,7 +144,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fCorrJetPt(kFALSE),
   fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection(kFALSE),
-  doUseBBCCoincidenceRate(kTRUE), // kFALSE = use ZDC
+  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fCentralityScaled(0.),
   ref16(-99), ref9(-99),
   Bfield(0.0),
@@ -188,6 +189,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   RhoMaker1(0x0),
   RhoMaker2(0x0),
   EventPlaneMaker(0x0),
+  mCentMaker(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0),
   refmultCorr(0x0),
@@ -222,50 +224,68 @@ StJetFrameworkPicoBase::~StJetFrameworkPicoBase()
 Int_t StJetFrameworkPicoBase::Init() {
   fAddToHistogramsName = "";
 
-/*
-  //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
-  // Add dead + bad tower lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
-        break;
+  // ====================================================================================================================
+  // Bad runs loaded here
+  // ====================================================================================================================
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
-        break;
-
-    // TODO - not sure, may want to add other runs? this base class may not be best place for reading in lists
-
-    default :
-      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
-      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
-  }
-*/
-
-/*
   // Add bad run lists
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
         break;
-  
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
         if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
-        break; 
-  
+        break;
+
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
         AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
-        break; 
-  
+        break;
+
     default :
       AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
   }
-*/
+
+  // ====================================================================================================================
+  // bad and dead towers loaded here
+  // ====================================================================================================================
+
+  // Add dead + bad tower lists
+  switch(fRunFlag) {
+    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
+        if(fBadTowerListVers == 102) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_102.txt");
+        if(fBadTowerListVers == 1)   AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_Rag.txt"); // Raghav's Zg list
+        if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
+        if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
+
+        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
+        if(fBadTowerListVers ==  1)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");   // original default
+        if(fBadTowerListVers ==  3)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers3.txt");// Alt list
+        if(fBadTowerListVers == 136) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers_136.txt");
+        if(fBadTowerListVers == 50)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50.txt");// 50x from ped cut
+        if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
+
+        // P18ih - need new definitions from Nick (July 17, 2019)
+        if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt");
+
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        break;
+
+    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
+        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
+        break;
+
+    default :
+      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
+      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
+  }
 
   ///fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
@@ -1305,42 +1325,8 @@ Bool_t StJetFrameworkPicoBase::GetMomentum(TVector3 &mom, const StPicoBTowHit* t
 
   return kTRUE;
 }
-
 //
-//____________________________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
-  //if( badTowers.size()==0 ){
-  if( badTowers.empty() ){
-    // maybe change class if calling FROM base
-    __ERROR("StJetFrameworkPicoBase::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kTRUE;
-  }
-}
-//
-//____________________________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
-  //if( deadTowers.size()==0 ){
-  if( deadTowers.empty() ){
-    // maybe change class if calling FROM base
-    __ERROR("StJetFrameworkPicoBase::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( deadTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kTRUE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kFALSE;
-  }
-}
-//
+// Function: reset bad tower list
 //____________________________________________________________________________
 void StJetFrameworkPicoBase::ResetBadTowerList( ){
   badTowers.clear();
@@ -1361,7 +1347,7 @@ Bool_t StJetFrameworkPicoBase::AddBadTowers(TString csvfile){
     __WARNING(Form("Can't open %s", csvfile.Data()) );
     return kFALSE;
   }
- 
+
   while(std::getline (inFile, line) ){
     if( line.size()==0 ) continue; // skip empty lines
     if( line[0] == '#' ) continue; // skip comments
@@ -1377,8 +1363,32 @@ Bool_t StJetFrameworkPicoBase::AddBadTowers(TString csvfile){
       }
     }
   }
- 
+
   return kTRUE;
+}
+//
+// Function: check on if Tower is OK or not
+//____________________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::IsTowerOK( Int_t mTowId ){
+  //if( badTowers.size()==0 ){
+  if( badTowers.empty() ){
+    // maybe change class if calling FROM base
+    __ERROR("StJetFrameworkPicoBase::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kTRUE;
+  }
+}
+//
+// Function: reset dead tower list
+//____________________________________________________________________________
+void StJetFrameworkPicoBase::ResetDeadTowerList( ){
+  deadTowers.clear();
 }
 //
 // Add dead towers from comma separated values file
@@ -1416,11 +1426,23 @@ Bool_t StJetFrameworkPicoBase::AddDeadTowers(TString csvfile){
   return kTRUE;
 }
 //
-//____________________________________________________________________________
-void StJetFrameworkPicoBase::ResetDeadTowerList( ){
-  deadTowers.clear();
+// Function: check on if Tower is DEAD or not
+//____________________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
+  //if( deadTowers.size()==0 ){
+  if( deadTowers.empty() ){
+    // maybe change class if calling FROM base
+    __ERROR("StJetFrameworkPicoBase::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( deadTowers.count( mTowId )>0 ){
+    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
+    return kTRUE;
+  } else {
+    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
+    return kFALSE;
+  }
 }
-
 //
 // function to convert 5% centrality to 10% bins
 // must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
@@ -1820,4 +1842,62 @@ Int_t StJetFrameworkPicoBase::GetVzRegion(double Vz) // 0-14, 15          0-19, 
   if(regionvz >= 20 || regionvz <= -1) return 999;
 
   return regionvz;
+}
+//
+// Reset bad run list object
+//____________________________________________________________________________
+void StJetFrameworkPicoBase::ResetBadRunList( ){
+  badRuns.clear();
+}
+//
+// Add bad runs from comma separated values file
+// Can be split into arbitrary many lines
+// Lines starting with # will be ignored
+//_________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::AddBadRuns(TString csvfile){
+  // open infile
+  std::string line;
+  std::ifstream inFile ( csvfile );
+
+  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
+
+  if( !inFile.good() ) {
+    __WARNING(Form("Can't open %s", csvfile.Data()) );
+    return kFALSE;
+  }
+
+  while(std::getline (inFile, line) ){
+    if( line.size()==0 ) continue; // skip empty lines
+    if( line[0] == '#' ) continue; // skip comments
+
+    std::istringstream ss( line );
+    while( ss ){
+      std::string entry;
+      std::getline( ss, entry, ',' );
+      int ientry = atoi(entry.c_str());
+      if(ientry) {
+        badRuns.insert( ientry );
+        __DEBUG(2, Form("Added bad run # %d", ientry));
+      }
+    }
+  }
+
+  return kTRUE;
+}
+//
+// Function: check on if Run is OK or not
+//____________________________________________________________________________________________
+Bool_t StJetFrameworkPicoBase::IsRunOK( Int_t mRunId ){
+  //if( badRuns.size()==0 ){
+  if( badRuns.empty() ){
+    __ERROR("StJetFrameworkPicoBase::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
+    throw ( -1 );
+  }
+  if( badRuns.count( mRunId )>0 ){
+    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
+    return kFALSE;
+  } else {
+    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
+    return kTRUE;
+  }
 }

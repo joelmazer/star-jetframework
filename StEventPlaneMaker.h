@@ -1,8 +1,6 @@
 #ifndef StEventPlaneMaker_h
 #define StEventPlaneMaker_h
 
-#include "StMaker.h"
-#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;
 
@@ -30,6 +28,7 @@ class StJetMakerTask;
 class StJet;
 class StRho;
 class StRhoParameter;
+class StCentMaker;
 
 //class StEventPlaneMaker : public StMaker {
 class StEventPlaneMaker : public StJetFrameworkPicoBase {
@@ -90,11 +89,9 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // jet switches
     virtual void            SetJetType(Int_t jt)               { fJetType          = jt;}    // jet type (full, charged, neutral)
@@ -348,10 +345,13 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 //    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
 
     // bad run list 
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
+
+    // base class pointer object
+    StJetFrameworkPicoBase *mBaseMaker;
+
+    // centrality maker pointer
+    StCentMaker            *mCentMaker;
 
     // maker names
     TString                fAnalysisMakerName;

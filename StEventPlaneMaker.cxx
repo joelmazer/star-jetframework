@@ -45,6 +45,7 @@
 #include "StJetMakerTask.h"
 #include "StFemtoTrack.h"
 #include "StPicoEPCorrectionsIncludes.h"
+#include "StCentMaker.h"
 
 // old file kept
 #include "StPicoConstants.h"
@@ -110,7 +111,6 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
-  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fMaxEventTowerE = 1000.0; // 30.0
   fDoEffCorr = kFALSE;
@@ -120,7 +120,6 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
   fTPCptAssocBin = -99;
   doReadCalibFile = kFALSE;
   doRejectBadRuns = kFALSE;
-  fBadRunListVers = 999;
   fEmcTriggerEventType = 0; // see StJetFrameworkPicoBase::fEmcTriggerFlagEnum
   fMBEventType = 2;         // kVPDMB5
   fTriggerToUse = 0;        // kTriggerAny, see StJetFrameworkPicoBase::fTriggerEventTypeEnum
@@ -142,6 +141,7 @@ StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker
 //  mVertex = 0x0;
   zVtx = 0.0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
+  mBaseMaker = 0x0;
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
@@ -291,89 +291,6 @@ Int_t StEventPlaneMaker::Init() {
 
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
-
-  // Add bad run lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
-        break;
-  
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
-        break; 
-  
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
-        break; 
-  
-    default :
-      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
-  }
-
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        switch(fCentralityDef) {
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          default: // this is the default for Run14
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        switch(fCentralityDef) {      
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
-              break;
-          default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        // this is the default for Run17 pp - don't set anything for pp
-        break;
-
-    default :
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  }
 
   return kStOK;
 }
@@ -811,6 +728,9 @@ void StEventPlaneMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPlaneMaker::Make() {
+  // zero out these global variables
+  fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+
   // just get out of Dodge if we are trying to run on pp collisions
   if(doppAnalysis) return kStOK; // use kStOK to not create tons of warning printouts
 
@@ -835,10 +755,20 @@ Int_t StEventPlaneMaker::Make() {
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+
   // get run number, check bad runs list if desired (kFALSE if bad)
   fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
-    if( !IsRunOK(fRunNumber) ) return kStOK;
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV
@@ -857,50 +787,35 @@ Int_t StEventPlaneMaker::Make() {
   // Z-vertex cut 
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
-  // let me know the Run #, fill, and event ID
-  Int_t RunId = mPicoEvent->runId();
+  // let me know the fill, and event ID
   Int_t fillId = mPicoEvent->fillId();
   Int_t eventId = mPicoEvent->eventId();
-  Double_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Double_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
+  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<fRunNumber<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  int grefMult = mPicoEvent->grefMult();
-  //int refMult = mPicoEvent->refMult();
-  Int_t centbin, cent9, cent16;
-  Double_t refCorr2;
-
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-    cent9 = grefmultCorr->getCentralityBin9();
-
-    // re-order binning to be from central -> peripheral
-    ref9 = GetCentBin(cent9, 9);
-    ref16 = GetCentBin(cent16, 16);
-    centbin = GetCentBin(cent16, 16);  // 0-16
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-  } else { // for pp
-    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
   }
 
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  ref9 = mCentMaker->GetRef9();   // binning from central -> peripheral
+  ref16 = mCentMaker->GetRef16(); // binning from central -> peripheral
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
+  int centbin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  fCentralityScaled = mCentMaker->GetCentScaled();
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
 
   // centrality / multiplicity histograms
-  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
-  fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
 
   // cut on centrality for analysis before doing anything
@@ -3733,62 +3648,4 @@ Double_t StEventPlaneMaker::GetTPCShiftingValueNEW(Double_t tPhi_rcd, Int_t nhar
         } // METHOD switch
 
   return 0.0;
-}
-//
-//
-//____________________________________________________________________________
-void StEventPlaneMaker::ResetBadRunList( ){
-  badRuns.clear();
-}
-//
-// Add bad runs from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//_________________________________________________________________________________
-Bool_t StEventPlaneMaker::AddBadRuns(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badRuns.insert( ientry );
-        __DEBUG(2, Form("Added bad run # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function: check on if Run is OK or not
-//____________________________________________________________________________________________
-Bool_t StEventPlaneMaker::IsRunOK( Int_t mRunId ){
-  //if( badRuns.size()==0 ){
-  if( badRuns.empty() ){
-    __ERROR("StEventPlaneMaker::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badRuns.count( mRunId )>0 ){
-    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
-    return kTRUE;
-  }
 }

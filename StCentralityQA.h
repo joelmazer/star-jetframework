@@ -1,8 +1,6 @@
 #ifndef StCentralityQA_h
 #define StCentralityQA_h
 
-#include "StMaker.h"
-#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;
 
@@ -64,7 +62,6 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -137,11 +134,15 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
 
-    // bad run list 
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
+    // bad and dead tower list set
+    std::set<Int_t>        badTowers;
+    std::set<Int_t>        deadTowers;
+
+    // bad run list set
     std::set<Int_t>        badRuns;
+
+    // base class pointer object
+    StJetFrameworkPicoBase *mBaseMaker;
 
     // maker names
     TString                fAnalysisMakerName;

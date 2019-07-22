@@ -4,7 +4,6 @@
 // Calculates parameterized rho for given centrality independent of input.
 //
 // adapated form the AliROOT class AliAnalysisTaskRhoBase.cxx for STAR
-// 
 // original Author: S.Aiola
 
 #include "StRhoBase.h"
@@ -24,6 +23,7 @@
 #include "StRhoParameter.h"
 #include "StJet.h"
 #include "StJetMakerTask.h"
+#include "StCentMaker.h"
 
 // STAR includes
 #include "StMaker.h"
@@ -40,7 +40,9 @@ ClassImp(StRhoBase)
 //________________________________________________________________________
 StRhoBase::StRhoBase() : 
   StJetFrameworkPicoBase(),
-  doUseBBCCoincidenceRate(kFALSE),
+  fCentralityScaled(0.0),
+  ref16(-99),
+  ref9(-99),
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(1000.0), // 30.0
   fOutRhoName(),
@@ -72,7 +74,9 @@ StRhoBase::StRhoBase() :
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
-  fHistRhoScaledvsNcluster(0)
+  fHistRhoScaledvsNcluster(0),
+  mCentMaker(0x0),
+  mBaseMaker(0x0)
 {
   ;
   mOutName = "";
@@ -92,7 +96,9 @@ StRhoBase::StRhoBase() :
 //________________________________________________________________________
 StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const char *jetMakerName) :
   StJetFrameworkPicoBase(name),
-  doUseBBCCoincidenceRate(kFALSE),
+  fCentralityScaled(0.0),
+  ref16(-99),
+  ref9(-99),
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(1000.0), // 30.0
   fOutRhoName(),
@@ -124,7 +130,9 @@ StRhoBase::StRhoBase(const char *name, Bool_t histo, const char *outName, const 
   fHistDeltaRhovsNtrack(0),
   fHistDeltaRhoScalevsNtrack(0),
   fHistRhovsNcluster(0),
-  fHistRhoScaledvsNcluster(0)
+  fHistRhoScaledvsNcluster(0),
+  mCentMaker(0x0),
+  mBaseMaker(0x0)
 {
   ;
   // Constructor.
@@ -203,69 +211,6 @@ Int_t StRhoBase::Init()
     fCompareRhoScaled = dynamic_cast<StRhoParameter*>(InputEvent()->FindListObject(fCompareRhoScaledName));
   }
 */
-
-  // RunFlag depedent centrality definitions specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        switch(fCentralityDef) {
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          default: // this is the default for Run14
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        switch(fCentralityDef) {      
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
-              break;
-          default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        // this is the default for Run17 pp - don't set anything for pp
-        break;
-
-    default :
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  }
 
   return kStOk;
 }
@@ -456,6 +401,9 @@ void StRhoBase::Clear(Option_t *opt)
 //________________________________________________________________________
 Int_t StRhoBase::Make() 
 {
+  // zero out these global variables
+  fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+
   // get the PicoDstMaker
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
   if(!mPicoDstMaker) {
@@ -475,6 +423,22 @@ Int_t StRhoBase::Make()
   if(!mPicoEvent) {
     LOG_WARN << " No PicoEvent! Skip! " << endm;
     return kStWarn;
+  }
+
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  int fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV
@@ -504,32 +468,28 @@ Int_t StRhoBase::Make()
   }
   if(!fJets) return kStWarn;
 
-  // get run # for centrality correction
-  Int_t RunId = mPicoEvent->runId();
-  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
-
-  // Centrality correction calculation
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int grefMult = mPicoEvent->grefMult();
-  //int refMult = mPicoEvent->refMult();
-  Int_t fCentBin, cent16; // cent9
-
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    cent16 = grefmultCorr->getCentralityBin16();
-    //cent9 = grefmultCorr->getCentralityBin9();
-    fCentBin = GetCentBin(cent16, 16); // centbin
-  } else { // for pp
-    fCentBin = 0, cent16 = 0; 
+  // ============================ CENTRALITY ============================== //
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
   }
 
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  ref9 = mCentMaker->GetRef9();   // binning from central -> peripheral
+  ref16 = mCentMaker->GetRef16(); // binning from central -> peripheral
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
+  int fCentBin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  fCentralityScaled = mCentMaker->GetCentScaled();
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
 
   // test for now FIXME
   double fCent = 0.0;

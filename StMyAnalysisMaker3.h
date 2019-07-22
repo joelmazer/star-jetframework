@@ -1,7 +1,7 @@
 #ifndef StMyAnalysisMaker3_h
 #define StMyAnalysisMaker3_h
 
-#include "StMaker.h"
+//#include "StMaker.h"
 //#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 #include <set>
@@ -34,6 +34,7 @@ class StRho;
 class StRhoParameter;
 class StEventPoolManager;
 class StEventPool;
+class StCentMaker;
 
 //class StMyAnalysisMaker3 : public StMaker {
 class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
@@ -115,9 +116,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
-    virtual void            SetBadTowerListVers(UInt_t ibt)    { fBadTowerListVers = ibt; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -211,7 +210,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doUseMainEPAngle;        // use 0.2-2.0 GeV charged tracks for event plane
     Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
-    Int_t                   fBadRunListVers;         // version of bad runs file list to use
     Bool_t                  doIgnoreExternalME;      // does standared event mixing (without use of external approach)
     Bool_t                  doRunAnalysis;           // switch to run jet shape / jet-hadron correlation analyses
     Bool_t                  doJetHadronCorrelationAnalysis; // perform jet-hadron correlation analysis
@@ -415,10 +413,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TProfile              *fProfV3Resolution[9];//! resolution parameters for v3
     TProfile              *fProfV4Resolution[9];//! resolution parameters for v4
     TProfile              *fProfV5Resolution[9];//! resolution parameters for v5
-//    TH1F                  *fDiffV2Resolution[9];//! difference of event plane angles for n=2
-//    TH1F                  *fDiffV3Resolution[9];//! difference of event plane angles for n=3
-//    TH1F                  *fDiffV4Resolution[9];//! difference of event plane angles for n=4
-//    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
 
     // jet vn measurement
     TProfile              *fProfJetV2[4][4][4];//! jet v2 
@@ -432,20 +426,26 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
 
+    // centrality maker pointer/
+    StCentMaker            *mCentMaker; 
+
+    // base class pointer
+    StJetFrameworkPicoBase *mBaseMaker;
+
     // bad and dead tower list functions and arrays
-    void                   ResetBadTowerList( );
-    void                   ResetDeadTowerList( );
-    Bool_t                 AddBadTowers(TString csvfile);
-    Bool_t                 AddDeadTowers(TString csvfile);
-    Bool_t                 IsTowerOK( Int_t mTowId );
-    Bool_t                 IsTowerDead( Int_t mTowId );
+    //void                   ResetBadTowerList( );
+    //void                   ResetDeadTowerList( );
+    //Bool_t                 AddBadTowers(TString csvfile);
+    //Bool_t                 AddDeadTowers(TString csvfile);
+    //Bool_t                 IsTowerOK( Int_t mTowId );
+    //Bool_t                 IsTowerDead( Int_t mTowId );
     std::set<Int_t>        badTowers;
     std::set<Int_t>        deadTowers;
 
     // bad run list 
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
+    //void                   ResetBadRunList( );
+    //Bool_t                 AddBadRuns(TString csvfile);
+    //Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
 
     // Event pool variables - TEST

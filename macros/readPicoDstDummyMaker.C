@@ -45,8 +45,8 @@ StChain *chain;
 void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", const Char_t *outputFile="test.root", Int_t nEv = 10, const Char_t *fOutJobappend="")
 {
 //        Int_t nEvents = 10000;
-        Int_t nEvents = 1000;
-//        Int_t nEvents = 100;
+//        Int_t nEvents = 1000;
+        Int_t nEvents = 100;
         if(nEv > 100) nEvents = 100000000;
 
         // run enumerators
@@ -176,6 +176,9 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         TFile *fout = new TFile(outputFile, "RECREATE");
         fout->Close();
 
+        // create the analysis maker!
+        bool doComments = kFALSE;
+
         // create chain
         StChain* chain = new StChain();
 
@@ -187,10 +190,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         // create base class maker pointer
         StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase("baseClassMaker");
         baseMaker->SetRunFlag(RunFlag);                  // run flag (year)
-        baseMaker->SetBadTowerListVers(TowerListToUse);  // bad tower list version - not implemented here
-
-        // create the analysis maker!
-        bool doComments = kFALSE;
+        baseMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+        baseMaker->SetBadRunListVers(fBadRunListVers);          // switch to select specific bad run version file
+        baseMaker->SetBadTowerListVers(TowerListToUse);
+        cout<<baseMaker->GetName()<<endl;  // print name of class instance
 
         // update the below when running analysis - minjet pt and bias requirement
         StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, doComments);
@@ -202,7 +205,6 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used?
         CentMaker->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
         CentMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
-        CentMaker->SetBadRunListVers(fBadRunListVers);          // switch to select specific bad run version file
         cout<<CentMaker->GetName()<<endl;  // print name of class instance
 
         // create JetFinder first (JetMaker)
@@ -225,17 +227,13 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         jetTask->SetRunFlag(RunFlag);           // run flag      
         jetTask->SetdoppAnalysis(dopp);         // pp switch
         jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
-        jetTask->SetUseBBCCoincidenceRate(kFALSE);
         jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);     // can be tighter for Run16 (-20,20)
         jetTask->SetTurnOnCentSelection(doCentSelection);
         jetTask->SetCentralityBinCut(CentralitySelection);
-        jetTask->SetUseBBCCoincidenceRate(kFALSE);
         jetTask->SetEmcTriggerEventType(EmcTriggerEventType);  // kIsHT1 or kIsHT2 or kIsHT3
         jetTask->SetTriggerToUse(TriggerToUse);
-        jetTask->SetBadTowerListVers(TowerListToUse);
         jetTask->SetdoConstituentSubtr(kFALSE);      // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
         jetTask->SetRejectBadRuns(RejectBadRuns);    // switch to load and than omit bad runs
-        jetTask->SetBadRunListVers(fBadRunListVers); // switch to select specific bad run version file
 
         // create JetFinder for background now (JetMakerBG) - background jets to be used in Rho Maker
         StJetMakerTask *jetTaskBG;
@@ -263,13 +261,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
           jetTaskBG->SetEventZVtxRange(ZVtxMin, ZVtxMax);        // can be tighter for Run16 (-20,20)
           jetTaskBG->SetTurnOnCentSelection(doCentSelection);
           jetTaskBG->SetCentralityBinCut(CentralitySelection);
-          jetTaskBG->SetUseBBCCoincidenceRate(kFALSE);
           jetTaskBG->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
           jetTaskBG->SetTriggerToUse(TriggerToUse);
-          jetTaskBG->SetBadTowerListVers(TowerListToUse);
           jetTaskBG->SetdoConstituentSubtr(kFALSE);
           jetTaskBG->SetRejectBadRuns(RejectBadRuns);      // switch to load and than omit bad runs
-          jetTaskBG->SetBadRunListVers(fBadRunListVers);   // switch to select specific bad run version file
         }
 
         bool dohisto = kFALSE;  // histogram switch for Rho Maker
@@ -284,13 +279,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         rhoTask->SetRunFlag(RunFlag);
         rhoTask->SetdoppAnalysis(dopp);
         rhoTask->SetCentralityDef(CentralityDefinition);
-        rhoTask->SetUseBBCCoincidenceRate(kFALSE);
         rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
         rhoTask->SetTurnOnCentSelection(doCentSelection);
         rhoTask->SetCentralityBinCut(CentralitySelection);
-        rhoTask->SetUseBBCCoincidenceRate(kFALSE);
         rhoTask->SetRejectBadRuns(RejectBadRuns);     // switch to load and than omit bad runs
-        rhoTask->SetBadRunListVers(fBadRunListVers);  // switch to select specific bad run version file
 
         // create the analysis maker!
         bool doCorrJetPt = kFALSE;
@@ -314,7 +306,6 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         dummyMaker->SetCentralityBinCut(CentralitySelection);   // specific centrality range to run: if above is FALSE, this doesn't matter
         dummyMaker->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
         dummyMaker->SetRejectBadRuns(RejectBadRuns);            // switch to load and than omit bad runs
-        dummyMaker->SetBadRunListVers(fBadRunListVers);         // switch to select specific bad run version file
         cout<<dummyMaker->GetName()<<endl;  // print name of class instance
 
         // initialize chain

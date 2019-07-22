@@ -1,7 +1,6 @@
 #ifndef StJetShapeAnalysis_h
 #define StJetShapeAnalysis_h
 
-#include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;
@@ -32,6 +31,7 @@ class StRho;
 class StRhoParameter;
 class StEventPoolManager;
 class StEventPool;
+class StCentMaker;
 
 //class StJetShapeAnalysis : public StMaker {
 class StJetShapeAnalysis : public StJetFrameworkPicoBase {
@@ -106,11 +106,9 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
 
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinarackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -319,21 +317,18 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     TH1F *hJetPtProfileBGCase2[4][4][4];//! jet profile case2 histograms in annuli bins
     TH1F *hJetPtProfileBGCase3[4][4][4];//! jet profile case3 histograms in annuli bins
 
-    // bad and dead tower list functions and arrays
-    void                   ResetBadTowerList( );
-    void                   ResetDeadTowerList( );
-    Bool_t                 AddBadTowers(TString csvfile);
-    Bool_t                 AddDeadTowers(TString csvfile);
-    Bool_t                 IsTowerOK( Int_t mTowId );
-    Bool_t                 IsTowerDead( Int_t mTowId );
+    // bad and dead tower list
     std::set<Int_t>        badTowers;
     std::set<Int_t>        deadTowers;
 
     // bad run list 
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
+
+    // base class pointer object
+    StJetFrameworkPicoBase *mBaseMaker;
+
+    // centrality maker pointer
+    StCentMaker            *mCentMaker;
 
     // maker names
     TString                fAnalysisMakerName;

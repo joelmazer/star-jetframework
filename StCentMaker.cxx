@@ -54,18 +54,19 @@ StCentMaker::StCentMaker(const char* name, StPicoDstMaker *picoMaker, const char
   grefmultCorr = 0x0;
   mOutName = outName;
   doRejectBadRuns = kFALSE;
-  fBadRunListVers = 999;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   //////////////////////////////
   kgrefMult = -99;
   krefMult = -99;
   krefCorr2 = 0.0;
   kref16 = -99; kref9 = -99;
+  kcent9 = -99; kcent16 = -99;
   kCentralityScaled = -99;
 
   fEmcTriggerEventType = 0; 
   fMBEventType = 2;
   doComments = mDoComments;
+  mBaseMaker = 0x0;
   fAnalysisMakerName = name;
 }
 
@@ -83,26 +84,6 @@ StCentMaker::~StCentMaker()
 Int_t StCentMaker::Init() {
   // initialize the histograms
   DeclareHistograms();
-
-  // Add bad run lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
-        break;
-  
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
-        break; 
-  
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
-        break; 
-  
-    default :
-      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
-  }
 
   // switch on Run Flag specifically requested for given run period for centrality definition setup
   switch(fRunFlag) {
@@ -235,7 +216,7 @@ void StCentMaker::Clear(Option_t *opt) {
 //_____________________________________________________________________________
 Int_t StCentMaker::Make() {
   // reset global parameters
-  kgrefMult = -99, krefMult = -99, kref9 = -99, kref16 = -99;
+  kgrefMult = -99, krefMult = -99, kref9 = -99, kref16 = -99, kcent9 = -99, kcent16 = -99;
   kCentralityScaled = -99., krefCorr2 = 0.0;
 
   // get PicoDstMaker 
@@ -259,10 +240,20 @@ Int_t StCentMaker::Make() {
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+
   // get run number, check bad runs list if desired (kFALSE if bad)
   int fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
-    if( !IsRunOK(fRunNumber) ) return kStOK;
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV
@@ -287,7 +278,7 @@ Int_t StCentMaker::Make() {
   // ============================ CENTRALITY ============================== //
   // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
   // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/
-  Int_t centbin, cent9, cent16;
+  Int_t centbin;
   kgrefMult = mPicoEvent->grefMult(); // grefMult
   krefMult = mPicoEvent->refMult();   // refMult
 
@@ -302,14 +293,14 @@ Int_t StCentMaker::Make() {
 //    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
 //    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
 
-    // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-    cent9 = grefmultCorr->getCentralityBin9();
+    // get centrality bin: either 0-7 or 0-15 - but decreasing % with increasing value (poor practice, use below)
+    kcent16 = grefmultCorr->getCentralityBin16();
+    kcent9 = grefmultCorr->getCentralityBin9();
 
     // re-order binning to be from central -> peripheral
-    kref9 = GetCentBin(cent9, 9);
-    kref16 = GetCentBin(cent16, 16);
-    centbin = GetCentBin(cent16, 16);  // 0-16
+    kref9 = GetCentBin(kcent9, 9);
+    kref16 = GetCentBin(kcent16, 16);
+    centbin = GetCentBin(kcent16, 16);  // 0-16
 
     // calculate corrected multiplicity
     if(doUseBBCCoincidenceRate) { krefCorr2 = grefmultCorr->getRefMultCorr(kgrefMult, zVtx, fBBCCoincidenceRate, 2);
@@ -323,12 +314,12 @@ Int_t StCentMaker::Make() {
     //
     //grefmultCorr->isCentralityOk(cent16)
   } else { // for pp
-    centbin = 0, cent9 = 0, cent16 = 0;
+    centbin = 0, kcent9 = 0, kcent16 = 0;
     krefCorr2 = 0.0, kref9 = 0, kref16 = 0;
   }
 
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for the lowest multiplicity events 80%+ centrality, cut on them here
+  if(kcent16 == -1) return kStOk; // this is for the lowest multiplicity events 80%+ centrality, cut on them here
 
   // multiplicity histogram
   hMultiplicity->Fill(krefCorr2);
@@ -338,7 +329,7 @@ Int_t StCentMaker::Make() {
   hCentrality->Fill(kCentralityScaled);
 
   // debug
-  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<krefCorr2<<"   kCentralityScaled = "<<kCentralityScaled<<"  cent16 = "<<cent16<<endl; }
+  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<krefCorr2<<"   kCentralityScaled = "<<kCentralityScaled<<"  cent16 = "<<kcent16<<endl; }
 
   // ========================= Trigger Info =============================== //
   // fill Event Trigger QA
@@ -355,65 +346,6 @@ void StCentMaker::SetSumw2() {
   hCentrality->Sumw2();
   hMultiplicity->Sumw2();
   fHistEventSelectionQA->Sumw2();
-}
-
-//
-// Reset bad run list object
-//____________________________________________________________________________
-void StCentMaker::ResetBadRunList( ){
-  badRuns.clear();
-}
-//
-// Add bad runs from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//_________________________________________________________________________________
-Bool_t StCentMaker::AddBadRuns(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badRuns.insert( ientry );
-        __DEBUG(2, Form("Added bad run # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function: check on if Run is OK or not
-//____________________________________________________________________________________________
-Bool_t StCentMaker::IsRunOK( Int_t mRunId ){
-  //if( badRuns.size()==0 ){
-  if( badRuns.empty() ){
-    __ERROR("StCentMaker::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badRuns.count( mRunId )>0 ){
-    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
-    return kTRUE;
-  }
 }
 //
 // Get corrected multiplicity for different correction flags

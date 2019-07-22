@@ -50,6 +50,7 @@
 #include "StJetMakerTask.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
+#include "StCentMaker.h"
 
 // old file kept
 #include "StPicoConstants.h"
@@ -77,11 +78,9 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
   doWriteTrackQAHist = kTRUE;
-  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fMaxEventTowerE = 1000.0; // 30.0
   doRejectBadRuns = kFALSE;
-  fBadRunListVers = 999;
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 2.0;
@@ -112,7 +111,6 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fDoEffCorr = kFALSE;
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
-  doRejectBadRuns = kFALSE;
   fMinPtJet = minJetPt;
   fJetConstituentCut = 2.0;
   fTrackBias = trkbias;
@@ -144,6 +142,8 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
     fTowerToTriggerTypeHT3[i] = kFALSE;
   }
   doComments = mDoComments;
+  mBaseMaker = 0x0;
+  mCentMaker = 0x0;
   fAnalysisMakerName = name;
   fJetMakerName = jetMakerName;
   fRhoMakerName = rhoMakerName;
@@ -242,89 +242,6 @@ Int_t StJetShapeAnalysis::Init() {
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
   //fJets->SetOwner(kTRUE);
-
-  // Add bad run lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
-        break;
-  
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
-        break; 
-  
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
-        break; 
-  
-    default :
-      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
-  }
-
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        switch(fCentralityDef) {
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          default: // this is the default for Run14
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        switch(fCentralityDef) {      
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
-              break;
-          default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        // this is the default for Run17 pp - don't set anything for pp
-        break;
-
-    default :
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  }
 
   return kStOK;
 }
@@ -638,6 +555,9 @@ void StJetShapeAnalysis::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StJetShapeAnalysis::Make() {
+  // zero out these global variables
+  fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+
   // constants
   const double pi = 1.0*TMath::Pi();
 
@@ -662,10 +582,22 @@ Int_t StJetShapeAnalysis::Make() {
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+  deadTowers = mBaseMaker->GetDeadTowers();
+  badTowers = mBaseMaker->GetBadTowers();
+
   // get run number, check bad runs list if desired (kFALSE if bad)
   fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
-    if( !IsRunOK(fRunNumber) ) return kStOK;
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV
@@ -685,43 +617,30 @@ Int_t StJetShapeAnalysis::Make() {
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
-  // let me know the Run #, fill, and event ID
-  int RunId = mPicoEvent->runId();
+  // let me know the fill, and event ID
   int fillId = mPicoEvent->fillId();
   int eventId = mPicoEvent->eventId();
-  double fBBCCoincidenceRate = mPicoEvent->BBCx();
-  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<RunId<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
+  if(fDebugLevel == kDebugGeneralEvt) cout<<"RunID = "<<fRunNumber<<"  fillID = "<<fillId<<"  eventID = "<<eventId<<endl; // what is eventID?
 
   // ============================ CENTRALITY ============================== //
-  int grefMult = mPicoEvent->grefMult();
-  //int refMult = mPicoEvent->refMult();
-  Int_t centbin, cent9, cent16;
-  Double_t refCorr2;
-
-  // AuAu analyses
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-    cent9 = grefmultCorr->getCentralityBin9();
-
-    // re-order binning to be from central -> peripheral
-    ref9 = GetCentBin(cent9, 9);
-    ref16 = GetCentBin(cent16, 16);
-    centbin = GetCentBin(cent16, 16);  // 0-16
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-  } else { // for pp
-    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
   }
+
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  ref9 = mCentMaker->GetRef9();   // binning from central -> peripheral
+  ref16 = mCentMaker->GetRef16(); // binning from central -> peripheral
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
+  int centbin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  fCentralityScaled = mCentMaker->GetCentScaled();
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
 
   // cut on unset centrality, > 80%
   if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
@@ -734,8 +653,6 @@ Int_t StJetShapeAnalysis::Make() {
 
   // centrality / multiplicity histograms
   hMultiplicity->Fill(refCorr2);
-  if(fDebugLevel == kDebugCentrality) { if(centbin > 15) cout<<"centbin = "<<centbin<<"  mult = "<<refCorr2<<"  Centbin*5.0 = "<<centbin*5.0<<"  cent16 = "<<cent16<<endl; }
-  fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
 
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
@@ -1820,178 +1737,4 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     }       // end of event mixing
 
     return kStOK;
-}
-//
-//
-//____________________________________________________________________________
-void StJetShapeAnalysis::ResetBadRunList( ){
-  badRuns.clear();
-}
-//
-// Add bad runs from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//_________________________________________________________________________________
-Bool_t StJetShapeAnalysis::AddBadRuns(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badRuns.insert( ientry );
-        __DEBUG(2, Form("Added bad run # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function: check on if Run is OK or not
-//____________________________________________________________________________________________
-Bool_t StJetShapeAnalysis::IsRunOK( Int_t mRunId ){
-  //if( badRuns.size()==0 ){
-  if( badRuns.empty() ){
-    __ERROR("StJetShapeAnalysis::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badRuns.count( mRunId )>0 ){
-    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
-    return kTRUE;
-  }
-}
-//
-// Function to reset BAD Tower List
-//____________________________________________________________________________
-void StJetShapeAnalysis::ResetBadTowerList( ){
-  badTowers.clear();
-}
-//
-// Add bad towers from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//______________________________________________________________________________________
-Bool_t StJetShapeAnalysis::AddBadTowers(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badTowers.insert( ientry );
-        __DEBUG(2, Form("Added bad tower # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function to check if Tower is OK or NOT
-//____________________________________________________________________________________________
-Bool_t StJetShapeAnalysis::IsTowerOK( Int_t mTowId ){
-  //if( badTowers.size()==0 ){
-  if( badTowers.empty() ){
-    __ERROR("StJetShapeAnalysis::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kTRUE;
-  }
-}
-//
-// Function to reset Dead Tower List
-//____________________________________________________________________________
-void StJetShapeAnalysis::ResetDeadTowerList( ){
-  deadTowers.clear();
-}
-//
-// Add dead towers from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//______________________________________________________________________________________
-Bool_t StJetShapeAnalysis::AddDeadTowers(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        deadTowers.insert( ientry );
-        __DEBUG(2, Form("Added bad tower # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function to check if Tower is DEAD or NOT
-//____________________________________________________________________________________________
-Bool_t StJetShapeAnalysis::IsTowerDead( Int_t mTowId ){
-  //if( deadTowers.size()==0 ){
-  if( deadTowers.empty() ){
-    __ERROR("StJetShapeAnalysis::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( deadTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kTRUE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kFALSE;
-  }
 }

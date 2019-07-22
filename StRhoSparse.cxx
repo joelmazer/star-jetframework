@@ -23,6 +23,7 @@
 #include "StRhoParameter.h"
 #include "StJetMakerTask.h"
 #include "StJetFrameworkPicoBase.h"
+#include "StCentMaker.h"
 
 // STAR centrality includes
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
@@ -197,6 +198,22 @@ Int_t StRhoSparse::Make()
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  int fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
@@ -230,41 +247,27 @@ Int_t StRhoSparse::Make()
   const Int_t Njets = fBGJets->GetEntries();
   const Int_t NjetsSig = fJets->GetEntries();
 
-  // get run # for centrality correction
-  Int_t RunId = mPicoEvent->runId();
-  Float_t fBBCCoincidenceRate = mPicoEvent->BBCx();
-  Float_t fZDCCoincidenceRate = mPicoEvent->ZDCx();
+  // ============================ CENTRALITY ============================== //
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
+  }
 
-  // Centrality correction calculation
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int grefMult = mPicoEvent->grefMult();
-  Int_t centbin, cent16;
-  Double_t refCorr2;
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  int centbin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  double fCent = mCentMaker->GetCentScaled(); // integer bins scaled up by 5% per
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
 
-  // check for AuAu analyses
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-
-    // re-order binning to be from central -> peripheral
-    centbin = GetCentBin(cent16, 16);  // 0-16
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-  } else { // for pp
-    centbin = 0, cent16 = 0, refCorr2 = 0.0;
-  } 
-
+/*
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
-  Double_t fCent = centbin * 5.0;
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
+*/
 
   // cut on centrality for analysis before doing anything
   if(fDebugLevel == 3) { cout<<"fCentralitySelectionCut = "<<fCentralitySelectionCut<<endl; }

@@ -54,7 +54,6 @@ class StCentMaker : public StJetFrameworkPicoBase {
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // event selection - setters
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
@@ -62,10 +61,13 @@ class StCentMaker : public StJetFrameworkPicoBase {
 
     Int_t                   GetgrefMult() const                { return kgrefMult; }
     Int_t                   GetrefMult() const                 { return krefMult; }
-    Int_t                   GetRef9() const                    { return kref9; }
-    Int_t                   GetRef16() const                   { return kref16; }    
+    Int_t                   GetRef9() const                    { return kref9; }   // 9 bin increasing % with bin
+    Int_t                   GetRef16() const                   { return kref16; }  // 16 bin increasing % with bin
+    Int_t                   GetCent9() const                   { return kcent9; }  // 9 bin decreasing % with bin - not used by ME, but for reference
+    Int_t                   GetCent16() const                  { return kcent16; } // 16 bin decreasing % with bin- not used by ME, but for reference
     Double_t                GetRefCorr2() const                { return krefCorr2; }
     Double_t                GetCentScaled() const              { return kCentralityScaled; }
+
 
   protected:
     // functions
@@ -85,6 +87,8 @@ class StCentMaker : public StJetFrameworkPicoBase {
     Double_t                krefCorr2;                   // ref mult corrected
     Int_t                   kref9;                       // 9 bin reference multiplicity (0-5, 5-10, 10-20, 20-30, .. 70-80)  
     Int_t                   kref16;                      // 16 bin reference multiplicity (0-5, 5-10, ... 70-75, 75-80)
+    Int_t                   kcent9;                      // 9 bin reverse order (STAR has bad practice, hence the above added in increasing %)
+    Int_t                   kcent16;                     // 16 bin reverse order (STAR has bad practice, hence the above added in increasing %)
     Double_t                kCentralityScaled;           // scaled centrality in 5% ranges
 
   private:
@@ -98,10 +102,10 @@ class StCentMaker : public StJetFrameworkPicoBase {
     TH1F *fHistEventSelectionQA;//! 
 
     // bad run list 
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
+
+    // base class pointer object
+    StJetFrameworkPicoBase *mBaseMaker;
 
     // maker names
     TString                fAnalysisMakerName;

@@ -32,6 +32,7 @@ class StJet;
 class StRho;
 class StRhoParameter;
 class StEventPlaneMaker;
+class StCentMaker;
 
 class StJetFrameworkPicoBase : public StMaker {
   public:
@@ -195,12 +196,6 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
 
-    // Use one set to reject bad towers and another for hot towers
-    void ResetBadTowerList( );
-    void ResetDeadTowerList( );
-    Bool_t AddBadTowers(TString csvfile);
-    Bool_t AddDeadTowers(TString csvfile);
-
     static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
 
     // switches
@@ -267,12 +262,22 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual TString         GetAddedHistogramsStringToName() const     { return fAddToHistogramsName ; }
 
     // bad and dead tower list functions and arrays
+    void                    ResetBadTowerList( );
+    void                    ResetDeadTowerList( );
+    Bool_t                  AddBadTowers(TString csvfile);
+    Bool_t                  AddDeadTowers(TString csvfile);
     Bool_t                  IsTowerOK( Int_t mTowId );
     Bool_t                  IsTowerDead( Int_t mTowId );
-    std::set<Int_t>         badTowers;
-    std::set<Int_t>         deadTowers;
+
+    // bad run list 
+    void                    ResetBadRunList( );
+    Bool_t                  AddBadRuns(TString csvfile);
+    Bool_t                  IsRunOK( Int_t mRunId );
+
+    // return setup object for use in other classes
     std::set<Int_t>         GetBadTowers()                   { return badTowers          ; }
     std::set<Int_t>         GetDeadTowers()                  { return deadTowers         ; }
+    std::set<Int_t>         GetBadRuns()                     { return badRuns            ; }
 
     //Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Bool_t                  DoComparison(int myarr[], int elems);
@@ -391,6 +396,7 @@ class StJetFrameworkPicoBase : public StMaker {
     StRho                  *RhoMaker1; // for thomas, multiple jet collections
     StRho                  *RhoMaker2; // for thomas, multiple jet collections
     StEventPlaneMaker      *EventPlaneMaker;
+    StCentMaker            *mCentMaker;
 
     // position object
     StEmcPosition2         *mEmcPosition;
@@ -429,11 +435,26 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                   mInputEventCounter;//!
 
     // counters get functions
-    Int_t GetEventCounter()      {return mEventCounter;}
-    Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
-    Int_t GetInputEventCounter() {return mInputEventCounter;}
+    Int_t GetEventCounter()      { return mEventCounter;}
+    Int_t GetAllPVEventCounter() { return mAllPVEventCounter;}
+    Int_t GetInputEventCounter() { return mInputEventCounter;}
 
   private:
+    // bad and dead tower list functions and arrays
+//    void                   ResetBadTowerList( );
+//    void                   ResetDeadTowerList( );
+//    Bool_t                 AddBadTowers(TString csvfile);
+//    Bool_t                 AddDeadTowers(TString csvfile);
+//    Bool_t                 IsTowerOK( Int_t mTowId );
+//    Bool_t                 IsTowerDead( Int_t mTowId );
+    std::set<Int_t>        badTowers;
+    std::set<Int_t>        deadTowers;
+
+    // bad run list 
+//    void                   ResetBadRunList( );
+//    Bool_t                 AddBadRuns(TString csvfile);
+//    Bool_t                 IsRunOK( Int_t mRunId );
+    std::set<Int_t>        badRuns;
 
     ClassDef(StJetFrameworkPicoBase, 2)
 };

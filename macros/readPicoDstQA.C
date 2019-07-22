@@ -29,20 +29,18 @@ Double_t ZVtxMin = -40.0;
 Double_t ZVtxMax = 40.0;
 
 bool doCentSelection = kFALSE; //kTRUE;
-bool dopp = kFALSE; // FIXME kTRUE for pp data
-
-int RunYear = 14;
+bool dopp = kTRUE; // FIXME kTRUE for pp data
+int RunYear = 12;   // FIXME
 // kTRUE for local tests, kFALSE for job submission
-bool doTEST = kFALSE;  //FIXME FIXME!!!! be aware before submission
+bool doTEST = kTRUE;  //FIXME FIXME!!!! be aware before submission
 
 StChain *chain;
 
 //__________________________________________________________________________________________________________
 void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char_t *outputFile="towerQA.root", Int_t nEv = 10, const Char_t *fEPoutJobappend="_this_is_a_test")
 {
-//        Int_t nEvents = 10;
-//        Int_t nEvents = 1000;
-        Int_t nEvents = 10000;
+        Int_t nEvents = 1000;
+//        Int_t nEvents = 10000;
 //        Int_t nEvents = 50000;
 //        Int_t nEvents = 100000;        
         if(nEv > 100) nEvents = 100000000;
@@ -70,8 +68,8 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
 
         // input file for tests (based on Run) - updated for new Runs as needed
         if((RunYear == mRun12) && doTEST && dopp) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; //"Run_15151042_files.list"; //"testLIST_Run14.list";
-        if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
+        if((RunYear == mRun14) && doTEST)         inputFile = "Run_15164046_files.list"; //"Run_15151042_files.list"; //"testLIST_Run14.list";
+        if((RunYear == mRun16) && doTEST)         inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "Run17pp_510GeV.list"; // "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
 
@@ -79,7 +77,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp 
-        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;                 // Run14 P16id ??FIXME???
         //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
         if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;           // Run16
@@ -95,6 +92,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
         if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
         Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
+        Int_t fBadRunListVers = StJetFrameworkPicoBase::fBadRuns_w_missing_HT; // fBadRuns_w_missing_HT, fBadRuns_wo_missing_HT,
 
         // trigger flags - update default
         Int_t EmcTriggerEventType; // kIsHT1 or kIsHT2 or kIsHT3
@@ -105,7 +103,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-        //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT
+        //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;     // kTriggerANY, kTriggerMB, kTriggerHT
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
         Int_t TowerListToUse = 136; // Run14 136-122: jet-hadron, early jet shape // been using 51,  3, 79   - doesn't matter for charged jets
         if(dopp) TowerListToUse = 169;
@@ -119,13 +117,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         if(RunYear == mRun14) usePrimaryTracks = kTRUE;  // = kTRUE for Run14, kFALSE for Run16
         if(RunYear == mRun16) usePrimaryTracks = kFALSE;
         if(RunYear == mRun17) usePrimaryTracks = kTRUE;
-
-        // event plane type
-        //anaMaker->SetTPCEventPlaneMethod(StMyAnalysisMaker::kRemoveEtaPhiCone); // kRemoveEtaStrip is default
-        //anaMaker->SetTPCEventPlaneMethod(StMyAnalysisMaker::kRemoveEtaPhiConeLeadSub);
-        //anaMaker->SetTPCEventPlaneMethod(StMyAnalysisMaker::kRemoveEtaStrip); (train2)
-        Int_t TPCEPSelectionType = StMyAnalysisMaker::kRemoveEtaPhiCone;
-        Int_t EventPlaneTrackWeightMethod = StJetFrameworkPicoBase::kPtLinear2Const5Weight;
 
         // update settings for new centrality definitions
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
@@ -149,6 +140,27 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst"); // updated Aug6th
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
+        // create base class maker pointer
+        StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase("baseClassMaker");
+        baseMaker->SetRunFlag(RunFlag);                  // run flag (year)
+        baseMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+        baseMaker->SetBadRunListVers(fBadRunListVers);          // switch to select specific bad run version file
+        baseMaker->SetBadTowerListVers(TowerListToUse);
+        cout<<baseMaker->GetName()<<endl;  // print name of class instance
+
+        // update the below when running analysis - minjet pt and bias requirement
+        StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, kFALSE);
+        CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
+        CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
+        CentMaker->SetRunFlag(RunFlag);                         // Run Flag
+        CentMaker->SetdoppAnalysis(dopp);                       // pp-analysis switch
+        CentMaker->SetCentralityDef(CentralityDefinition);      // centrality definition
+        CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used?
+        CentMaker->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
+        CentMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+        cout<<CentMaker->GetName()<<endl;  // print name of class instance
+
+        // =======================================================================================================
         // QA task - MB events
         StPicoTrackClusterQA *Task = new StPicoTrackClusterQA("TrackClusterQA", kTRUE, outputFile);
         Task->SetTrackPtRange(0.2, 30.0);
@@ -168,9 +180,31 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task->SetHadronicCorrFrac(1.0);
         Task->SetDoTowerQAforHT(kFALSE);
         Task->SetdoppAnalysis(dopp);
-        Task->SetUseBBCCoincidenceRate(kFALSE);
         Task->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
 
+        // =======================================================================================================
+        // QA task - MB events, little to no cuts
+        StPicoTrackClusterQA *TaskA = new StPicoTrackClusterQA("TrackClusterQAnocuts", kTRUE, outputFile);
+        TaskA->SetTrackPtRange(0.2, 30.0);
+        TaskA->SetTrackPhiRange(0., 2.0*pi);
+        TaskA->SetTrackEtaRange(-1.0, 1.0);
+        TaskA->SetEventZVtxRange(-40., 40.);  // TEST
+        TaskA->SetClusterPtRange(0.2, 100.0);
+        TaskA->SetTowerERange(0.2, 100.0);
+        TaskA->SetUsePrimaryTracks(usePrimaryTracks);
+        TaskA->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
+        TaskA->SetRunFlag(RunFlag);                      // RunFlag
+        TaskA->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
+        TaskA->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
+        TaskA->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
+        TaskA->SetHadronicCorrFrac(1.0);
+        TaskA->SetDoTowerQAforHT(kFALSE);
+        TaskA->SetdoppAnalysis(dopp);
+        TaskA->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
+        TaskA->SetDebugLevel(99); // TEST
+        TaskA->SetMaxEventTrackPt(100.0); // TEST
+
+        // ======================================================================================================= 
         // QA task - HT events
         StPicoTrackClusterQA *Task2 = new StPicoTrackClusterQA("TrackClusterQAHT", kTRUE, outputFile);
         Task2->SetTrackPtRange(0.2, 30.0);
@@ -190,8 +224,33 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task2->SetHadronicCorrFrac(1.0);
         Task2->SetDoTowerQAforHT(kTRUE);
         Task2->SetdoppAnalysis(dopp);
-        Task2->SetUseBBCCoincidenceRate(kFALSE);
         Task2->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
+
+        // =======================================================================================================
+        // QA task - compare with Hanseul, MB | HT2 | HT3
+        const char *makerName = (dopp) ? "TrackClusterQAMBHT2HT3" : "TrackClusterQAMB30HT2HT3";
+        Int_t trg2use = StJetFrameworkPicoBase::kTriggerMB30HT2HT3;
+        if(dopp) trg2use = StJetFrameworkPicoBase::kTriggerMBHT2HT3;
+        cout<<"maker name: "<<Form("%s", makerName)<<endl;
+
+        StPicoTrackClusterQA *Task3 = new StPicoTrackClusterQA(Form("%s", makerName), kTRUE, outputFile);
+        Task3->SetTrackPtRange(0.2, 30.0);
+        Task3->SetTrackPhiRange(0., 2.0*pi);
+        Task3->SetTrackEtaRange(-1.0, 1.0);
+        Task3->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
+        Task3->SetClusterPtRange(0.2, 100.0);
+        Task3->SetTowerERange(0.2, 100.0);
+        Task3->SetUsePrimaryTracks(usePrimaryTracks);
+        Task3->SetEmcTriggerEventType(EmcTriggerEventType);    // kIsHT1 or kIsHT2 or kIsHT3
+        Task3->SetRunFlag(RunFlag);                      // RunFlag
+        Task3->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
+        Task3->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
+        Task3->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
+        Task3->SetHadronicCorrFrac(1.0);
+        Task3->SetDoTowerQAforHT(kFALSE);
+        Task3->SetdoppAnalysis(dopp);
+        Task3->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
+        Task3->SetTriggerToUse(trg2use); 
 
 /*
         // QA task - HT1
@@ -211,7 +270,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task1->SetHadronicCorrFrac(1.0);
         Task1->SetDoTowerQAforHT(kTRUE);
         Task1->SetdoppAnalysis(dopp);
-        Task1->SetUseBBCCoincidenceRate(kFALSE);
         Task1->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
 
         // QA task - HT2
@@ -231,7 +289,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task2->SetHadronicCorrFrac(1.0);
         Task2->SetDoTowerQAforHT(kTRUE);
         Task2->SetdoppAnalysis(dopp);
-        Task2->SetUseBBCCoincidenceRate(kFALSE);
         Task2->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
 */
 

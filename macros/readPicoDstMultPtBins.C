@@ -181,19 +181,20 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
   if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
   if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
   Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
+  Int_t fBadRunListVers = StJetFrameworkPicoBase::fBadRuns_w_missing_HT; // fBadRuns_w_missing_HT, fBadRuns_wo_missing_HT,
 
   // trigger flags - update default
   Int_t EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT1 or kIsHT2 or kIsHT3 (set for Run14)
-  if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // StJetFrameworkPicoBase::kIsHT2;
+  if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; 
   if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
   if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3; 
   Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default (Run14)
   if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
   if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
   Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT
-//  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
-  Int_t TowerListToUse = 136; // Run14 136-122: jet-hadron, early jet shape // been using 51,  3, 79   - doesn't matter for charged jets
-  TowerListToUse = 1; //10000;
+  //  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
+  Int_t TowerListToUse = 136; // Run14 136: jet-hadron, early jet shape // been using 51, 3, 79 - doesn't matter for charged jets
+  TowerListToUse = 1; //10000;   FIXME
   //Int_t TowerListToUse = 999; // LIST to use for initial Run14 config 
   if(dopp) TowerListToUse = 169;
   // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
@@ -211,22 +212,22 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
   Int_t fJetType;
   if(RunYear == mRun12) fJetType = kFullJet;
   if(RunYear == mRun14) fJetType = kFullJet;
-  if(RunYear == mRun16) fJetType = kChargedJet; // not towers, only has kChargedJet
+  if(RunYear == mRun16) fJetType = kChargedJet; // no towers, only has kChargedJet
   if(RunYear == mRun17) fJetType = kFullJet;
   double fJetRadius = 0.3;  // 0.4, 0.3, 0.2
-  double fJetConstituentCut = 1.0; // FIXME  correlation analysis: 2.0, jet shape analysis: 1.0 (been using 2.0 for corrections)
-  Int_t fJetAnalysisJetType = kLeadingJets; // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets
-  bool fDoJetShapeAnalysis = kTRUE;              // switch for doing jet shape analysis
-  bool fDoJetHadronCorrelationAnalysis = kFALSE; // switch for doing jet-hadron correlation analysis
+  double fJetConstituentCut = 2.0;               // FIXME  correlation analysis: 2.0, jet shape analysis: 1.0 (been using 2.0 for corrections)
+  Int_t fJetAnalysisJetType = kLeadingJets;      // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets
+  bool fDoJetShapeAnalysis = kFALSE;              // switch for doing jet shape analysis
+  bool fDoJetHadronCorrelationAnalysis = kTRUE; // switch for doing jet-hadron correlation analysis
   cout<<"JetType: "<<fJetType<<"     JetRad: "<<fJetRadius<<"     JetConstit Cut: "<<fJetConstituentCut<<endl;
 
   // event plane type / configuration flags - make sure this is set properly!!!
   // StMyAnalysisMaker::kRemoveEtaPhiCone, StMyAnalysisMaker::kRemoveEtaPhiConeLeadSub
   Int_t TPCEPSelectionType = StJetFrameworkPicoBase::kRemoveEtaStrip;
-  Int_t EventPlaneTrackWeightMethod = StJetFrameworkPicoBase::kPtLinear2Const5Weight;
+  Int_t EventPlaneTrackWeightMethod = StJetFrameworkPicoBase::kPtLinear2Const5Weight; // cuts off at 2.0 though from other cut
   bool doUseMainEPAngle = kFALSE;  // FIXME     kFALSE: pt-bin approach, kTRUE: use 0.2-2.0 GeV charged tracks used for event plane reconstruction
 
-  // update settings for new centrality definitions
+  // update settings for new centrality definitions - certain productions had settings for z-vertex < 30 when calculating centrality definitions, etc..
   if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
      CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
   ) { ZVtxMin = -28.0; ZVtxMax = 28.0; }
@@ -264,8 +265,23 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
 
   // create base class maker pointer
   StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase("baseClassMaker");
-  baseMaker->SetRunFlag(RunFlag);           // run flag (year)
+  baseMaker->SetRunFlag(RunFlag);                  // run flag (year)
+  baseMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+  baseMaker->SetBadRunListVers(fBadRunListVers);          // switch to select specific bad run version file
   baseMaker->SetBadTowerListVers(TowerListToUse);
+  cout<<baseMaker->GetName()<<endl;  // print name of class instance
+
+  // update the below when running analysis - minjet pt and bias requirement
+  StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, kTRUE);
+  CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
+  CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
+  CentMaker->SetRunFlag(RunFlag);                         // Run Flag
+  CentMaker->SetdoppAnalysis(dopp);                       // pp-analysis switch
+  CentMaker->SetCentralityDef(CentralityDefinition);      // centrality definition
+  CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used?
+  CentMaker->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
+  CentMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+  cout<<CentMaker->GetName()<<endl;  // print name of class instance
 
   // this doesn't work
   //StJetPicoDefinitions::SetDebugLevel(9);
@@ -292,10 +308,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
   jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);    // can be tighter for Run16 (-20,20)
   jetTask->SetTurnOnCentSelection(doCentSelection);
   jetTask->SetCentralityBinCut(CentralitySelection);
-  jetTask->SetUseBBCCoincidenceRate(kFALSE);
   jetTask->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
   jetTask->SetTriggerToUse(TriggerToUse);
-  jetTask->SetBadTowerListVers(TowerListToUse);        
   jetTask->SetdoConstituentSubtr(kFALSE); // FIXME
   jetTask->SetRejectBadRuns(RejectBadRuns);        // switch to load and than omit bad runs
   //jetTask->SetDebugLevel(2); // 8 spits out cluster/tower stuff
@@ -332,10 +346,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
     jetTaskBG->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
     jetTaskBG->SetTurnOnCentSelection(doCentSelection);
     jetTaskBG->SetCentralityBinCut(CentralitySelection);
-    jetTaskBG->SetUseBBCCoincidenceRate(kFALSE);
     jetTaskBG->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
     jetTaskBG->SetTriggerToUse(TriggerToUse);
-    jetTaskBG->SetBadTowerListVers(TowerListToUse);
     jetTaskBG->SetdoConstituentSubtr(kFALSE);
     jetTaskBG->SetRejectBadRuns(RejectBadRuns);        // switch to load and than omit bad runs
   }
@@ -366,7 +378,6 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
     rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
     rhoTask->SetTurnOnCentSelection(doCentSelection);
     rhoTask->SetCentralityBinCut(CentralitySelection);
-    rhoTask->SetUseBBCCoincidenceRate(kFALSE);
     //rhoTask->SetRejectBadRuns(RejectBadRuns);        // switch to load and than omit bad runs
     //rhoTask->SetScaleFunction(sfunc); // don't NEED
 
@@ -379,7 +390,6 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
     //}
 
     if(!dopp) {
-      //int ptAssocBins[8] = {0,1,2,3,4,5,6,7};
       //int ptAssocBins[5] = {0, 1, 2, 3, 4};         
       StEventPlaneMaker *EPMaker[5];
 
@@ -410,7 +420,6 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
         EPMaker[i]->SetCentralityDef(CentralityDefinition);      // centrality definition
         EPMaker[i]->SetTurnOnCentSelection(doCentSelection);     // run analysis for specific centrality
         EPMaker[i]->SetCentralityBinCut(CentralitySelection);    // specific centrality range to run 
-        EPMaker[i]->SetUseBBCCoincidenceRate(kFALSE);            // only use ZDC coincidence rate for refMult2
         EPMaker[i]->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
         if(doSTEP1) EPMaker[i]->SetOutFileNameEP(Form("recenter_calib_file%s.root", fEPoutJobappend)); // set output file for recentering calibration of event plane
         if(doSTEP2) EPMaker[i]->SetOutFileNameEP(Form("shift_calib_file%s.root", fEPoutJobappend));    // set output file for shift calibration of event plane
@@ -442,11 +451,11 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
 
     for(int i = 0; i < 9; i++) { // jet shape analysis
     //for(int i = 0; i < 5; i++) { // correlation analysis
-      //if(i < 10) continue; // for jet shape analysis
-      if(i<8) continue; // TEST for just inclusive bin
-      //if(i < 6) continue;
+      if(i<8 && fDoJetShapeAnalysis) continue;             // - used for jet shape 
+      if(i!=4 && fDoJetHadronCorrelationAnalysis) continue; // - used for jet-hadron correlation analysis
       //if(i < 4) continue; // cut for tests
       // update the below when running analysis - minjet pt and bias requirement
+      // MinJetPt = 10 GeV for JS, MinJetPt = 15 GeV
       anaMaker[i] = new StMyAnalysisMaker3(Form("AnalysisMaker_bin%i", i), picoMaker, outputFile, doComments, 10.0, 4.0, "JetMaker", "StRho_JetsBG");
       //anaMaker[i] = new StMyAnalysisMaker3(Form("AnalysisMaker_bin%i", i), picoMaker, outputFile, doComments, 15.0, 4.0, "JetMaker", "StRho_JetsBG");
       anaMaker[i]->SetEventMixing(kTRUE);   // event mixing switch
@@ -456,49 +465,55 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run_15164046_files.list", co
       anaMaker[i]->SetNMixedEvt(1);         // was 5, was 2 before June11, 2018
       anaMaker[i]->SetDoUseMultBins(kTRUE); // use multiplicity bins (hand defined) instead of cent bins - Jet Shape Analysis
       anaMaker[i]->SetdoUseEPBins(kFALSE);  // use event plane bins // TODO 
-      anaMaker[i]->SetDoFilterPtMixEvents(kFALSE);            // DONT USE, filter mixed event pool by pt cut switch
-      anaMaker[i]->SetUsePrimaryTracks(usePrimaryTracks);     // use primary tracks
-      anaMaker[i]->SetMinTrackPt(0.2);      // track quality cut (not related to constituents!)
+      anaMaker[i]->SetDoFilterPtMixEvents(kFALSE);              // DONT USE, filter mixed event pool by pt cut switch
       anaMaker[i]->SetCorrectJetPt(doCorrJetPt); // subtract Rho BG
       //anaMaker[i]->SetJetMaxTrackPt(4.0); // jet track bias (set in constructor)
       anaMaker[i]->SetJetMaxTowerE(4.0);    // jet tower bias
       anaMaker[i]->SetJetRad(fJetRadius);   // jet radius
-      anaMaker[i]->SetJetConstituentCut(fJetConstituentCut);  // 2.0 is default 
-      anaMaker[i]->SetJetLJSubLJPtThresholds(20.0, 10.0);     // LJ pt > 20.0, SubLJ pt > 10.0 GeV
-      anaMaker[i]->SetdoRequireAjSelection(kFALSE);           // requirement of Aj selection on jets for jet shape analysis
-      anaMaker[i]->SetEventZVtxRange(ZVtxMin, ZVtxMax);       // can be tighter for Run16 (-20,20)
-      anaMaker[i]->SetTrackPhiRange(0.0, 2.0*TMath::Pi());
-      anaMaker[i]->SetTrackEtaRange(-1.0, 1.0);
-      anaMaker[i]->SetEventPlaneMaxTrackPtCut(2.0);   // 5.0 is default (can use < 2 to avoid autocorrelation issues)
-      anaMaker[i]->SetExcludeLeadingJetsFromFit(1.0); // 1.0 is default
+      anaMaker[i]->SetJetConstituentCut(fJetConstituentCut);    // 2.0 is default 
+      anaMaker[i]->SetJetLJSubLJPtThresholds(20.0, 10.0);       // LJ pt > 20.0, SubLJ pt > 10.0 GeV
+      anaMaker[i]->SetdoRequireAjSelection(kFALSE);             // requirement of Aj selection on jets for jet shape analysis
+      anaMaker[i]->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
+      anaMaker[i]->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
+      anaMaker[i]->SetMinTrackPt(0.2);                          // track quality cut (not related to constituents!)
+      anaMaker[i]->SetTrackPhiRange(0.0, 2.0*TMath::Pi());      // track phi range
+      anaMaker[i]->SetTrackEtaRange(-1.0, 1.0);                 // track eta range
+      anaMaker[i]->SetEventPlaneMaxTrackPtCut(2.0);             // EP max track pt cut: 5.0 is default (can use < 2 to avoid autocorrelation issues)
+      anaMaker[i]->SetExcludeLeadingJetsFromFit(1.0);           // 1.0 is default
       anaMaker[i]->SetEventPlaneTrackWeight(EventPlaneTrackWeightMethod);
       anaMaker[i]->SetTPCEventPlaneMethod(TPCEPSelectionType);
-      anaMaker[i]->SetdoEPTPCptAssocMethod(kTRUE);    // calculate TPC event plane / RES on pt assoc bin basis - TODO keep updated
+      anaMaker[i]->SetdoEPTPCptAssocMethod(kTRUE);              // calculate TPC event plane / RES on pt assoc bin basis - TODO keep updated
       anaMaker[i]->SetEPTPCptAssocBin(ptAssocBins[i]);//i);     // pt assoc bin to use ************
       anaMaker[i]->SetEventPlaneMakerName("EventPlaneMaker_bin");// event plane maker name
       anaMaker[i]->SetdoUseMainEPAngle(doUseMainEPAngle);       // sets EP angle to use 0.2-2.0 GeV tracks for reconstruction instead of pt-bin approach
+      anaMaker[i]->SetdoEventPlaneRes(kFALSE);                  // write EP resolution profiles
       anaMaker[i]->SetRunFlag(RunFlag);                         // run flag: i.e. - Run14, Run16...
       anaMaker[i]->SetdoppAnalysis(dopp);                       // running analysis over pp?
       anaMaker[i]->SetCentralityDef(CentralityDefinition);      // centrality definition
       anaMaker[i]->SetTurnOnCentSelection(doCentSelection);     // run analysis for specific centrality
       anaMaker[i]->SetCentralityBinCut(CentralitySelection);    // specific centrality range to run 
-      anaMaker[i]->SetUseBBCCoincidenceRate(kFALSE);            // only use ZDC coincidence rate for refMult2
-      anaMaker[i]->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
-      anaMaker[i]->SetPrintEventCounter(kFALSE); 
-      anaMaker[i]->SetdoEventPlaneRes(kFALSE);                  // write EP resolution profiles
+      anaMaker[i]->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3 
       anaMaker[i]->SetdoJetHadronCorrelationAnalysis(fDoJetHadronCorrelationAnalysis); // do jet-hadron correlation analysis
       anaMaker[i]->SetdoJetShapeAnalysis(fDoJetShapeAnalysis);  // do jet shape analysis 
-      anaMaker[i]->SetJetAnalysisJetType(fJetAnalysisJetType);  // jet type for use with jet analysis
-      anaMaker[i]->SetJetShapePtAssocBin(i);                    // pt associated bin for jet shape analysis
+      anaMaker[i]->SetJetShapePtAssocBin(i);                    // pt associated bin for jet shape analysis - only used for JS
       anaMaker[i]->SetJetShapeTrackPtRange(0.2, 30.0);          // jet shape analysis - track pt range
       anaMaker[i]->SetCentBinSizeJS(5);                         // cent bin size for jet shape analysis mixed events, change to 5
-      anaMaker[i]->SetBadTowerListVers(TowerListToUse);         // bad tower list version
+      anaMaker[i]->SetJetAnalysisJetType(fJetAnalysisJetType);  // jet type for use with jet analysis
       anaMaker[i]->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+      anaMaker[i]->SetPrintEventCounter(kFALSE);                // print event #, useful for tests or finding which event caused problem
       cout<<anaMaker[i]->GetName()<<endl;                       // print name of class instance
 
       anaMaker[i]->SetOutFileNameQA(Form("QAtracksANDjets%s.root", fEPoutJobappend));
       anaMaker[i]->SetWriteTrackQAHistograms(kFALSE);
       anaMaker[i]->SetWriteJetQAHistograms(kFALSE);
+
+      if(fDoJetHadronCorrelationAnalysis) {
+        anaMaker[i]->SetDoUseMultBins(kFALSE);             // use multiplicity bins (hand defined) instead of cent bins - Jet Shape Analysis
+        anaMaker[i]->SetdoUseEPBins(kFALSE);               // use event plane bins
+        anaMaker[i]->SetCentBinSize(5);                    // centrality bin size for mixed events - NOT currently used
+        anaMaker[i]->SetCentBinSizeJS(5);                  // cent bin size for jet shape analysis mixed events, change to 5
+        anaMaker[i]->SetJetAnalysisJetType(kInclusiveJets);  // jet type for use with jet analysis
+      }
 
       ////anaMaker[i]->SetDebugLevel(StMyAnalysisMaker3::kDebugEventPlaneCalc);  // 0 turned off
       ////anaMaker[i]->SetDebugLevel(StMyAnalysisMaker3::kDebugGeneralEvt);

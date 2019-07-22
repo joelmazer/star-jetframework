@@ -140,6 +140,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
         if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
         Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
+        Int_t fBadRunListVers = StJetFrameworkPicoBase::fBadRuns_w_missing_HT; // fBadRuns_w_missing_HT, fBadRuns_wo_missing_HT,
 
         // trigger flags - set as such
         // EmcTriggerEventType: selects which HT trigger to use
@@ -197,11 +198,26 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst");   // reading Pico's
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
-        // create base class maker pointer, TEST
+        // create base class maker pointer
         StJetFrameworkPicoBase *baseMaker = new StJetFrameworkPicoBase("baseClassMaker");
-        baseMaker->SetRunFlag(RunFlag);           // run flag (year)
+        baseMaker->SetRunFlag(RunFlag);                  // run flag (year)
+        baseMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+        baseMaker->SetBadRunListVers(fBadRunListVers);          // switch to select specific bad run version file
         baseMaker->SetBadTowerListVers(TowerListToUse);
-        
+        cout<<baseMaker->GetName()<<endl;  // print name of class instance
+
+        // update the below when running analysis - minjet pt and bias requirement
+        StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, kFALSE);
+        CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
+        CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
+        CentMaker->SetRunFlag(RunFlag);                         // Run Flag
+        CentMaker->SetdoppAnalysis(dopp);                       // pp-analysis switch
+        CentMaker->SetCentralityDef(CentralityDefinition);      // centrality definition
+        CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used?
+        CentMaker->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
+        CentMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
+        cout<<CentMaker->GetName()<<endl;  // print name of class instance
+ 
         // create JetFinder first (JetMaker)
         // task Name, track constituent cut, doHistos, output file name
         StJetMakerTask *jetTask = new StJetMakerTask("JetMaker", fJetConstituentCut, kTRUE, outputFile);
@@ -222,16 +238,13 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         jetTask->SetRunFlag(RunFlag);           // run flag      
         jetTask->SetdoppAnalysis(dopp);         // pp switch
         jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
-        jetTask->SetUseBBCCoincidenceRate(kFALSE);
         jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);     // can be tighter for Run16 (-20,20)
         jetTask->SetTurnOnCentSelection(doCentSelection);
         jetTask->SetCentralityBinCut(CentralitySelection);
-        jetTask->SetUseBBCCoincidenceRate(kFALSE);
         jetTask->SetEmcTriggerEventType(EmcTriggerEventType);  // kIsHT1 or kIsHT2 or kIsHT3
         jetTask->SetTriggerToUse(TriggerToUse);
-        jetTask->SetBadTowerListVers(TowerListToUse);
-        jetTask->SetdoConstituentSubtr(kFALSE);  // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
-        jetTask->SetRejectBadRuns(RejectBadRuns);// switch to load and than omit bad runs
+        jetTask->SetdoConstituentSubtr(kFALSE);      // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
+        jetTask->SetRejectBadRuns(RejectBadRuns);    // switch to load and than omit bad runs
 
         // create JetFinder for background now (JetMakerBG) - background jets to be used in Rho Maker
         StJetMakerTask *jetTaskBG;
@@ -259,10 +272,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           jetTaskBG->SetEventZVtxRange(ZVtxMin, ZVtxMax);        // can be tighter for Run16 (-20,20)
           jetTaskBG->SetTurnOnCentSelection(doCentSelection);
           jetTaskBG->SetCentralityBinCut(CentralitySelection);
-          jetTaskBG->SetUseBBCCoincidenceRate(kFALSE);
           jetTaskBG->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
           jetTaskBG->SetTriggerToUse(TriggerToUse);
-          jetTaskBG->SetBadTowerListVers(TowerListToUse);
           jetTaskBG->SetdoConstituentSubtr(kFALSE);
           jetTaskBG->SetRejectBadRuns(RejectBadRuns);            // switch to load and than omit bad runs
         }
@@ -279,11 +290,9 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         rhoTask->SetRunFlag(RunFlag);
         rhoTask->SetdoppAnalysis(dopp);
         rhoTask->SetCentralityDef(CentralityDefinition);
-        rhoTask->SetUseBBCCoincidenceRate(kFALSE);
         rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
         rhoTask->SetTurnOnCentSelection(doCentSelection);
         rhoTask->SetCentralityBinCut(CentralitySelection);
-        rhoTask->SetUseBBCCoincidenceRate(kFALSE);
         rhoTask->SetRejectBadRuns(RejectBadRuns);     // switch to load and than omit bad runs
 
         // create the analysis maker!
@@ -306,7 +315,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         anaMaker->SetRunFlag(RunFlag);                        // run flag: i.e. - Run14, Run16...
         anaMaker->SetdoppAnalysis(dopp);                      // running analysis over pp?
         anaMaker->SetCentralityDef(CentralityDefinition);     // Centrality Definition
-        anaMaker->SetUseBBCCoincidenceRate(kFALSE);           // use ZDC default - KEEP false
         anaMaker->SetTurnOnCentSelection(doCentSelection);    // run analysis for specific centrality: BOOLEAN
         anaMaker->SetCentralityBinCut(CentralitySelection);   // specific centrality range to run: if above is FALSE, this doesn't matter
         anaMaker->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3

@@ -19,9 +19,8 @@ class StRefMultCorr;
 
 // jet-framework classes
 class StRhoParameter;
+class StCentMaker;
 
-// might not want to inherit from 2 classes
-//class StRhoBase : public StMaker {  // TODO need to check if this is fine
 class StRhoBase : public StJetFrameworkPicoBase {
 
  public:
@@ -42,7 +41,6 @@ class StRhoBase : public StJetFrameworkPicoBase {
 
   // event setters
   void                   SetEventZVtxRange(Double_t zmi, Double_t zma)         { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma;     }
-  virtual void           SetUseBBCCoincidenceRate(Bool_t b)                    { doUseBBCCoincidenceRate = b; }
   virtual void           SetMaxEventTrackPt(Double_t mxpt)                     { fMaxEventTrackPt = mxpt; }
   virtual void           SetMaxEventTowerE(Double_t mxE)                       { fMaxEventTowerE = mxE; }
 
@@ -71,8 +69,12 @@ class StRhoBase : public StJetFrameworkPicoBase {
   virtual Double_t       GetRhoFactor(Double_t cent);
   virtual Double_t       GetScaleFactor(Double_t cent);
 
+  // centrality    
+  Double_t               fCentralityScaled;             // scaled by 5% centrality 
+  Int_t                  ref16;                         // multiplicity bin (16)
+  Int_t                  ref9;                          // multiplicity bin (9)
+
   // event parameters
-  Bool_t                 doUseBBCCoincidenceRate;
   Double_t               fMaxEventTrackPt;               // max track pt in the event (to cut on)  
   Double_t               fMaxEventTowerE;                // max tower E in the event (to cut on)  
 
@@ -113,6 +115,15 @@ class StRhoBase : public StJetFrameworkPicoBase {
  
   TH2F                  *fHistRhovsNcluster;             //!rho vs. no. of clusters
   TH2F                  *fHistRhoScaledvsNcluster;       //!rhoscaled vs. no. of clusters
+
+  // centrality maker pointer
+  StCentMaker            *mCentMaker;
+
+  // base class pointer
+  StJetFrameworkPicoBase *mBaseMaker;
+
+  // bad run list set
+  std::set<Int_t>        badRuns;
 
 /*
   // maker names

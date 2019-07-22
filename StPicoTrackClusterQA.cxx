@@ -43,6 +43,7 @@
 #include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 #include "StEmcPosition2.h"
 #include "StJetFrameworkPicoBase.h"
+#include "StCentMaker.h"
 
 // towers/clusters related includes:
 #include "StMuDSTMaker/COMMON/StMuTrack.h"
@@ -84,12 +85,10 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
-  fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fRequireCentSelection(kFALSE),
-  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   mOutName(""),
   fAnalysisMakerName(""),
   fTracksName(""),
@@ -134,6 +133,8 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
+  mCentMaker(0x0),
+  mBaseMaker(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0),
   fhnTrackQA(0x0),
@@ -163,12 +164,10 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fMaxEventTrackPt(30.0),
   fMaxEventTowerE(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
-  fBadRunListVers(999),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fRequireCentSelection(kFALSE),
-  doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   mOutName(outName),
   fAnalysisMakerName(name),
   fTracksName("Tracks"),
@@ -213,6 +212,8 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
   mPicoEvent(0x0),
+  mCentMaker(0x0),
+  mBaseMaker(0x0),
   mEmcPosition(0x0),
   grefmultCorr(0x0),
   fhnTrackQA(0x0),
@@ -236,24 +237,26 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   // free up histogram objects if they exist
 
   // Destructor
-  if(fHistNTrackvsPt)   delete fHistNTrackvsPt;
-  if(fHistNTrackvsPhi)  delete fHistNTrackvsPhi;
-  if(fHistNTrackvsEta)  delete fHistNTrackvsEta;
-  if(fHistNTrackvsPhivsEta) delete fHistNTrackvsPhivsEta;
-  if(fHistNHadCorrTowervsE)    delete fHistNHadCorrTowervsE;
-  if(fHistNHadCorrTowervsEt)   delete fHistNHadCorrTowervsEt;
-  if(fHistNHadCorrTowervsPhi)  delete fHistNHadCorrTowervsPhi;
-  if(fHistNHadCorrTowervsEta)  delete fHistNHadCorrTowervsEta;
+  if(fHistNTrackvsPt)         delete fHistNTrackvsPt;
+  if(fHistNTrackvsPhi)        delete fHistNTrackvsPhi;
+  if(fHistNTrackvsEta)        delete fHistNTrackvsEta;
+  if(fHistNTrackvsPhivsEta)   delete fHistNTrackvsPhivsEta;
+  if(fHistNHadCorrTowervsE)   delete fHistNHadCorrTowervsE;
+  if(fHistNHadCorrTowervsEt)  delete fHistNHadCorrTowervsEt;
+  if(fHistNHadCorrTowervsPhi) delete fHistNHadCorrTowervsPhi;
+  if(fHistNHadCorrTowervsEta) delete fHistNHadCorrTowervsEta;
   if(fHistNHadCorrTowervsPhivsEta) delete fHistNHadCorrTowervsPhivsEta;
   if(fHistNHadCorrTowerHOTvsTowID) delete fHistNHadCorrTowerHOTvsTowID;
-  if(fHistNTowervsADC)  delete fHistNTowervsADC;
-  if(fHistNTowervsE)    delete fHistNTowervsE;
-  if(fHistNTowervsEt)   delete fHistNTowervsEt;
-  if(fHistNTowervsPhi)  delete fHistNTowervsPhi;
-  if(fHistNTowervsEta)  delete fHistNTowervsEta;
-  if(fHistNTowervsPhivsEta) delete fHistNTowervsPhivsEta;
-  if(fHistNTowerHOTvsTowID) delete fHistNTowerHOTvsTowID;
+  if(fHistNTowervsADC)        delete fHistNTowervsADC;
+  if(fHistNTowervsE)          delete fHistNTowervsE;
+  if(fHistNTowervsEt)         delete fHistNTowervsEt;
+  if(fHistNTowervsPhi)        delete fHistNTowervsPhi;
+  if(fHistNTowervsEta)        delete fHistNTowervsEta;
+  if(fHistNTowervsPhivsEta)   delete fHistNTowervsPhivsEta;
+  if(fHistNTowerHOTvsTowID)   delete fHistNTowerHOTvsTowID;
 
+  if(fHistCentrality)                 delete fHistCentrality;
+  if(fHistMultiplicity)               delete fHistMultiplicity;
   if(fHistEventCounter)               delete fHistEventCounter;
   if(fHistEventSelectionQA)           delete fHistEventSelectionQA;
   if(fHistEventSelectionQAafterCuts)  delete fHistEventSelectionQAafterCuts;
@@ -264,15 +267,15 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
 
   if(fHistEventNTrig_MB30)   delete fHistEventNTrig_MB30;
   if(fHistEventNTrig_HT)     delete fHistEventNTrig_HT;
-  if(fHistRefMult_MB30) delete fHistRefMult_MB30;
-  if(fHistVzVPDVz_MB30) delete fHistVzVPDVz_MB30;
-  if(fHistVyvsVx_MB30)  delete fHistVyvsVx_MB30;
-  if(fHistRvtx_MB30)    delete fHistRvtx_MB30;
-  if(fHistPerpvtx_MB30) delete fHistPerpvtx_MB30;
-  if(fHistZvtx_MB30)    delete fHistZvtx_MB30;
-  if(fHistZDCx_MB30)    delete fHistZDCx_MB30;
-  if(fHistEventID_MB30) delete fHistEventID_MB30;
-  if(fHistRunID_MB30)   delete fHistRunID_MB30; 
+  if(fHistRefMult_MB30)      delete fHistRefMult_MB30;
+  if(fHistVzVPDVz_MB30)      delete fHistVzVPDVz_MB30;
+  if(fHistVyvsVx_MB30)       delete fHistVyvsVx_MB30;
+  if(fHistRvtx_MB30)         delete fHistRvtx_MB30;
+  if(fHistPerpvtx_MB30)      delete fHistPerpvtx_MB30;
+  if(fHistZvtx_MB30)         delete fHistZvtx_MB30;
+  if(fHistZDCx_MB30)         delete fHistZDCx_MB30;
+  if(fHistEventID_MB30)      delete fHistEventID_MB30;
+  if(fHistRunID_MB30)        delete fHistRunID_MB30; 
   if(fProfEventTrackPt_MB30) delete fProfEventTrackPt_MB30;
   if(fProfEventRefMult_MB30) delete fProfEventRefMult_MB30;
   if(fProfEventXvtx_MB30)    delete fProfEventXvtx_MB30;
@@ -280,17 +283,17 @@ StPicoTrackClusterQA::~StPicoTrackClusterQA()
   if(fProfEventZvtx_MB30)    delete fProfEventZvtx_MB30;
   if(fProfEventRvtx_MB30)    delete fProfEventRvtx_MB30;
   if(fProfEventPerpvtx_MB30) delete fProfEventPerpvtx_MB30;
-  if(fProfEventBBCx_MB30) delete fProfEventBBCx_MB30;
-  if(fProfEventZDCx_MB30) delete fProfEventZDCx_MB30;
-  if(fProfEventTrackPt) delete fProfEventTrackPt;
-  if(fProfEventRefMult) delete fProfEventRefMult;
-  if(fProfEventRanking) delete fProfEventRanking;
-  if(fProfEventZvtx) delete fProfEventZvtx;
-  if(fProfEventYvtx) delete fProfEventYvtx;
-  if(fProfEventXvtx) delete fProfEventXvtx;
-  if(fProfEventVzVPD)delete fProfEventVzVPD;
-  if(fProfEventBBCx) delete fProfEventBBCx;
-  if(fProfEventZDCx) delete fProfEventZDCx;
+  if(fProfEventBBCx_MB30)    delete fProfEventBBCx_MB30;
+  if(fProfEventZDCx_MB30)    delete fProfEventZDCx_MB30;
+  if(fProfEventTrackPt)      delete fProfEventTrackPt;
+  if(fProfEventRefMult)      delete fProfEventRefMult;
+  if(fProfEventRanking)      delete fProfEventRanking;
+  if(fProfEventZvtx)         delete fProfEventZvtx;
+  if(fProfEventYvtx)         delete fProfEventYvtx;
+  if(fProfEventXvtx)         delete fProfEventXvtx;
+  if(fProfEventVzVPD)        delete fProfEventVzVPD;
+  if(fProfEventBBCx)         delete fProfEventBBCx;
+  if(fProfEventZDCx)         delete fProfEventZDCx;
 
   if(fHistNZeroEHT1vsID) delete fHistNZeroEHT1vsID;
   if(fHistNZeroEHT2vsID) delete fHistNZeroEHT2vsID;
@@ -357,67 +360,9 @@ Int_t StPicoTrackClusterQA::Init() {
   // position object for Emc
   mEmcPosition = new StEmcPosition2();
 
-  //AddBadTowers( TString( getenv("STARPICOPATH" )) + "/badTowerList_y11.txt");
-  // Add dead + bad tower lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp 200 GeV
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
-        break;
-
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers.txt");
-        //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_AltBadTowers.txt");
-        //AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_BadTowers.txt");
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2016_DeadTowers.txt");
-        break;
-
-    default :
-      AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
-      AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_DeadTowers.txt");
-  }
-
-  // Add bad run lists
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2012_BadRuns_P12id_wo_missing_HT.txt");
-        break;
-  
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu (200 GeV)
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_w_missing_HT)  AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_w_missing_HT.txt");
-        if(fBadRunListVers == StJetFrameworkPicoBase::fBadRuns_wo_missing_HT) AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2014_BadRuns_P18ih_wo_missing_HT.txt");
-        break; 
-  
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
-        AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Y2016_BadRuns_P16ij.txt");
-        break; 
-  
-    default :
-      AddBadRuns("StRoot/StMyAnalysisMaker/runLists/Empty_BadRuns.txt");
-  }
-
+/*
   // Centrality object setup
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14: 200 GeV AuAu
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
@@ -437,31 +382,10 @@ Int_t StPicoTrackClusterQA::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16: 200 GeV AuAu
-        switch(fCentralityDef) {      
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
-              break;
-          default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        break;
-
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
+*/
 
   return kStOK;
 }
@@ -508,6 +432,17 @@ void StPicoTrackClusterQA::DeclareHistograms() {
 
     // tweak refmult plot binnings for pp datasets
     int nFactor = (doppAnalysis) ? 5 : 1;
+
+    // binning for cent histograms
+    int nHistCentBins = 20;
+    
+    // binning for mult histograms - pp : AuAu
+    double kHistMultMax = (doppAnalysis) ? 100. : 800.;
+    int kHistMultBins = (doppAnalysis) ? 100. : 400.;
+    
+    // basic event QA
+    fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", nHistCentBins, 0, 100);
+    fHistMultiplicity = new TH1F("fHistMultiplicity", "No. events vs multiplicity", kHistMultBins, 0, kHistMultMax);
 
     // track histograms
     fHistNTrackvsPt = new TH1F("fHistNTrackvsPt", "Ntracks vs p_{T}", 200, 0., 40.);
@@ -658,6 +593,10 @@ void StPicoTrackClusterQA::DeclareHistograms() {
 // write histograms
 //________________________________________________________________________
 void StPicoTrackClusterQA::WriteHistograms() {
+  // basic QA
+  fHistCentrality->Write();
+  fHistMultiplicity->Write();
+
   // track and tower histograms
   fHistNTrackvsPt->Write();
   fHistNTrackvsPhi->Write();
@@ -773,12 +712,16 @@ void StPicoTrackClusterQA::WriteHistograms() {
 //
 //________________________________________________________________________
 void StPicoTrackClusterQA::Clear(Option_t *opt) {
+
 }
 //
 // Main loop, called for each event.
 //________________________________________________________________________
 int StPicoTrackClusterQA::Make()
 {
+  // zero out these global variables
+  fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+
   // counter
   fGoodTrackCounter = 0;
 
@@ -803,10 +746,22 @@ int StPicoTrackClusterQA::Make()
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+  deadTowers = mBaseMaker->GetDeadTowers();
+  badTowers = mBaseMaker->GetBadTowers();
+
   // get run number, check bad runs list if desired (kFALSE if bad)
   fRunNumber = mPicoEvent->runId();
   if(doRejectBadRuns) {
-    if( !IsRunOK(fRunNumber) ) return kStOK;
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
   }
 
   // cut event on max track pt > 30.0 GeV
@@ -826,37 +781,35 @@ int StPicoTrackClusterQA::Make()
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
 
   // ============================ CENTRALITY ============================== //
-  int RunId = mPicoEvent->runId();
-  float fBBCCoincidenceRate = mPicoEvent->BBCx();
-  float fZDCCoincidenceRate = mPicoEvent->ZDCx();
-  int grefMult = mPicoEvent->grefMult();
-  Int_t centbin, cent16;
-
-  // for non-pp analyses - calculate centrality
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); }
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-    cent16 = grefmultCorr->getCentralityBin16();
-    centbin = GetCentBin(cent16, 16);
-
-  } else {
-    centbin = 0, cent16 = 0;
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
   }
+
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  ref9 = mCentMaker->GetRef9();   // binning from central -> peripheral
+  ref16 = mCentMaker->GetRef16(); // binning from central -> peripheral
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
+  int centbin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  fCentralityScaled = mCentMaker->GetCentScaled();
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
 
   // cut on unset centrality, > 80%
   if(cent16 == -1 && fDebugLevel != 99) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
-  fCentralityScaled = centbin*5.0;
+
+  // fill histograms
+  fHistCentrality->Fill(fCentralityScaled);
+  fHistMultiplicity->Fill(refCorr2);
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
-  // ===================================================
+  // ============================ end of CENTRALITY ============================== //
 
   // ========================= Trigger Info =============================== //
   // fill Event Trigger QA
@@ -1177,6 +1130,8 @@ void StPicoTrackClusterQA::SetSumw2() {
   fHistNTowerHOTvsTowID->Sumw2();
 
   // QA histograms
+  fHistCentrality->Sumw2();
+  fHistMultiplicity->Sumw2();
   fHistEventCounter->Sumw2();
   fHistEventSelectionQA->Sumw2();
   fHistEventSelectionQAafterCuts->Sumw2();
@@ -1461,8 +1416,8 @@ Bool_t StPicoTrackClusterQA::AcceptTower(StPicoBTowHit *tower, Int_t towerID) {
   //double towerEunCorr = tower->energy();  // uncorrected energy
 
   // check for bad (and dead) towers
-  bool TowerOK = IsTowerOK(towerID);      // kTRUE means GOOD
-  bool TowerDead = IsTowerDead(towerID);  // kTRUE means BAD
+  bool TowerOK = mBaseMaker->IsTowerOK(towerID);      // kTRUE means GOOD
+  bool TowerDead = mBaseMaker->IsTowerDead(towerID);  // kTRUE means BAD
   if(!TowerOK)  { return kFALSE; }
   if(TowerDead) { return kFALSE; }
 
@@ -2546,122 +2501,6 @@ Bool_t StPicoTrackClusterQA::CheckForHT(int RunFlag, int type) {
   return kFALSE;
 }
 //
-// Function to reset BAD Tower List
-//____________________________________________________________________________
-void StPicoTrackClusterQA::ResetBadTowerList( ){
-  badTowers.clear();
-}
-//
-// Add bad towers from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//______________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::AddBadTowers(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
- 
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badTowers.insert( ientry );
-        __DEBUG(2, Form("Added bad tower # %d", ientry));
-      }
-    }
-  }
- 
-  return kTRUE;
-}
-//
-// Function to check if: mTowID is GOOD or BAD
-//____________________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::IsTowerOK( Int_t mTowId ){
-  //if( badTowers.size()==0 ){
-  if( badTowers.empty() ){
-    __ERROR("StPicoTrackClusterQA::IsTowerOK: WARNING: You're trying to run without a bad tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kTRUE;
-  }
-}
-//
-// Function to reset Dead Tower List
-//____________________________________________________________________________
-void StPicoTrackClusterQA::ResetDeadTowerList( ){
-  deadTowers.clear();
-}
-//
-// Add dead towers from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//______________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::AddDeadTowers(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad towers from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        deadTowers.insert( ientry );
-        __DEBUG(2, Form("Added bad tower # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function to check if: mTowID is DEAD or NOT
-//____________________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::IsTowerDead( Int_t mTowId ){
-  //if( deadTowers.size()==0 ){
-  if( deadTowers.empty() ){
-    __ERROR("StPicoTrackClusterQA::IsTowerDead: WARNING: You're trying to run without a dead tower list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( deadTowers.count( mTowId )>0 ){
-    __DEBUG(9, Form("Reject. Tower ID: %d", mTowId));
-    return kTRUE;
-  } else {
-    __DEBUG(9, Form("Accept. Tower ID: %d", mTowId));
-    return kFALSE;
-  }
-}
-//
 // Returns pt of hardest track in the event
 //
 Double_t StPicoTrackClusterQA::GetMaxTrackPt()
@@ -2894,62 +2733,4 @@ Int_t StPicoTrackClusterQA::GetRunNo(int runid){
 
   cout<<" *********** RunID not matched with list ************!!!! "<<endl;
   return -999;
-}
-//
-//
-//____________________________________________________________________________
-void StPicoTrackClusterQA::ResetBadRunList( ){
-  badRuns.clear();
-}
-//
-// Add bad runs from comma separated values file
-// Can be split into arbitrary many lines
-// Lines starting with # will be ignored
-//_________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::AddBadRuns(TString csvfile){
-  // open infile
-  std::string line;
-  std::ifstream inFile ( csvfile );
-
-  __DEBUG(2, Form("Loading bad runs from %s", csvfile.Data()) );
-
-  if( !inFile.good() ) {
-    __WARNING(Form("Can't open %s", csvfile.Data()) );
-    return kFALSE;
-  }
-
-  while(std::getline (inFile, line) ){
-    if( line.size()==0 ) continue; // skip empty lines
-    if( line[0] == '#' ) continue; // skip comments
-
-    std::istringstream ss( line );
-    while( ss ){
-      std::string entry;
-      std::getline( ss, entry, ',' );
-      int ientry = atoi(entry.c_str());
-      if(ientry) {
-        badRuns.insert( ientry );
-        __DEBUG(2, Form("Added bad run # %d", ientry));
-      }
-    }
-  }
-
-  return kTRUE;
-}
-//
-// Function: check on if Run is OK or not
-//____________________________________________________________________________________________
-Bool_t StPicoTrackClusterQA::IsRunOK( Int_t mRunId ){
-  //if( badRuns.size()==0 ){
-  if( badRuns.empty() ){
-    __ERROR("StPicoTrackClusterQA::IsRunOK: WARNING: You're trying to run without a bad run list. If you know what you're doing, deactivate this throw and recompile.");
-    throw ( -1 );
-  }
-  if( badRuns.count( mRunId )>0 ){
-    __DEBUG(9, Form("Reject. Run ID: %d", mRunId));
-    return kFALSE;
-  } else {
-    __DEBUG(9, Form("Accept. Run ID: %d", mRunId));
-    return kTRUE;
-  }
 }

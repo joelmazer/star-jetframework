@@ -1,7 +1,6 @@
 #ifndef StDummyMaker_h
 #define StDummyMaker_h
 
-#include "StChain/StMaker.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;
 
@@ -33,7 +32,6 @@ class StJet;
 class StRho;
 class StRhoParameter;
 
-//class StDummyMaker : public StMaker {
 class StDummyMaker : public StJetFrameworkPicoBase {
   public:
 
@@ -70,7 +68,6 @@ class StDummyMaker : public StJetFrameworkPicoBase {
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-    virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -126,9 +123,6 @@ class StDummyMaker : public StJetFrameworkPicoBase {
     // position object
     StEmcPosition2         *mEmcPosition;
 
-    // centrality maker
-    StCentMaker            *mCentMaker;
-
     // histos
     TH1F *hCentrality;//!
     TH1F *hMultiplicity;//!
@@ -137,25 +131,19 @@ class StDummyMaker : public StJetFrameworkPicoBase {
     TH1F *hJetPt;//!
     TH1F *hJetCorrPt;//!
 
-    // bad and dead tower list functions and arrays - add, reset, check (want to add these to base class)
-    void                   ResetBadTowerList( );
-    void                   ResetDeadTowerList( );
-    Bool_t                 AddBadTowers(TString csvfile);
-    Bool_t                 AddDeadTowers(TString csvfile);
-    Bool_t                 IsTowerOK( Int_t mTowId );
-    Bool_t                 IsTowerDead( Int_t mTowId );
+    // bad and dead tower list
     std::set<Int_t>        badTowers;
     std::set<Int_t>        deadTowers;
 
-    // bad run list - add, reset, check (want to add these to base class)
-    void                   ResetBadRunList( );
-    Bool_t                 AddBadRuns(TString csvfile);
-    Bool_t                 IsRunOK( Int_t mRunId );
+    // bad run list
     std::set<Int_t>        badRuns;
 
+    // base class pointer object
+    StJetFrameworkPicoBase *mBaseMaker;
+
     // maker names
-    TString                 fAnalysisMakerName;
-    TString                 fEventMixerMakerName;
+    TString                fAnalysisMakerName;
+    TString                fEventMixerMakerName;
 
     ClassDef(StDummyMaker, 1)
 };

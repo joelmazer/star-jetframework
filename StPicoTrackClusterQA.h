@@ -23,6 +23,7 @@ class TH2;
 class TH2F;
 class THnSparse;
 class TProfile;
+class TVector3;
 
 // STAR classes
 class StMaker;
@@ -38,7 +39,11 @@ class StEmcGeom;
 class StBemcTables; //v3.14
 class StEmcCluster;
 class StEmcCollection;
+
+// star jet-frameworks classes
+class StJetFrameworkPicoBase;
 class StEmcPosition2;
+class StCentMaker;
 
 // centrality class
 class StRefMultCorr;
@@ -105,11 +110,9 @@ class StPicoTrackClusterQA : public StMaker {
 
   // event setters
   virtual void         SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-  virtual void         SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
   virtual void         SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
   virtual void         SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
-  virtual void         SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
 
   // track / cluster setters 
   virtual void         SetTrackPtRange(Double_t ptmi, Double_t ptma) { fTrackPtMinCut = ptmi; fTrackPtMaxCut = ptma; }
@@ -188,12 +191,10 @@ class StPicoTrackClusterQA : public StMaker {
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on) 
   Double_t             fMaxEventTowerE;         // max tower E in the event (to cut on)    
   Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
-  Int_t                fBadRunListVers;         // version of bad runs file list to use
   Double_t             fEventZVtxMinCut;        // min event z-vertex cut
   Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                fCentralitySelectionCut; // centrality selection cut
   Bool_t               fRequireCentSelection;   // require particular centrality bin
-  Bool_t               doUseBBCCoincidenceRate; // use BBC or ZDC Coincidence Rate, kFALSE = ZDC
 
   // names
   TString              mOutName;                // name of output file
@@ -263,6 +264,8 @@ class StPicoTrackClusterQA : public StMaker {
   StPicoDstMaker      *mPicoDstMaker; // PicoDstMaker object
   StPicoDst           *mPicoDst;      // PicoDst object
   StPicoEvent         *mPicoEvent;    // PicoEvent object
+  StCentMaker         *mCentMaker;    // Centrality maker object
+  StJetFrameworkPicoBase *mBaseMaker; // Base maker object
 
   // position object
   StEmcPosition2      *mEmcPosition;
@@ -292,6 +295,8 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNTowerHOTvsTowID;//!
 
   // trigger / event selection QA histos
+  TH1F           *fHistCentrality;//!
+  TH1F           *fHistMultiplicity;//!
   TH1F           *fHistEventCounter;//!
   TH1F           *fHistEventSelectionQA;//! 
   TH1F           *fHistEventSelectionQAafterCuts;//!
@@ -387,20 +392,11 @@ class StPicoTrackClusterQA : public StMaker {
   THnSparse      *fhnTrackQA;//!      // sparse of track info
   THnSparse      *fhnTowerQA;//!      // sparse of tower info
 
-  // bad and dead tower list functions and arrays
-  void                   ResetBadTowerList( );
-  void                   ResetDeadTowerList( );
-  Bool_t                 AddBadTowers(TString csvfile);
-  Bool_t                 AddDeadTowers(TString csvfile);
-  Bool_t                 IsTowerOK( Int_t mTowId );
-  Bool_t                 IsTowerDead( Int_t mTowId );
+  // bad and dead tower list
   std::set<Int_t>        badTowers;
   std::set<Int_t>        deadTowers;
 
   // bad run list 
-  void                   ResetBadRunList( );
-  Bool_t                 AddBadRuns(TString csvfile);
-  Bool_t                 IsRunOK( Int_t mRunId );
   std::set<Int_t>        badRuns;
 
   StPicoTrackClusterQA(const StPicoTrackClusterQA&);            // not implemented

@@ -23,6 +23,7 @@ class StRefMultCorr;
 // jet-framework classes
 class StEventPoolManager;
 class StEventPool;
+class StCentMaker;
 
 class StEventPoolMaker : public StJetFrameworkPicoBase {
   public:
@@ -52,9 +53,9 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
 
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
+    virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
     virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
@@ -147,6 +148,15 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!
+
+    // centrality maker pointer
+    StCentMaker            *mCentMaker;
+
+    // base class pointer
+    StJetFrameworkPicoBase *mBaseMaker;
+
+    // bad run list set
+    std::set<Int_t>        badRuns;
 
     // maker names
     TString                fAnalysisMakerName;

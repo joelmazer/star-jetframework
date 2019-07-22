@@ -33,6 +33,7 @@
 #include "StJetFrameworkPicoBase.h"
 #include "StEventPoolManager.h"
 #include "StFemtoTrack.h"
+#include "StCentMaker.h"
 
 // old file kept
 #include "StPicoConstants.h"
@@ -55,9 +56,9 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
-  doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
   fMaxEventTowerE = 1000.0; // 30.0
+  doRejectBadRuns = kFALSE;
   fHistCentBinMin = 0;
   fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
   fHistZvertBinMin = 0;
@@ -95,6 +96,8 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
     fTowerToTriggerTypeHT3[i] = kFALSE;
   }
   doComments = mDoComments;
+  mCentMaker = 0x0;
+  mBaseMaker = 0x0;
   fAnalysisMakerName = name;
   fEventPlaneMakerName = "";
 }
@@ -103,17 +106,17 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
 StEventPoolMaker::~StEventPoolMaker()
 { /*  */
   // destructor
-  delete hEventZVertex;
-  delete hCentrality;
-  delete hMultiplicity;
-  delete hTrackEtavsPhi;
-  delete fHistEventSelectionQA;
-  delete fHistEventSelectionQAafterCuts;
-  delete hTriggerIds;
-  delete hEmcTriggers;
-  delete hMixEvtStatZVtx;
-  delete hMixEvtStatCent;
-  delete hMixEvtStatZvsCent;
+  if(hEventZVertex)       delete hEventZVertex;
+  if(hCentrality)         delete hCentrality;
+  if(hMultiplicity)       delete hMultiplicity;
+  if(hTrackEtavsPhi)      delete hTrackEtavsPhi;
+  if(fHistEventSelectionQA)           delete fHistEventSelectionQA;
+  if(fHistEventSelectionQAafterCuts)  delete fHistEventSelectionQAafterCuts;
+  if(hTriggerIds)         delete hTriggerIds;
+  if(hEmcTriggers)        delete hEmcTriggers;
+  if(hMixEvtStatZVtx)     delete hMixEvtStatZVtx;
+  if(hMixEvtStatCent)     delete hMixEvtStatCent;
+  if(hMixEvtStatZvsCent)  delete hMixEvtStatZvsCent;
 
   fPoolMgr->Clear(); delete fPoolMgr;
 }
@@ -124,69 +127,6 @@ Int_t StEventPoolMaker::Init() {
 
   // initialize the histograms
   DeclareHistograms();
-
-  // switch on Run Flag to look for firing trigger specifically requested for given run period
-  switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        switch(fCentralityDef) {
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          default: // this is the default for Run14
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-        }
-        break;
-
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        switch(fCentralityDef) {      
-          case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
-              break;
-          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
-              break;
-          default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
-        }
-        break; // added May20
-
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        // this is the default for Run17 pp - don't set anything for pp
-        break;
-
-    default :
-        grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
-  }
 
   return kStOK;
 }
@@ -330,6 +270,9 @@ void StEventPoolMaker::Clear(Option_t *opt) {
 //  This method is called every event.
 //_____________________________________________________________________________
 Int_t StEventPoolMaker::Make() {
+  // zero out these global variables
+  fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+
   // constants
   const double pi = 1.0*TMath::Pi();
 
@@ -354,6 +297,22 @@ Int_t StEventPoolMaker::Make() {
     return kStWarn;
   }
 
+  // get base class pointer
+  mBaseMaker = static_cast<StJetFrameworkPicoBase*>(GetMaker("baseClassMaker"));
+  if(!mBaseMaker) {
+    LOG_WARN << " No baseMaker! Skip! " << endm;
+    return kStWarn;
+  }
+
+  // get bad run, dead & bad tower lists
+  badRuns = mBaseMaker->GetBadRuns();
+
+  // get run number, check bad runs list if desired (kFALSE if bad)
+  fRunNumber = mPicoEvent->runId();
+  if(doRejectBadRuns) {
+    if( !mBaseMaker->IsRunOK(fRunNumber) ) return kStOK;
+  }
+
   // cut event on max track pt > 35.0 GeV (30 Oct25, 2018)
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
@@ -371,50 +330,28 @@ Int_t StEventPoolMaker::Make() {
   if((zVtx < fEventZVtxMinCut) || (zVtx > fEventZVtxMaxCut)) return kStOk;
   hEventZVertex->Fill(zVtx);
 
-  // let me know the Run #, fill, and event ID
-  int RunId = mPicoEvent->runId();
-  fRunNumber = mPicoEvent->runId();
-  int fillId = mPicoEvent->fillId();
-  int eventId = mPicoEvent->eventId();
-  double fBBCCoincidenceRate = mPicoEvent->BBCx();
-  double fZDCCoincidenceRate = mPicoEvent->ZDCx();
-
   // ============================ CENTRALITY ============================== //
-  // for only 14.5 GeV collisions from 2014 and earlier runs: refMult, for AuAu run14 200 GeV: grefMult 
-  // https://github.com/star-bnl/star-phys/blob/master/StRefMultCorr/Centrality_def_grefmult.txt
-  // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
-  int grefMult = mPicoEvent->grefMult();
-  //int refMult = mPicoEvent->refMult();
-  Int_t centbin, cent9, cent16;
-  Double_t refCorr2;
-
-  // for AuAu collisions
-  if(!doppAnalysis) {
-    // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-
-    // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-    cent9 = grefmultCorr->getCentralityBin9();
-
-    // re-order binning to be from central -> peripheral
-    ref9 = GetCentBin(cent9, 9);
-    ref16 = GetCentBin(cent16, 16);
-    centbin = GetCentBin(cent16, 16);  // 0-16
-
-    // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
-
-    //grefmultCorr->isCentralityOk(cent16)
-  } else { // for pp
-    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+  // get CentMaker pointer
+  mCentMaker = static_cast<StCentMaker*>(GetMaker("CentMaker"));
+  if(!mCentMaker) {
+    LOG_WARN << " No CenttMaker! Skip! " << endm;
+    return kStWarn;
   }
 
+  // centrality variables
+  int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
+  int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  ref9 = mCentMaker->GetRef9();   // binning from central -> peripheral
+  ref16 = mCentMaker->GetRef16(); // binning from central -> peripheral
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
+  int centbin = mCentMaker->GetRef16();
+  double refCorr2 = mCentMaker->GetRefCorr2();
+  fCentralityScaled = mCentMaker->GetCentScaled();
+  //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
+  // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
+
   // cut on unset centrality, > 80%
-  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them
+  if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
 
   // bin-age to use for mixed event and sparses
   Int_t centbin10 = GetCentBin10(centbin);
@@ -423,9 +360,8 @@ Int_t StEventPoolMaker::Make() {
   } else if(fCentBinSize==5) { centBinToUse = (double)centbin * 5.0; }
 
   // centrality / multiplicity histograms
-  hMultiplicity->Fill(refCorr2);
-  fCentralityScaled = centbin*5.0;
   hCentrality->Fill(fCentralityScaled);
+  hMultiplicity->Fill(refCorr2);
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
