@@ -32,7 +32,7 @@ bool doCentSelection = kFALSE; //kTRUE;
 bool dopp = kTRUE; // FIXME kTRUE for pp data
 int RunYear = 12;   // FIXME
 // kTRUE for local tests, kFALSE for job submission
-bool doTEST = kTRUE;  //FIXME FIXME!!!! be aware before submission
+bool doTEST = kFALSE;  //FIXME FIXME!!!! be aware before submission
 
 StChain *chain;
 
@@ -60,7 +60,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
 
         // =============================================================================== //
         // =============================================================================== //
-        // =============================================================================== //
         // over-ride functions
         if(dopp) {
           doCentSelection = kFALSE;  // can't ask for a particular centrality if requesting pp collisions
@@ -76,11 +75,9 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // centrality global flags - no centrality for pp collisions
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
         Int_t CentralityDefinition;
-        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp 
-        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for Run 12 pp 
         if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
-        if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;           // Run16
-        //if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
+        if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;         // Run16: StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
         // Run/Event Flag
@@ -105,7 +102,10 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;     // kTriggerANY, kTriggerMB, kTriggerHT
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
+
+        // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
         Int_t TowerListToUse = 136; // Run14 136-122: jet-hadron, early jet shape // been using 51,  3, 79   - doesn't matter for charged jets
+        TowerListToUse = 9992000;   // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
         if(dopp) TowerListToUse = 169;
         // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
         // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
@@ -114,8 +114,8 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         // track flags
         bool usePrimaryTracks;
         if(RunYear == mRun12) usePrimaryTracks = kTRUE;
-        if(RunYear == mRun14) usePrimaryTracks = kTRUE;  // = kTRUE for Run14, kFALSE for Run16
-        if(RunYear == mRun16) usePrimaryTracks = kFALSE;
+        if(RunYear == mRun14) usePrimaryTracks = kTRUE;  
+        if(RunYear == mRun16) usePrimaryTracks = kFALSE; // don't have primary tracks (at least mid 2018 with that current production)
         if(RunYear == mRun17) usePrimaryTracks = kTRUE;
 
         // update settings for new centrality definitions
@@ -123,7 +123,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
         ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
-        // =============================================================================== //
         // =============================================================================== //
         // =============================================================================== //
 
@@ -137,7 +136,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
 
 	// create the picoMaker maker
 	//StPicoDstMaker *picoMaker = new StPicoDstMaker(0,inputFile,"picoDst");
-        StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst"); // updated Aug6th
+        StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst");
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
         // create base class maker pointer
@@ -148,14 +147,14 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         baseMaker->SetBadTowerListVers(TowerListToUse);
         cout<<baseMaker->GetName()<<endl;  // print name of class instance
 
-        // update the below when running analysis - minjet pt and bias requirement
+        // create centrality class maker pointer
         StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, kFALSE);
         CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
         CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
         CentMaker->SetRunFlag(RunFlag);                         // Run Flag
         CentMaker->SetdoppAnalysis(dopp);                       // pp-analysis switch
         CentMaker->SetCentralityDef(CentralityDefinition);      // centrality definition
-        CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used?
+        CentMaker->SetUseBBCCoincidenceRate(kFALSE);            // BBC or ZDC (default) rate used? - USE ZDC (keep kFALSE)
         CentMaker->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
         CentMaker->SetRejectBadRuns(RejectBadRuns);             // switch to load and than omit bad runs
         cout<<CentMaker->GetName()<<endl;  // print name of class instance
@@ -172,11 +171,9 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task->SetUsePrimaryTracks(usePrimaryTracks);
         Task->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
         Task->SetRunFlag(RunFlag);                      // RunFlag
-        Task->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         Task->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         //Task->SetDebugLevel(8);
-        //Task->SetDebugLevel(StPicoTrackClusterQA::kDebugEmcTrigger);
         Task->SetHadronicCorrFrac(1.0);
         Task->SetDoTowerQAforHT(kFALSE);
         Task->SetdoppAnalysis(dopp);
@@ -194,7 +191,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         TaskA->SetUsePrimaryTracks(usePrimaryTracks);
         TaskA->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
         TaskA->SetRunFlag(RunFlag);                      // RunFlag
-        TaskA->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         TaskA->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         TaskA->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         TaskA->SetHadronicCorrFrac(1.0);
@@ -205,7 +201,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         TaskA->SetMaxEventTrackPt(100.0); // TEST
 
         // ======================================================================================================= 
-        // QA task - HT events
+        // QA task - HT events - defined by EmcTriggerEventType above
         StPicoTrackClusterQA *Task2 = new StPicoTrackClusterQA("TrackClusterQAHT", kTRUE, outputFile);
         Task2->SetTrackPtRange(0.2, 30.0);
         Task2->SetTrackPhiRange(0., 2.0*pi);
@@ -216,11 +212,8 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task2->SetUsePrimaryTracks(usePrimaryTracks);
         Task2->SetEmcTriggerEventType(EmcTriggerEventType);    // kIsHT1 or kIsHT2 or kIsHT3
         Task2->SetRunFlag(RunFlag);                      // RunFlag
-        Task2->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         Task2->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task2->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
-        //Task2->SetDebugLevel(8);
-        //Task2->SetDebugLevel(StPicoTrackClusterQA::kDebugEmcTrigger);
         Task2->SetHadronicCorrFrac(1.0);
         Task2->SetDoTowerQAforHT(kTRUE);
         Task2->SetdoppAnalysis(dopp);
@@ -243,7 +236,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task3->SetUsePrimaryTracks(usePrimaryTracks);
         Task3->SetEmcTriggerEventType(EmcTriggerEventType);    // kIsHT1 or kIsHT2 or kIsHT3
         Task3->SetRunFlag(RunFlag);                      // RunFlag
-        Task3->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         Task3->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task3->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task3->SetHadronicCorrFrac(1.0);
@@ -264,7 +256,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task1->SetUsePrimaryTracks(usePrimaryTracks);
         Task1->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT1);    // kIsHT1 or kIsHT2 or kIsHT3
         Task1->SetRunFlag(RunFlag);                      // RunFlag
-        Task1->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         Task1->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task1->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task1->SetHadronicCorrFrac(1.0);
@@ -283,7 +274,6 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Task2->SetUsePrimaryTracks(usePrimaryTracks);
         Task2->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT2);    // kIsHT1 or kIsHT2 or kIsHT3
         Task2->SetRunFlag(RunFlag);                      // RunFlag
-        Task2->SetCentralityDef(CentralityDefinition);   // FIXME - not needed for Run14 - why?
         Task2->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task2->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task2->SetHadronicCorrFrac(1.0);

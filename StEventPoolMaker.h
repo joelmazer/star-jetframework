@@ -48,7 +48,6 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
-    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
 
     // event setters

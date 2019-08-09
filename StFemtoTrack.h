@@ -23,7 +23,7 @@ class StVParticle;
 class StPicoTrack;
 class StMaker;
 
-class StFemtoTrack : public TObject //public StMaker //public StVParticle // FIXME
+class StFemtoTrack : public TObject
 {
  public:
   StFemtoTrack(const StPicoTrack*, double Bfield, TVector3 mVertex, bool prim);

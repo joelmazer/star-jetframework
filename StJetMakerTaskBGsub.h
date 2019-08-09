@@ -3,8 +3,6 @@
 
 // $Id$
 
-//#include "StMaker.h"
-//#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include <set>
 
 // for clusters
@@ -81,7 +79,6 @@ class StJetMakerTaskBGsub : public StMaker {
   virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
   virtual void         SetRunFlag(Int_t f)              { fRunFlag              = f; }
   virtual void         SetdoppAnalysis(Bool_t pp)       { doppAnalysis          = pp;}
-  virtual void         SetCentralityDef(Int_t c)        { fCentralityDef        = c; }
   virtual void         SetTurnOnCentSelection(Bool_t o) { fRequireCentSelection = o; }
   virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
   virtual void         SetdoConstituentSubtr(Bool_t c)  { doConstituentSubtr    = c; }
@@ -182,7 +179,6 @@ class StJetMakerTaskBGsub : public StMaker {
   Bool_t               AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // jet track accept cuts function
   Bool_t               AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // jet tower accept cuts function
   Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
-  Bool_t               SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   Bool_t               GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
   void                 FillEmcTriggersArr();
   Double_t             GetMaxTrackPt();               // find max track pt in event
@@ -207,7 +203,6 @@ class StJetMakerTaskBGsub : public StMaker {
   Int_t                fDebugLevel;             // debug printout level
   Int_t                fRunFlag;                // Run Flag numerator value
   Bool_t               doppAnalysis;            // use pp analysis data
-  Int_t                fCentralityDef;          // Centrality Definition enumerator value
   Bool_t               fRequireCentSelection;   // require particular centrality bin
   Bool_t               doConstituentSubtr;      // run constituent subtractor
 
@@ -379,9 +374,6 @@ class StJetMakerTaskBGsub : public StMaker {
 
   // bad run list 
   std::set<Int_t>        badRuns;
-
-  // maker names
-  //TString         fJetMakerName;
 
   StJetMakerTaskBGsub(const StJetMakerTaskBGsub&);            // not implemented
   StJetMakerTaskBGsub &operator=(const StJetMakerTaskBGsub&); // not implemented

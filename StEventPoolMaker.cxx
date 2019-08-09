@@ -53,7 +53,6 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
   fDebugLevel = 0;
   fRunFlag = 0;
   doppAnalysis = kFALSE;
-  fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
   fMaxEventTrackPt = 30.0;

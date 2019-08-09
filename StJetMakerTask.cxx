@@ -2,10 +2,11 @@
 // Author:  Joel Mazer for the STAR Collaboration
 // Affiliation: Rutgers University
 //
-// track and tower input to cluster over and create jets
+// track and tower input to cluster together using fastjet wrapper and create jets
 //      - leading jet tag
 //      - access to jet constituents
 //      - general QA
+//      - constitutent subtractor
 //
 // ################################################################
 // $Id$
@@ -82,7 +83,6 @@ StJetMakerTask::StJetMakerTask() :
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   doppAnalysis(kFALSE), 
-  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE),
   fEventZVtxMinCut(-40.0), 
@@ -181,7 +181,6 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   doppAnalysis(kFALSE),
-  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE),
   fEventZVtxMinCut(-40.0), 
@@ -281,6 +280,7 @@ StJetMakerTask::~StJetMakerTask()
   //fJets->Clear(); delete fJets;
   if(fHistMultiplicity)        delete fHistMultiplicity;
   if(fHistCentrality)          delete fHistCentrality;
+  if(fHistCentralityPostCut)   delete fHistCentralityPostCut;
   if(fHistFJRho)               delete fHistFJRho;
   if(fProfEventBBCx)           delete fProfEventBBCx;
   if(fProfEventZDCx)           delete fProfEventZDCx;
@@ -340,7 +340,7 @@ Int_t StJetMakerTask::Init() {
   fJetsConstit = new TClonesArray("StPicoTrack");
   fJetsConstit->SetName("JetConstituents");
 
-  // FIXME maybe add BGsub?
+  // TODO maybe add BGsub?
 
   // position object for Emc
   mEmcPosition = new StEmcPosition2();
@@ -441,6 +441,7 @@ void StJetMakerTask::DeclareHistograms() {
   //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
   fHistMultiplicity = new TH1F("fHistMultiplicity", "No. events vs multiplicity", kHistMultBins, 0, kHistMultMax);
   fHistCentrality = new TH1F("fHistCentrality", "No. events vs centrality", 20, 0, 100);    
+  fHistCentralityPostCut = new TH1F("fHistCentralityPostCut", "No. events vs centrality, after cut", 20, 0, 100);
   fHistFJRho = new TH1F("fHistFJRho", "Underlying event energy density via FastJet", 200, 0, 50);
  
   // event QA
@@ -495,6 +496,7 @@ void StJetMakerTask::DeclareHistograms() {
 void StJetMakerTask::WriteHistograms() {
   fHistMultiplicity->Write();
   fHistCentrality->Write();
+  fHistCentralityPostCut->Write();
   fHistFJRho->Write();
   fProfEventBBCx->Write();
   fProfEventZDCx->Write();
@@ -638,8 +640,7 @@ int StJetMakerTask::Make()
   // cut on unset centrality, > 80%
   if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
 
-  // multiplicity histogram
-  // event activity - compensate for pp or AuAu
+  // multiplicity histogram - event activity - compensate for pp or AuAu
   double kEventActivity = (doppAnalysis) ? (double)grefMult : refCorr2;
   fHistMultiplicity->Fill(kEventActivity);
 
@@ -647,8 +648,8 @@ int StJetMakerTask::Make()
   fHistCentrality->Fill(fCentralityScaled);
 
   // cut on centrality for analysis before doing anything
-  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
-  //if(fRequireCentSelection) { if(!mBaseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOK; }
+  if(fRequireCentSelection) { if(!mBaseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOK; }
+  fHistCentralityPostCut->Fill(fCentralityScaled);
 
   // ============================ Triggers ============================== //
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
@@ -670,6 +671,19 @@ int StJetMakerTask::Make()
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerMB) && (!fHaveMB5event) && (!fHaveMB30event)) return kStOK;  // MB triggered event
   if((fTriggerToUse == StJetFrameworkPicoBase::kTriggerHT) && (!fHaveEmcTrigger))                    return kStOK;  // HT triggered event
   // else fTriggerToUse is ANY and we still want to run analysis
+
+  // switches for QA analysis
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;                    // pp analysis
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE; // NON-pp analysis
+  bool fHaveHT2   = mBaseMaker->CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT2);  // HT2
+  bool fHaveHT3   = mBaseMaker->CheckForHT(fRunFlag, StJetFrameworkPicoBase::kIsHT3);  // HT3
+  bool fHaveMB30HT2HT3 = (fHaveMB30event || fHaveHT2 || fHaveHT3) ? kTRUE : kFALSE;
+  bool fHaveMBHT2HT3 = (doppAnalysis && (fRunForMB || fHaveHT2 || fHaveHT3)) ? kTRUE : kFALSE;
+
+  // used for test comparison (July 2019)
+  //bool continueON = (doppAnalysis) ? fHaveMBHT2HT3 : fHaveMB30HT2HT3;
+  //if(!continueON) return kStOK;
 
   // Find jets:  deprecated version -> FindJets(tracks, clus, fJetAlgo, fRadius);
   FindJets();
@@ -844,13 +858,12 @@ void StJetMakerTask::FindJets()
       // perform tower cuts
       // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV (or desired constituent cut)
       if(mTowerStatusArr[towerID]) {
-        //if(mTowerMatchTrkIndex[towerID] > 0) 
         // get track pointer
         StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
         // want to process tower on its own if track did not meet quality cut
-        // this should already be done above
+        // quality check on track should already be done above
         if(AcceptJetTrack(trk, Bfield, mVertex)) {
           // get track variables to matched tower
           TVector3 mTrkMom;
@@ -1010,7 +1023,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(uid));
       if(!trk) continue;
 
-      // acceptance and kinematic quality cuts - probably not needed (done before passing to fastjet) FIXME
+      // acceptance and kinematic quality cuts - probably not needed (done before passing to fastjet)
       if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
 
       // primary track switch: get momentum vector of track - global or primary track
@@ -1123,7 +1136,6 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         neutralE += towE;
 
         //if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
-        //if(towerID == 796 || towerID == 1427 || towerID == 1984 || towerID == 2214 || toweirID == 3488 || towerID == 3692 || towerID == 1125 || towerID == 1221) cout<<"Adding to jet now.. towerID = "<<towerID<<"  E = "<<towE<<"  eta = "<<towerEta<<"  phi = "<<towerPhi<<"  zVtx = "<<zVtx<<endl;
 
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
@@ -1396,115 +1408,6 @@ Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
   if(nBin == 9)  { centbin = nBin - 1 - cent; }
 
   return centbin;
-}
-//
-// Function: select analysis centrality bin, if performing class wide cut
-//__________________________________________________________________________________________
-Bool_t StJetMakerTask::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
-  // this function is written to cut on centrality in a task for a given range
-  // STAR centrality is written in re-verse binning (0,15) where lowest bin is highest centrality
-  // -- this is a very poor approach
-  // -- Solution, Use:  Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
-  //    in order remap the centrality to a more appropriate binning scheme
-  //    (0, 15) where 0 will correspond to the 0-5% bin
-  // -- NOTE: Use the 16 bin scheme instead of 9, its more flexible
-  // -- Example usage:
-  //    Int_t cent16 = grefmultCorr->getCentralityBin16();
-  //    Int_t centbin = GetCentBin(cent16, 16);
-  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK; (or StOk to suppress warnings)
-  //
-  // other bins can be added if needed...
-
-  Bool_t doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
-
-  // switch on bin selection
-  switch(fCentralitySelectionCut) {
-    case StJetFrameworkPicoBase::kCent010 :  // 0-10%
-      if((centbin>-1) && (centbin<2)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent020 :  // 0-20%
-      if((centbin>-1) && (centbin<4)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1020 : // 10-20%
-      if((centbin>1) && (centbin<4)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1030 : // 10-30%
-      if((centbin>1) && (centbin<6)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1040 : // 10-40%
-      if((centbin>1) && (centbin<8)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2030 : // 20-30%
-      if((centbin>3) && (centbin<6)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2040 : // 20-40%
-      if((centbin>3) && (centbin<8)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2050 : // 20-50%
-      if((centbin>3) && (centbin<10)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2060 : // 20-60%
-      if((centbin>3) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent3050 : // 30-50%
-      if((centbin>5) && (centbin<10)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent3060 : // 30-60%
-      if((centbin>5) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4060 : // 40-60%
-      if((centbin>7) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4070 : // 40-70%
-      if((centbin>7) && (centbin<14)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4080 : // 40-80%
-      if((centbin>7) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent5080 : // 50-80%
-      if((centbin>9) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent6080 : // 60-80%
-      if((centbin>11) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    default : // wrong entry
-      doAnalysis = kFALSE;
-
-  }
-
-  return doAnalysis;
 }
 //
 // Function: calculate momentum of a tower
@@ -1829,6 +1732,7 @@ void StJetMakerTask::FillJetBGBranch()
 void StJetMakerTask::SetSumw2() {
   fHistMultiplicity->Sumw2();
   fHistCentrality->Sumw2();
+  fHistCentralityPostCut->Sumw2();
   fHistFJRho->Sumw2();
   //fProfEventBBCx->Sumw2();
   //fProfEventZDCx->Sumw2();

@@ -85,7 +85,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
     virtual void            SetdoppAnalysis(Bool_t pp)         { doppAnalysis      = pp;}
-    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
@@ -246,6 +245,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 
     // histograms
     TH1F *hCentrality;//!
+    TH1F *hCentralityPostCut;//!
     TH1F *hCentralityEP;//!
     TH1F *hEventPlane;//!   
     TH2F *fHistEPTPCn;//!
@@ -257,7 +257,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     // QA histos
     TH1 *fHistEventSelectionQA;//! 
     TH1 *fHistEventSelectionQAafterCuts;//!
-    TH1 *hTriggerIds;//!
     TH1 *hEmcTriggers;//!
     TH1 *hTPCepDebug;//!
     TH1 *hBBCepDebug;//!

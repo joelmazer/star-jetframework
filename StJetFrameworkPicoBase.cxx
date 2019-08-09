@@ -61,7 +61,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   doppAnalysis(kFALSE),
   doJetShapeAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
-  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
+  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
   doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fCentralityScaled(0.),
@@ -76,6 +76,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
   fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
+  fJetConstituentCut(0.2),
   fTrackBias(0.2),
   fTowerBias(0.2),
   fJetRad(0.4),
@@ -142,7 +143,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   doppAnalysis(kFALSE),
   doJetShapeAnalysis(kFALSE),
   fCorrJetPt(kFALSE),
-  fCentralityDef(4), //(kgrefmult_P16id, default for Run16AuAu200)
+  fCentralityDef(4),
   fRequireCentSelection(kFALSE),
   doUseBBCCoincidenceRate(kFALSE), // kFALSE = use ZDC
   fCentralityScaled(0.),
@@ -157,6 +158,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
   fBadTowerListVers(0),
   fJetType(0),
   fMinPtJet(0.0),
+  fJetConstituentCut(0.2),
   fTrackBias(0.2),
   fTowerBias(0.2),
   fJetRad(0.4),
@@ -260,6 +262,12 @@ Int_t StJetFrameworkPicoBase::Init() {
         if(fBadTowerListVers == 155) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_155.txt");
         if(fBadTowerListVers == 169) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_AltBadTowers_155_ALT.txt"); // Alt list of 155, +14 = 169
 
+        // tower threshold cuts
+        if(fBadTowerListVers == 999)     AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_P12id.txt");
+        if(fBadTowerListVers == 9990200) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_P12id_200MeV.txt");
+        if(fBadTowerListVers == 9991000) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_P12id_1000MeV.txt");
+        if(fBadTowerListVers == 9992000) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_BadTowers_P12id_2000MeV.txt");
+
         //AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Empty_BadTowers.txt");
         AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2012_DeadTowers.txt");
         break;
@@ -272,9 +280,14 @@ Int_t StJetFrameworkPicoBase::Init() {
         if(fBadTowerListVers == 51)  AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers50_ALT.txt");// 50x + some manually added
 
         // P18ih - need new definitions from Nick (July 17, 2019)
-        if(fBadTowerListVers == 999) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt");
-
-        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        // tower threshold cuts
+        if(fBadTowerListVers == 999)     AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih.txt");
+        if(fBadTowerListVers == 9990200) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih_200MeV.txt");
+        if(fBadTowerListVers == 9991000) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih_1000MeV.txt");
+        if(fBadTowerListVers == 9992000) AddBadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_BadTowers_P18ih_2000MeV.txt");
+        
+        //AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers.txt");
+        AddDeadTowers("StRoot/StMyAnalysisMaker/towerLists/Y2014_DeadTowers_P18ih.txt");
         break;
 
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu (200 GeV)
@@ -495,6 +508,7 @@ TString StJetFrameworkPicoBase::GenerateJetName(EJetType_t jetType, EJetAlgo_t j
 }
 //
 // Function: to calculate relative Phi
+// range: -pi/2 to 3pi/2
 //________________________________________________________________________
 Double_t StJetFrameworkPicoBase::RelativePhi(Double_t jphi, Double_t tphi) const
 {
@@ -517,11 +531,11 @@ Double_t StJetFrameworkPicoBase::RelativePhi(Double_t jphi, Double_t tphi) const
 Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
 {
   Double_t pi = 1.0*TMath::Pi();
-  Double_t dphi = 1.0*TMath::Abs(EPAng - jetAng);
+  Double_t dphi = 1.0*TMath::Abs(jetAng - EPAng);
   
   // ran into trouble with a few dEP<-Pi so trying this...
   if( dphi < -pi ){
-    dphi = dphi + pi;
+    dphi += pi;
   } // this assumes we are doing full jets currently 
  
   if(dphi > 1.5*pi) dphi -= 2.0*pi;
@@ -529,7 +543,7 @@ Double_t StJetFrameworkPicoBase::RelativeEPJET(Double_t jetAng, Double_t EPAng) 
   if((dphi > 0.5*pi) && (dphi < 1.0*pi)) dphi -= 1.0*pi;
   dphi = 1.0*TMath::Abs(dphi);
 
-  // test check
+  // check we are within range
   if( dphi < 0 || dphi > 0.5*TMath::Pi() ) {
     //Form("%s: dPHI not in range [0, 0.5*Pi]!", GetName());
     cout<<"dEP not in range [0, 0.5*Pi]!"<<" jetAng: "<<jetAng<<"  EPang: "<<EPAng<<endl;
@@ -942,7 +956,7 @@ Bool_t StJetFrameworkPicoBase::SelectAnalysisCentralityBin(Int_t centbin, Int_t 
   // -- Example usage:
   //    Int_t cent16 = grefmultCorr->getCentralityBin16();
   //    Int_t centbin = GetCentBin(cent16, 16);
-  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK; (or StOk to suppress warnings)
+  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK;
   //
   // other bins can be added if needed...
 
@@ -1570,42 +1584,6 @@ Double_t StJetFrameworkPicoBase::ApplyTrackingEff(StPicoTrack *trk, Bool_t apply
 
   // return the single track reconstruction efficiency for the corresponding dataset
   return trEff;
-}
-//
-// Function: check for and reject bad runs
-//________________________________________________________________________
-Bool_t StJetFrameworkPicoBase::RejectRun(int RunFlag, int nRun) const {
-  bool fRejectEvent = kFALSE;
-
-  int fBadRuns[] = {0,1};
-  //int *fBadRuns;
-
-  // RunFlag switch
-  switch(RunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12 pp
-        //fBadRuns = new int [3]; // FIXME 
-        break;
-    case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-        //fBadRuns = new int{0, 1, 4, 6};
-        break;
-    case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
-        //fBadRuns = new int{1, 2, 3}; // FIXME
-        break;
-
-  } // RunFlag switch
-
-  size_t nBadRuns = sizeof(fBadRuns)/sizeof(fBadRuns[0]);
-
-  // loop over bad runs
-  for(int i = 0; i < nBadRuns; i++) {
-    // compare run to bad runs
-    if(nRun == fBadRuns[i]) { 
-      fRejectEvent = kTRUE;
-      break;
-    }
-  }
-
-  return fRejectEvent;
 }
 //
 // Trigger QA histogram, label bins 

@@ -1,8 +1,6 @@
 #ifndef StMyAnalysisMaker3_h
 #define StMyAnalysisMaker3_h
 
-//#include "StMaker.h"
-//#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 #include <set>
 
@@ -36,7 +34,6 @@ class StEventPoolManager;
 class StEventPool;
 class StCentMaker;
 
-//class StMyAnalysisMaker3 : public StMaker {
 class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
   public:
 
@@ -95,7 +92,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetJetAnalysisJetType(Int_t t)     { fJetAnalysisJetType  = t; }
     virtual void            SetdoRequireAjSelection(Bool_t d)  { doRequireAjSelection = d; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
-    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
     virtual void            SetWriteJetQAHistograms(Bool_t w)  { doWriteJetQAHist = w; }
@@ -108,12 +104,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     virtual void            SetJetShapeTrackPtRange(Double_t min, Double_t max)  { fJetShapeTrackPtMin = min; fJetShapeTrackPtMax = max; }  // jet shape analysis pt range
-    virtual void            SetJetShapePtAssocBin(Int_t p)     { fJetShapePtAssocBin = p; }  // pt associated bin used in jet shape analysis 
     virtual void            SetJetLJSubLJPtThresholds(Double_t lj, Double_t slj) { fLeadJetPtMin = lj; fSubLeadJetPtMin = slj; }
 
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
-    virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
     virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
@@ -215,11 +209,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  doJetHadronCorrelationAnalysis; // perform jet-hadron correlation analysis
 
     // cuts
-    //Double_t                fMinPtJet;               // min jet pt to keep jet in output
-    //Double_t                fJetConstituentCut;      // min jet constituent
     Double_t                fJetShapeTrackPtMin;     // jet shape analysis - min track pt
     Double_t                fJetShapeTrackPtMax;     // jet shape analysis - max track pt
-    Int_t                   fJetShapePtAssocBin;     // jet shape analysis - pt associated bin
     Double_t                fLeadJetPtMin;           // leading jet pt min
     Double_t                fSubLeadJetPtMin;        // sub-leading jet pt min
 
@@ -301,7 +292,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hdEPEventPlaneFncP2;//!
     TH1F *hdEPEventPlaneFnc2;//!
     TH1F *hdEPEventPlaneClass;//!
-    TH1F *hReactionPlaneFnc;//!
     TH1F *hEventPlaneFncN2;//!
     TH1F *hEventPlaneFncP2;//!
     TH1F *hEventPlaneFnc2;//!
@@ -314,6 +304,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH2F *fHistEPZDC;//!
     TH1F *hEventZVertex;//!
     TH1F *hCentrality;//!
+    TH1F *hCentralityPostCut;//!
     TH1F *hMultiplicity;//!
     TH1F *hStats;//!
     TH2F *hRhovsCent;//!
@@ -366,7 +357,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // QA histos
     TH1  *fHistEventSelectionQA;//! 
     TH1  *fHistEventSelectionQAafterCuts;//!
-    TH1  *hTriggerIds;//!
     TH1  *hEmcTriggers;//!
     TH1  *hBadTowerFiredTrigger;//!
     TH1  *hNGoodTowersFiringTrigger;//!
@@ -433,19 +423,10 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     StJetFrameworkPicoBase *mBaseMaker;
 
     // bad and dead tower list functions and arrays
-    //void                   ResetBadTowerList( );
-    //void                   ResetDeadTowerList( );
-    //Bool_t                 AddBadTowers(TString csvfile);
-    //Bool_t                 AddDeadTowers(TString csvfile);
-    //Bool_t                 IsTowerOK( Int_t mTowId );
-    //Bool_t                 IsTowerDead( Int_t mTowId );
     std::set<Int_t>        badTowers;
     std::set<Int_t>        deadTowers;
 
     // bad run list 
-    //void                   ResetBadRunList( );
-    //Bool_t                 AddBadRuns(TString csvfile);
-    //Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
 
     // Event pool variables - TEST

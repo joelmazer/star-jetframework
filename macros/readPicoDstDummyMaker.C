@@ -115,11 +115,9 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         // centrality global flags - no centrality for pp collisions
         Int_t CentralitySelection;
         Int_t CentralityDefinition;
-        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp 
-        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
+        if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for pp, just set one 
         if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
-        if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
-        //if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
+        if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;         // Run16 - option: StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
         // Run/Event Flag
@@ -141,7 +139,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // TODO: kTriggerANY, kTriggerMB, kTriggerHT | this is used by JetMakers to reduce amount of memory used for jet reco
-        Int_t TowerListToUse = 136; // been using 51, - doesn't matter for charged jets
+
+        // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
+        Int_t TowerListToUse = 136; // doesn't matter for charged jets
+        TowerListToUse = 9992000;  // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
         if(dopp) TowerListToUse = 169;
         // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
         // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
@@ -195,7 +196,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         baseMaker->SetBadTowerListVers(TowerListToUse);
         cout<<baseMaker->GetName()<<endl;  // print name of class instance
 
-        // update the below when running analysis - minjet pt and bias requirement
+        // create centrality class maker pointer
         StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, doComments);
         CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
         CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
@@ -226,7 +227,6 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         jetTask->SetUsePrimaryTracks(usePrimaryTracks);
         jetTask->SetRunFlag(RunFlag);           // run flag      
         jetTask->SetdoppAnalysis(dopp);         // pp switch
-        jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
         jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);     // can be tighter for Run16 (-20,20)
         jetTask->SetTurnOnCentSelection(doCentSelection);
         jetTask->SetCentralityBinCut(CentralitySelection);
@@ -257,7 +257,6 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
           jetTaskBG->SetUsePrimaryTracks(usePrimaryTracks);
           jetTaskBG->SetRunFlag(RunFlag);
           jetTaskBG->SetdoppAnalysis(dopp);
-          jetTaskBG->SetCentralityDef(CentralityDefinition);
           jetTaskBG->SetEventZVtxRange(ZVtxMin, ZVtxMax);        // can be tighter for Run16 (-20,20)
           jetTaskBG->SetTurnOnCentSelection(doCentSelection);
           jetTaskBG->SetCentralityBinCut(CentralitySelection);
@@ -278,7 +277,6 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         rhoTask->SetOutRhoName("OutRho");
         rhoTask->SetRunFlag(RunFlag);
         rhoTask->SetdoppAnalysis(dopp);
-        rhoTask->SetCentralityDef(CentralityDefinition);
         rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
         rhoTask->SetTurnOnCentSelection(doCentSelection);
         rhoTask->SetCentralityBinCut(CentralitySelection);

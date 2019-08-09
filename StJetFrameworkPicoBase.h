@@ -279,7 +279,7 @@ class StJetFrameworkPicoBase : public StMaker {
     std::set<Int_t>         GetDeadTowers()                  { return deadTowers         ; }
     std::set<Int_t>         GetBadRuns()                     { return badRuns            ; }
 
-    //Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
+    Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Bool_t                  DoComparison(int myarr[], int elems);
     Bool_t                  CheckForMB(int RunFlag, int type);
     Bool_t                  CheckForHT(int RunFlag, int type);
@@ -288,7 +288,6 @@ class StJetFrameworkPicoBase : public StMaker {
     TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Int_t                   GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Int_t                   GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
-    Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Double_t                RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
     Bool_t                  AcceptJet(StJet *jet);                                   // jets accept cuts function
@@ -297,9 +296,6 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t                GetReactionPlane(); // get reaction plane angle
     Int_t                   EventCounter();     // when called, provides Event #
     Double_t                GetRhoValue(TString fRhoMakerNametemp);
-//    Bool_t                  DoComparison(int myarr[], int elems);
-//    Bool_t                  CheckForMB(int RunFlag, int type);
-//    Bool_t                  CheckForHT(int RunFlag, int type);
     Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
     Double_t                GetMaxTrackPt();               // find max track pt in event
     Double_t                GetMaxTowerE();                // find max tower E in event
@@ -308,7 +304,6 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                   GetJetEPBin(Double_t dEP) const;
     Int_t                   Get4CentBin(Double_t scaledCent) const;
     Double_t                ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
-    Bool_t                  RejectRun(int RunFlag, int nRun) const;
     Int_t                   GetRunNo(int runid);
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   GetVzRegion(double Vz);
@@ -441,19 +436,10 @@ class StJetFrameworkPicoBase : public StMaker {
 
   private:
     // bad and dead tower list functions and arrays
-//    void                   ResetBadTowerList( );
-//    void                   ResetDeadTowerList( );
-//    Bool_t                 AddBadTowers(TString csvfile);
-//    Bool_t                 AddDeadTowers(TString csvfile);
-//    Bool_t                 IsTowerOK( Int_t mTowId );
-//    Bool_t                 IsTowerDead( Int_t mTowId );
     std::set<Int_t>        badTowers;
     std::set<Int_t>        deadTowers;
 
     // bad run list 
-//    void                   ResetBadRunList( );
-//    Bool_t                 AddBadRuns(TString csvfile);
-//    Bool_t                 IsRunOK( Int_t mRunId );
     std::set<Int_t>        badRuns;
 
     ClassDef(StJetFrameworkPicoBase, 2)

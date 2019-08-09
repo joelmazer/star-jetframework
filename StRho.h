@@ -17,7 +17,6 @@ class TClonesArray;
 // STAR classes
 class StMaker;
 
-//class StRho : virtual public StMaker, virtual public StRhoBase { //FIXME
 class StRho : public StRhoBase {
 
  public:

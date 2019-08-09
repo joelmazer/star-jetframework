@@ -74,7 +74,6 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fJetAnalysisJetType = kLeadingJets; // see header, LJ, SubLJ, inclusive
   doRequireAjSelection = kFALSE;
   fCorrJetPt = kFALSE;
-  fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum //(kgrefmult_P16id, default for Run16AuAu200)
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
   doWriteTrackQAHist = kTRUE;

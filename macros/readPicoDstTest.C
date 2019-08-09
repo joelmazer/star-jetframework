@@ -106,7 +106,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
 
         // =============================================================================== //
         // =============================================================================== //
-        // =============================================================================== //
         // over-ride functions
         if(dopp) {
           doCentSelection = kFALSE;  // can't ask for a particular centrality if requesting pp collisions
@@ -120,13 +119,11 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
 
-        // centrality global flags
+        // centrality global flags: see StCentMaker
         // Centrality Selection can be set up in certain classes, to only run for a given centrality range
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050; // set as an example
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp
-        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult;       // Run14
-        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30; // Run14 P17id (NEW - from Nick Oct 23)
         if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
@@ -152,14 +149,20 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // kTriggerANY, kTriggerMB, kTriggerHT
-        Int_t TowerListToUse = 136; //122: - doesn't matter for charged jets
+
+        // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
+        Int_t TowerListToUse = 136; // doesn't matter for charged jets
+        TowerListToUse = 9992000;   // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        if(dopp) TowerListToUse = 169;
         // Run12 pp: 1 - Raghav's list, 102 - my initial list, 169 - new list
+        // Run14: 136 - main list, 122 - past used list
+        // Run14 P18ih: 999 (initial) 
 
         // track flags
         bool usePrimaryTracks;
         if(RunYear == mRun12) usePrimaryTracks = kTRUE;
-        if(RunYear == mRun14) usePrimaryTracks = kTRUE;  // = kTRUE for Run14, kFALSE for Run16
-        if(RunYear == mRun16) usePrimaryTracks = kFALSE; 
+        if(RunYear == mRun14) usePrimaryTracks = kTRUE;
+        if(RunYear == mRun16) usePrimaryTracks = kFALSE; // don't have primary tracks (at least mid 2018 with that current production)
         if(RunYear == mRun17) usePrimaryTracks = kTRUE;  
 
         // jet type flags
@@ -206,7 +209,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         baseMaker->SetBadTowerListVers(TowerListToUse);
         cout<<baseMaker->GetName()<<endl;  // print name of class instance
 
-        // update the below when running analysis - minjet pt and bias requirement
+        // create centrality class maker pointer
         StCentMaker *CentMaker = new StCentMaker("CentMaker", picoMaker, outputFile, kFALSE);
         CentMaker->SetUsePrimaryTracks(usePrimaryTracks);       // use primary tracks
         CentMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);         // can be tighter for Run16 (-20,20)
@@ -237,7 +240,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         jetTask->SetUsePrimaryTracks(usePrimaryTracks);
         jetTask->SetRunFlag(RunFlag);           // run flag      
         jetTask->SetdoppAnalysis(dopp);         // pp switch
-        jetTask->SetCentralityDef(CentralityDefinition);  // run based centrality definition
         jetTask->SetEventZVtxRange(ZVtxMin, ZVtxMax);     // can be tighter for Run16 (-20,20)
         jetTask->SetTurnOnCentSelection(doCentSelection);
         jetTask->SetCentralityBinCut(CentralitySelection);
@@ -268,7 +270,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           jetTaskBG->SetUsePrimaryTracks(usePrimaryTracks);
           jetTaskBG->SetRunFlag(RunFlag);
           jetTaskBG->SetdoppAnalysis(dopp);
-          jetTaskBG->SetCentralityDef(CentralityDefinition);
           jetTaskBG->SetEventZVtxRange(ZVtxMin, ZVtxMax);        // can be tighter for Run16 (-20,20)
           jetTaskBG->SetTurnOnCentSelection(doCentSelection);
           jetTaskBG->SetCentralityBinCut(CentralitySelection);
@@ -289,7 +290,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         rhoTask->SetOutRhoName("OutRho");
         rhoTask->SetRunFlag(RunFlag);
         rhoTask->SetdoppAnalysis(dopp);
-        rhoTask->SetCentralityDef(CentralityDefinition);
         rhoTask->SetEventZVtxRange(ZVtxMin, ZVtxMax); // can be tighter for Run16 (-20,20)
         rhoTask->SetTurnOnCentSelection(doCentSelection);
         rhoTask->SetCentralityBinCut(CentralitySelection);
@@ -314,7 +314,6 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         anaMaker->SetJetConstituentCut(fJetConstituentCut);   // 0.2 for inclusive 
         anaMaker->SetRunFlag(RunFlag);                        // run flag: i.e. - Run14, Run16...
         anaMaker->SetdoppAnalysis(dopp);                      // running analysis over pp?
-        anaMaker->SetCentralityDef(CentralityDefinition);     // Centrality Definition
         anaMaker->SetTurnOnCentSelection(doCentSelection);    // run analysis for specific centrality: BOOLEAN
         anaMaker->SetCentralityBinCut(CentralitySelection);   // specific centrality range to run: if above is FALSE, this doesn't matter
         anaMaker->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3

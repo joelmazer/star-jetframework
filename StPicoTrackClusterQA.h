@@ -104,7 +104,6 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetDebugLevel(Int_t l)           { fDebugLevel           = l; }
   virtual void         SetRunFlag(Int_t f)              { fRunFlag              = f; }
   virtual void         SetdoppAnalysis(Bool_t pp)       { doppAnalysis          = pp;}
-  virtual void         SetCentralityDef(Int_t c)        { fCentralityDef        = c; }
   virtual void         SetTurnOnCentSelection(Bool_t o) { fRequireCentSelection = o; }
   virtual void         SetCentralityBinCut(Int_t c)     { fCentralitySelectionCut = c; }
 
@@ -165,12 +164,9 @@ class StPicoTrackClusterQA : public StMaker {
   Bool_t               AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
   Bool_t               AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
   Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                 // centrality bin
-  Bool_t               SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
   TH1*                 FillEmcTriggersHist(TH1* h);                              // EmcTrigger counter histo
   TH1*                 FillEventTriggerQA(TH1* h);                               // fill event trigger QA plots
   Bool_t               DoComparison(int myarr[], int elems);
-  Bool_t               CheckForMB(int RunFlag, int type);
-  Bool_t               CheckForHT(int RunFlag, int type);
   Double_t             GetMaxTrackPt();               // find max track pt in event
   Double_t             GetMaxTowerE();                // find max tower E in event
   void                 FillTriggerIDs(TH1* h);
@@ -183,7 +179,6 @@ class StPicoTrackClusterQA : public StMaker {
   Int_t                fDebugLevel;             // debug printout level
   Int_t                fRunFlag;                // Run Flag numerator value
   Bool_t               doppAnalysis;            // use pp analysis data
-  Int_t                fCentralityDef;          // Centrality Definition enumerator value
   Bool_t               fDoEffCorr;              // efficiency correction to tracks
   Bool_t               fDoTowerQAforHT;         // do tower QA for HT triggers (else do for MB) - temp
 
@@ -301,7 +296,6 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistEventSelectionQA;//! 
   TH1F           *fHistEventSelectionQAafterCuts;//!
   TH1F           *fHistEventSelectionTrg;//!
-  TH1F           *hTriggerIds;//!
   TH1F           *hEmcTriggers;//!
   TH1F           *fHistTriggerIDs;//!
 
@@ -337,6 +331,8 @@ class StPicoTrackClusterQA : public StMaker {
   TProfile       *fProfEventZDCx;//!
  
   // trigger histos for hot tower (threshold levels for varying bad tower lists)
+  TProfile       *fProfTowerAvgEvsID;//!
+  TProfile       *fProfTowerAvgEtvsID;//!
   TH1F           *fHistNFiredHT1vsIDEt200MeV;//!
   TH1F           *fHistNFiredHT2vsIDEt200MeV;//!
   TH1F           *fHistNFiredHT3vsIDEt200MeV;//!

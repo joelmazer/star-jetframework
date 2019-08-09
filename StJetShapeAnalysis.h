@@ -91,7 +91,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetJetAnalysisJetType(Int_t t)        { fJetAnalysisJetType  = t; }
     virtual void            SetdoRequireAjSelection(Bool_t d)  { doRequireAjSelection = d; }
     virtual void            SetTurnOnCentSelection(Bool_t o)   { fRequireCentSelection = o; }
-    virtual void            SetCentralityDef(Int_t c)          { fCentralityDef    = c; }
     virtual void            SetCentralityBinCut(Int_t c)       { fCentralitySelectionCut = c; }
     virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
 

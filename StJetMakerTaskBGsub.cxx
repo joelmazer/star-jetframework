@@ -76,7 +76,6 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   doppAnalysis(kFALSE), 
-  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE), 
   fEventZVtxMinCut(-40.0), 
@@ -174,7 +173,6 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fDebugLevel(0),
   fRunFlag(0),       // see StJetFrameworkPicoBase::fRunFlagEnum
   doppAnalysis(kFALSE),
-  fCentralityDef(4), // see StJetFrameworkPicoBase::fCentralityDefEnum
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE),
   fEventZVtxMinCut(-40.0), 
@@ -611,7 +609,7 @@ int StJetMakerTaskBGsub::Make()
   fHistCentrality->Fill(fCentralityScaled);
 
   // cut on centrality for analysis before doing anything
-  if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
+  if(fRequireCentSelection) { if(!mBaseMaker->SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }
   // ============================ end of CENTRALITY ============================== //
 
   // check for MB and HT triggers - Type Flag corresponds to selected type of MB or EMC
@@ -1256,115 +1254,6 @@ Int_t StJetMakerTaskBGsub::GetCentBin(Int_t cent, Int_t nBin) const
   if(nBin == 9)  { centbin = nBin - 1 - cent; }
 
   return centbin;
-}
-//
-//
-//__________________________________________________________________________________________
-Bool_t StJetMakerTaskBGsub::SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut) {
-  // this function is written to cut on centrality in a task for a given range
-  // STAR centrality is written in re-verse binning (0,15) where lowest bin is highest centrality
-  // -- this is a very poor approach
-  // -- Solution, Use:  Int_t StJetFrameworkPicoBase::GetCentBin(Int_t cent, Int_t nBin) const
-  //    in order remap the centrality to a more appropriate binning scheme
-  //    (0, 15) where 0 will correspond to the 0-5% bin
-  // -- NOTE: Use the 16 bin scheme instead of 9, its more flexible
-  // -- Example usage:
-  //    Int_t cent16 = grefmultCorr->getCentralityBin16();
-  //    Int_t centbin = GetCentBin(cent16, 16);
-  //    if(!SelectAnalysisCentralityBin(centbin, StJetFrameworkPicoBase::kCent3050)) return kStOK; (or StOk to suppress warnings)
-  //
-  // other bins can be added if needed...
-
-  Bool_t doAnalysis = kFALSE; // set false by default, to make sure user chooses an available bin
-
-  // switch on bin selection
-  switch(fCentralitySelectionCut) {
-    case StJetFrameworkPicoBase::kCent010 :  // 0-10%
-      if((centbin>-1) && (centbin<2)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent020 :  // 0-20%
-      if((centbin>-1) && (centbin<4)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1020 : // 10-20%
-      if((centbin>1) && (centbin<4)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1030 : // 10-30%
-      if((centbin>1) && (centbin<6)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent1040 : // 10-40%
-      if((centbin>1) && (centbin<8)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2030 : // 20-30%
-      if((centbin>3) && (centbin<6)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2040 : // 20-40%
-      if((centbin>3) && (centbin<8)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2050 : // 20-50%
-      if((centbin>3) && (centbin<10)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent2060 : // 20-60%
-      if((centbin>3) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent3050 : // 30-50%
-      if((centbin>5) && (centbin<10)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent3060 : // 30-60%
-      if((centbin>5) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4060 : // 40-60%
-      if((centbin>7) && (centbin<12)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4070 : // 40-70%
-      if((centbin>7) && (centbin<14)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent4080 : // 40-80%
-      if((centbin>7) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent5080 : // 50-80%
-      if((centbin>9) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    case StJetFrameworkPicoBase::kCent6080 : // 60-80%
-      if((centbin>11) && (centbin<16)) { doAnalysis = kTRUE; }
-      else { doAnalysis = kFALSE; }
-      break;
-
-    default : // wrong entry
-      doAnalysis = kFALSE;
-
-  }
-
-  return doAnalysis;
 }
 //
 //

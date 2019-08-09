@@ -247,6 +247,8 @@ Int_t StDummyMaker::Make() {
   }
 
   //for(int i = 1; i<4801; i++) {  if(!mBaseMaker->IsTowerOK(i))  cout<<"tower: "<<i<<" is not good!!"<<endl;  }
+  // can check for bad towers like this (if needed):
+  // bool isTowOK = mBaseMaker->IsTowerOK(towerID);
   // ===========================================================================================
 
   // cut event on max track pt > 30.0 GeV

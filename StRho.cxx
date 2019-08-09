@@ -89,8 +89,6 @@ Int_t StRho::Init()
 
 //________________________________________________________________________
 Int_t StRho::Finish() {
-  //cout << "StRho::Finish()\n";
-
   //  Write histos to file and close it.
   if(mOutName!="") {
     TFile *fout = new TFile(mOutName.Data(), "UPDATE");
@@ -117,7 +115,6 @@ Int_t StRho::Finish() {
   }
 */
 
-  //cout<<"End of StRho::Finish"<<endl;
   return kStOK;
 }
 //
@@ -226,16 +223,15 @@ Int_t StRho::Make()
   // centrality variables
   int grefMult = mCentMaker->GetgrefMult(); // see StPicoEvent
   int refMult =  mCentMaker->GetrefMult();  // see StPicoEvent
+  int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
   int centbin = mCentMaker->GetRef16();
   double refCorr2 = mCentMaker->GetRefCorr2();
   double fCent = mCentMaker->GetCentScaled(); // integer bins scaled up by 5% per
   //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
   // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
 
-/*
   // cut on unset centrality, > 80%
   if(cent16 == -1) return kStOk; // this is for lowest multiplicity events 80%+ centrality, cut on them 
-*/
 
   // cut on centrality for analysis before doing anything
   if(fRequireCentSelection) { if(!SelectAnalysisCentralityBin(centbin, fCentralitySelectionCut)) return kStOk; }

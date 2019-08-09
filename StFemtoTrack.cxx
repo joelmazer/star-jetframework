@@ -34,7 +34,6 @@ ClassImp(StFemtoTrack);
 //______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack() :
   TObject(),
-  //StVParticle(),//FIXME
   fPt(0),
   fEta(0),
   fPhi(0),
@@ -51,7 +50,6 @@ StFemtoTrack::StFemtoTrack() :
 //______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
   TObject(),
-  //StVParticle(),//FIXME
   fPt(TMath::Sqrt(px * px + py* py)),
   fEta(TMath::ASinH(pz / fPt)),
   fPhi(0),
@@ -73,7 +71,6 @@ StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
 //______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t charge) :
   TObject(),
-  //StVParticle(),//FIXME
   fPt(pt),
   fEta(eta),
   fPhi(phi),
@@ -113,7 +110,6 @@ StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVe
  */
 //______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(const StFemtoTrack& t) :
-  //StVParticle(t),//FIXME
   fPt(t.fPt),
   fEta(t.fEta),
   fPhi(t.fPhi),
@@ -138,7 +134,6 @@ StFemtoTrack::~StFemtoTrack()
 StFemtoTrack& StFemtoTrack::operator=(const StFemtoTrack& t)
 {
   if (this != &t) {
-    //StVParticle::operator=(t); //FIXME
     fPt                 = t.fPt;
     fEta                = t.fEta;
     fPhi                = t.fPhi;
