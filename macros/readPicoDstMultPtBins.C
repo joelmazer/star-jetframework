@@ -41,7 +41,7 @@ bool doCentSelection = kFALSE; //kTRUE; // FIXME
 // select run year
 Int_t RunYear = 14;      // (17) 14 for 2014 AuAu //mJobSubmission; (0)
 // kFALSE when submitting jobs, kTRUE for tests
-bool doTEST = kTRUE;     // FIXME double check before submitting!
+bool doTEST = kFALSE;     // FIXME double check before submitting!
 bool dopp = kFALSE;       // FIXME kTRUE for pp data
 bool doSetupQA = kFALSE; //kTRUE; // FIXME
 bool doAnalysisQAoutputFile = kFALSE;
@@ -75,8 +75,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
 //  Int_t nEvents = 100000; // pp
 //  Int_t nEvents = 50000;
 //  Int_t nEvents = 10000;
-//  Int_t nEvents = 4000;
-  Int_t nEvents = 1000;
+  Int_t nEvents = 4000;
+//  Int_t nEvents = 1000;
 //  Int_t nEvents = 100; 
 //  Int_t nEvents = 10;
   if(nEv > 100) nEvents = 100000000;
@@ -187,16 +187,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default (Run14)
   if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
   if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-  //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;  // kTriggerANY, kTriggerMB, kTriggerHT,    (EP corrections to be done with kTriggerHT)
-  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;   // kTriggerANY, kTriggerMB, kTriggerHT FIXME - runs over all triggers, USER needs to code specifics cuts in their class
-
-  // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
-  Int_t TowerListToUse = 136; // Run14 136: jet-hadron, early jet shape // been using 51, 3, 79 - doesn't matter for charged jets
-  if(dopp) TowerListToUse = 169;
-  TowerListToUse = 9992000;  // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
-  // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
-  // Run14: 136 - main list, 122 - past used list
-  // Run14 P18ih: 999 (initial) 
+  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;  // kTriggerANY, kTriggerMB, kTriggerHT,    (EP corrections to be done with kTriggerHT)
+//  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;   // kTriggerANY, kTriggerMB, kTriggerHT FIXME - runs over all triggers, USER needs to code specifics cuts in their class
 
   // track flags
   bool usePrimaryTracks;
@@ -213,10 +205,26 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   if(RunYear == mRun17) fJetType = kFullJet;
   double fJetRadius = 0.3;  // 0.4, 0.3, 0.2
   double fJetConstituentCut = 2.0;               // correlation analysis: 2.0, jet shape analysis: 1.0 (been using 2.0 for corrections)
-  Int_t fJetAnalysisJetType = kLeadingJets;      // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets
+  Int_t fJetAnalysisJetType = kLeadingJets;      // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets, user needs to define and use with setter in their class
+  cout<<"JetType: "<<fJetType<<"     JetRad: "<<fJetRadius<<"     JetConstit Cut: "<<fJetConstituentCut<<endl;
+
+  // FIXME - be aware of which list is used! 
+  // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
+  Int_t TowerListToUse = 136; // doesn't matter for charged jets - Run14 136-122: jet-hadron, early jet shape - Pt dep lists set below
+  if(dopp) TowerListToUse = 169;
+  // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+  if(fJetConstituentCut == 2.0) TowerListToUse = 9992000;
+  if(fJetConstituentCut == 1.0) TowerListToUse = 9991000;
+  if(fJetConstituentCut == 0.2) TowerListToUse = 9990200;
+  // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
+  // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
+  // Run14 P18ih: 999 (initial) 
+  cout<<"TowerListUsed: "<<TowerListToUse<<endl;
+
+
+  // analysis type flags (booleans):
   bool fDoJetShapeAnalysis = kTRUE;              // switch for doing jet shape analysis - one or the other true
   bool fDoJetHadronCorrelationAnalysis = kFALSE; // switch for doing jet-hadron correlation analysis - one or the other true
-  cout<<"JetType: "<<fJetType<<"     JetRad: "<<fJetRadius<<"     JetConstit Cut: "<<fJetConstituentCut<<endl;
 
   // event plane type / configuration flags - make sure this is set properly!!!
   Int_t TPCEPSelectionType = StJetFrameworkPicoBase::kRemoveEtaStrip;
@@ -290,6 +298,7 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   jetTask->SetMaxJetTrackPt(30.0);        // max track constituent
   jetTask->SetMinJetTowerE(fJetConstituentCut);  // 2.0 correlations
   jetTask->SetHadronicCorrFrac(1.0);      // fractional hadronic correction
+  jetTask->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
   jetTask->SetGhostArea(0.005);
   jetTask->SetMinJetArea(0.0);
   jetTask->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // fiducial eta acceptance
@@ -322,6 +331,7 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
     jetTaskBG->SetMaxJetTrackPt(30.0);
     jetTaskBG->SetMinJetTowerE(fJetConstituentCut); // inclusive: 0.2
     jetTaskBG->SetHadronicCorrFrac(1.0);
+    jetTaskBG->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
     jetTaskBG->SetGhostArea(0.005);
     jetTaskBG->SetMinJetArea(0.0);
     jetTaskBG->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // -0.5,0.5
@@ -356,13 +366,11 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
     rhoTask->SetCentralityBinCut(CentralitySelection);
     rhoTask->SetRejectBadRuns(RejectBadRuns);        // switch to load and than omit bad runs
 
-    //if(doTPCptassocBin) {
     //  if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
     //  if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
     //  if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
     //  if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
     //  if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-    //}
 
     if(!dopp) {
       //int ptAssocBins[5] = {0, 1, 2, 3, 4};         
@@ -420,7 +428,7 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
     int ptAssocBins[9] = {0, 1, 2, 3, 4, 4,4,4,4};
 
     for(int i = 0; i < 9; i++) { // jet shape analysis
-    //for(int i = 0; i < 5; i++) { // correlation analysis
+      if(doSTEP1 || doSTEP2) continue;
       if(i<8 && fDoJetShapeAnalysis) continue;             // - used for jet shape 
       if(i!=4 && fDoJetHadronCorrelationAnalysis) continue; // - used for jet-hadron correlation analysis
       //if(i < 4) continue; // cut for tests
@@ -433,11 +441,11 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
       anaMaker[i]->SetNMixedTr(1500);       // was 2500
       anaMaker[i]->SetNMixedEvt(1);         // was 5, was 2 before June11, 2018
       anaMaker[i]->SetDoUseMultBins(kTRUE); // use multiplicity bins (hand defined) instead of cent bins - Jet Shape Analysis
-      anaMaker[i]->SetdoUseEPBins(kFALSE);  // use event plane bins // TODO 
+      anaMaker[i]->SetdoUseEPBins(kTRUE);  // use event plane bins // TODO 
       anaMaker[i]->SetDoFilterPtMixEvents(kFALSE);              // DONT USE, filter mixed event pool by pt cut switch
       anaMaker[i]->SetCorrectJetPt(doCorrJetPt); // subtract Rho BG
       //anaMaker[i]->SetJetMaxTrackPt(4.0); // jet track bias (set in constructor)
-      anaMaker[i]->SetJetMaxTowerE(4.0);    // jet tower bias
+      anaMaker[i]->SetJetMaxTowerEt(4.0);   // jet tower bias
       anaMaker[i]->SetJetRad(fJetRadius);   // jet radius
       anaMaker[i]->SetJetConstituentCut(fJetConstituentCut);    // 2.0 is default 
       anaMaker[i]->SetJetLJSubLJPtThresholds(20.0, 10.0);       // LJ pt > 20.0, SubLJ pt > 10.0 GeV
@@ -477,13 +485,15 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
       // when running jet-hadron correlation analysis, overwrite some specific setters
       if(fDoJetHadronCorrelationAnalysis) {
         anaMaker[i]->SetDoUseMultBins(kFALSE);             // use multiplicity bins (hand defined) instead of cent bins - Jet Shape Analysis
-        anaMaker[i]->SetdoUseEPBins(kFALSE);               // use event plane bins
+        //anaMaker[i]->SetdoUseEPBins(kFALSE);               // use event plane bins
+        //anaMaker[i]->SetDoUseMultBins(kTRUE);             // use multiplicity bins (hand defined) instead of cent bins - Jet Shape Analysis
+        anaMaker[i]->SetdoUseEPBins(kTRUE);               // use event plane bins - FIXME
         anaMaker[i]->SetCentBinSize(5);                    // centrality bin size for mixed events - NOT currently used
         anaMaker[i]->SetCentBinSizeJS(5);                  // cent bin size for jet shape analysis mixed events, change to 5
         anaMaker[i]->SetJetAnalysisJetType(kInclusiveJets);  // jet type for use with jet analysis
       }
 
-      //anaMaker[i]->SetDebugLevel(StMyAnalysisMaker3::kDebugEmcTrigger);
+      //anaMaker[i]->SetDebugLevel(StMyAnalysisMaker3::kDebugTowersFiringTriggers);
     }
 
   } // if !doSetupQA

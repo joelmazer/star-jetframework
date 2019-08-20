@@ -83,7 +83,7 @@ class StJetFrameworkPicoBase : public StMaker {
       undefined_jet_algorithm         = 999
     };
 
-    // jet recombination schme enumerator
+    // jet recombination scheme enumerator
     enum ERecoScheme_t {
       E_scheme        = 0,
       pt_scheme       = 1,
@@ -95,6 +95,13 @@ class StJetFrameworkPicoBase : public StMaker {
       WTA_pt_scheme   = 7,
       WTA_modp_scheme = 8,
       external_scheme = 99
+    };
+
+    // jet hadronic correction type enumerator
+    enum EHadCorrType_t {
+      kLastMatchedTrack,
+      kHighestEMatchedTrack,
+      kAllMatchedTracks
     };
 
     // event plane track weight type enumerator
@@ -152,15 +159,16 @@ class StJetFrameworkPicoBase : public StMaker {
     //getTofTrayMultCorr();        // For TOF tray multiplicity
     //getgRefMultCorr();           // For grefmult //Run14 AuAu200GeV
     //getgRefMultCorr_P16id();     // For grefmult //Run14 AuAu200GeV, P16id
-    //getgRefMultCorr_P17id_VpdMB30();// For grefmult //Run14 AuAu200GeV, P17id for VPDMB-30; |vz| < 30
-    //getgRefMultCorr_P18ih_VpdMB30();// For grefmult //Run14 AuAu200GeV, P18ih for VPDMB-30; |vz| < 30 (new - June10, 2019)
+    //getgRefMultCorr_P17id_VpdMB30();        // For grefmult //Run14 AuAu200GeV, P17id for VPDMB-30; |vz| < 30
+    //getgRefMultCorr_P18ih_VpdMB30();        // For grefmult //Run14 AuAu200GeV, P18ih for VPDMB-30; |vz| < 30 (new - June10, 2019)
+    //getgRefMultCorr_P18ih_VpdMB30_AllLumi();// For grefmult //Run14 AuAu200GeV, P18ih for VPDMB-30; |vz| < 30 (new - Aug15, 2019), all luminosities def
     //getgRefMultCorr_VpdMB30();   // for VPDMB-30; |vz| < 30
     //getgRefMultCorr_VpdMBnoVtx();// for VPDMB-noVtx; |vz| < 100
     // centrality enum
     enum fCentralityDefEnum {
       krefmult, krefmult2, krefmult3,
       kgrefmult, kgrefmult_P16id, kgrefmult_VpdMBnoVtx, kgrefmult_VpdMB30,
-      kgrefmult_P17id_VpdMB30, kgrefmult_P18ih_VpdMB30      
+      kgrefmult_P17id_VpdMB30, kgrefmult_P18ih_VpdMB30, kgrefmult_P18ih_VpdMB30_AllLumi    
     };    
 
     // centrality bin range
@@ -219,7 +227,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetUseBBCCoincidenceRate(Bool_t b) { doUseBBCCoincidenceRate = b; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
-    virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
+    virtual void            SetMaxEventTowerEt(Double_t mxEt)  { fMaxEventTowerEt = mxEt; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
     virtual void            SetBadRunListVers(Int_t i)         { fBadRunListVers = i; }
     virtual void            SetBadTowerListVers(UInt_t ibt)    { fBadTowerListVers = ibt; }
@@ -298,7 +306,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t                GetRhoValue(TString fRhoMakerNametemp);
     Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
     Double_t                GetMaxTrackPt();               // find max track pt in event
-    Double_t                GetMaxTowerE();                // find max tower E in event
+    Double_t                GetMaxTowerEt();               // find max tower Et in event
     Int_t                   GetAnnuliBin(Double_t deltaR) const;
     Int_t                   GetJetPtBin(Double_t jetpt) const;
     Int_t                   GetJetEPBin(Double_t dEP) const;
@@ -332,7 +340,7 @@ class StJetFrameworkPicoBase : public StMaker {
     TVector3                mVertex;                 // event vertex 3-vector
     Double_t                zVtx;                    // z-vertex component
     Double_t                fMaxEventTrackPt;        // max track pt in the event (to cut on)    
-    Double_t                fMaxEventTowerE;         // max tower E in the event (to cut on)    
+    Double_t                fMaxEventTowerEt;        // max tower Et in the event (to cut on)    
     Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
     Int_t                   fBadRunListVers;         // version of bad runs file list to use
     UInt_t                  fBadTowerListVers;       // version of bad tower file list to use

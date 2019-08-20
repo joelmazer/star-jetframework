@@ -47,7 +47,7 @@ StCentMaker::StCentMaker(const char* name, StPicoDstMaker *picoMaker, const char
   fCentralityDef = 4; // see StJetFrameworkPicoBase::fCentralityDefEnum
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
@@ -109,6 +109,9 @@ Int_t StCentMaker::Init() {
               break;
           case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
@@ -259,8 +262,8 @@ Int_t StCentMaker::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get vertex 3-vector and z-vertex component
   TVector3 mVertex = mPicoEvent->primaryVertex();

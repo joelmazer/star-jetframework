@@ -89,7 +89,7 @@ StJetMakerTask::StJetMakerTask() :
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -142,6 +142,7 @@ StJetMakerTask::StJetMakerTask() :
   fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
+  fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0x0),
@@ -167,8 +168,9 @@ StJetMakerTask::StJetMakerTask() :
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE; 
 
-    mTowerMatchTrkIndex[i] = 0;
-    mTowerStatusArr[i] = kFALSE;
+    mTowerMatchTrkIndexLast[i] = -1; // 0
+    for(int j = 0; j < 7; j++) mTowerMatchTrkIndex[i][j] = -1;
+    mTowerStatusArr[i] = 0;
   }
 
 }
@@ -187,7 +189,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -240,6 +242,7 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
+  fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
   fLegacyMode(kFALSE),
   fFillGhost(kFALSE),
   fJets(0x0),
@@ -265,8 +268,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
 
-    mTowerMatchTrkIndex[i] = 0;
-    mTowerStatusArr[i] = kFALSE;
+    mTowerMatchTrkIndexLast[i] = -1; // 0
+    for(int j = 0; j < 7; j++) mTowerMatchTrkIndex[i][j] = -1;
+    mTowerStatusArr[i] = 0;
   }
 
   if (!name) return;
@@ -297,6 +301,11 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNTowervsEta)         delete fHistNTowervsEta;
   if(fHistNTowervsPhivsEta)    delete fHistNTowervsPhivsEta;
 
+  for(int i = 0; i < 5; i++) {
+    if(fHistNMatchTrack[i])       delete fHistNMatchTrack[i];
+    if(fHistHadCorrComparison[i]) delete fHistHadCorrComparison[i];
+    if(fHistHadCorrComparisonLast[i]) delete fHistHadCorrComparisonLast[i];
+  }
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
   if(fHistJetNTrackvsEta)      delete fHistJetNTrackvsEta;
@@ -462,6 +471,11 @@ void StJetMakerTask::DeclareHistograms() {
   fHistNTowervsPhivsEta = new TH2F("fHistNTowervsPhivsEta", "# vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
 
   // jet track and jet tower plots
+  for(int i = 0; i < 5; i++) {
+    fHistNMatchTrack[i] = new TH1F(Form("fHistNMatchTrack_%i", i), "Number of matched tracks to tower, cent bin: %i", 11, -0.5, 10.5);
+    fHistHadCorrComparison[i] = new TH2F(Form("fHistHadCorrComparison_%i", i), "max E_{T} vs sum E_{T} of matched tracks for had corr, cent bin: %i", 120, 0., 30., 160, -10., 30.); 
+    fHistHadCorrComparisonLast[i] = new TH2F(Form("fHistHadCorrComparisonLast_%i", i), "last E_{T} vs max E_{T} of matched tracks for had corr, cent bin: %i", 120, 0., 30., 160, -10., 30.);
+  }
   fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
   fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2.0*pi);
   fHistJetNTrackvsEta = new TH1F("fHistJetNTrackvsEta", "Jet track constituents vs #eta", 40, -1.0, 1.0);
@@ -513,6 +527,11 @@ void StJetMakerTask::WriteHistograms() {
   fHistNTowervsEta->Write();
   fHistNTowervsPhivsEta->Write();
 
+  for(int i = 0; i < 5; i++) {
+    fHistNMatchTrack[i]->Write();
+    fHistHadCorrComparison[i]->Write();
+    fHistHadCorrComparisonLast[i]->Write();
+  }
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
   fHistJetNTrackvsEta->Write();
@@ -558,8 +577,9 @@ int StJetMakerTask::Make()
 
   // ZERO these out for double checking they aren't set
   for(int i = 0; i < 4801; i++) {
-    mTowerMatchTrkIndex[i] = 0;
-    mTowerStatusArr[i] = kFALSE;
+    mTowerMatchTrkIndexLast[i] = -1; // 0
+    for(int j = 0; j < 7; j++) mTowerMatchTrkIndex[i][j] = -1;
+    mTowerStatusArr[i] = 0;
   }
 
   // get PicoDstMaker 
@@ -605,7 +625,7 @@ int StJetMakerTask::Make()
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
   // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -633,7 +653,7 @@ int StJetMakerTask::Make()
   int cent16 = mCentMaker->GetCent16(); // centrality bin from StRefMultCorr (increasing bin corresponds to decreasing cent %) - Don't use except for cut below
   int centbin = mCentMaker->GetRef16();
   double refCorr2 = mCentMaker->GetRefCorr2();
-  double fCentralityScaled = mCentMaker->GetCentScaled();
+  fCentralityScaled = mCentMaker->GetCentScaled();
   //double refCorr = mCentMaker->GetCorrectedMultiplicity(refMult, zVtx, zdcCoincidenceRate, 0); // example usage
   // for pp analyses:    centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
 
@@ -712,6 +732,14 @@ void StJetMakerTask::FindJets()
   fjw.Clear();
   fFull_Event.clear();
 
+  // get cent bin for some histograms: TODO event activity - compensate for pp or AuAu
+  Int_t cbin = -1;
+  if (fCentralityScaled >= 0 && fCentralityScaled < 10)       cbin = 1; //  0-10%
+  else if (fCentralityScaled >= 10 && fCentralityScaled < 20) cbin = 2; // 10-20%
+  else if (fCentralityScaled >= 20 && fCentralityScaled < 30) cbin = 3; // 20-30%
+  else if (fCentralityScaled >= 30 && fCentralityScaled < 50) cbin = 4; // 30-50%
+  else if (fCentralityScaled >= 50 && fCentralityScaled < 80) cbin = 5; // 50-80%
+  
   // assume neutral pion mass
   // additional parameters constructed
   double pi = 1.0*TMath::Pi();
@@ -774,10 +802,10 @@ void StJetMakerTask::FindJets()
 
   // full or neutral jets - get towers and apply hadronic correction
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
-    // ==================== March 6th, 2018
-    // towerStatus array
-    //float mTowerMatchTrkIndex[4801] = { 0 };
-    //bool mTowerStatusArr[4801] = { 0 };
+    // towerStatus array - globally declared
+    //double mTowerMatchTrkIndex[4801][7] = { -1 };
+    //int mTowerStatusArr[4801] = { 0 };
+    //double mTowerMatchTrkIndexLast[4801] = { -1 };
     int matchedTowerTrackCounter = 0;
 
     // print
@@ -795,28 +823,34 @@ void StJetMakerTask::FindJets()
       // cluster and tower ID - ID's are calculated as such:
       // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
       // mBtowId23 = (ntow[1] < 0 || ntow[1] >= 9 || ntow[2] < 0 || ntow[2] >= 9) ? -1 : (Char_t)(ntow[1] * 10 + ntow[2]);
-      // commented out clusID, towID2, towID3 on May20
-      //int clusID = cluster->bemcId();  // index in bemc point array
-      int towID = cluster->btowId();   // projected track matched tower Id: 1 - 4800
+      // commented out clusID, towID2, towID3 as they are not used
+      //int clusID = cluster->bemcId();  // index in bemc point array - associated BEMC cluster ID
+      int towID = cluster->btowId();   // projected track matched tower Id: 1 - 4800 - track matched tower ID
       //int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
       //int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-      if(towID < 0) continue;
+      if(towID < 0) continue; // THIS IS NEEDED!
+
+      // tower check
+      StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towID-1));
+      if(!tower) { cout<<"No tower pointer... iTow = "<<towID-1<<endl; continue; }
+      if(!AcceptJetTower(tower, towID)) continue; // also eliminates bad towers
 
       // matched track index
       int trackIndex = cluster->trackIndex();
+      if(trackIndex < 0) { continue; }
     
       // get pointer to StPicoTrack: with trackIndex
       StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
-      // apply quality cut to matched tracks
-      if(AcceptJetTrack(trk, Bfield, mVertex)) {
+      // apply quality cut to matched tracks (as low as 0.2 GeV - no pt cut)
+      if(!AcceptTrack(trk, Bfield, mVertex)) continue;
 
-        // tower status set - towerID is matched to track passing quality cuts
-        mTowerMatchTrkIndex[towID] = trackIndex;
-        mTowerStatusArr[towID] = kTRUE;
-        matchedTowerTrackCounter++;
-      } // when tracks meet cuts, save matching to arrays
+      // tower status set - towerID is matched to track passing quality cuts
+      mTowerMatchTrkIndexLast[towID] = trackIndex;
+      mTowerMatchTrkIndex[towID][ mTowerStatusArr[towID] ] = trackIndex;
+      mTowerStatusArr[towID] = mTowerStatusArr[towID] + 1;
+      matchedTowerTrackCounter++;
     } // PIDTraits loop
 
     // loop over towers and add input vectors to fastjet
@@ -830,6 +864,9 @@ void StJetMakerTask::FindJets()
       int towerID = itow + 1;
       if(towerID < 0) continue; // double check these aren't still in the event list
 
+      // tower acceptance cuts - cuts on *bad* towers also
+      if(!AcceptJetTower(tower, towerID)) continue;
+
       // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
       TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
       double towerPhi = towerPosition.Phi();
@@ -838,34 +875,48 @@ void StJetMakerTask::FindJets()
       double towerEta = towerPosition.PseudoRapidity();
       int towerADC = tower->adc();
       double towerEunCorr = tower->energy();  // uncorrected energy
+      double LastIndexTrktowerE = tower->energy();  // for use with using single (last indexed - OLD method) match for hadronic correction
       double towerE = tower->energy();        // corrected energy (hadronically - done below)
-      double towEt = towerE / (1.0*TMath::CosH(towerEta));
+      double towEtunCorr = towerEunCorr / (1.0*TMath::CosH(towerEta));
 
       // fill QA histos for jet towers  
       fHistNTowervsID->Fill(towerID);
       fHistNTowervsADC->Fill(towerADC);
-      fHistNTowervsE->Fill(towerE);
-      fHistNTowervsEt->Fill(towEt);
+      fHistNTowervsE->Fill(towerEunCorr);
+      fHistNTowervsEt->Fill(towEtunCorr);
       fHistNTowervsPhi->Fill(towerPhi);
       fHistNTowervsEta->Fill(towerEta);
       fHistNTowervsPhivsEta->Fill(towerPhi, towerEta);
 
-      // tower matched to firing trigger - DON'T DO HERE!!! - done in AnalysisTask:  StMyAnalysisMaker3
-      //if(fTowerToTriggerTypeHT1[emcTrigID])
-      //if(fTowerToTriggerTypeHT2[emcTrigID])
-      //if(fTowerToTriggerTypeHT3[emcTrigID])
+      // fill a NmatchTrack histogram here (centrality dependent)
+      if(cbin > 0 && cbin < 6) {
+        int arrayBin = cbin - 1; // value -> array
+        fHistNMatchTrack[arrayBin]->Fill( (double)mTowerStatusArr[towerID] );
+      }
 
-      // perform tower cuts
-      // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV (or desired constituent cut)
-      if(mTowerStatusArr[towerID]) {
+      // cut on min tower energy after filling histos
+      if(towerEunCorr < mTowerEnergyMin) continue; // if we don't have enough E to start with, why mess around
+
+      // =======================================================================
+      // HADRONIC CORRECTION
+      double maxEt = 0.;
+      double sumEt = 0.;
+
+      // if tower was is matched to a track or multiple, add up the matched track energies 
+      //     (mult opt.) to then subtract from the corresponding tower
+      // August 15: if *have* 1+ matched trk-tow AND uncorrected energy of tower is at least your tower constituent cut, then CONTINUE 
+      if(mTowerStatusArr[towerID] > 0.5 && towerEunCorr > mTowerEnergyMin) {
+        double maxE = 0.0;
+        double sumE = 0.0;
+// =======================================================================================================================
+        // --- last indexed track matched to tower
         // get track pointer
-        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndexLast[towerID] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
-        // want to process tower on its own if track did not meet quality cut
         // quality check on track should already be done above
-        if(AcceptJetTrack(trk, Bfield, mVertex)) {
-          // get track variables to matched tower
+        if(AcceptTrack(trk, Bfield, mVertex)) {
+          // momentum vector of track
           TVector3 mTrkMom;
           if(doUsePrimTracks) { 
             // get primary track vector
@@ -876,34 +927,79 @@ void StJetMakerTask::FindJets()
           }
 
           // track variables
-          //double pt = mTrkMom.Perp();
-          //double phi = mTrkMom.Phi();
-          //double eta = mTrkMom.PseudoRapidity();
           double p = mTrkMom.Mag();
           double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
           // apply hadronic correction to tower
-          towerE = towerEunCorr - (mHadronicCorrFrac * E);
+          LastIndexTrktowerE = towerEunCorr - (mHadronicCorrFrac * E);
         }  
-      } 
+// =======================================================================================================================
+        // --- finds max E track matched to tower *AND* the sum of all matched track E and subtract from said tower
+        //     USER provides readMacro.C which method to use for their analysis via SetJetHadCorrType(type);
+        // loop over ALL matched tracks
+        for(int itrk = 0; itrk < mTowerStatusArr[towerID]; itrk++) {
+          StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID][itrk] ));
+          if(!trk) { cout<<"No track pointer..."<<endl; continue; }
+          if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }  
+
+          // get track variables to matched tower from 3-vector
+          TVector3 mTrkMom;
+          if(doUsePrimTracks) { 
+            // get primary track vector
+            mTrkMom = trk->pMom();
+          } else { 
+            // get global track vector
+            mTrkMom = trk->gMom(mVertex, Bfield); 
+          }
+
+          // track variables
+          double p = mTrkMom.Mag();
+          double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+          if(E > maxE) maxE = E;
+          sumE = sumE + E;
+
+          // test statement
+          //cout<<itrk<<"  itrkE: "<<E<<"  sumtrkE: "<<sumE<<endl;
+        } // track loop
+
+        // apply hadronic correction to tower
+        maxEt  = (towerEunCorr - (mHadronicCorrFrac * maxE))/(1.0*TMath::CosH(towerEta));
+        sumEt  = (towerEunCorr - (mHadronicCorrFrac * sumE))/(1.0*TMath::CosH(towerEta));        
+
+        // fill histogram to compare 2 hadronic correction methods (centrality dependent)
+        if(cbin > 0 && cbin < 6) {
+          int arrayBin = cbin -1; // value -> array
+          fHistHadCorrComparison[arrayBin]->Fill(maxEt, sumEt);
+          fHistHadCorrComparisonLast[arrayBin]->Fill(LastIndexTrktowerE / (1.0*TMath::CosH(towerEta)), maxEt);
+        }   
+//=================================================================================================================
+      }  // have a track-tower match
       // else - no match so treat towers on their own. Must meet constituent cut
 
+      // Et - correction comparison
+      // test area =============================
+      double fMaxEt = (maxEt == 0) ? towerEunCorr / (1.0*TMath::CosH(towerEta)) : maxEt;
+      double fSumEt = (sumEt == 0) ? towerEunCorr / (1.0*TMath::CosH(towerEta)) : sumEt;
+      double fLastEt = LastIndexTrktowerE / (1.0*TMath::CosH(towerEta));
+      //if(mTowerStatusArr[towerID] > 0.5) cout<<"towerEunCorr = "<<towerEunCorr<<"  CosH: "<<1.0*TMath::CosH(towerEta)<<"  LastEt: "<<fLastEt<<"   fMaxEt: "<<fMaxEt<<"   fSumEt: "<<fSumEt<<endl;
+      // test area =============================
+
       // cut on transverse tower energy (more uniform)
-      double towerEt = towerE / (1.0*TMath::CosH(towerEta));
+      double towerEt = 0.0;
+      if(mTowerStatusArr[towerID] < 1) { // no matches, use towers uncorrected energy
+        towerEt = towerEunCorr / (1.0*TMath::CosH(towerEta)); 
+      } else { 
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kLastMatchedTrack)     {  towerEt = fLastEt; towerE = fLastEt * 1.0*TMath::CosH(towerEta); }
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kHighestEMatchedTrack) {  towerEt = fMaxEt;  towerE = fMaxEt  * 1.0*TMath::CosH(towerEta); }
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kAllMatchedTracks)     {  towerEt = fSumEt;  towerE = fSumEt  * 1.0*TMath::CosH(towerEta); } 
+      }
+      if(towerEt == 0) { cout<<"fJetHadCorrType - or - towerE actually 0"<<endl; }  // it was unset, because you provided wrong fJetHadCorrType
       if(towerEt < 0) towerEt = 0.0;
       if(towerEt < mTowerEnergyMin) continue;
 
-      // check for bad (and dead) towers
-      bool TowerOK = mBaseMaker->IsTowerOK(towerID);
-      bool TowerDead = mBaseMaker->IsTowerDead(towerID); // not used, because towers may not be 'dead'
-      if(!TowerOK) { // cout<<"towerID bad = "<<towerID<<endl;
-        continue;
-      }
-      //if(TowerDead) continue; // FIXME should I turn this back on?
-
       // get components from Energy (p - momentum) - the below lines 'converts' the tower energy to momentum:
       TVector3 mom;
-      GetMomentum(mom, tower, pi0mass, towerID);
+      GetMomentum(mom, tower, pi0mass, towerID, towerE);
       double towerPx = mom.x();
       double towerPy = mom.y();
       double towerPz = mom.z();
@@ -918,9 +1014,9 @@ void StJetMakerTask::FindJets()
         particle_Tower.set_user_index(uidTow);
         fFull_Event.push_back(particle_Tower);
       }
+
     } // tower loop
 
-// ====================
   }   // neutral/full jets
 
   // run jet finder
@@ -1067,6 +1163,10 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
 
       // neutral towers: start at (index = -2, ghosts are -1, and tracks 0+)
       if(uid < -1) {
+        // inialize Et variables
+        double maxEt = 0.0;
+        double sumEt = 0.0;
+
         // convert uid to tower index (index of tower - in BTowHit array)
         Int_t towIndex = -(uid + 2);   // 1 less than towerID
         jet->AddClusterAt(towIndex, nc);
@@ -1080,31 +1180,65 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         int towerID = towIndex + 1;
         if(towerID < 0) continue;
 
-        // get vector to get tower position
+        // tower acceptance cuts, also cuts bad towers - already done before input to FJ
+        if(!AcceptJetTower(tower, towerID)) continue;
+
+        // get vector for tower position
         TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
         double towerPhi = towerPosition.Phi();
+        if(towerPhi < 0.0)    towerPhi += 2.0*pi;
+        if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
         double towerEta = towerPosition.PseudoRapidity();
         double towEuncorr = tower->energy();
+        double LastIndexTrktowE = tower->energy();
         double towE = tower->energy();
         int towADC = tower->adc();
 
-        // shift tower phi (0, 2*pi)
-        if(towerPhi < 0.0)    towerPhi += 2.0*pi;
-        if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
+        // cut on min tower energy - shouldn't matter as this tower was *saved* to the jet 
+        if(towEuncorr < mTowerEnergyMin) continue; // if we don't have enough E to start with, why mess around
 
-        // April9, need to perform hadronic correction again since StBTowHit object is not updated
-        // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
-        if(mTowerStatusArr[towerID]) {
-          //if(mTowerMatchTrkIndex[towerID] > 0) 
-          // get track pointer
-          StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
-          if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
+        // need to perform hadronic correction again since StBTowHit object is not updated
+        // if tower was not matched to an accepted track, use it for jet by itself if > constit cut
+        if(mTowerStatusArr[towerID] > 0.5) {
+          double maxE = 0.0;
+          double sumE = 0.0;
 
-          // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
-          //if(!AcceptJetTrack(trk, Bfield, mVertex)) { continue; }
-          if(AcceptJetTrack(trk, Bfield, mVertex)) {
+// =======================================================================================================================
+          // --- last indexed track matched to tower
+          // get last matched track pointer
+          StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndexLast[towerID] ));
+          if(!track) { cout<<"No track pointer...."<<endl; continue; }
 
-            // get track variables to matched tower
+          // want to check if pass cuts, but if not then don't correct tower, but use it
+          if(AcceptTrack(track, Bfield, mVertex)) {
+            // get track momentum vector
+            TVector3 mTrkMom;
+            if(doUsePrimTracks) {
+              // get primary track vector
+              mTrkMom = track->pMom();
+            } else {
+              // get global track vector
+              mTrkMom = track->gMom(mVertex, Bfield);
+            }
+
+            // track variables
+            double p = mTrkMom.Mag();
+            double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
+            // apply hadronic correction to tower
+            LastIndexTrktowE = towEuncorr - (mHadronicCorrFrac * E);
+          }
+
+// ============================================================================================================================
+          // loop over ALL matched tracks
+          for(int itrk = 0; itrk < mTowerStatusArr[towerID]; itrk++) {
+            StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID][itrk] ));
+            if(!trk) { cout<<"No track pointer..."<<endl; continue; }
+            if(!AcceptTrack(trk, Bfield, mVertex)) { 
+              cout<<"track matched back doesn't pass cuts"<<endl; continue; 
+            }
+
+            // get track variables to matched tower from 3-vector
             TVector3 mTrkMom;
             if(doUsePrimTracks) {
               // get primary track vector
@@ -1118,24 +1252,38 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
             double p = mTrkMom.Mag();
             double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
 
-            // apply hadronic correction to tower
-            towE = towEuncorr - (mHadronicCorrFrac * E);
-          }
+            if(E > maxE) maxE = E;
+            sumE = sumE + E;
+          } // track loop
 
-        } // hadronic correction
+          // apply hadronic correction to tower
+          maxEt  = (towEuncorr - (mHadronicCorrFrac * maxE))/(1.0*TMath::CosH(towerEta));
+          sumEt  = (towEuncorr - (mHadronicCorrFrac * sumE))/(1.0*TMath::CosH(towerEta));
+// ============================================================================================================================
+        } // hadronic correction - have matched track
         // else - no match so treat towers on their own
 
-        // cut on tower transverse energy - should of already been done before adding them to fastjet
-        double towEt = towE / (1.0*TMath::CosH(towerEta)); // - FIXME should we cut on tower Et or E?
-        if(towEt < 0.0) towEt = 0.0; 
+        // set tower transverse energy, various options available
+        double fMaxEt = (maxEt == 0) ? towEuncorr / (1.0*TMath::CosH(towerEta)) : maxEt;
+        double fSumEt = (sumEt == 0) ? towEuncorr / (1.0*TMath::CosH(towerEta)) : sumEt;
+        double fLastEt = LastIndexTrktowE / (1.0*TMath::CosH(towerEta));
+
+        // cut on transverse tower energy (more uniform)
+        double towEt = 0.0;
+        if(mTowerStatusArr[towerID] < 1) { // no matches, use towers uncorrected energy
+          towEt = towEuncorr / (1.0*TMath::CosH(towerEta));
+        } else {
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kLastMatchedTrack)     { towEt = fLastEt; towE = fLastEt * 1.0*TMath::CosH(towerEta); }
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kHighestEMatchedTrack) { towEt = fMaxEt;  towE = fMaxEt  * 1.0*TMath::CosH(towerEta); }
+          if(fJetHadCorrType == StJetFrameworkPicoBase::kAllMatchedTracks)     { towEt = fSumEt;  towE = fSumEt  * 1.0*TMath::CosH(towerEta); }
+        }
+        if(towEt == 0) { cout<<"fJetHadCorrType - or - towerE actually 0"<<endl; }  // it was unset, because you provided wrong fJetHadCorrType
+        if(towEt < 0.0) towEt = 0.0;
         if(towEt < mTowerEnergyMin) continue;
-        // =================================================================
 
-        // find max tower E and neutral E total
-        if(towE > maxTower) maxTower = towE;
+        // find max tower Et and neutral E total
+        if(towEt > maxTower) maxTower = towEt;
         neutralE += towE;
-
-        //if(fTowerToTriggerTypeHT1[towerID]) cout<<"firedTrigger TowerId = "<<towerID<<endl;
 
         // fill QA histos for jet towers
         fHistJetNTowervsID->Fill(towerID);
@@ -1160,8 +1308,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   jet->SetNumberOfTracks(nt);
   jet->SetNumberOfClusters(nc);
   jet->SetMaxTrackPt(maxTrack);
-  jet->SetMaxClusterPt(maxTower);
-  jet->SetMaxTowerE(maxTower);     // should this be Et? FIXME
+  jet->SetMaxTowerEt(maxTower);  
   jet->SetNEF(neutralE/jet->E());  // should this be Et? FIXME
   //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
 
@@ -1321,6 +1468,8 @@ Bool_t StJetMakerTask::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
 }
 //
 // Function: jet track quality cuts
+// - this function should only be used for jet constituent tracks
+// 	NOT when considering track-tower matches  (Aug 19')
 //________________________________________________________________________
 Bool_t StJetMakerTask::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
   // constants: assume neutral pion mass
@@ -1390,7 +1539,7 @@ Bool_t StJetMakerTask::AcceptJetTower(StPicoBTowHit *tower, Int_t towerID) {
   if(!TowerOK)  { return kFALSE; }
   if(TowerDead) { return kFALSE; }
 
-  // jet track acceptance cuts now - after getting 3vector - hardcoded
+  // jet track acceptance cuts njow
   if((eta < fJetTowerEtaMin) || (eta > fJetTowerEtaMax)) return kFALSE;
   if((phi < fJetTowerPhiMin) || (phi > fJetTowerPhiMax)) return kFALSE;
 
@@ -1412,7 +1561,7 @@ Int_t StJetMakerTask::GetCentBin(Int_t cent, Int_t nBin) const
 //
 // Function: calculate momentum of a tower
 //________________________________________________________________________________________________________
-Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const {
+Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID, Double_t CorrectedEnergy) const {
   // vertex components - only need if below method is used
   // mGeom3->getEtaPhi(towerID,tEta,tPhi);
   //double xVtx = mVertex.x();
@@ -1420,8 +1569,9 @@ Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Do
   //double zVtx = mVertex.z();
 
   // get mass, E, P, ID
-  if(mass < 0) mass = 0;
-  Double_t energy = tower->energy();
+  if(mass < 0) mass = 0.0;
+  //Double_t energy = tower->energy();
+  Double_t energy = CorrectedEnergy;   // USE THIS, to use the corrected energy to get the momentum components
   Double_t p = TMath::Sqrt(energy*energy - mass*mass);
 
   // tower ID - passed into function
@@ -1549,11 +1699,11 @@ Double_t StJetMakerTask::GetMaxTrackPt()
 // TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
 //      and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
-Double_t StJetMakerTask::GetMaxTowerE()
+Double_t StJetMakerTask::GetMaxTowerEt()
 {
   // get # of towers
   int nTowers = mPicoDst->numberOfBTowHits();
-  double fMaxTowerE = -99;
+  double fMaxTowerEt = -99;
 
   // loop over all towers
   for(int i = 0; i < nTowers; i++) {
@@ -1561,20 +1711,23 @@ Double_t StJetMakerTask::GetMaxTowerE()
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
     if(!tower) continue;
 
+    int towerID = i+1;
+    if(towerID < 0) continue;
+
     // tower position - from vertex and ID: shouldn't need additional eta correction
-    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
     //double towerPhi = towerPosition.Phi();
     //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
     //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
-    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEta = towerPosition.PseudoRapidity();
     double towerEuncorr = tower->energy();               // uncorrected energy
-    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+    double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); // should this be used instead?
 
     // get max tower
-    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+    if(towEt > fMaxTowerEt) { fMaxTowerEt = towEt; }
   }
 
-  return fMaxTowerE;
+  return fMaxTowerEt;
 }
 //
 /**
@@ -1749,6 +1902,11 @@ void StJetMakerTask::SetSumw2() {
   fHistNTowervsEta->Sumw2();
   fHistNTowervsPhivsEta->Sumw2();
 
+  for(int i = 0; i < 5; i++) { 
+    fHistNMatchTrack[i]->Sumw2();
+    fHistHadCorrComparison[i]->Sumw2();
+    fHistHadCorrComparisonLast[i]->Sumw2();
+  }
   fHistJetNTrackvsPt->Sumw2();
   fHistJetNTrackvsPhi->Sumw2();
   fHistJetNTrackvsEta->Sumw2();

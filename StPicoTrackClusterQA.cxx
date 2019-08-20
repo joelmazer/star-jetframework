@@ -81,7 +81,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -126,6 +126,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA() :
   mTowerStatusMode(AcceptAllTowers),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.0),
+  fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
   mMuDstMaker(0x0),
   mMuDst(0x0),
   mMuInputEvent(0x0),
@@ -160,7 +161,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   fDoEffCorr(kFALSE),
   fDoTowerQAforHT(kFALSE),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
@@ -205,6 +206,7 @@ StPicoTrackClusterQA::StPicoTrackClusterQA(const char *name, bool doHistos = kFA
   mTowerStatusMode(AcceptAllTowers),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.0),
+  fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
   mMuDstMaker(0x0),
   mMuDst(0x0),
   mMuInputEvent(0x0),
@@ -742,8 +744,8 @@ int StPicoTrackClusterQA::Make()
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -1817,12 +1819,12 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
   double pi0mass = Pico::mMass[0]; // GeV
 
   // towerStatus array
-  float mTowerMatchTrkIndex[4801] = { 0 };
-  bool mTowerStatusArr[4801] = { 0 };
+  double mTowerMatchTrkIndexLast[4801] = { -1 };
+  double mTowerMatchTrkIndex[4801][7] = { -1 };
+  int mTowerStatusArr[4801] = { 0 };
   int matchedTowerTrackCounter = 0;
 
   // print
-  //int nTracks = mPicoDst->numberOfTracks();
   //int nTrigs = mPicoDst->numberOfEmcTriggers();
   //int nBTowHits = mPicoDst->numberOfBTOWHits();
   int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
@@ -1838,18 +1840,16 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
     int towID = cluster->btowId();   // projected tower Id: 1 - 4800
     int towID2 = cluster->btowId2(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
     int towID3 = cluster->btowId3(); // emc 2nd and 3rd closest tower local id  ( 2nd X 10 + 3rd), each id 0-8
-    if(towID < 0) continue;
+    if(towID < 0) continue; // THIS IS NEEDED
 
-    // cluster and tower position - from vertex and ID
-    TVector3 towPosition = mEmcPosition->getPosFromVertex(mVertex, towID);
-    double towPhi = towPosition.Phi();
-    if(towPhi < 0.0)    towPhi += 2.0*pi;
-    if(towPhi > 2.0*pi) towPhi -= 2.0*pi;
-    //double towEta = towPosition.PseudoRapidity();
-    //double detectorRadius = mGeom->Radius();
+    // tower check
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towID-1));
+    if(!tower) { cout<<"No tower pointer... iTow = "<<towID-1<<endl; continue; }
+    if(!AcceptTower(tower, towID)) continue; // also eliminates bad towers, do you want this on for QA?
 
     // matched track index
     int trackIndex = cluster->trackIndex();
+    if(trackIndex < 0) { continue; }
 
     // get track pointer
     StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track(trackIndex));
@@ -1857,13 +1857,11 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
     if(!AcceptTrack(trk, Bfield, mVertex)) { continue; } 
 
     // tower status set - towerID is matched to track passing quality cuts
-    mTowerMatchTrkIndex[towID] = trackIndex;
-    mTowerStatusArr[towID] = kTRUE;
+    mTowerMatchTrkIndexLast[towID] = trackIndex;
+    mTowerMatchTrkIndex[towID][ mTowerStatusArr[towID] ] = trackIndex;
+    mTowerStatusArr[towID] = mTowerStatusArr[towID] + 1;
     matchedTowerTrackCounter++;
 
-    // print tower and track info
-    //cout<<"towers: towPhi = "<<towPhi<<"  towEta = "<<towEta<<"  etaCorr = "<<etaCorr;  //<<endl;
-    //cout<<"tracks:  pt = "<<pt<<"  p = "<<p<<"  phi = "<<phi<<"  eta = "<<eta<<endl;
   } // loop over BEmcPidTraits
 
   // print statment on matches
@@ -1891,40 +1889,102 @@ void StPicoTrackClusterQA::RunHadCorrTowerQA()
     if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
     double towerEta = towerPosition.PseudoRapidity();
     //int towerADC = tower->adc();
-    //double towerEunCorr = tower->energy();
-    double towerE = tower->energy();
+    double towerEunCorr = tower->energy();  // uncorrected energy
+    double LastIndexTrktowerE = tower->energy();  // for use with using single (last indexed - OLD method) match for hadronic correction
+    double towerE = tower->energy();        // corrected energy (hadronically - done below)
 
-    // perform tower cuts - if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV (constituent cut)
-    if(mTowerStatusArr[towerID]) {
-      //if(mTowerMatchTrkIndex[towerID] > 0) 
+    // cut on min tower energy after filling histos - FIXME fix this cut
+    //if(towerEunCorr < mTowerEnergyMin) continue; // if we don't have enough E to start with, why mess around
+
+    // HADRONIC CORRECTION
+    double maxEt = 0.;
+    double sumEt = 0.;
+
+    // if tower was is matched to a track or multiple, add up the matched track energies 
+    //     (mult opt.) to then subtract from the corresponding tower
+    // August 15: if *have* 1+ matched trk-tow AND uncorrected energy of tower is at least your tower constituent cut, then CONTINUE 
+    if(mTowerStatusArr[towerID] > 0.5) {
+      double maxE = 0.0;
+      double sumE = 0.0;
+
+      // --- last indexed track matched to tower
       // get track pointer
-      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
-      if(!trk) { cout<<"No trk pointer...."<<endl; continue; } 
-      if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }
+      StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndexLast[towerID] ));
+      if(!trk) { cout<<"No trk pointer...."<<endl; continue; } // FIXME 
 
-      // get track variables to matched tower
-      TVector3 mTrkMom;
-      if(doUsePrimTracks) { 
-        // get primary track vector
-        mTrkMom = trk->pMom(); 
-      } else { 
-        // get global track vector
-        mTrkMom = trk->gMom(mVertex, Bfield); 
-      }
+      // apply quality cuts to track
+      if(AcceptTrack(trk, Bfield, mVertex)) {
 
-      //double pt = mTrkMom.Perp();
-      //double phi = mTrkMom.Phi();
-      //double eta = mTrkMom.PseudoRapidity();
-      double p = mTrkMom.Mag();
-      double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+        // get track variables to matched tower
+        TVector3 mTrkMom;
+        if(doUsePrimTracks) { 
+          // get primary track vector
+          mTrkMom = trk->pMom(); 
+        } else { 
+          // get global track vector
+          mTrkMom = trk->gMom(mVertex, Bfield); 
+        }
 
-      // apply hadronic correction
-      towerE = towerE - (mHadronicCorrFrac * E);
-    } 
+        //double pt = mTrkMom.Perp();
+        //double phi = mTrkMom.Phi();
+        //double eta = mTrkMom.PseudoRapidity();
+        double p = mTrkMom.Mag();
+        double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+
+        // apply hadronic correction
+        LastIndexTrktowerE = towerEunCorr - (mHadronicCorrFrac * E);
+      } 
+
+      // --- finds max E track matched to tower *AND* the sum of all matched track E and subtract from said tower
+      //     USER provides readMacro.C which method to use for their analysis via SetJetHadCorrType(type);
+      // loop over ALL matched tracks
+      for(int itrk = 0; itrk < mTowerStatusArr[towerID]; itrk++) {
+        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID][itrk] ));
+        if(!trk) { cout<<"No track pointer..."<<endl; continue; }
+        if(!AcceptTrack(trk, Bfield, mVertex)) { cout<<"track matched back doesn't pass cuts"<<endl; continue; }
+
+        // get track variables to matched tower from 3-vector
+        TVector3 mTrkMom;
+        if(doUsePrimTracks) {
+          // get primary track vector
+          mTrkMom = trk->pMom();
+        } else {
+          // get global track vector
+          mTrkMom = trk->gMom(mVertex, Bfield);
+        }
+
+        // track variables
+        double p = mTrkMom.Mag();
+        double E = 1.0*TMath::Sqrt(p*p + pi0mass*pi0mass);
+        if(E > maxE) maxE = E;
+        sumE = sumE + E;
+
+        // test statement
+        //cout<<itrk<<"  itrkE: "<<E<<"  sumtrkE: "<<sumE<<endl;
+      } // track loop
+
+      // apply hadronic correction to tower
+      maxEt  = (towerEunCorr - (mHadronicCorrFrac * maxE))/(1.0*TMath::CosH(towerEta));
+      sumEt  = (towerEunCorr - (mHadronicCorrFrac * sumE))/(1.0*TMath::CosH(towerEta));
+    } // have a track-tower match
     // else - no match so treat towers on their own
 
-    // cut on transvere tower energy - corrected or not
-    double towerEt = towerE / (1.0*TMath::CosH(towerEta));
+    // Et - hadronic correction comparison
+    double fMaxEt = (maxEt == 0) ? towerEunCorr / (1.0*TMath::CosH(towerEta)) : maxEt;
+    double fSumEt = (sumEt == 0) ? towerEunCorr / (1.0*TMath::CosH(towerEta)) : sumEt;
+    double fLastEt = LastIndexTrktowerE / (1.0*TMath::CosH(towerEta));
+    //if(mTowerStatusArr[towerID] > 0.5) cout<<"towerEunCorr = "<<towerEunCorr<<"  CosH: "<<1.0*TMath::CosH(towerEta)<<"  LastEt: "<<fLastEt<<"   fMaxEt: "<<fMaxEt<<"   fSumEt: "<<fSumEt<<endl;
+
+    // cut on transverse tower energy (more uniform)
+    double towerEt = 0.0;
+    if(mTowerStatusArr[towerID] < 1) { // no matches, use towers uncorrected energy
+      towerEt = towerEunCorr / (1.0*TMath::CosH(towerEta));
+    } else {
+        if(fJetHadCorrType == StJetFrameworkPicoBase::kLastMatchedTrack)     {  towerEt = fLastEt; towerE = fLastEt * 1.0*TMath::CosH(towerEta); }
+        if(fJetHadCorrType == StJetFrameworkPicoBase::kHighestEMatchedTrack) {  towerEt = fMaxEt;  towerE = fMaxEt  * 1.0*TMath::CosH(towerEta); }
+        if(fJetHadCorrType == StJetFrameworkPicoBase::kAllMatchedTracks)     {  towerEt = fSumEt;  towerE = fSumEt  * 1.0*TMath::CosH(towerEta); }
+    }
+    if(towerEt == 0) { cout<<"fJetHadCorrType - or - towerE actually 0"<<endl; }  // it was unset, because you provided wrong fJetHadCorrType
     if(towerEt < 0) towerEt = 0.0;
     if(towerEt < mTowerEnergyMin) continue;
 
@@ -2188,17 +2248,17 @@ Double_t StPicoTrackClusterQA::GetMaxTrackPt()
   return fMaxTrackPt;
 }
 //
-// Function: Returns E of most energetic tower in the event
+// Function: Returns Et of most energetic tower in the event
 // TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
 // 	and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
-Double_t StPicoTrackClusterQA::GetMaxTowerE()
+Double_t StPicoTrackClusterQA::GetMaxTowerEt()
 {
   // get # of towers
   int nTowers = mPicoDst->numberOfBTowHits();
-  double fMaxTowerE = -99;
+  double fMaxTowerEt = -99;
 
-  cout<<"1: "<<fMaxTowerE<<"   nTowers: "<<nTowers<<endl;
+  cout<<"1: "<<fMaxTowerEt<<"   nTowers: "<<nTowers<<endl;
 
   // loop over all towers
   for(int i = 0; i < nTowers; i++) {
@@ -2216,10 +2276,10 @@ Double_t StPicoTrackClusterQA::GetMaxTowerE()
     //double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); // should this be used instead?
 
     // get max tower
-    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+    if(towerEuncorr > fMaxTowerEt) { fMaxTowerEt = towerEuncorr; }
   }
 
-  return fMaxTowerE;
+  return fMaxTowerEt;
 }
 //
 // fill trigger ids of the dataset into a histogram

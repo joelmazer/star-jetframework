@@ -122,7 +122,7 @@ class StJetMakerTask : public StMaker {
   virtual void         SetMBEventType(UInt_t mbe)        { fMBEventType = mbe; }   
   virtual void         SetTriggerToUse(UInt_t ttu)       { fTriggerToUse = ttu; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
-  virtual void         SetMaxEventTowerE(Double_t mxE)   { fMaxEventTowerE = mxE; }
+  virtual void         SetMaxEventTowerEt(Double_t mxEt) { fMaxEventTowerEt = mxEt; }
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
 
   // track setters
@@ -213,6 +213,7 @@ class StJetMakerTask : public StMaker {
 
   // set hadronic correction fraction for matched tracks to towers
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
+  void                   SetJetHadCorrType(Int_t hct)       { fJetHadCorrType = hct;}
 
  protected:
   // this 1st version is deprecated as the parameters are global for the class and already set
@@ -225,10 +226,10 @@ class StJetMakerTask : public StMaker {
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // jet track accept cuts function
   Bool_t                 AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // jet tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
-  Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
+  Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID, Double_t CorrectedEnergy) const;
   void                   FillEmcTriggersArr();
   Double_t               GetMaxTrackPt();               // find max track pt in event
-  Double_t               GetMaxTowerE();                // find max tower E in event
+  Double_t               GetMaxTowerEt();               // find max tower Et in event
   void                   RunEventQA();
   void                   SetSumw2(); // set errors weights 
   Int_t                  GetRunNo(int runid);
@@ -257,7 +258,7 @@ class StJetMakerTask : public StMaker {
   Double_t               fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                  fCentralitySelectionCut; // centrality selection cut
   Double_t               fMaxEventTrackPt;        // max track pt in the event (to cut on)    
-  Double_t               fMaxEventTowerE;         // max tower E in the event (to cut on)    
+  Double_t               fMaxEventTowerEt;        // max tower Et in the event (to cut on)    
   Bool_t                 doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
   // event variables
@@ -339,6 +340,7 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetTowerPhiMax;         // max jet tower phi cut
   Double_t               mTowerEnergyMin;         // min jet tower energy cut
   Float_t                mHadronicCorrFrac;       // hadronic correction fraction from 0.0 to 1.0
+  Int_t                  fJetHadCorrType;         // hadronic correction type to be used
 
   // may not need some of next bools
   TObjArray             *fUtilities;              // jet utilities (gen subtractor, constituent subtractor etc.)
@@ -374,8 +376,11 @@ class StJetMakerTask : public StMaker {
   // centrality objects
   StRefMultCorr         *grefmultCorr;
 
-  Float_t                mTowerMatchTrkIndex[4801];
-  Bool_t                 mTowerStatusArr[4801];
+//  Double_t                mTowerMatchTrkIndex[4801];
+//  Bool_t                 mTowerStatusArr[4801];
+  Double_t               mTowerMatchTrkIndexLast[4801];
+  Double_t               mTowerMatchTrkIndex[4801][7];
+  Int_t                  mTowerStatusArr[4801];
 
   // histograms
   TH1F           *fHistMultiplicity;//!
@@ -398,6 +403,8 @@ class StJetMakerTask : public StMaker {
   TH2F           *fHistNTowervsPhivsEta;//!
 
   TH1F           *fHistNMatchTrack[5];//!
+  TH2F           *fHistHadCorrComparison[5];//!
+  TH2F           *fHistHadCorrComparisonLast[5];//!
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
@@ -432,6 +439,6 @@ class StJetMakerTask : public StMaker {
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented
 
-  ClassDef(StJetMakerTask, 2) // Jet producing task
+  ClassDef(StJetMakerTask, 3) // Jet producing task
 };
 #endif

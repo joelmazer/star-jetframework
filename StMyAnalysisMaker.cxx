@@ -133,7 +133,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   doWriteJetQAHist = kTRUE;
   doUseBBCCoincidenceRate = kFALSE; // kFALSE = use ZDC
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   fDoEffCorr = kFALSE;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
@@ -405,6 +405,12 @@ Int_t StMyAnalysisMaker::Init() {
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              break; 
+          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi :
+              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
+              break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
@@ -424,9 +430,7 @@ Int_t StMyAnalysisMaker::Init() {
           case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
               break;
-          case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
-              break; case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
+          case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
               grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
               break;
           default:
@@ -1195,8 +1199,8 @@ Int_t StMyAnalysisMaker::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
   
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -1489,7 +1493,7 @@ Int_t StMyAnalysisMaker::Make() {
     if(fCorrJetPt) {  // background subtracted jet pt
       if(corrjetpt < fMinPtJet) continue;
     } else { if(jetpt < fMinPtJet) continue; }
-    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
+    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) continue;
 
     // test QA stuff...
     //cout<<"ijet = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
@@ -1735,7 +1739,7 @@ Int_t StMyAnalysisMaker::Make() {
         // Fill for biased jet triggers only
         //if ((jet->MaxTrackPt()>fTrkBias) || (jet->MaxClusterPt()>fClusBias)) {  // && jet->Pt() > fJetPtcut) {
         ///if(jet->GetMaxTrackPt() > fTrackBias) {  // update May14, 2018
-        if((jet->GetMaxTrackPt() > fTrackBias) || (jet->GetMaxTowerE() > fTowerBias)) {
+        if((jet->GetMaxTrackPt() > fTrackBias) || (jet->GetMaxTowerEt() > fTowerBias)) {
           // Fill mixed-event histos here: loop over nMix events
           for(int jMix = 0; jMix < nMix; jMix++) {
             // get jMix'th event

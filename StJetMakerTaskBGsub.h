@@ -89,7 +89,7 @@ class StJetMakerTaskBGsub : public StMaker {
   virtual void         SetMBEventType(UInt_t mbe)        { fMBEventType = mbe; }   
   virtual void         SetTriggerToUse(UInt_t ttu)       { fTriggerToUse = ttu; }
   virtual void         SetMaxEventTrackPt(Double_t mxpt) { fMaxEventTrackPt = mxpt; }
-  virtual void         SetMaxEventTowerE(Double_t mxE)   { fMaxEventTowerE = mxE; }
+  virtual void         SetMaxEventTowerEt(Double_t mxEt) { fMaxEventTowerEt = mxEt; }
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
 
   // common setters
@@ -118,7 +118,7 @@ class StJetMakerTaskBGsub : public StMaker {
   void                 SetJetTrackDCAcut(Double_t d)              { fJetTrackDCAcut   = d     ; }
   void                 SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
   void                 SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
-  void                 SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min;}
+  void                 SetMinJetTowerE(Double_t min)             { mTowerEnergyMin = min;}
   void                 SetJetTowerERange(Double_t enmi, Double_t enmx) { fJetTowerEMin = enmi; fJetTowerEMax = enmx; }
   void                 SetJetTowerEtaRange(Double_t temi, Double_t temx) { fJetTowerEtaMin = temi; fJetTowerEtaMax = temx; }
   void                 SetJetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fJetTowerPhiMin = tpmi; fJetTowerPhiMax = tpmx; }
@@ -182,7 +182,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Bool_t               GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
   void                 FillEmcTriggersArr();
   Double_t             GetMaxTrackPt();               // find max track pt in event
-  Double_t             GetMaxTowerE();                // find max tower E in event
+  Double_t             GetMaxTowerEt();               // find max tower Et in event
   Int_t                FastJetBGsub();
 
   void                 SetSumw2(); // set errors weights 
@@ -211,7 +211,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Double_t             fEventZVtxMaxCut;        // max event z-vertex cut
   Int_t                fCentralitySelectionCut; // centrality selection cut
   Double_t             fMaxEventTrackPt;        // max track pt in the event (to cut on)    
-  Double_t             fMaxEventTowerE;         // max tower E in the event (to cut on)    
+  Double_t             fMaxEventTowerEt;        // max tower Et in the event (to cut on)    
   Bool_t               doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
 
   // event variables

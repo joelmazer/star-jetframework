@@ -56,7 +56,7 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
   fRequireCentSelection = kFALSE;
   fCentralitySelectionCut = -99;
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   doRejectBadRuns = kFALSE;
   fHistCentBinMin = 0;
   fHistCentBinMax = 9;               // 0-5, 5-10, 10-20, 20-30, 30-40, 40-50, 50-60, 60-70, 70-80
@@ -315,8 +315,8 @@ Int_t StEventPoolMaker::Make() {
   // cut event on max track pt > 35.0 GeV (30 Oct25, 2018)
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

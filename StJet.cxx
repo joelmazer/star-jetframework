@@ -49,7 +49,7 @@ StJet::StJet() :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
-  fMaxTowerE(0),
+  fMaxTowerEt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -94,7 +94,7 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
-  fMaxTowerE(0),
+  fMaxTowerEt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -144,7 +144,7 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fMaxCPt(0),
   fMaxNPt(0),
   fMaxTrackPt(0),
-  fMaxTowerE(0),
+  fMaxTowerEt(0),
   fMCPt(0),
   fNn(0),
   fNch(0),
@@ -188,7 +188,7 @@ StJet::StJet(const StJet& jet) :
   fMaxCPt(jet.fMaxCPt),
   fMaxNPt(jet.fMaxNPt),
   fMaxTrackPt(jet.fMaxTrackPt),
-  fMaxTowerE(jet.fMaxTowerE),
+  fMaxTowerEt(jet.fMaxTowerEt),
   fMCPt(jet.fMCPt),
   fNn(jet.fNn),
   fNch(jet.fNch),
@@ -246,7 +246,7 @@ StJet& StJet::operator=(const StJet& jet)
     fMaxCPt             = jet.fMaxCPt;
     fMaxNPt             = jet.fMaxNPt;
     fMaxTrackPt         = jet.fMaxTrackPt;
-    fMaxTowerE          = jet.fMaxTowerE;
+    fMaxTowerEt         = jet.fMaxTowerEt;
     fMCPt               = jet.fMCPt;
     fNn                 = jet.fNn;
     fNch                = jet.fNch;

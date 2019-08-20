@@ -78,7 +78,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fCentralitySelectionCut = -99;
   doWriteTrackQAHist = kTRUE;
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   doRejectBadRuns = kFALSE;
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
@@ -602,8 +602,8 @@ Int_t StJetShapeAnalysis::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 
@@ -912,7 +912,7 @@ Int_t StJetShapeAnalysis::Make() {
     if(fCorrJetPt) {  // background subtracted jet pt
       if(corrjetpt < fMinPtJet) continue;
     } else { if(jetpt < fMinPtJet) continue; }
-    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
+    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) continue;
 
     // TODO check that jet contains a tower that fired the trigger
     if(!DidTowerConstituentFireTrigger(jet)) { continue; }
@@ -1357,7 +1357,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     if(jetPtBin < 0) return kStOK;
 
     // require tower and or track bias for jet
-    //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) return kStOK;
+    //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) return kStOK;
 
     // check that jet contains a tower that fired the trigger
     //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;

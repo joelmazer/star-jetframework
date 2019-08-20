@@ -48,7 +48,8 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
       kDebugJetConstituents,
       kDebugJetvsEPtype,
       kDebugRhoEstimate,
-      kDebugLeadSubLeadJets
+      kDebugLeadSubLeadJets,
+      kDebugTowersFiringTriggers
     };
 
     // enumerator for jet analysis jet type
@@ -101,7 +102,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
     virtual void            SetJetConstituentCut(Double_t mc)  { fJetConstituentCut= mc;}    // min constituent pt cut
     virtual void            SetJetMaxTrackPt(Double_t t)       { fTrackBias        = t; }    // track bias
-    virtual void            SetJetMaxTowerE(Double_t t)        { fTowerBias        = t; }    // tower bias
+    virtual void            SetJetMaxTowerEt(Double_t t)       { fTowerBias        = t; }    // tower bias
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     virtual void            SetJetShapeTrackPtRange(Double_t min, Double_t max)  { fJetShapeTrackPtMin = min; fJetShapeTrackPtMax = max; }  // jet shape analysis pt range
     virtual void            SetJetLJSubLJPtThresholds(Double_t lj, Double_t slj) { fLeadJetPtMin = lj; fSubLeadJetPtMin = slj; }
@@ -109,7 +110,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
     virtual void            SetMaxEventTrackPt(Double_t mxpt)  { fMaxEventTrackPt = mxpt; }
-    virtual void            SetMaxEventTowerE(Double_t mxE)    { fMaxEventTowerE = mxE; }
+    virtual void            SetMaxEventTowerEt(Double_t mxEt)  { fMaxEventTowerEt = mxEt; }
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
@@ -188,9 +189,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Bool_t                  DidBadTowerFireTrigger();
+    Bool_t                  DidBadTowerFireHTTrigger(); // TEST - August 2019
     Int_t                   JetHadronCorrelationAnalysis(StJet *jet, StEventPool *pool, Int_t centbin, Int_t assocPtBin);
     Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin);
     void                    GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin);
+    void                    FillTriggerIDs(TH1 *h);
 
     // switches
     Bool_t                  doPrintEventCounter;     // print event # switch
@@ -358,6 +361,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1  *fHistEventSelectionQA;//! 
     TH1  *fHistEventSelectionQAafterCuts;//!
     TH1  *hEmcTriggers;//!
+    TH1  *hEventTriggerIDs;//!
     TH1  *hBadTowerFiredTrigger;//!
     TH1  *hNGoodTowersFiringTrigger;//!
     TH1  *hMixEvtStatZVtx;//!

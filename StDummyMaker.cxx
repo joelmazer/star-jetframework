@@ -78,7 +78,7 @@ StDummyMaker::StDummyMaker(const char* name, StPicoDstMaker *picoMaker, const ch
   fJetRad = 0.4;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
   fTrackPhiMinCut = 0.0; fTrackPhiMaxCut = 2.0*TMath::Pi();
   fTrackEtaMinCut = -1.0; fTrackEtaMaxCut = 1.0;
@@ -254,8 +254,8 @@ Int_t StDummyMaker::Make() {
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField(); 

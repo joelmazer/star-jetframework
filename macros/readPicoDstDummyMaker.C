@@ -138,15 +138,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;    // TODO: kTriggerANY, kTriggerMB, kTriggerHT | this is used by JetMakers to reduce amount of memory used for jet reco
-
-        // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
-        Int_t TowerListToUse = 136; // doesn't matter for charged jets
-        TowerListToUse = 9992000;  // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
-        if(dopp) TowerListToUse = 169;
-        // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
-        // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
-        // Run14 P18ih: 999 (initial) 
+        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerAny;  // kTriggerANY, kTriggerMB, kTriggerHT  - only used by JetMaker and EPMaker (set to HT when doing EP corrections)
 
         // track flags
         bool usePrimaryTracks;
@@ -165,6 +157,19 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         double fJetConstituentCut = 2.0; // correlation analysis: 2.0, jet shape analysis: 2.0 (been using 2.0 for corrections)
         Int_t fJetAnalysisJetType = kLeadingJets;  // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets (need to set up in analysis when you want to use)
         cout<<"fJetType: "<<fJetType<<endl;
+
+        // FIXME - be aware of which list is used! 
+        // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
+        Int_t TowerListToUse = 136; // doesn't matter for charged jets
+        if(dopp) TowerListToUse = 169;
+        // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        if(fJetConstituentCut == 2.0) TowerListToUse = 9992000;
+        if(fJetConstituentCut == 1.0) TowerListToUse = 9991000;
+        if(fJetConstituentCut == 0.2) TowerListToUse = 9990200;
+        // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
+        // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
+        // Run14 P18ih: 999 (initial) 
+        cout<<"TowerListUsed: "<<TowerListToUse<<endl;
 
         // update settings for new centrality definitions - certain productions had settings for z-vertex < 30 when calculating centrality definitions, etc..
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
@@ -293,7 +298,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         dummyMaker->SetJetRad(fJetRadius);                 // jet radius
         dummyMaker->SetMinJetPt(10.0);                     // minimum jet pt cut
         dummyMaker->SetJetMaxTrackPt(0.0);                 // jet track bias
-        dummyMaker->SetJetMaxTowerE(0.0);                  // jet tower bias
+        dummyMaker->SetJetMaxTowerEt(0.0);                 // jet tower bias
         dummyMaker->SetMinTrackPt(0.2);                    // track quality cut (not related to constituents!)
         dummyMaker->SetEventZVtxRange(ZVtxMin, ZVtxMax);   // can be tighter for Run16 (-20,20)
         dummyMaker->SetTrackPhiRange(0.0, 2.0*TMath::Pi());// track phi acceptance

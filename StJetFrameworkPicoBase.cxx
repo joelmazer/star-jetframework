@@ -70,7 +70,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase() :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerEt(1000.0), //30
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   fBadTowerListVers(0),
@@ -152,7 +152,7 @@ StJetFrameworkPicoBase::StJetFrameworkPicoBase(const char* name) :
 //  mVertex(0x0),
   zVtx(0.0),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(30.0),
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   fBadRunListVers(999),
   fBadTowerListVers(0),
@@ -1516,11 +1516,11 @@ Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
 // TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
 //      and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
-Double_t StJetFrameworkPicoBase::GetMaxTowerE()
+Double_t StJetFrameworkPicoBase::GetMaxTowerEt()
 {
   // get # of towers
   int nTowers = mPicoDst->numberOfBTowHits();
-  double fMaxTowerE = -99;
+  double fMaxTowerEt = -99;
 
   // loop over all towers
   for(int i = 0; i < nTowers; i++) {
@@ -1528,20 +1528,23 @@ Double_t StJetFrameworkPicoBase::GetMaxTowerE()
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
     if(!tower) continue;
 
+    int towerID = i+1;
+    if(towerID < 0) continue;
+
     // tower position - from vertex and ID: shouldn't need additional eta correction
-    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
     //double towerPhi = towerPosition.Phi();
     //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
     //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
-    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEta = towerPosition.PseudoRapidity();
     double towerEuncorr = tower->energy();               // uncorrected energy
-    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+    double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); 
 
     // get max tower
-    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+    if(towerEuncorr > fMaxTowerEt) { fMaxTowerEt = towerEuncorr; }
   }
 
-  return fMaxTowerE;
+  return fMaxTowerEt;
 }
 //
 // Returns correction for tracking efficiency

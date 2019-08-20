@@ -82,7 +82,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -179,7 +179,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
   fMaxEventTrackPt(30.0),
-  fMaxEventTowerE(1000.0), // 30.0
+  fMaxEventTowerEt(1000.0), // 30.0
   doRejectBadRuns(kFALSE),
   Bfield(0.0),
 //  mVertex(0x0),
@@ -564,8 +564,8 @@ int StJetMakerTaskBGsub::Make()
   // cut event on max track pt > 30.0 GeV
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
 
   // get event B (magnetic) field
   Bfield = mPicoEvent->bField();
@@ -740,7 +740,7 @@ void StJetMakerTaskBGsub::FindJets()
       if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
       // apply quality cut to matched tracks
-      if(AcceptJetTrack(trk, Bfield, mVertex)) {
+      if(AcceptTrack(trk, Bfield, mVertex)) {
 
         // tower status set - towerID is matched to track passing quality cuts
         mTowerMatchTrkIndex[towID] = trackIndex;
@@ -788,7 +788,7 @@ void StJetMakerTaskBGsub::FindJets()
 
         // want to process tower on its own if track did not meet quality cut
         // this should already be done above
-        if(AcceptJetTrack(trk, Bfield, mVertex)) {
+        if(AcceptTrack(trk, Bfield, mVertex)) {
 
           // get track variables to matched tower
           TVector3 mTrkMom;
@@ -1015,7 +1015,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
           if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
           // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
-          if(AcceptJetTrack(trk, Bfield, mVertex)) {
+          if(AcceptTrack(trk, Bfield, mVertex)) {
 
             // get track variables to matched tower
             TVector3 mTrkMom;
@@ -1070,8 +1070,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
   jet->SetNumberOfTracks(nt);
   jet->SetNumberOfClusters(nc);
   jet->SetMaxTrackPt(maxTrack);
-  jet->SetMaxClusterPt(maxTower);
-  jet->SetMaxTowerE(maxTower);     // should this be Et? FIXME
+  jet->SetMaxTowerEt(maxTower);     // should this be Et? FIXME
   jet->SetNEF(neutralE/jet->E());  // should this be Et? FIXME
   //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
 
@@ -1167,6 +1166,8 @@ Bool_t StJetMakerTaskBGsub::AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Ve
 }
 //
 // Function: jet track quality cuts
+// - this function should only be used for jet constituent tracks
+//      NOT when considering track-tower matches  (Aug 19')
 //________________________________________________________________________
 Bool_t StJetMakerTaskBGsub::AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert) {
   // constants: assume neutral pion mass
@@ -1375,11 +1376,11 @@ Double_t StJetMakerTaskBGsub::GetMaxTrackPt()
 // TODO this function needs to be re-thought, as select 'bad towers' have static Energy reading which is meaningless
 //      and sometimes over the requested threshold, thus excluding event.  Set default value to 1000 for now.. July 11, 2019
 //_________________________________________________________________________________________________
-Double_t StJetMakerTaskBGsub::GetMaxTowerE()
+Double_t StJetMakerTaskBGsub::GetMaxTowerEt()
 {
   // get # of towers
   int nTowers = mPicoDst->numberOfBTowHits();
-  double fMaxTowerE = -99;
+  double fMaxTowerEt = -99;
 
   // loop over all towers
   for(int i = 0; i < nTowers; i++) {
@@ -1387,20 +1388,23 @@ Double_t StJetMakerTaskBGsub::GetMaxTowerE()
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
     if(!tower) continue;
 
+    int towerID = i+1;
+    if(towerID < 0) continue;
+
     // tower position - from vertex and ID: shouldn't need additional eta correction
-    //TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
+    TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
     //double towerPhi = towerPosition.Phi();
     //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
     //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
-    //double towerEta = towerPosition.PseudoRapidity();
+    double towerEta = towerPosition.PseudoRapidity();
     double towerEuncorr = tower->energy();               // uncorrected energy
-    //double towEt = towerE / (1.0*TMath::CosH(towerEta)); // should this be used instead?
+    double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); // should this be used instead?
 
     // get max tower
-    if(towerEuncorr > fMaxTowerE) { fMaxTowerE = towerEuncorr; }
+    if(towerEuncorr > fMaxTowerEt) { fMaxTowerEt = towerEuncorr; }
   }
 
-  return fMaxTowerE;
+  return fMaxTowerEt;
 }
 //
 // FastJet Constituent Subtractor method

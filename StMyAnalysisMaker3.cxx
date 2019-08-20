@@ -93,7 +93,7 @@ StMyAnalysisMaker3::StMyAnalysisMaker3(const char* name, StPicoDstMaker *picoMak
   doWriteTrackQAHist = kTRUE;
   doWriteJetQAHist = kTRUE;
   fMaxEventTrackPt = 30.0;
-  fMaxEventTowerE = 1000.0; // 30.0
+  fMaxEventTowerEt = 1000.0; // 30.0
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
   fTrackWeight = 2; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
@@ -263,6 +263,7 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   if(fHistEventSelectionQA)  delete fHistEventSelectionQA;
   if(fHistEventSelectionQAafterCuts) delete fHistEventSelectionQAafterCuts;
   if(hEmcTriggers)           delete hEmcTriggers;
+  if(hEventTriggerIDs)       delete hEventTriggerIDs;
   if(hBadTowerFiredTrigger)  delete hBadTowerFiredTrigger;
   if(hNGoodTowersFiringTrigger)delete hNGoodTowersFiringTrigger;
   if(hMixEvtStatZVtx)        delete hMixEvtStatZVtx;
@@ -490,9 +491,9 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hStats->GetXaxis()->SetBinLabel(7, "post cent selection");
   hStats->GetXaxis()->SetBinLabel(8, "have jet object");
   hStats->GetXaxis()->SetBinLabel(9, "have jets (n>0)");
-  hStats->GetXaxis()->SetBinLabel(10, "post bad tower fire trigger"); 
-  hStats->GetXaxis()->SetBinLabel(11, "have rho object");
-  hStats->GetXaxis()->SetBinLabel(12, "");
+  hStats->GetXaxis()->SetBinLabel(10, "EmcTriggered HT#"); 
+  hStats->GetXaxis()->SetBinLabel(11, "good tower fired trigger");
+  hStats->GetXaxis()->SetBinLabel(12, "have rho object");
   hStats->GetXaxis()->SetBinLabel(13, "");
   hStats->GetXaxis()->SetBinLabel(14, "");
   hStats->GetXaxis()->SetBinLabel(15, "do jet shape analysis");
@@ -563,6 +564,7 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   fHistEventSelectionQA = new TH1F("fHistEventSelectionQA", "Trigger Selection Counter", 20, 0.5, 20.5);
   fHistEventSelectionQAafterCuts = new TH1F("fHistEventSelectionQAafterCuts", "Trigger Selection Counter after Cuts", 20, 0.5, 20.5);
   hEmcTriggers = new TH1F("hEmcTriggers", "Emcal Trigger counter", 10, 0.5, 10.5);
+  hEventTriggerIDs = new TH1F("hEventTriggerIDs", "NTriggers vs trigger IDs", 60, 0.5, 60.5);
   hBadTowerFiredTrigger = new TH1F("hBadTowerFiredTrigger", "# bad tower fired trigger vs tower Id", 4800, 0.5, 4800.5);
   hNGoodTowersFiringTrigger = new TH1F("hNGoodTowersFiringTrigger", "# good towers firing trigger per event", 11, -0.5, 10.5);
   hMixEvtStatZVtx = new TH1F("hMixEvtStatZVtx", "no of events in pool vs zvtx", 20, -40.0, 40.0);
@@ -1037,6 +1039,7 @@ void StMyAnalysisMaker3::WriteHistograms() {
   fHistEventSelectionQA->Write(); 
   fHistEventSelectionQAafterCuts->Write();
   hEmcTriggers->Write();
+  hEventTriggerIDs->Write();
   hBadTowerFiredTrigger->Write();
   hNGoodTowersFiringTrigger->Write();
   hMixEvtStatZVtx->Write();
@@ -1091,7 +1094,7 @@ Int_t StMyAnalysisMaker3::Make() {
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
   hStats->Fill(1);
 
-  // zero out these global variables
+  // zero out these global variables - may want to initialize these to negative obscure values
   fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
 
   // constants
@@ -1146,8 +1149,8 @@ Int_t StMyAnalysisMaker3::Make() {
   if(GetMaxTrackPt() > fMaxEventTrackPt) return kStOK;
   hStats->Fill(3);
 
-  // cut event on max tower E > 30.0 GeV
-  //if(GetMaxTowerE() > fMaxEventTowerE) return kStOK;
+  // cut event on max tower Et > 30.0 GeV
+  //if(GetMaxTowerEt() > fMaxEventTowerEt) return kStOK;
   hStats->Fill(4);
 
   // get event B (magnetic) field
@@ -1237,6 +1240,9 @@ Int_t StMyAnalysisMaker3::Make() {
   // looking at the EMCal triggers - used for QA and deciding on HT triggers
   FillEmcTriggersHist(hEmcTriggers);
 
+  // fill trigger IDs
+  FillTriggerIDs(hEventTriggerIDs);
+
   // get trigger IDs from PicoEvent class and loop over them
   vector<unsigned int> mytriggers = mPicoEvent->triggerIds(); 
   if(fDebugLevel == kDebugEmcTrigger) cout<<"Event Trigger-IDs: ";
@@ -1291,11 +1297,13 @@ Int_t StMyAnalysisMaker3::Make() {
   if(fJets->GetEntries() > 0) hStats->Fill(9);
 
   // check if bad/dead towers fired trigger and kill event if true
-  //if(DidBadTowerFireTrigger()) return kStOK; 
-  //DidBadTowerFireTrigger();
-  hStats->Fill(10); 
-
-  //return kStOK;
+  // 1) check that event is an HT event (specifics: HT1, HT2, HT3 set by user)
+  // 2) once we have an HT event, check to see how many triggers/towers fired
+  //	- how many were good/bad?
+  // 3) did a non-bad tower fire a trigger in this event? 
+  if(fHaveEmcTrigger) hStats->Fill(10);
+  if(fHaveEmcTrigger && DidBadTowerFireHTTrigger()) hStats->Fill(11); 
+  if(DidBadTowerFireHTTrigger()) return kStOK;
 
   // ======================================================
 
@@ -1354,7 +1362,7 @@ Int_t StMyAnalysisMaker3::Make() {
   //double value = GetRhoValue(fRhoMakerName);
   fRhoVal = fRho->GetVal();
   hRhovsCent->Fill(centbin*5.0, fRhoVal);
-  hStats->Fill(11);
+  hStats->Fill(12);
   if(fDebugLevel == kDebugRhoEstimate) cout<<"   fRhoVal = "<<fRhoVal<<"   Correction = "<<1.0*TMath::Pi()*fJetRad*fJetRad*fRhoVal<<" GeV/A"<<endl;
 
   // ==================== Leading and Subleading Jets ===================== //
@@ -1449,7 +1457,7 @@ Int_t StMyAnalysisMaker3::Make() {
       //cout<<"mixcentbin = "<<mixcentbin<<"  centbin = "<<centbin<<" centbin10 = "<<centbin10<<"  zvtx = "<<zVtx<<endl;
 */
 
-      // get the event plane angle of the event: using tracks 0-2.0 GeV for calculation (option 4)
+      // get the event plane angle of the event: using tracks 0.2-2.0 GeV for calculation (option 4)
       // for an angle (0-pi)    
       const char *fEventPlaneMakerNameChTemp = fEventPlaneMakerName;
       StEventPlaneMaker *EPMaker = static_cast<StEventPlaneMaker*>(GetMaker(Form("%s%i", fEventPlaneMakerNameChTemp, 4)));
@@ -1637,7 +1645,7 @@ Int_t StMyAnalysisMaker3::Make() {
     } else { if(jetpt < fMinPtJet) continue; }
 
     // apply leading bias to jet
-    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) continue;
+    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) continue;
 
     // TODO check that jet contains a tower that fired the trigger
     if(!DidTowerConstituentFireTrigger(jet)) { continue; }
@@ -2240,6 +2248,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   //fHistEventSelectionQA->Sumw2();
   //fHistEventSelectionQAafterCuts->Sumw2();
   //hEmcTriggers->Sumw2();
+  hEventTriggerIDs->Sumw2();
   hBadTowerFiredTrigger->Sumw2();
   hNGoodTowersFiringTrigger->Sumw2();
   hMixEvtStatZVtx->Sumw2();
@@ -2771,6 +2780,7 @@ Bool_t StMyAnalysisMaker3::DidTowerConstituentFireTrigger(StJet *jet) {
 //
 // FIXME TODO - still working on how this function will perform.. May 31, 2019
 // function to check if a bad tower fired the events HT trigger
+//	- this function is called if the event is flagged by HT trigger threshold (set by USER)
 //___________________________________________________________________________________________
 Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
   // bad/dead tower fired trigger
@@ -2796,7 +2806,7 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
     // isTowerOK(towID) = kTRUE if tower is OK and not dead
     // isTowerDead(towID) = kTRUE if tower is dead, = kFALSE if tower is NOT dead
     //bool isTowOk = (mBaseMaker->IsTowerOK(towID) && !mBaseMaker->IsTowerDead(towID)); // FIXME
-    bool isTowOk = (mBaseMaker->IsTowerOK(towID)); // FIXME
+    bool isTowOk = (mBaseMaker->IsTowerOK(towID));
 
     // change flag to true if bad tower fired trigger
     if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID] && !isTowOk) mBadTowerFiredTrigger = kTRUE;
@@ -2839,6 +2849,91 @@ Bool_t StMyAnalysisMaker3::DidBadTowerFireTrigger() {
   //return mBadTowerFiredTrigger;
   return mBadTowerFiring;
 }
+//
+// FIXME TODO - still working on how this function will perform.. May 31, 2019
+// function to check if a bad tower fired the events HT trigger
+//      - this function is called if the event is flagged by HT trigger threshold (set by USER)
+//___________________________________________________________________________________________
+Bool_t StMyAnalysisMaker3::DidBadTowerFireHTTrigger() {
+  // get trigger IDs from PicoEvent class and loop over them
+  vector<unsigned int> mytriggers2 = mPicoEvent->triggerIds();
+  if(fDebugLevel == kDebugTowersFiringTriggers) cout<<endl<<"Event Trigger-IDs: ";
+  for(unsigned int i=0; i<mytriggers2.size(); i++) {
+    if(fDebugLevel == kDebugTowersFiringTriggers) cout<<"i = "<<i<<": "<<mytriggers2[i] << ", ";
+  }
+  if(fDebugLevel == kDebugTowersFiringTriggers) cout<<endl;
+
+  // bad/dead tower fired trigger
+  bool mBadTowerFiredTrigger = kTRUE; //kFALSE;
+  int nGood = 0;
+
+  // get number of Emc triggers
+  int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
+
+  // loop over valid EmcalTriggers
+  for(int i = 0; i < nEmcTrigger; i++) {
+    // get pointer to trigger
+    StPicoEmcTrigger *emcTrig = static_cast<StPicoEmcTrigger*>(mPicoDst->emcTrigger(i));
+    if(!emcTrig) continue;
+
+    // emc trigger parameters
+    int emcTrigID = emcTrig->id();
+    int towerID = emcTrigID;        // tower ID (1-4800) - tower ID is directly related to referenced emcTrigID
+    if(towerID < 0) { cout<<"tower ID < 0, tower ID = "<<towerID<<endl; continue; } // double check these aren't still in the event list
+
+    // check if i'th trigger fired HT triggers by meeting threshold
+    bool isHT0 = emcTrig->isHT0();
+    bool isHT1 = emcTrig->isHT1();
+    bool isHT2 = emcTrig->isHT2();
+    bool isHT3 = emcTrig->isHT3();
+    bool isJP0 = emcTrig->isJP0();
+    bool isJP1 = emcTrig->isJP1();
+    bool isJP2 = emcTrig->isJP2();
+
+    // get associated tower pointer - minus 1 to get array element
+    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(towerID - 1));
+    if(!tower) { cout<<"No tower pointer... iTow = "<<i<<"  towerID = "<<towerID<<endl; continue; }
+
+    // check if tower is bad or dead - functions return kTRUE if ok and kFALSE if NOT dead 
+    // isTowerOK(towerID) = kTRUE if tower is OK and not dead
+    // isTowerDead(towerID) = kTRUE if tower is dead, = kFALSE if tower is NOT dead
+    bool isTowOk = (mBaseMaker->IsTowerOK(towerID));
+
+    // eliminate jet-patch JP triggers
+    if(emcTrig->flag() == 112 || emcTrig->flag() == 96) continue;
+
+    // check if good tower fired trigger
+    if( ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && isHT1 && isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && isHT2 && isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && isHT3 && isTowOk )) {
+      nGood++;
+    } 
+
+    // bad towers firing the trigger
+    if( ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && isHT1 && !isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && isHT2 && !isTowOk ) ||
+        ((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && isHT3 && !isTowOk )) {
+      hBadTowerFiredTrigger->Fill(towerID);
+    }
+
+    // print some EMCal Trigger info: exclude JP2, JP1
+    if((fDebugLevel == kDebugTowersFiringTriggers) && (emcTrig->flag() != 112) && (emcTrig->flag() != 96)) {
+      cout<<"i = "<<i<<"  id = "<<emcTrig->id()<<"  flag = "<<emcTrig->flag()<<"  adc = "<<emcTrig->adc();
+      cout<<"  isHT0: "<<isHT0<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3;
+      cout<<"  isJP0: "<<isJP0<<"  isJP1: "<<isJP1<<"  isJP2: "<<isJP2<<endl;
+    }
+
+  }
+
+  // determine if we should keep event
+  if(nGood > 0) mBadTowerFiredTrigger = kFALSE;
+  //cout<<"nGood: "<<nGood<<"  get rid of event? - "<<mBadTowerFiredTrigger<<endl;
+
+  // total triggers which had good towers that fired them in this event:
+  hNGoodTowersFiringTrigger->Fill(nGood);
+  
+  return mBadTowerFiredTrigger;
+}
 // ===========================================================================================
 // ===========================================================================================
 //
@@ -2871,7 +2966,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     if(jetPtBin < 0) return kStOK;
 
     // require tower and or track bias for jet
-    //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) return kStOK;
+    //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) return kStOK;
 
     // check that jet contains a tower that fired the trigger
     //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;
@@ -2891,7 +2986,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     int EPBinToUse = ptAssocBins[assocPtBin];
 
     // check for requested EventPlaneMaker pointer
-    if(!EventPlaneMaker[EPBinToUse]) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", EPBinToUse)<<endm; return kStWarn; }
+    if(!EventPlaneMaker[EPBinToUse] && !doppAnalysis) { LOG_WARN<<Form("No EventPlaneMaker bin: %i!", EPBinToUse)<<endm; return kStWarn; }
 
     // get event plane angle for different pt bins
     // assign global event plane to selected pt-dependent bin
@@ -3334,7 +3429,7 @@ void StMyAnalysisMaker3::GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin
   if(jetPtBin < 0) return; // kStOK;
 
   // require tower and or track bias for jet
-  //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) return kStOK;
+  //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) return kStOK;
 
   // check that jet contains a tower that fired the trigger
   //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;
@@ -3424,7 +3519,7 @@ Int_t StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *
     } else { if(jetPt < fMinPtJet) return kStOK; }
 
     // require tower and or track bias for jet
-    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerE() < fTowerBias)) return kStOK;
+    if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) return kStOK;
 
     // check that jet contains a tower that fired the trigger
     //if(!DidTowerConstituentFireTrigger(jet)) return kStOK;
@@ -3651,4 +3746,49 @@ Int_t StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *
     }       // end of fDoEventMixing
  
     return kStOK;
+}
+//
+// fill trigger ids of the dataset into a histogram
+// only currently set up for Run12 pp (200 GeV) and Run14 AuAu (200 GeV) 
+// - set up for more runs
+//________________________________________________________________________
+void StMyAnalysisMaker3::FillTriggerIDs(TH1 *h) {
+  // All non-test triggers for Run12 Run14
+
+  // Run14 AuAu (200 GeV) - 51, 0-50
+  unsigned int triggersRun14[] = {440001, 440004, 440005, 440006, 440007, 440015, 440016, 440017, 440050, 440061, 440064, 450005, 450008, 450009, 450010, 450011, 450012, 450013, 450014, 450015, 450018, 450020, 450021, 450023, 450024, 450025, 450050, 450060, 450103, 450201, 450202, 450203, 450211, 450212, 450213, 450600, 450601, 460001, 460002, 460003, 460005, 460007, 460012, 460101, 460102, 460111, 460201, 460202, 460203, 460212, 490016};
+
+  // Run12 pp (200 GeV) - 27, 0-26
+  unsigned int triggersRun12[] = {370001, 370011, 370021, 370022, 370031, 370032, 370301, 370341, 370361, 370501, 370511, 370521, 370522, 370531, 370541, 370542, 370546, 370601, 370611, 370621, 370641, 370701, 370801, 370980, 370981, 370982, 370983};
+
+  // get size of trigger ID arrays:
+  size_t nRun12IDs = sizeof(triggersRun12)/sizeof(triggersRun12[0]);
+  size_t nRun14IDs = sizeof(triggersRun14)/sizeof(triggersRun14[0]);
+  int nLoopMax = 0;
+  if(StJetFrameworkPicoBase::Run12_pp200)   nLoopMax = nRun12IDs;
+  if(StJetFrameworkPicoBase::Run14_AuAu200) nLoopMax = nRun14IDs;
+
+  // get trigger IDs from PicoEvent class and loop over them
+  vector<unsigned int> mytriggers = mPicoEvent->triggerIds();
+  for(unsigned int i = 0; i < mytriggers.size(); i++) {
+
+    // check for valid, non-test trigger ID
+    if(mytriggers[i] > 1000) {
+      for(int j = 0; j < nLoopMax; j++) {
+        if(mytriggers[i] == triggersRun12[j] && fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   h->Fill(j + 1);
+        if(mytriggers[i] == triggersRun14[j] && fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) h->Fill(j + 1);
+
+      } // loops over ID's
+    }   // non-test trigger
+  }     // loop over triggers
+
+  // label bins of the analysis trigger selection summary
+  for(int i = 0; i < nLoopMax; i++) {
+    if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   h->GetXaxis()->SetBinLabel(i+1, Form("%i", triggersRun12[i]));
+    if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) h->GetXaxis()->SetBinLabel(i+1, Form("%i", triggersRun14[i]));
+  }
+
+  // set x-axis labels vertically
+  h->LabelsOption("v");
+
 }
