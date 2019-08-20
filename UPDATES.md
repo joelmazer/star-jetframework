@@ -39,12 +39,13 @@ Changes needed from past update to be added to your readPicoDst.C macro after in
         cout<<CentMaker->GetName()<<endl;  // print name of class instance
 ```
 new changes or notes:
-1) see trigger flags section in readPicoDstDummyMaker.C, as there are now 3 bad tower lists, for different constituent cuts. And it is set from the 
+1) see tower flags section in readPicoDstDummyMaker.C, as there are now 3 bad tower lists, for different constituent cuts. And it is set from the 
 ```
   double fJetConstituentCut = 2.0;
 ```
+The bad tower list used is decided based on your constituent cut.
 
-2) remove instances of the SetCentralityDef() setter from your classes if they exist and use the cent maker as used in StDummyMaker.cxx and readPicoDstDummyMaker.C
+2) remove instances of the SetCentralityDef() setter from your classes (except StCentMaker) if they exist and use the cent maker as used in StDummyMaker.cxx and readPicoDstDummyMaker.C
 ```
   jetTask->SetCentralityDef(CentralityDefinition); // run based centrality definition
 ```
@@ -78,6 +79,7 @@ virtual void            SetMaxEventTowerEt(Double_t mxEt)  { fMaxEventTowerEt = 
 ```
   bool fHaveMB30event  = mBaseMaker->CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
 ```
+7) please also update the centrality package to have updated defintions and files in your StRoot/StRefMultCorr directory.
 
 
 IF THERE IS ANYTHING ELSE - please me know or update this file yourself and push change.
