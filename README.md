@@ -1,5 +1,8 @@
 # star-jetframework
 *this will be updated...*
+also see: https://github.com/joelmazer/star-jetframework/blob/master/UPDATES.md
+
+
 This is a framework for:
 * a FastJet wrapper, with various functionality 
 * jet-finding
@@ -98,4 +101,4 @@ Once FastJet is properly installed
 **Joel Mazer**
 
 ## Notes
-
+Please see https://github.com/joelmazer/star-jetframework/blob/master/UPDATES.md for recent updates and how it may affect your version with an update.
