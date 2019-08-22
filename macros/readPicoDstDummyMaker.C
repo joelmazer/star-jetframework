@@ -42,7 +42,7 @@ const double pi = 1.0*TMath::Pi();
 
 StChain *chain;
 
-void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", const Char_t *outputFile="test.root", Int_t nEv = 10, const Char_t *fOutJobappend="")
+void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", const Char_t *outputFile="test.root", Int_t nEv = 10, const Char_t *fOutJobappend="")
 {
 //        Int_t nEvents = 10000;
 //        Int_t nEvents = 1000;
@@ -116,7 +116,8 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         Int_t CentralitySelection;
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for pp, just set one 
-        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
+        if(RunYear == mRun14) CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi; // (NEW - from Nick Aug22, 2019: all lumi) this will be default
+        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;         // Run16 - option: StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
@@ -173,7 +174,8 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
 
         // update settings for new centrality definitions - certain productions had settings for z-vertex < 30 when calculating centrality definitions, etc..
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
-          CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 ||
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi
         ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
         // =============================================================================== //
@@ -225,6 +227,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
         jetTask->SetMaxJetTrackPt(30.0);        // max track constituent
         jetTask->SetMinJetTowerE(fJetConstituentCut);  // 2.0 correlations
         jetTask->SetHadronicCorrFrac(1.0);      // fractional hadronic correction
+        jetTask->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // set for default options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         jetTask->SetGhostArea(0.005);           // ghost area
         jetTask->SetMinJetArea(0.0);            // minimum jet area
         jetTask->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // fiducial eta acceptance
@@ -255,6 +258,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run_15164046_files.list", co
           jetTaskBG->SetMaxJetTrackPt(30.0);
           jetTaskBG->SetMinJetTowerE(fJetConstituentCut);     // inclusive: 0.2
           jetTaskBG->SetHadronicCorrFrac(1.0);      // hadronic correlation fraction 0-1
+          jetTaskBG->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // set for default options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
           jetTaskBG->SetGhostArea(0.005);           // ghost area
           jetTaskBG->SetMinJetArea(0.0);            // minimum jet area
           jetTaskBG->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // -0.5,0.5

@@ -232,6 +232,7 @@ StMyAnalysisMaker3::~StMyAnalysisMaker3()
   if(hJetPhi)            delete hJetPhi;
   if(hJetNEF)            delete hJetNEF;
   if(hJetArea)           delete hJetArea;
+  if(hJetMass)           delete hJetMass;
   if(hJetTracksPt)       delete hJetTracksPt;
   if(hJetTracksPhi)      delete hJetTracksPhi;
   if(hJetTracksEta)      delete hJetTracksEta;
@@ -525,11 +526,12 @@ void StMyAnalysisMaker3::DeclareHistograms() {
   hJetLeadingPtAj = new TH1F("hJetLeadingPtAj", "Leading Jet p_{T} with Aj cut", 100, 0, 100);
   hJetSubLeadingPtAj = new TH1F("hJetSubLeadingPtAj", "SubLeading Jet p_{T} with Aj cut", 100, 0, 100);
   hJetDiJetAj = new TH1F("hJetDiJetAj", "DiJet imbalance: Aj", 100, 0., 1.);
-  hJetE = new TH1F("hJetE", "Jet energy distribution", 100, 0, 100);
+  hJetE = new TH1F("hJetE", "Jet energy distribution", 100, 0., 100.);
   hJetEta = new TH1F("hJetEta", "Jet #eta distribution", 24, -1.2, 1.2);
   hJetPhi = new TH1F("hJetPhi", "Jet #phi distribution", 72, 0.0, 2.0*pi);
-  hJetNEF = new TH1F("hJetNEF", "Jet NEF", 100, 0, 1);
-  hJetArea = new TH1F("hJetArea", "Jet Area", 100, 0, 1);
+  hJetNEF = new TH1F("hJetNEF", "Jet NEF", 100, 0., 1.);
+  hJetArea = new TH1F("hJetArea", "Jet Area", 100, 0., 1.);
+  hJetMass = new TH1F("hJetMass", "Jet mass", 65, -5., 60.);
   hJetTracksPt = new TH1F("hJetTracksPt", "Jet track constituent p_{T}", 120, 0, 30.0);
   hJetTracksPhi = new TH1F("hJetTracksPhi", "Jet track constituent #phi", 72, 0, 2.0*pi);
   hJetTracksEta = new TH1F("hJetTracksEta", "Jet track constituent #eta", 56, -1.4, 1.4);
@@ -1027,6 +1029,7 @@ void StMyAnalysisMaker3::WriteHistograms() {
   hJetPhi->Write();
   hJetNEF->Write();
   hJetArea->Write();
+  hJetMass->Write();
   hJetTracksPt->Write();
   hJetTracksPhi->Write();
   hJetTracksEta->Write();
@@ -1731,6 +1734,7 @@ Int_t StMyAnalysisMaker3::Make() {
     //hJetPhi->Fill(jetPhi);
     //hJetNEF->Fill(jetNEF);
     //hJetArea->Fill(jetarea);
+    //hJetMass->Fill(jetMass);
     //hJetPtvsArea->Fill(jetpt, jetarea);
   } // jet loop
 
@@ -2217,6 +2221,7 @@ void StMyAnalysisMaker3::SetSumw2() {
   hJetPhi->Sumw2();
   hJetNEF->Sumw2();
   hJetArea->Sumw2();
+  hJetMass->Sumw2();
   hJetTracksPt->Sumw2();
   hJetTracksPhi->Sumw2();
   hJetTracksEta->Sumw2();
@@ -2953,6 +2958,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     double jetPhi = jet->Phi();
     double jetEta = jet->Eta();
     double jetArea = jet->Area();
+    double jetMass = jet->M();
     double uncorrjetPt = jet->Pt();
     double corrjetPt = jet->Pt() - jetArea*fRhoVal;
     double jetE = jet->E();
@@ -3022,6 +3028,7 @@ Int_t StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       hJetPhi->Fill(jetPhi);
       hJetNEF->Fill(jetNEF);
       hJetArea->Fill(jetArea);
+      hJetMass->Fill(jetMass);
       hJetPtvsArea->Fill(uncorrjetPt, jetArea);
     }
     // ==========================================================================================================================
@@ -3500,6 +3507,7 @@ Int_t StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *
 
     // get some jet parameters
     double jetArea = jet->Area();
+    double jetMass = jet->M();
     double jetPt = jet->Pt();
     double corrjetPt = jet->Pt() - jetArea*fRhoVal;
     double jetE = jet->E();
@@ -3570,6 +3578,7 @@ Int_t StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *
       hJetPhi->Fill(jetPhi);
       hJetNEF->Fill(jetNEF);
       hJetArea->Fill(jetArea);
+      hJetMass->Fill(jetMass);
       hJetPtvsArea->Fill(jetPt, jetArea);
     }
     hJetEventEP[assocPtBin]->Fill(tpc2EP);

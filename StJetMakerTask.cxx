@@ -472,9 +472,9 @@ void StJetMakerTask::DeclareHistograms() {
 
   // jet track and jet tower plots
   for(int i = 0; i < 5; i++) {
-    fHistNMatchTrack[i] = new TH1F(Form("fHistNMatchTrack_%i", i), "Number of matched tracks to tower, cent bin: %i", 11, -0.5, 10.5);
-    fHistHadCorrComparison[i] = new TH2F(Form("fHistHadCorrComparison_%i", i), "max E_{T} vs sum E_{T} of matched tracks for had corr, cent bin: %i", 120, 0., 30., 160, -10., 30.); 
-    fHistHadCorrComparisonLast[i] = new TH2F(Form("fHistHadCorrComparisonLast_%i", i), "last E_{T} vs max E_{T} of matched tracks for had corr, cent bin: %i", 120, 0., 30., 160, -10., 30.);
+    fHistNMatchTrack[i] = new TH1F(Form("fHistNMatchTrack_%i", i), Form("Number of matched tracks to tower, cent bin: %i", i), 11, -0.5, 10.5);
+    fHistHadCorrComparison[i] = new TH2F(Form("fHistHadCorrComparison_%i", i), Form("max E_{T} vs sum E_{T} of matched tracks for had corr, cent bin: %i", i), 120, 0., 30., 160, -10., 30.); 
+    fHistHadCorrComparisonLast[i] = new TH2F(Form("fHistHadCorrComparisonLast_%i", i), Form("last E_{T} vs max E_{T} of matched tracks for had corr, cent bin: %i", i), 120, 0., 30., 160, -10., 30.);
   }
   fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
   fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2.0*pi);

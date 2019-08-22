@@ -85,6 +85,11 @@ Int_t StCentMaker::Init() {
   // initialize the histograms
   DeclareHistograms();
 
+  // ====================================================================================================================
+  // centrality definitions loaded here
+  //    - these are generated for mid luminosity runs
+  // ====================================================================================================================
+
   // switch on Run Flag specifically requested for given run period for centrality definition setup
   switch(fRunFlag) {
     case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp

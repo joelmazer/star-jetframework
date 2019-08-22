@@ -29,15 +29,15 @@ Double_t ZVtxMin = -40.0;
 Double_t ZVtxMax = 40.0;
 
 bool doCentSelection = kFALSE; //kTRUE;
-bool dopp = kTRUE; // FIXME kTRUE for pp data
-int RunYear = 12;   // FIXME
+bool dopp = kFALSE; // FIXME kTRUE for pp data
+int RunYear = 14;   // FIXME
 // kTRUE for local tests, kFALSE for job submission
 bool doTEST = kFALSE;  //FIXME FIXME!!!! be aware before submission
 
 StChain *chain;
 
 //__________________________________________________________________________________________________________
-void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char_t *outputFile="towerQA.root", Int_t nEv = 10, const Char_t *fEPoutJobappend="_this_is_a_test")
+void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", const Char_t *outputFile="towerQA.root", Int_t nEv = 10, const Char_t *fEPoutJobappend="_this_is_a_test")
 {
         Int_t nEvents = 1000;
 //        Int_t nEvents = 10000;
@@ -67,7 +67,7 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
 
         // input file for tests (based on Run) - updated for new Runs as needed
         if((RunYear == mRun12) && doTEST && dopp) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST)         inputFile = "Run_15164046_files.list"; //"Run_15151042_files.list"; //"testLIST_Run14.list";
+        if((RunYear == mRun14) && doTEST)         inputFile = "Run14_P18ih_HPSS_15164046.list"; //"Run_15164046_files.list"; 
         if((RunYear == mRun16) && doTEST)         inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "Run17pp_510GeV.list"; // "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
@@ -76,7 +76,8 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for Run 12 pp 
-        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
+        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi; // (NEW - from Nick: Aug16, 2019 set for all lumi)
+        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;         // Run16: StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
@@ -100,16 +101,21 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-        //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;     // kTriggerANY, kTriggerMB, kTriggerHT
-        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;    // kTriggerANY, kTriggerMB, kTriggerHT     FIXME
+        //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;   // kTriggerANY, kTriggerMB, kTriggerHT - only used by JetMaker and EPMaker (set to HT when doing EP corrections)
+        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;  // kTriggerANY, kTriggerMB, kTriggerHT
 
+        // FIXME - be aware of which list is used! 
         // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
-        Int_t TowerListToUse = 136; // Run14 136-122: jet-hadron, early jet shape // been using 51,  3, 79   - doesn't matter for charged jets
-        TowerListToUse = 9992000;   // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        Int_t TowerListToUse = 136; // doesn't matter for charged jets - Run14 136-122: jet-hadron, early jet shape - Pt dep lists set below
         if(dopp) TowerListToUse = 169;
+        // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        if(fJetConstituentCut == 2.0) TowerListToUse = 9992000;
+        if(fJetConstituentCut == 1.0) TowerListToUse = 9991000;
+        if(fJetConstituentCut == 0.2) TowerListToUse = 9990200;
         // Run12: 1 - Raghav's list, 102 - my initial list, 169 - new list
         // Run14: 136 - main list (updated version for AuAu 200 GeV Run14), 122 - past used list
         // Run14 P18ih: 999 (initial) 
+        cout<<"TowerListUsed: "<<TowerListToUse<<endl;
 
         // track flags
         bool usePrimaryTracks;
@@ -120,7 +126,8 @@ void readPicoDstQA(const Char_t *inputFile="Run_15164046_files.list", const Char
 
         // update settings for new centrality definitions
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
-          CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 ||
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi
         ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
         // =============================================================================== //

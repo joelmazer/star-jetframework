@@ -113,8 +113,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         }
 
         // input file for tests (based on Run) - updated for new Runs as needed - FIXME update for your own lists
-        if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; // "Run_15151042_files.list";
+        if((RunYear == mRun12) && doTEST && dopp) inputFile = "testLIST_Run12pp.list";
+        if((RunYear == mRun14) && doTEST) inputFile = "Run14_P18ih_HPSS_15164046.list"; //"Run_15164046_files.list"; 
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
@@ -124,7 +124,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050; // set as an example
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30;  // no centrality defintion for Run 12 pp
-        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
+        if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi; // (NEW - from Nick: Aug16, 2019 set for all lumi)
+        //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June10, 2019)
         if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id; // Run16
         cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
@@ -143,6 +144,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         // EmcTriggerEventType: selects which HT trigger to use
         Int_t EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT1 or kIsHT2 or kIsHT3 (Set for Run14)
         if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // StJetFrameworkPicoBase::kIsHT2;
+        if(RunYear == mRun14) EmcTriggerEventTYpe = StJetFrameworkPicoBase::kIsHT2; // 
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
         if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3; 
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default, want kVPDMB30 for new centrality definitions
@@ -187,7 +189,8 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
 
         // update settings for new centrality definitions
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
-           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 ||
+           CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi
         ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
 
         // =============================================================================== //
@@ -238,6 +241,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
         jetTask->SetMaxJetTrackPt(30.0);        // max track constituent
         jetTask->SetMinJetTowerE(fJetConstituentCut);  // 2.0 correlations
         jetTask->SetHadronicCorrFrac(1.0);      // fractional hadronic correction
+        jetTask->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // set for default options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         jetTask->SetGhostArea(0.005);           // ghost area
         jetTask->SetMinJetArea(0.0);            // minimum jet area
         jetTask->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // fiducial eta acceptance
@@ -268,6 +272,7 @@ void readPicoDstTest(const Char_t *inputFile="", const Char_t *outputFile="test.
           jetTaskBG->SetMaxJetTrackPt(30.0);
           jetTaskBG->SetMinJetTowerE(fJetConstituentCut);     // inclusive: 0.2
           jetTaskBG->SetHadronicCorrFrac(1.0);      // hadronic correlation fraction 0-1
+          jetTaskBG->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // set for default options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
           jetTaskBG->SetGhostArea(0.005);           // ghost area
           jetTaskBG->SetMinJetArea(0.0);            // minimum jet area
           jetTaskBG->SetJetEtaRange(-1.0 + fJetRadius, 1.0 - fJetRadius); // -0.5,0.5

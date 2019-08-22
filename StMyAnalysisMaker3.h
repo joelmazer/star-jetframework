@@ -330,6 +330,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetPhi;//!
     TH1F *hJetNEF;//!
     TH1F *hJetArea;//!
+    TH1F *hJetMass;//!
     TH1F *hJetTracksPt;//!
     TH1F *hJetTracksPhi;//!
     TH1F *hJetTracksEta;//!

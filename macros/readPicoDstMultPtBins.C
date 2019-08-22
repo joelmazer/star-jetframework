@@ -163,7 +163,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050;
   Int_t CentralityDefinition;
   if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for Run 12 pp
-  if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June 10, 2019)
+  if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi; // (NEW - from Nick: Aug16, 2019 set for all lumi)
+  //if(RunYear == mRun14) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // Run14 P18ih (NEW - from Nick June 10, 2019)
   if(RunYear == mRun16) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P16id;         // Run16: also StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx;
   cout<<"Centrality definition: "<<CentralityDefinition<<endl;
 
@@ -187,8 +188,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default (Run14)
   if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
   if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;  // kTriggerANY, kTriggerMB, kTriggerHT,    (EP corrections to be done with kTriggerHT)
-//  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;   // kTriggerANY, kTriggerMB, kTriggerHT FIXME - runs over all triggers, USER needs to code specifics cuts in their class
+  //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;  // kTriggerANY, kTriggerMB, kTriggerHT,    (EP corrections to be done with kTriggerHT)
+  Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;   // kTriggerANY, kTriggerMB, kTriggerHT FIXME - runs over all triggers, USER needs to code specifics cuts in their class
 
   // track flags
   bool usePrimaryTracks;
@@ -221,7 +222,6 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
   // Run14 P18ih: 999 (initial) 
   cout<<"TowerListUsed: "<<TowerListToUse<<endl;
 
-
   // analysis type flags (booleans):
   bool fDoJetShapeAnalysis = kTRUE;              // switch for doing jet shape analysis - one or the other true
   bool fDoJetHadronCorrelationAnalysis = kFALSE; // switch for doing jet-hadron correlation analysis - one or the other true
@@ -233,7 +233,8 @@ void readPicoDstMultPtBins(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
 
   // update settings for new centrality definitions - certain productions had settings for z-vertex < 30 when calculating centrality definitions, etc..
   if((CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30  ||
-      CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30) && (!doSTEP1 && !doSTEP2) // don't restrict if calculating event plane corrections 1&2
+      CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30  ||
+      CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi) && (!doSTEP1 && !doSTEP2) // don't restrict if calculating event plane corrections 1&2
   ) { ZVtxMin = -28.0; ZVtxMax = 28.0; }
   cout<<"zVtxMin = "<<ZVtxMin<<"   zVtxMax = "<<ZVtxMax<<endl;
 
