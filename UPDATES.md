@@ -82,6 +82,12 @@ virtual void            SetMaxEventTowerEt(Double_t mxEt)  { fMaxEventTowerEt = 
 7) please also update the centrality package to have updated defintions and files in your StRoot/StRefMultCorr directory.
 
 
+*August 22, 2019
+1) added new centrality definition to readMacros.C - can be used for all luminosities, and is set as default
+2) added SetJetHadCorrType() to the readMacros.C so USERS can see it - set to default: kAllMatchedTracks
+
+
+
 IF THERE IS ANYTHING ELSE - please me know or update this file yourself and push change.
 
 
