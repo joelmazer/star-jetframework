@@ -1477,7 +1477,7 @@ Int_t StMyAnalysisMaker3::Make() {
 
       // check if pool exists
       if(!pool) {
-        Form("No pool found for centrality = %i, zVtx = %f", mixcentbin, zVtx); // FIXME if cent changes to double
+        Form("No pool found for centrality = %.1f, zVtx = %f", (double)mixcentbin, zVtx);
         return kStOK;
       }
 
