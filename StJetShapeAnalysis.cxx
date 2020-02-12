@@ -1031,14 +1031,14 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
     // when doing event plane calculation via pt assoc bin
     // this is TEMP, it will filter track by the pt bin used for analysis
     if(doTPCptassocBin && fDoFilterPtMixEvents) {
-      if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
@@ -1409,13 +1409,13 @@ void StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
-        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  >= 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
         if(fJetShapePtAssocBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
         if(fJetShapePtAssocBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
       }
@@ -1544,13 +1544,13 @@ void StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
 
       // additional pt selection when doing pt associated bin method
       if(doTPCptassocBin) {
-        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+        if(fJetShapePtAssocBin == 0) { if((tpt < 0.20) || (tpt  >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 1) { if((tpt < 0.50) || (tpt  >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 2) { if((tpt < 1.00) || (tpt  >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 3) { if((tpt < 1.50) || (tpt  >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 4) { if((tpt < 2.00) || (tpt  >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 5) { if((tpt < 3.00) || (tpt  >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+        if(fJetShapePtAssocBin == 6) { if((tpt < 4.00) || (tpt  >= 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
         if(fJetShapePtAssocBin == 7) { if((tpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
         if(fJetShapePtAssocBin == 8) { if((tpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
       }
@@ -1675,13 +1675,13 @@ void StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
 
             // additional pt selection when doing pt associated bin method
             if(doTPCptassocBin) {
-              if(fJetShapePtAssocBin == 0) { if((Mpt < 0.20) || (Mpt  > 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 1) { if((Mpt < 0.50) || (Mpt  > 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 2) { if((Mpt < 1.00) || (Mpt  > 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 3) { if((Mpt < 1.50) || (Mpt  > 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 4) { if((Mpt < 2.00) || (Mpt  > 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 5) { if((Mpt < 3.00) || (Mpt  > 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-              if(fJetShapePtAssocBin == 6) { if((Mpt < 4.00) || (Mpt  > 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
+              if(fJetShapePtAssocBin == 0) { if((Mpt < 0.20) || (Mpt  >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 1) { if((Mpt < 0.50) || (Mpt  >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 2) { if((Mpt < 1.00) || (Mpt  >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 3) { if((Mpt < 1.50) || (Mpt  >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 4) { if((Mpt < 2.00) || (Mpt  >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 5) { if((Mpt < 3.00) || (Mpt  >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+              if(fJetShapePtAssocBin == 6) { if((Mpt < 4.00) || (Mpt  >= 6.0)) continue; }  // 4.00 - 6.0 GeV assoc bin used for correlations, 8->6 Oct23
               if(fJetShapePtAssocBin == 7) { if((Mpt <  6.0))                 continue; }  //       6.0+ GeV assoc bin used for correlations, 8->6 Oct23
               if(fJetShapePtAssocBin == 8) { if((Mpt <  0.5))                 continue; }  //       0.5+ GeV assoc bin used for correlations
             }  

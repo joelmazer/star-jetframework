@@ -1933,14 +1933,14 @@ TClonesArray* StMyAnalysisMaker3::CloneAndReduceTrackList()
     // when doing event plane calculation via pt assoc bin
     // this is TEMP, it will filter track by the pt bin used for analysis
     if(doTPCptassocBin && fDoFilterPtMixEvents) {
-      if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(fTPCptAssocBin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(fTPCptAssocBin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
@@ -2331,14 +2331,14 @@ void StMyAnalysisMaker3::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
@@ -3675,11 +3675,11 @@ void StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *p
       // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0, 2.0-20.0 GeV - when doing event plane calculation via pt assoc bin
       // when doing event plane calculation via pt assoc bin
       if(doTPCptassocBin) {
-        if(assocPtBin == 0) { if(pt <= 0.20 || pt > 0.5) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-        if(assocPtBin == 1) { if(pt <= 0.50 || pt > 1.0) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-        if(assocPtBin == 2) { if(pt <= 1.00 || pt > 1.5) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-        if(assocPtBin == 3) { if(pt <= 1.50 || pt > 2.0) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-        if(assocPtBin == 4) { if(pt <= 2.00 || pt > 20.) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+        if(assocPtBin == 0) { if(pt < 0.20 || pt >= 0.5) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+        if(assocPtBin == 1) { if(pt < 0.50 || pt >= 1.0) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+        if(assocPtBin == 2) { if(pt < 1.00 || pt >= 1.5) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+        if(assocPtBin == 3) { if(pt < 1.50 || pt >= 2.0) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+        if(assocPtBin == 4) { if(pt < 2.00 || pt >= 20.) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
       }
 
       // calculate single particle tracking efficiency of mixed events for correlations
@@ -3754,11 +3754,11 @@ void StMyAnalysisMaker3::JetHadronCorrelationAnalysis(StJet *jet, StEventPool *p
             // exclusion of track pt ranges from filling - need to use specific EP value
             // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0, 2.0-20.0 - when doing event plane calculation via pt assoc bin
             if(doTPCptassocBin) {
-              if(assocPtBin == 0) { if(Mixpt <= 0.20 || Mixpt > 0.5) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-              if(assocPtBin == 1) { if(Mixpt <= 0.50 || Mixpt > 1.0) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-              if(assocPtBin == 2) { if(Mixpt <= 1.00 || Mixpt > 1.5) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-              if(assocPtBin == 3) { if(Mixpt <= 1.50 || Mixpt > 2.0) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-              if(assocPtBin == 4) { if(Mixpt <= 2.00 || Mixpt > 20.) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+              if(assocPtBin == 0) { if(Mixpt < 0.20 || Mixpt >= 0.5) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+              if(assocPtBin == 1) { if(Mixpt < 0.50 || Mixpt >= 1.0) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+              if(assocPtBin == 2) { if(Mixpt < 1.00 || Mixpt >= 1.5) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+              if(assocPtBin == 3) { if(Mixpt < 1.50 || Mixpt >= 2.0) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+              if(assocPtBin == 4) { if(Mixpt < 2.00 || Mixpt >= 20.) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
             }
 
             // calculate single particle tracking efficiency of mixed events for correlations (-999)
