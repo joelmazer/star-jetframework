@@ -81,21 +81,13 @@ class StCentralityQA : public StJetFrameworkPicoBase {
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
     virtual void            SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }
 
-    // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
-
   protected:
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
     void                    SetSumw2(); // set errors weights 
-    //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    FillTowerTriggersArr();
 
-    // FIXME - so far for Run14
-    StRefMultCorr *grefmultCorr;
+    StRefMultCorr *grefmultCorrOLD;
     StRefMultCorr *grefmultCorrNEW;
-
-    // switches
-    Int_t                   fDoEffCorr;                  // efficiency correction to tracks
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal

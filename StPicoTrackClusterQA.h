@@ -134,9 +134,7 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetDoTowerQAforHT(Bool_t m)        { fDoTowerQAforHT = m; }
 
   // efficiency correction setter
-  virtual void         SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
-  void                 SetTrackEfficiency(Double_t t)   { fTrackEfficiency  = t     ; } 
-  Double_t             GetTrackEfficiency()             { return fTrackEfficiency   ; }
+  virtual void         SetDoEffCorr(Bool_t effcorr)     { fDoEffCorr = effcorr; }
 
   // common setters
   void                 SetClusName(const char *n)       { fCaloName      = n;  }
@@ -209,7 +207,6 @@ class StPicoTrackClusterQA : public StMaker {
   Double_t             fTrackDCAcut;            // max track dca cut
   Int_t                fTracknHitsFit;          // requirement for track hits
   Double_t             fTracknHitsRatio;        // requirement for nHitsFit / nHitsMax
-  Double_t             fTrackEfficiency;        // artificial tracking inefficiency (0...1)
   Int_t                fGoodTrackCounter;       // good tracks - passed quality cuts
   Double_t             fTowerEMinCut;           // min tower energy cut
   Double_t             fTowerEMaxCut;           // max tower energy cut

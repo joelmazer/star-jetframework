@@ -67,9 +67,9 @@ class StFJWrapper
   const std::vector<fastjet::contrib::GenericSubtractorInfo> GetGenSubtractorInfoJet3subjettiness_kt()       const {return fGenSubtractorInfoJet3subjettiness_kt ; }
   const std::vector<fastjet::contrib::GenericSubtractorInfo> GetGenSubtractorInfoJetOpeningAngle_kt()       const {return fGenSubtractorInfoJetOpeningAngle_kt ; }
 */
-  const std::vector<fastjet::PseudoJet>                      GetConstituentSubtrJets()            const {return fConstituentSubtrJets            ; }
-  const std::vector<fastjet::PseudoJet>                      GetGroomedJets()            const {return fGroomedJets            ; }
-////  Int_t CreateGenSub();          // fastjet::contrib::GenericSubtractor
+  const std::vector<fastjet::PseudoJet>                      GetConstituentSubtrJets()            const { return fConstituentSubtrJets           ; }
+  const std::vector<fastjet::PseudoJet>                      GetGroomedJets()                     const { return fGroomedJets                    ; }
+////  Int_t CreateGenSub();          // fastjet::contrib::GenericSubtracto
   Int_t CreateConstituentSub();  // fastjet::contrib::ConstituentSubtractor
   Int_t CreateSoftDrop();
 #endif

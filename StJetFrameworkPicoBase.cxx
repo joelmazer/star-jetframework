@@ -12,6 +12,7 @@
 // ROOT includes
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TF2.h"
 #include "TFile.h"
 #include <THnSparse.h>
 #include "TParameter.h"
@@ -375,6 +376,23 @@ Int_t StJetFrameworkPicoBase::Get4CentBin(Double_t scaledCent) const
   return centbin;
 }
 //
+// function to convert 5% centrality to 10% bins
+// must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
+//__________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetCentBin10(Int_t cbin) const {
+  int cbin10;
+  if(cbin== 0 || cbin== 1) cbin10 = 0; //  0-10%
+  if(cbin== 2 || cbin== 3) cbin10 = 1; // 10-20%
+  if(cbin== 4 || cbin== 5) cbin10 = 2; // 20-30%
+  if(cbin== 6 || cbin== 7) cbin10 = 3; // 30-40%
+  if(cbin== 8 || cbin== 9) cbin10 = 4; // 40-50%
+  if(cbin==10 || cbin==11) cbin10 = 5; // 50-60%
+  if(cbin==12 || cbin==13) cbin10 = 6; // 60-70%
+  if(cbin==14 || cbin==15) cbin10 = 7; // 70-80%
+
+  return cbin10;
+}
+//
 // function to get annuli bin
 //___________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::GetAnnuliBin(Double_t deltaR) const
@@ -397,7 +415,7 @@ Int_t StJetFrameworkPicoBase::GetAnnuliBin(Double_t deltaR) const
   return annuliBin;
 }
 //
-// function to jet pt bin
+// function to get jet pt bin
 //___________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::GetJetPtBin(Double_t jetpt) const
 {
@@ -413,7 +431,7 @@ Int_t StJetFrameworkPicoBase::GetJetPtBin(Double_t jetpt) const
   return jetPtBin;
 }
 //
-// function to jet event plane bin
+// function to get jet event plane bin
 //___________________________________________________________________________________________
 Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
 {
@@ -429,6 +447,28 @@ Int_t StJetFrameworkPicoBase::GetJetEPBin(Double_t dEP) const
   else if(dEP > 2.0*pi/6.0 && dEP <= 3.0*pi/6.0) { jetEPBin = 2; }
 
   return jetEPBin;
+}
+//
+// function to get luminosity bin
+//___________________________________________________________________________________________
+Int_t StJetFrameworkPicoBase::GetLuminosityBin(Double_t lumi) const
+{
+  // initialize jet event plane bin
+  int lumiBin = -99;
+
+  // get jet event plane bin number
+  if(lumi <= 10000)                       { lumiBin = 0; }
+  else if(lumi > 10000 && lumi <=  20000) { lumiBin = 1; }
+  else if(lumi > 20000 && lumi <=  30000) { lumiBin = 2; }
+  else if(lumi > 30000 && lumi <=  40000) { lumiBin = 3; }
+  else if(lumi > 40000 && lumi <=  50000) { lumiBin = 4; }
+  else if(lumi > 50000 && lumi <=  60000) { lumiBin = 5; }
+  else if(lumi > 60000 && lumi <=  70000) { lumiBin = 6; }
+  else if(lumi > 70000 && lumi <=  80000) { lumiBin = 7; }
+  else if(lumi > 80000 && lumi <=  90000) { lumiBin = 8; }
+  else if(lumi > 90000 && lumi <= 100000) { lumiBin = 9; }
+
+  return lumiBin;
 }
 //
 // this function generates a jet name based on input
@@ -910,7 +950,6 @@ StJet* StJetFrameworkPicoBase::GetSubLeadingJet(TString fJetMakerNametemp, StRho
 
     } else { // rho parameter provided
       // return subleading jet after background subtraction
-      // BUG: Fixed October 26, 2018: returned leadingjet, and didn't subtract bg from subleading
       //Double_t rho(0);
       double fRhoValtemp = eventRho->GetVal(); // test
 
@@ -1092,6 +1131,8 @@ Bool_t StJetFrameworkPicoBase::CheckForMB(int RunFlag, int type) {
   // Run12 (200 GeV pp) triggers: 1) VPDMB, 370011-main
   int arrMB_Run12[] = {370011};
   int arrMB_Run12extra[] = {370001, 370011};
+  // 370501:  BHT0*VPDMB
+  // 370511:  BHT1*VPDMB
 
   // Run13 triggers: pp
   int arrMB_Run13[] = {430001, 430011, 430021, 430031};
@@ -1460,23 +1501,6 @@ Bool_t StJetFrameworkPicoBase::IsTowerDead( Int_t mTowId ){
   }
 }
 //
-// function to convert 5% centrality to 10% bins
-// must already be 'properly calculated' i.e. increasing bin# -> increasing centrality
-//__________________________________________________________________________________
-Int_t StJetFrameworkPicoBase::GetCentBin10(Int_t cbin) const {
-  int cbin10;
-  if(cbin== 0 || cbin== 1) cbin10 = 0; //  0-10%
-  if(cbin== 2 || cbin== 3) cbin10 = 1; // 10-20%
-  if(cbin== 4 || cbin== 5) cbin10 = 2; // 20-30%
-  if(cbin== 6 || cbin== 7) cbin10 = 3; // 30-40%
-  if(cbin== 8 || cbin== 9) cbin10 = 4; // 40-50%
-  if(cbin==10 || cbin==11) cbin10 = 5; // 50-60%
-  if(cbin==12 || cbin==13) cbin10 = 6; // 60-70%
-  if(cbin==14 || cbin==15) cbin10 = 7; // 70-80%
-
-  return cbin10;
-}
-//
 // Returns pt of hardest track in the event
 //__________________________________________________________________________________
 Double_t StJetFrameworkPicoBase::GetMaxTrackPt()
@@ -1554,41 +1578,178 @@ Double_t StJetFrameworkPicoBase::GetMaxTowerEt()
 //Double_t StJetFrameworkPicoBase::ApplyTrackingEffpp(StPicoTrack *trk)
 //Double_t StJetFrameworkPicoBase::ApplyTrackingEffAuAu(StPicoTrack *trk)
 //____________________________________________________________________________________________
-Double_t StJetFrameworkPicoBase::ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff)
+Double_t StJetFrameworkPicoBase::ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Double_t teta, Int_t cbin, Double_t ZDCx, Int_t effType, TFile *infile)
 {
-  // initialize effieciency
-  double trEff = 1.0;
-  if(!applyEff) return trEff;
+  // initialize effieciency - check we want to apply it
+  double trkEff = 1.0;
+  if(!applyEff) return trkEff;
 
-  // get momentum vector of track - global or primary track
-  TVector3 mTrkMom;
-  if(doUsePrimTracks) {
-    // get primary track vector
-    mTrkMom = trk->pMom();
-  } else {
-    // get global track vector
-    mTrkMom = trk->gMom(mVertex, Bfield);
-  }
+  // x-variable = track pt, y-variable = track eta
+  double x = tpt;
+  double y = teta;
+  //y = TMath::Abs(teta);
+  double pi = 1.0*TMath::Pi();
+  double effBinContent = -99; // value extracted from histogram
+  const char *species =  "pion"; // FIXME
+  int lumiBin = GetLuminosityBin(ZDCx);
 
-  // track variables
-  double tpt = mTrkMom.Perp();
-  double teta = mTrkMom.PseudoRapidity();
-  double tphi = mTrkMom.Phi();
+  //const int nspecies = 3;
+  //std::string species[nspecies] = {"pion", "kaon", "proton"};
+  //std::string leg_species[nspecies] = {"#pion", "K", "p"};
+  //std::string particles[nparticles] = {"piplus", "piminus", "kaonplus", "kaonminus", "proton", "antiproton"};
+  //std::string leg_particles[nparticles] = {"#pi^{+}", "#pi^{-}", "K^{+}", "K^{-}", "p", "#bar{p}"};
+  //hTrack_Efficiency_pTEta[is][ic][il] = new TH2D(Form("hTrack_%s_Efficiency_pTEta_%s_centbin%d", species[is].c_str(), lumi[il].c_str(), ic), "", 100, 0, 10, 10, -1, 1);
+ 
+  // ========== AuAu Run14 ===========
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
+    // cut on pt: 0.2 - 30.0 GeV
+    // cut on eta: -1.0 < eta < 1.0
+    // pt is flat for AuAu above 5.0 (4.5) GeV
+    if(x > 4.5) x = 4.5;  // for pt > 4.5 use value at 4.5
+    int effBin = -99;
+    const char *histName = "";
 
-  // track efficiency has pt, eta, and centrality dependence 
-  //
+/*
+    // ============================================================================
+    if(effType == StJetFrameworkPicoBase::kHeaderArray) {
+      // efficiency function name
+      const char *funcName = Form("trackingEfficiency_%s_centbin%i_lumibin%i", species, cbin, lumiBin);
+      TString functionName = funcName; 
+
+      // setup to get efficiency from header array of values - extracted from Run14_efficiency.root
+      int bins = 50;
+      double EtaBinWidth = 0.2;
+      double PtBinWidth = 0.1;
+      int nPtBin  = 1.0*TMath::Floor(x / PtBinWidth);
+      int nEtaBin = 1.0*TMath::Floor((y+1.0) / EtaBinWidth);
+      int nBin = nPtBin + (nEtaBin * bins);
+      double effBinContent = functionName.Data()[nBin];
+
+    }
+    // ============================================================================
+*/
+
+    // 2-D pt/eta dependent efficiency
+    if(effType == StJetFrameworkPicoBase::kNormalPtEtaBased) {
+      // get 2D pTEta efficiency histo
+      histName = Form("hTrack_%s_Efficiency_pTEta_final_centbin%d_lumibin%d", species, cbin, lumiBin);
+      TH2F *h = static_cast<TH2F*>(infile->Get(Form("%s", histName)));
+      if(!h) cout<<"don't have requested histogram! "<<Form("%s", histName)<<endl;
+      h->SetName(Form("%s", histName));
+
+      // get efficiency 
+      effBin = h->FindBin(x, y); // pt, eta
+      effBinContent = h->GetBinContent(effBin);
+
+      // delete histo and close input file
+      delete h;
+    }
+
+    // FIXME with updated file
+    // 1-D dependent efficiency
+    if(effType == StJetFrameworkPicoBase::kPtBased || effType == StJetFrameworkPicoBase::kEtaBased ) {
+      if(effType == StJetFrameworkPicoBase::kPtBased) {
+        histName = Form("hTrack_%s_Efficiency_pT_final_centbin%d_lumibin%d", species, cbin, lumiBin);
+      }
+      if(effType == StJetFrameworkPicoBase::kEtaBased) {
+        histName = Form("hTrack_%s_Efficiency_Eta_final_centbin%d_lumibin%d", species, cbin, lumiBin);
+      }
+
+      TH1D *h = static_cast<TH1D*>(infile->Get(Form("%s", histName)));
+      if(!h) cout<<"don't have requested histogram! "<<Form("%s", histName)<<endl;
+      h->SetName(Form("%s", histName));
+
+      // get efficiency
+      if(effType == StJetFrameworkPicoBase::kPtBased)  effBin = h->FindBin(x);    // pt
+      if(effType == StJetFrameworkPicoBase::kEtaBased) effBin = h->FindBin(y);    // eta
+      effBinContent = h->GetBinContent(effBin);
+
+      // delete histo and close input file
+      delete h;
+    }
+
+    // test statement
+    //cout<<"efficiency: "<<effBinContent<<"  pt: "<<x<<"  eta: "<<y<<"   cbin: "<<cbin<<"  lumi: "<<ZDCx<<endl;
+  } // Run14 AuAu
+
+  // =========================================================================================================
+  // =========================================================================================================
+  // Run12 pp tracking efficiency:
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) { // the below is probably true of all pp datasets 
+    // cut on pt: 0.2 - 30.0 GeV
+    // cut on eta: -1.0 < eta < 1.0
+    // pt is flat for pp above 2.0 (1.8) GeV 
+    if(x > 1.8) x = 1.8;  // for pt > 1.8 use value at 1.8
+
+    // some of the below is not used for the current pp parametrization
+    int effBin = -99;
+    const char *histName = "";
+
+    // 2-D pt/eta dependent efficiency
+    if(effType == StJetFrameworkPicoBase::kNormalPtEtaBased) {
+      // get 2D pTEta efficiency histo
+      histName = Form("hppRun12_PtEtaEfficiency_data_aacuts");
+
+      // changed from double to float
+      TH2F* h = static_cast<TH2F*>(infile->Get(Form("%s", histName)));
+      if(!h) cout<<"don't have requested histogram! "<<Form("%s", histName)<<endl;
+      h->SetName(Form("%s", histName));
+
+      // get efficiency 
+      effBin = h->FindBin(x, y); // pt, eta
+      effBinContent = h->GetBinContent(effBin);
+      double effBinContentErr = h->GetBinError(effBin);
+      //cout<<"effBinContent: "<<effBinContent<<"   effBinErr: "<<effBinContentErr<<endl;
+
+      // delete histo and close input file
+      delete h;
+    }
+
+/*
+    // the 2 1-D histograms are not part of the input file - to use they need to be added - FIXME   
+
+    // 1-D dependent efficiency
+    if(effType == StJetFrameworkPicoBase::kPtBased || effType == StJetFrameworkPicoBase::kEtaBased) {
+      if(effType == StJetFrameworkPicoBase::kPtBased)  histName = Form("hPtEfficiency_data_aacuts");
+      if(effType == StJetFrameworkPicoBase::kEtaBased) histName = Form("hEtaEfficiency_data_aacuts");
+
+      TH1D *h = static_cast<TH1D*>(infile->Get(Form("%s", histName)));
+      if(!h) cout<<"don't have requested histogram! "<<Form("%s", histName)<<endl;
+      h->SetName(Form("%s", histName));
+
+      // get efficiency
+      if(effType == StJetFrameworkPicoBase::kPtBased)  effBin = h->FindBin(x);    // pt
+      if(effType == StJetFrameworkPicoBase::kEtaBased) effBin = h->FindBin(y);    // eta
+      effBinContent = h->GetBinContent(effBin);
+
+      // delete histo and close input file
+      delete h;
+    }
+*/
+
+    // test statement
+    //cout<<"efficiency: "<<effBinContent<<"  pt: "<<x<<"  eta: "<<y<<"  lumi: "<<ZDCx<<endl;
+  } // Run12 AuAu
+
   // RunFlag switch
   switch(fRunFlag) {
-    case StJetFrameworkPicoBase::Run12_pp200 :   // Run12 pp
+    case StJetFrameworkPicoBase::Run12_pp200 :   // Run12 pp        
+        trkEff = effBinContent;
         break;
+
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
+        trkEff = effBinContent;
         break;
+
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
+        // don't have parametrization for Run16
+        trkEff = 1.0;
         break; 
+
   } // RunFlag switch
 
   // return the single track reconstruction efficiency for the corresponding dataset
-  return trEff;
+  return trkEff;
 }
 //
 // Trigger QA histogram, label bins 

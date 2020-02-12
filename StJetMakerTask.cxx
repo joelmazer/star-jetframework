@@ -4,6 +4,7 @@
 //
 // track and tower input to cluster together using fastjet wrapper and create jets
 //      - leading jet tag
+//      - switches for defining jet
 //      - access to jet constituents
 //      - general QA
 //      - constitutent subtractor
@@ -41,12 +42,8 @@
 
 // for clusters
 #include "StEmcUtil/geometry/StEmcGeom.h"
-//#include "StEmcUtil/projection/StEmcPosition.h" // old - uses StThreeVectorF
-//class StEmcPosition; // old - uses StThreeVectorF
 #include "StEmcPosition2.h"
 class StEmcPosition2;
-
-#include "StCentMaker.h"
 
 // jet class and fastjet wrapper and dataset (Run#'s) 
 #include "StJet.h"
@@ -58,6 +55,7 @@ class StEmcPosition2;
 #include "runlistRun14AuAu_P18ih.h" // new Run14 AuAu
 
 // centrality includes
+#include "StCentMaker.h"
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
@@ -85,6 +83,9 @@ StJetMakerTask::StJetMakerTask() :
   doppAnalysis(kFALSE), 
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE),
+  fDoEffCorr(kFALSE),
+  doCorrectTracksforEffBeforeJetReco(kFALSE),
+  fTrackEfficiencyType(StJetFrameworkPicoBase::kNormalPtEtaBased), // this is default, should not need to change
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -112,34 +113,24 @@ StJetMakerTask::StJetMakerTask() :
   fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
-  fJetPhiMin(-10.),
-  fJetPhiMax(+10.),
-  fJetEtaMin(-0.6),
-  fJetEtaMax(0.6),
+  fJetPhiMin(-10.), fJetPhiMax(+10.),
+  fJetEtaMin(-0.6), fJetEtaMax(0.6),
   fGhostArea(0.005), 
-  fMinJetTrackPt(0.2),
-  fMaxJetTrackPt(30.0),
+  fMinJetTrackPt(0.2), fMaxJetTrackPt(30.0),
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
   fMinJetTowerE(0.2),
-  fTrackEtaMin(-1.0),
-  fTrackEtaMax(1.0),
-  fTrackPhiMin(0.0),
-  fTrackPhiMax(2.0*TMath::Pi()),
-  fJetTrackEtaMin(-1.0),
-  fJetTrackEtaMax(1.0),
-  fJetTrackPhiMin(0.0),
-  fJetTrackPhiMax(2.0*TMath::Pi()),
+  fTrackEtaMin(-1.0), fTrackEtaMax(1.0),
+  fTrackPhiMin(0.0), fTrackPhiMax(2.0*TMath::Pi()),
+  fJetTrackEtaMin(-1.0), fJetTrackEtaMax(1.0),
+  fJetTrackPhiMin(0.0), fJetTrackPhiMax(2.0*TMath::Pi()),
   fJetTrackDCAcut(3.0),
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
-  fJetTowerEMin(0.2),
-  fJetTowerEMax(100.0),
-  fJetTowerEtaMin(-1.0),
-  fJetTowerEtaMax(1.0),
-  fJetTowerPhiMin(0.0),
-  fJetTowerPhiMax(2.0*TMath::Pi()),
+  fJetTowerEMin(0.2), fJetTowerEMax(100.0),
+  fJetTowerEtaMin(-1.0), fJetTowerEtaMax(1.0),
+  fJetTowerPhiMin(0.0), fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
   fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
@@ -149,8 +140,6 @@ StJetMakerTask::StJetMakerTask() :
   fJetsBGsub(0x0),
   fFull_Event(0),
   fConstituents(0),
-  fJetsConstit(0x0),
-  fJetsConstitBGsub(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -158,7 +147,8 @@ StJetMakerTask::StJetMakerTask() :
   mCentMaker(0x0),
   mBaseMaker(0x0),
   mEmcPosition(0x0),
-  grefmultCorr(0x0)
+  grefmultCorr(0x0),
+  fEfficiencyInputFile(0x0)
 {
   // Default constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
@@ -185,6 +175,9 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   doppAnalysis(kFALSE),
   fRequireCentSelection(kFALSE),
   doConstituentSubtr(kFALSE),
+  fDoEffCorr(kFALSE),
+  doCorrectTracksforEffBeforeJetReco(kFALSE),
+  fTrackEfficiencyType(StJetFrameworkPicoBase::kNormalPtEtaBased), // this is default, should not need to change
   fEventZVtxMinCut(-40.0), 
   fEventZVtxMaxCut(40.0),
   fCentralitySelectionCut(-99),
@@ -212,34 +205,25 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fRadius(0.4),
   fMinJetArea(0.001),
   fMinJetPt(1.0),
-  fJetPhiMin(-10), 
-  fJetPhiMax(+10),
-  fJetEtaMin(-0.6), 
-  fJetEtaMax(0.6),
+  fJetPhiMin(-10), fJetPhiMax(+10),
+  fJetEtaMin(-0.6), fJetEtaMax(0.6),
   fGhostArea(0.005),
   fMinJetTrackPt(mintrackPt),
   fMaxJetTrackPt(30.0), 
   fMinJetClusPt(0.15),
   fMinJetClusE(0.2),
   fMinJetTowerE(0.2),
-  fTrackEtaMin(-1.0),
-  fTrackEtaMax(1.0),
-  fTrackPhiMin(0.0),
-  fTrackPhiMax(2.0*TMath::Pi()),
-  fJetTrackEtaMin(-1.0), 
-  fJetTrackEtaMax(1.0),
-  fJetTrackPhiMin(0.0),
-  fJetTrackPhiMax(2.0*TMath::Pi()),
+  fTrackEtaMin(-1.0), fTrackEtaMax(1.0),
+  fTrackPhiMin(0.0), fTrackPhiMax(2.0*TMath::Pi()),
+  fJetTrackEtaMin(-1.0), fJetTrackEtaMax(1.0),
+  fJetTrackPhiMin(0.0), fJetTrackPhiMax(2.0*TMath::Pi()),
   fJetTrackDCAcut(3.0),
   fJetTracknHitsFit(15),
   fJetTracknHitsRatio(0.52),
   fTrackEfficiency(1.),
-  fJetTowerEMin(0.2),
-  fJetTowerEMax(100.0),
-  fJetTowerEtaMin(-1.0),
-  fJetTowerEtaMax(1.0),
-  fJetTowerPhiMin(0.0),
-  fJetTowerPhiMax(2.0*TMath::Pi()),
+  fJetTowerEMin(0.2), fJetTowerEMax(100.0),
+  fJetTowerEtaMin(-1.0), fJetTowerEtaMax(1.0),
+  fJetTowerPhiMin(0.0), fJetTowerPhiMax(2.0*TMath::Pi()),
   mTowerEnergyMin(0.2),
   mHadronicCorrFrac(1.),
   fJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks), // default is using all matched Tracks, Aug2019, per Hanseul
@@ -249,8 +233,6 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   fJetsBGsub(0x0),
   fFull_Event(0),
   fConstituents(0),
-  fJetsConstit(0x0),
-  fJetsConstitBGsub(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -258,7 +240,8 @@ StJetMakerTask::StJetMakerTask(const char *name, double mintrackPt = 0.20, bool 
   mCentMaker(0x0),
   mBaseMaker(0x0),
   mEmcPosition(0x0),
-  grefmultCorr(0x0)
+  grefmultCorr(0x0),
+  fEfficiencyInputFile(0x0)
 {
   // Standard constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
@@ -302,9 +285,21 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNTowervsPhivsEta)    delete fHistNTowervsPhivsEta;
 
   for(int i = 0; i < 5; i++) {
-    if(fHistNMatchTrack[i])       delete fHistNMatchTrack[i];
-    if(fHistHadCorrComparison[i]) delete fHistHadCorrComparison[i];
+    if(fHistNMatchTrack[i])           delete fHistNMatchTrack[i];
+    if(fHistHadCorrComparison[i])     delete fHistHadCorrComparison[i];
     if(fHistHadCorrComparisonLast[i]) delete fHistHadCorrComparisonLast[i];
+
+    if(fHistTowEtvsMatchedMaxTrkEt[i]) delete fHistTowEtvsMatchedMaxTrkEt[i];
+    if(fHistTowEtvsMatchedSumTrkEt[i]) delete fHistTowEtvsMatchedSumTrkEt[i];
+
+    if(fHistJetNTrackvsPtCent[i]) delete fHistJetNTrackvsPtCent[i];
+    if(fHistJetNTowervsEtCent[i]) delete fHistJetNTowervsEtCent[i];
+
+    if(fHistNJetTracksvsJetPt[i])       delete fHistNJetTracksvsJetPt[i];
+    if(fHistNJetTowersvsJetPt[i])       delete fHistNJetTowersvsJetPt[i];
+    if(fHistNJetConstituentsvsJetPt[i]) delete fHistNJetConstituentsvsJetPt[i];
+
+    if(fHistNJetvsMassCent[i])    delete fHistNJetvsMassCent[i];
   }
   if(fHistJetNTrackvsPt)       delete fHistJetNTrackvsPt;
   if(fHistJetNTrackvsPhi)      delete fHistJetNTrackvsPhi;
@@ -323,6 +318,7 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistNJetsvsEta)          delete fHistNJetsvsEta;
   if(fHistNJetsvsPhivsEta)     delete fHistNJetsvsPhivsEta;
   if(fHistNJetsvsArea)         delete fHistNJetsvsArea;
+  if(fHistNJetsvsMass)         delete fHistNJetsvsMass;
   if(fHistNJetsvsNConstituents)delete fHistNJetsvsNConstituents;
   if(fHistNJetsvsNTracks)      delete fHistNJetsvsNTracks;
   if(fHistNJetsvsNTowers)      delete fHistNJetsvsNTowers;
@@ -331,6 +327,12 @@ StJetMakerTask::~StJetMakerTask()
   if(fHistQATowIDvsPhi)        delete fHistQATowIDvsPhi;
 
   if(mEmcPosition)             delete mEmcPosition;
+
+  // track reconstruction efficiency input file
+  if(fEfficiencyInputFile) {
+    fEfficiencyInputFile->Close();
+    delete fEfficiencyInputFile;
+  }
 }
 //
 //
@@ -345,14 +347,18 @@ Int_t StJetMakerTask::Init() {
   fJetsBGsub = new TClonesArray("StJet");
   fJetsBGsub->SetName(fJetsName+"BGsub");
 
-  // may need array (name hard-coded, Feb20, 2018)
-  fJetsConstit = new TClonesArray("StPicoTrack");
-  fJetsConstit->SetName("JetConstituents");
-
-  // TODO maybe add BGsub?
-
   // position object for Emc
   mEmcPosition = new StEmcPosition2();
+
+  // input file - for tracking efficiency: Run14 AuAu and Run12 pp
+  const char *input = "";
+//if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) input=Form("./StRoot/StMyAnalysisMaker/Run14_AuAu_200_tracking_efficiency_and_momentum_smearing_dca_3p0_nhit_15_nhitfrac_0p52.root");
+  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) input=Form("./StRoot/StMyAnalysisMaker/Run14_efficiencySmaller2D.root");
+  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200)   input=Form("./StRoot/StMyAnalysisMaker/Run12_efficiency_New.root"); // Oct17, 2019 added
+  if(fDoEffCorr) {
+    fEfficiencyInputFile = new TFile(input, "READ");
+    if(!fEfficiencyInputFile) cout<<Form("do not have input file: %s", input);
+  }
 
   // ============================ set jet parameters for fastjet wrapper  =======================
   // recombination schemes:
@@ -407,13 +413,11 @@ Int_t StJetMakerTask::Init() {
 Int_t StJetMakerTask::Finish() {
 /*
   //  Summarize the run.
-  cout<<"StJetMakerTask::Finish()\n";
   cout<<"##### Jet parameters overview #####"<<endl;
   cout<<"type = "<<"   algorithm = "<<"  recombination scheme = "<<endl;
   cout<<"R = "<<fRadius<<"   ghostArea = "<<fGhostArea<<"  minJetArea = "<<fMinJetArea<<endl;
   cout<<"minTrackPt = "<<fMinJetTrackPt<<"  minClusterPt = "<<fMinJetClusPt<<"  maxTrackPt = "<<fMaxJetTrackPt<<endl;
   cout<<"minJetPhi = "<<fJetPhiMin<<"  maxJetPhi = "<<fJetPhiMax<<"  minJetEta = "<<fJetEtaMin<<"  maxJetEta = "<<fJetEtaMax<<endl;
-  cout<<"End of StJetMakerTask::Finish"<<endl;
 */
 
   if(doWriteHistos && mOutName!="") {
@@ -475,6 +479,17 @@ void StJetMakerTask::DeclareHistograms() {
     fHistNMatchTrack[i] = new TH1F(Form("fHistNMatchTrack_%i", i), Form("Number of matched tracks to tower, cent bin: %i", i), 11, -0.5, 10.5);
     fHistHadCorrComparison[i] = new TH2F(Form("fHistHadCorrComparison_%i", i), Form("max E_{T} vs sum E_{T} of matched tracks for had corr, cent bin: %i", i), 120, 0., 30., 160, -10., 30.); 
     fHistHadCorrComparisonLast[i] = new TH2F(Form("fHistHadCorrComparisonLast_%i", i), Form("last E_{T} vs max E_{T} of matched tracks for had corr, cent bin: %i", i), 120, 0., 30., 160, -10., 30.);
+
+    fHistTowEtvsMatchedMaxTrkEt[i] = new TH2F(Form("fHistTowEtvsMatchedMaxTrkEt_%i", i), Form("uncorrected tow E_{T} vs matched trk max E_{T}, cent bin: %i", i), 300, 0., 30., 300, 0., 30.);
+    fHistTowEtvsMatchedSumTrkEt[i] = new TH2F(Form("fHistTowEtvsMatchedSumTrkEt_%i", i), Form("uncorrected tow E_{T} vs matched trk sum E_{T}, cent bin: %i", i), 300, 0., 30., 300, 0., 30.);
+
+    fHistJetNTrackvsPtCent[i] = new TH1F(Form("fHistJetNTrackvsPtCent_%i", i), Form("Jet track consitutents vs p_{T}, cent bin: %i", i), 150, 0., 30.); 
+    fHistJetNTowervsEtCent[i] = new TH1F(Form("fHistJetNTowervsEtCent_%i", i), Form("Jet tower constituents vs E_{T}, cent bin: %i", i), 150, 0., 30.);
+    fHistNJetTracksvsJetPt[i] = new TH2F(Form("fHistNJetTracksvsJetPt_%i", i), Form("Jet track constituents vs jet p_{T}, cent bin: %i", i), 100, 0.5, 100.5, 100, 0., 100.);
+    fHistNJetTowersvsJetPt[i] = new TH2F(Form("fHistNJetTowersvsJetPt_%i", i), Form("Jet tower constituents vs jet p_{T}, cent bin: %i", i), 100, 0.5, 100.5, 100, 0., 100.);
+    fHistNJetConstituentsvsJetPt[i] = new TH2F(Form("fHistNJetConstituentsvsJetPt_%i", i), Form("Jet constituents vs jet p_{T}, cent bin: %i", i), 200, 0.5, 200.5, 100, 0., 100.);
+
+    fHistNJetvsMassCent[i] = new TH1F(Form("fHistNJetvsMassCent_%i", i), Form("NJets vs jet mass, cent bin: %i", i), 100, 0., 10.);
   }
   fHistJetNTrackvsPt = new TH1F("fHistJetNTrackvsPt", "Jet track constituents vs p_{T}", 150, 0., 30.);
   fHistJetNTrackvsPhi = new TH1F("fHistJetNTrackvsPhi", "Jet track constituents vs #phi", 72, 0., 2.0*pi);
@@ -494,10 +509,12 @@ void StJetMakerTask::DeclareHistograms() {
   fHistNJetsvsEta = new TH1F("fHistNJetsvsEta", "NJets vs #eta", 40, -1.0, 1.0);
   fHistNJetsvsPhivsEta = new TH2F("fHistNJetsvsPhivsEta", "NJets vs #phi vs #eta", 144, 0, 2.0*pi, 20, -1.0, 1.0);
   fHistNJetsvsArea = new TH1F("fHistNJetsvsArea", "NJets vs jet area", 100, 0.0, 1.0);
+  fHistNJetsvsMass = new TH1F("fHistNJetsvsMass", "NJets vs jet mass", 100, 0.0, 10.0);
   fHistNJetsvsNConstituents = new TH1F("fHistNJetsvsNConstituents", "NJets vs NConstit", 51, -0.5, 50.5);
   fHistNJetsvsNTracks = new TH1F("fHistNJetsvsNTracks", "NJets vs NTracks", 51, -0.5, 50.5);
   fHistNJetsvsNTowers = new TH1F("fHistNJetsvsNTowers", "NJets vs NTowers", 51, -0.5, 50.5);
 
+  // tower ID's vs eta,phi
   fHistQATowIDvsEta = new TH2F("fHistQATowIDvsEta", "Tower ID vs #eta", 4800, 0.5, 4800.5, 40, -1.0, 1.0);
   fHistQATowIDvsPhi = new TH2F("fHistQATowIDvsPhi", "Tower ID vs #phi", 4800, 0.5, 4800.5, 144, 0.0, 2.0*pi);
 
@@ -531,6 +548,17 @@ void StJetMakerTask::WriteHistograms() {
     fHistNMatchTrack[i]->Write();
     fHistHadCorrComparison[i]->Write();
     fHistHadCorrComparisonLast[i]->Write();
+
+    fHistTowEtvsMatchedMaxTrkEt[i]->Write();
+    fHistTowEtvsMatchedSumTrkEt[i]->Write();
+
+    fHistJetNTrackvsPtCent[i]->Write();
+    fHistJetNTowervsEtCent[i]->Write();
+    fHistNJetTracksvsJetPt[i]->Write();
+    fHistNJetTowersvsJetPt[i]->Write();
+    fHistNJetConstituentsvsJetPt[i]->Write();
+
+    fHistNJetvsMassCent[i]->Write();
   }
   fHistJetNTrackvsPt->Write();
   fHistJetNTrackvsPhi->Write();
@@ -549,6 +577,7 @@ void StJetMakerTask::WriteHistograms() {
   fHistNJetsvsEta->Write();
   fHistNJetsvsPhivsEta->Write();
   fHistNJetsvsArea->Write();
+  fHistNJetsvsMass->Write();
   fHistNJetsvsNConstituents->Write();
   fHistNJetsvsNTracks->Write();
   fHistNJetsvsNTowers->Write();
@@ -732,7 +761,7 @@ void StJetMakerTask::FindJets()
   fjw.Clear();
   fFull_Event.clear();
 
-  // get cent bin for some histograms: TODO event activity - compensate for pp or AuAu
+  // get cent bin for some histograms: cbin = 1 for pp and thus array element 0
   Int_t cbin = -1;
   if (fCentralityScaled >= 0 && fCentralityScaled < 10)       cbin = 1; //  0-10%
   else if (fCentralityScaled >= 10 && fCentralityScaled < 20) cbin = 2; // 10-20%
@@ -786,15 +815,41 @@ void StJetMakerTask::FindJets()
       fHistNTrackvsEta->Fill(eta);
       fHistNTrackvsPhivsEta->Fill(phi, eta);
 
-      // send track info to FJ wrapper
-      //fjw.AddInputVector(px, py, pz, p, iTracks);    // p -> E
-      fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
+      // - NEW TODO - for charged tracks only - CHARGED JETS only (January 22, 2020)
+      // calcualte tracking efficency - calculate single particle track efficiency
+      int effCent   = mCentMaker->GetRef16();
+      double fZDCx  = mPicoEvent->ZDCx();
+      //Double_t StJetFrameworkPicoBase::ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Double_t teta, Int_t cbin, Double_t ZDCx, Int_t effType, TFile *infile)
+      double trkEff = mBaseMaker->ApplyTrackingEff(fDoEffCorr, pt, eta, effCent, fZDCx, fTrackEfficiencyType, fEfficiencyInputFile); // may not need to correct here, just analysis stage
+      double pxCorr = px / trkEff;
+      double pyCorr = py / trkEff;
+      double pzCorr = pz / trkEff;
+      double energyCorr = 1.0*TMath::Sqrt(pxCorr*pxCorr + pyCorr*pyCorr + pzCorr*pzCorr + pi0mass*pi0mass);
+      //cout<<"pt: "<<pt<<"   eta: "<<eta<<"   trkEff: "<<trkEff<<endl;
+
+      // add track input vector to FastJet
+      if(doCorrectTracksforEffBeforeJetReco) {
+        fjw.AddInputVector(pxCorr, pyCorr, pzCorr, energyCorr, iTracks); // efficiency corrected components
+      } else {
+        // THIS IS DEFAULT !
+        // send track info to FJ wrapper
+        fjw.AddInputVector(px, py, pz, energy, iTracks); // includes E
+      }
 
       // if running constituent subtractor, do this in parallel
       if(doConstituentSubtr) {
-        fastjet::PseudoJet particle_Track(px, py, pz, energy);
-        particle_Track.set_user_index(iTracks);
-        fFull_Event.push_back(particle_Track);
+        if(doCorrectTracksforEffBeforeJetReco) {
+          fastjet::PseudoJet particle_Track(pxCorr, pyCorr, pzCorr, energyCorr); // efficiency corrected components
+          particle_Track.set_user_index(iTracks);
+          fFull_Event.push_back(particle_Track);
+        } else {
+          // THIS IS DEFAULT !
+          fastjet::PseudoJet particle_Track(px, py, pz, energy);
+          particle_Track.set_user_index(iTracks);
+          fFull_Event.push_back(particle_Track);
+        }
+        //particle_Track.set_user_index(iTracks);
+        //fFull_Event.push_back(particle_Track);
       }
     } // track loop
 
@@ -982,7 +1037,13 @@ void StJetMakerTask::FindJets()
       double fSumEt = (sumEt == 0) ? towerEunCorr / (1.0*TMath::CosH(towerEta)) : sumEt;
       double fLastEt = LastIndexTrktowerE / (1.0*TMath::CosH(towerEta));
       //if(mTowerStatusArr[towerID] > 0.5) cout<<"towerEunCorr = "<<towerEunCorr<<"  CosH: "<<1.0*TMath::CosH(towerEta)<<"  LastEt: "<<fLastEt<<"   fMaxEt: "<<fMaxEt<<"   fSumEt: "<<fSumEt<<endl;
-      // test area =============================
+
+      // QA - added Dec18, 2019 - FIXME TEST
+      if(cbin > 0 && cbin < 6) {
+        int arrayBin = cbin -1; // value -> array
+        fHistTowEtvsMatchedMaxTrkEt[arrayBin]->Fill(towEtunCorr, fMaxEt);
+        fHistTowEtvsMatchedSumTrkEt[arrayBin]->Fill(towEtunCorr, fSumEt);
+      }
 
       // cut on transverse tower energy (more uniform)
       double towerEt = 0.0;
@@ -1102,6 +1163,14 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   double pi = 1.0*TMath::Pi();
   double pi0mass = Pico::mMass[0]; // GeV
 
+  // get cent bin for some histograms: cbin = 1 for pp and thus array element 0
+  Int_t cbin = -1;
+  if (fCentralityScaled >= 0 && fCentralityScaled < 10)       cbin = 1; //  0-10%
+  else if (fCentralityScaled >= 10 && fCentralityScaled < 20) cbin = 2; // 10-20%
+  else if (fCentralityScaled >= 20 && fCentralityScaled < 30) cbin = 3; // 20-30%
+  else if (fCentralityScaled >= 30 && fCentralityScaled < 50) cbin = 4; // 30-50%
+  else if (fCentralityScaled >= 50 && fCentralityScaled < 80) cbin = 5; // 50-80%
+
   // initially set track and cluster constituent sizes
   jet->SetNumberOfTracks(constituents.size());
   jet->SetNumberOfClusters(constituents.size());
@@ -1145,6 +1214,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
       if(pt > maxTrack) maxTrack = pt;
 
       // fill some QA histograms
+      fHistJetNTrackvsPtCent[cbin - 1]->Fill(pt);
       fHistJetNTrackvsPt->Fill(pt);
       fHistJetNTrackvsPhi->Fill(phi);
       fHistJetNTrackvsEta->Fill(eta);
@@ -1289,6 +1359,7 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
         fHistJetNTowervsID->Fill(towerID);
         fHistJetNTowervsADC->Fill(towADC);
         fHistJetNTowervsE->Fill(towE);
+        fHistJetNTowervsEtCent[cbin - 1]->Fill(towEt);
         fHistJetNTowervsEt->Fill(towEt);
         fHistJetNTowervsPhi->Fill(towerPhi);
         fHistJetNTowervsEta->Fill(towerEta);
@@ -1312,15 +1383,30 @@ void StJetMakerTask::FillJetConstituents(StJet *jet, std::vector<fastjet::Pseudo
   jet->SetNEF(neutralE/jet->E());  // should this be Et? FIXME
   //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
 
+/*
+  // test here..... with focus on jet mass
+  double pseudoP1 = 1.0*TMath::Sqrt(jet->E() * jet->E() - jet->M() * jet->M());
+  double pseudoP2 = 1.0*TMath::Sqrt(jet->E() * jet->E() - pi0mass * pi0mass);
+  cout<<"JetP: "<<jet->P()<<"   JetPx: "<<jet->Px()<<"   JetPy: "<<jet->Py()<<"   JetPz: "<<jet->Pz()<<"   JetPt: "<<jet->Pt();
+  cout<<"   P1 = "<<pseudoP1<<"   P2 = "<<pseudoP2<<"   Nconstit: "<<nt+nc<<endl;
+  cout<<"JetPhi: "<<jet->Phi()<<"  JetEta: "<<jet->Eta()<<"   JetTheta: "<<jet->Theta()<<endl;
+  cout<<"JetE: "<<jet->E()<<"   JetM: "<<jet->M()<<"   JetMJSDeriv: "<<jet->GetShapeProperties()->GetSecondOrderSubtracted()<<endl;
+*/
+
   // fill jets histograms
   fHistNJetsvsPt->Fill(jet->Pt()); 
   fHistNJetsvsPhi->Fill(jet->Phi());
   fHistNJetsvsEta->Fill(jet->Eta());
   fHistNJetsvsPhivsEta->Fill(jet->Phi(), jet->Eta());
   fHistNJetsvsArea->Fill(jet->Area());  // same as fjw.GetJetArea(ij)
+  fHistNJetsvsMass->Fill(jet->M());
+  fHistNJetvsMassCent[cbin - 1]->Fill(jet->M());
   fHistNJetsvsNConstituents->Fill(nt + nc);
   fHistNJetsvsNTracks->Fill(nt);
   fHistNJetsvsNTowers->Fill(nc);
+  fHistNJetTracksvsJetPt[cbin - 1]->Fill(jet->Pt(), nt);
+  fHistNJetTowersvsJetPt[cbin - 1]->Fill(jet->Pt(), nc);
+  fHistNJetConstituentsvsJetPt[cbin - 1]->Fill(jet->Pt(), nt + nc);
 
 }
 /**
@@ -1358,72 +1444,6 @@ Bool_t StJetMakerTask::IsLocked() const
     return kStOK;
   }
 }
-/**
- * Converts the internal enum values representing jet algorithms in
- * the corresponding values accepted by the FastJet wrapper.
- * @param algo Algorithm represented in the EJetAlgo_t enum
- * @return Algortithm represented in the fastjet::JetAlgorithm enum
- */
-/*
-fastjet::JetAlgorithm StJetMakerTask::ConvertToFJAlgo(EJetAlgo_t algo)
-{
-  switch(algo) {
-  case StJetFrameworkPicoBase::kt_algorithm:
-    return fastjet::kt_algorithm;
-  case StJetFrameworkPicoBase::antikt_algorithm:
-    return fastjet::antikt_algorithm;
-  case StJetFrameworkPicoBase::cambridge_algorithm:
-    return fastjet::cambridge_algorithm;
-  case StJetFrameworkPicoBase::genkt_algorithm:
-    return fastjet::genkt_algorithm;
-  case StJetFrameworkPicoBase::cambridge_for_passive_algorithm:
-    return fastjet::cambridge_for_passive_algorithm;
-  case StJetFrameworkPicoBase::genkt_for_passive_algorithm:
-    return fastjet::genkt_for_passive_algorithm;
-  case StJetFrameworkPicoBase::plugin_algorithm:
-    return fastjet::plugin_algorithm;
-  case StJetFrameworkPicoBase::undefined_jet_algorithm:
-    return fastjet::undefined_jet_algorithm;
-
-  default:
-    ::Error("StJetMakerTask::ConvertToFJAlgo", "Jet algorithm %d not recognized!!!", algo);
-    return fastjet::undefined_jet_algorithm;
-  }
-}
-*/
-/**
- * Converts the internal enum values representing jet recombination schemes in
- * the corresponding values accepted by the FastJet wrapper.
- * @param reco Recombination scheme represented in the EJetAlgo_t enum
- * @return Recombination scheme represented in the fastjet::JetAlgorithm enum
- */
-/*
-fastjet::RecombinationScheme StJetMakerTask::ConvertToFJRecoScheme(ERecoScheme_t reco)
-{
-  switch(reco) {
-  case StJetFrameworkPicoBase::E_scheme:
-    return fastjet::E_scheme;
-  case StJetFrameworkPicoBase::pt_scheme:
-    return fastjet::pt_scheme;
-  case StJetFrameworkPicoBase::pt2_scheme:
-    return fastjet::pt2_scheme;
-  case StJetFrameworkPicoBase::Et_scheme:
-    return fastjet::Et_scheme;
-  case StJetFrameworkPicoBase::Et2_scheme:
-    return fastjet::Et2_scheme;
-  case StJetFrameworkPicoBase::BIpt_scheme:
-    return fastjet::BIpt_scheme;
-  case StJetFrameworkPicoBase::BIpt2_scheme:
-    return fastjet::BIpt2_scheme;
-  case StJetFrameworkPicoBase::external_scheme:
-    return fastjet::external_scheme;
-
-  default:
-    ::Error("StJetMakerTask::ConvertToFJRecoScheme", "Recombination scheme %d not recognized!!!", reco);
-    return fastjet::external_scheme;
-  }
-}
-*/
 //
 // Function: track quality cuts
 //________________________________________________________________________
@@ -1572,7 +1592,7 @@ Bool_t StJetMakerTask::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Do
   if(mass < 0) mass = 0.0;
   //Double_t energy = tower->energy();
   Double_t energy = CorrectedEnergy;   // USE THIS, to use the corrected energy to get the momentum components
-  Double_t p = TMath::Sqrt(energy*energy - mass*mass);
+  Double_t p = 1.0*TMath::Sqrt(energy*energy - mass*mass);
 
   // tower ID - passed into function
   // get tower position
@@ -1711,14 +1731,12 @@ Double_t StJetMakerTask::GetMaxTowerEt()
     StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(i));
     if(!tower) continue;
 
+    // tower ID
     int towerID = i+1;
     if(towerID < 0) continue;
 
     // tower position - from vertex and ID: shouldn't need additional eta correction
     TVector3 towerPosition = mEmcPosition->getPosFromVertex(mVertex, towerID);
-    //double towerPhi = towerPosition.Phi();
-    //if(towerPhi < 0.0)    towerPhi += 2.0*pi;
-    //if(towerPhi > 2.0*pi) towerPhi -= 2.0*pi;
     double towerEta = towerPosition.PseudoRapidity();
     double towerEuncorr = tower->energy();               // uncorrected energy
     double towEt = towerEuncorr / (1.0*TMath::CosH(towerEta)); // should this be used instead?
@@ -1821,8 +1839,8 @@ void StJetMakerTask::FillJetBGBranch()
    // fill histogram with FastJet calculated rho
    fHistFJRho->Fill(bge_rho.rho());
 
-   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
    // sort jets according to jet pt
+   std::vector<fastjet::PseudoJet> jets_incl = fjw.GetInclusiveJets();
    static Int_t indexes[9999] = {-1};
    GetSortedArray(indexes, jets_incl);
 
@@ -1906,6 +1924,17 @@ void StJetMakerTask::SetSumw2() {
     fHistNMatchTrack[i]->Sumw2();
     fHistHadCorrComparison[i]->Sumw2();
     fHistHadCorrComparisonLast[i]->Sumw2();
+
+    fHistTowEtvsMatchedMaxTrkEt[i]->Sumw2();
+    fHistTowEtvsMatchedSumTrkEt[i]->Sumw2();
+
+    fHistJetNTrackvsPtCent[i]->Sumw2();
+    fHistJetNTowervsEtCent[i]->Sumw2();
+    fHistNJetTracksvsJetPt[i]->Sumw2();
+    fHistNJetTowersvsJetPt[i]->Sumw2();
+    fHistNJetConstituentsvsJetPt[i]->Sumw2();
+
+    fHistNJetvsMassCent[i]->Sumw2();
   }
   fHistJetNTrackvsPt->Sumw2();
   fHistJetNTrackvsPhi->Sumw2();
@@ -1924,6 +1953,7 @@ void StJetMakerTask::SetSumw2() {
   fHistNJetsvsEta->Sumw2();
   fHistNJetsvsPhivsEta->Sumw2();
   fHistNJetsvsArea->Sumw2();
+  fHistNJetsvsMass->Sumw2();
   fHistNJetsvsNConstituents->Sumw2();
   fHistNJetsvsNTracks->Sumw2();
   fHistNJetsvsNTowers->Sumw2();
@@ -1937,7 +1967,7 @@ void StJetMakerTask::SetSumw2() {
 void StJetMakerTask::RunEventQA() {
   // get run ID, transform to run order for filling histogram of corrections
   int fRunId = mPicoEvent->runId();
-  int RunId_Order = GetRunNo(fRunId);// + 1;
+  int RunId_Order = mBaseMaker->GetRunNo(fRunId);// + 1; // see BaseMaker
   //if(RunId_Order < -1) return kStOK;
 
   // vertex
@@ -1953,43 +1983,4 @@ void StJetMakerTask::RunEventQA() {
   fProfEventBBCx->Fill(RunId_Order + 1., fBBCx);
   fProfEventZDCx->Fill(RunId_Order + 1., fZDCx);
 
-}
-//
-// this function checks for the bin number of the run from a runlist header 
-// in order to apply various corrections and fill run-dependent histograms
-// 1287 - Liang
-// _________________________________________________________________________________
-Int_t StJetMakerTask::GetRunNo(int runid){
-  // Run12 pp (200 GeV)
-  if(fRunFlag == StJetFrameworkPicoBase::Run12_pp200) {
-    for(int i = 0; i < 857; i++) {
-      if(Run12pp_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run14 AuAu
-  // Run14AuAu_IdNo: SL17id
-  // 1654 for Run14 AuAu (OLD), new picoDst production is 830
-  if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
-    for(int i = 0; i < 830; i++) {
-      if(Run14AuAu_P18ih_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  // Run16 AuAu
-  // 1359 for Run16 AuAu
-  if(fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200) {
-    for(int i = 0; i < 1359; i++){
-      if(Run16AuAu_IdNo[i] == runid) {
-        return i;
-      }
-    }
-  }
-
-  cout<<" *********** RunID not matched with list ************!!!! "<<endl;
-  return -999;
 }

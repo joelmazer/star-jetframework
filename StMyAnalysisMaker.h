@@ -149,7 +149,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     virtual void            SetMixedEventType(UInt_t me)         { fMixingEventType = me; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)          { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Bool_t effcorr)         { fDoEffCorr = effcorr; }
+    virtual void            SetTrackEfficiencyType(Int_t t)      { fTrackEfficiencyType = t; }
 
     // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)          { fCorrJetPt = cpt; }
@@ -191,7 +192,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Bool_t                  DoComparison(int myarr[], int elems);
     void                    SetSumw2(); // set errors weights 
     void                    SetEPSumw2(); // set errors weights for event plane histograms
-    //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
     static Double_t         CalculateEventPlaneChi(Double_t res);
     void                    TrackQA();
@@ -208,7 +208,8 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Bool_t                  doPrintEventCounter;     // print event # switch
     Bool_t                  doWriteTrackQAHist;      // write track QA histograms
     Bool_t                  doWriteJetQAHist;        // write jet QA histograms
-    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  fDoEffCorr;              // efficiency correction to tracks
+    Int_t                   fTrackEfficiencyType;    // track efficiency type: pt-eta, pt, eta
     Bool_t                  doEventPlaneRes;         // event plane resolution switch
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
@@ -279,6 +280,9 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TClonesArray           *CloneAndReduceTrackList();
     StEventPoolManager     *fPoolMgr;//!  // event pool Manager object
 
+    // track efficiency file
+    TFile                  *fEfficiencyInputFile;
+
   private:
     //void                   GetVZEROEventPlane(Bool_t isFlatten);
     Int_t                   fRunNumber;
@@ -300,12 +304,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TFile                  *fCalibFile2;
     TFile                  *fBBCcalibFile;
     TFile                  *fZDCcalibFile;
-
-/* 
-    Int_t                   mEventCounter;//!
-    Int_t                   mAllPVEventCounter;//!
-    Int_t                   mInputEventCounter;//!
-*/
 
     // switches
     bool                    doComments;
@@ -475,13 +473,6 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
 
-/*
-    // counters
-    Int_t GetEventCounter() {return mEventCounter;}
-    Int_t GetAllPVEventCounter() {return mAllPVEventCounter;}
-    Int_t GetInputEventCounter() {return mInputEventCounter;}
-*/
-                
     ClassDef(StMyAnalysisMaker, 2)
 };
 /*

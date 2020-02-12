@@ -49,9 +49,8 @@
 #include "StFJWrapper.h"
 #include "StJetFrameworkPicoBase.h"
 
-#include "StCentMaker.h"
-
 // centrality
+#include "StCentMaker.h"
 #include "StRoot/StRefMultCorr/StRefMultCorr.h"
 #include "StRoot/StRefMultCorr/CentralityMaker.h"
 
@@ -142,8 +141,6 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
   fJetsBGsub(0x0),
   fFull_Event(0),
   fConstituents(0),
-  fJetsConstit(0x0),
-  fJetsConstitBGsub(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -240,8 +237,6 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
   fJetsBGsub(0x0),
   fFull_Event(0),
   fConstituents(0),
-  fJetsConstit(0x0),
-  fJetsConstitBGsub(0x0),
   mGeom(StEmcGeom::instance("bemc")),
   mPicoDstMaker(0x0),
   mPicoDst(0x0),
@@ -323,10 +318,6 @@ Int_t StJetMakerTaskBGsub::Init() {
 
   fJetsBGsub = new TClonesArray("StJet");
   fJetsBGsub->SetName(fJetsName+"BGsub");
-
-  // may need array (name hard-coded, Feb20, 2018)
-  fJetsConstit = new TClonesArray("StPicoTrack");
-  fJetsConstit->SetName("JetConstituents");
 
   // position object for Emc
   mEmcPosition = new StEmcPosition2();
@@ -877,8 +868,6 @@ void StJetMakerTaskBGsub::FillJetBranch()
     if((jets_incl[ij].phi() < fJetPhiMin) || (jets_incl[ij].phi() > fJetPhiMax)) continue;
 
     // need to figure out how to get m or E from STAR tracks
-    //StJet *jet = new ((*fJets)[jetCount]) 
-    //  StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
     StJet *jet = new ((*fJets)[jetCount])
       StJet(jets_incl[ij].perp(), jets_incl[ij].eta(), jets_incl[ij].phi(), jets_incl[ij].m());
 
@@ -1071,7 +1060,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
   jet->SetNumberOfClusters(nc);
   jet->SetMaxTrackPt(maxTrack);
   jet->SetMaxTowerEt(maxTower);     // should this be Et? FIXME
-  jet->SetNEF(neutralE/jet->E());  // should this be Et? FIXME
+  jet->SetNEF(neutralE/jet->E());   // should this be Et? FIXME
   //jet->SortConstituents(); // TODO see how this works - sorts ClusterIds() and TrackIds() by index (increasing)
 
   // fill jets histograms

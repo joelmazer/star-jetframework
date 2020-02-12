@@ -59,7 +59,14 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
       kSubLeadingJets
     };
 
-    StMyAnalysisMaker3(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, double trkbias, const char *jetMakerName, const char *rhoMakerName);
+    // enumerator for jet analysis jet type
+    enum fSystematicUncTypeEnum {
+      kDoNothing,
+      kTrkEffMin,
+      kTrkEffMax
+    };
+
+    StMyAnalysisMaker3(const char *name, StPicoDstMaker *picoMaker, const char *outName, bool mDoComments, double minJetPtCut, const char *jetMakerName, const char *rhoMakerName);
     virtual ~StMyAnalysisMaker3();
    
     // class required functions
@@ -97,6 +104,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetWriteTrackQAHistograms(Bool_t w){ doWriteTrackQAHist = w; }
     virtual void            SetWriteJetQAHistograms(Bool_t w)  { doWriteJetQAHist = w; }
     virtual void            SetdoUseMainEPAngle(Bool_t m)      { doUseMainEPAngle = m; }
+    virtual void            SetSystematicUncType(Int_t a)      { fSysUncType = a; }
 
     // jet setters
     virtual void            SetMinJetPt(Double_t j)            { fMinPtJet         = j; }    // min jet pt
@@ -106,6 +114,9 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetJetRad(Double_t jrad)           { fJetRad           = jrad; } // jet radius 
     virtual void            SetJetShapeTrackPtRange(Double_t min, Double_t max)  { fJetShapeTrackPtMin = min; fJetShapeTrackPtMax = max; }  // jet shape analysis pt range
     virtual void            SetJetLJSubLJPtThresholds(Double_t lj, Double_t slj) { fLeadJetPtMin = lj; fSubLeadJetPtMin = slj; }
+    virtual void            SetdoSkip1ParticleJets(Bool_t sk)  { doSkip1ParticleJets = sk; } // skip 1 particle jets
+    virtual void            SetdoBiasJSjet(Bool_t j)           { doBiasJSjet       = j; }    // bias jet shape jets
+    virtual void            SetdoRequireJetTowFireTrig(Bool_t a) { doRequireJetTowFireTrig = a; } // require jet tower to have fired HT trigger      
 
     // event setters
     virtual void            SetEventZVtxRange(Double_t zmi, Double_t zma) { fEventZVtxMinCut = zmi; fEventZVtxMaxCut = zma; }
@@ -114,13 +125,13 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
-    virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
-    virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
+    virtual void            SetMinarackPt(Double_t minpt)      { fTrackPtMinCut    = minpt; } // min track cut
+    virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt; } // max track cut
     virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
     virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
-    virtual void            SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
-    virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
-    virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
+    virtual void            SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d;         }
+    virtual void            SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h;       }
+    virtual void            SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r;     }
 
     // tower setters
     virtual void            SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
@@ -138,14 +149,18 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     virtual void            SetDoFilterPtMixEvents(Bool_t fil) { fDoFilterPtMixEvents = fil; }
     virtual void            SetDoUseMultBins(Bool_t mult)      { fDoUseMultBins = mult; }
     virtual void            SetdoUseEPBins(Bool_t ep)          { doUseEPBins = ep; }
+    virtual void            SetnEPBins(Int_t nep)              { fnEPBins = nep; }
     virtual void            SetdoIgnoreExternalME(Bool_t ig)   { doIgnoreExternalME = ig; }
+    virtual void            SetBGConeFractionCut(Double_t c)   { fBackgroundConeFractionCut = c; }
+    virtual void            SetdoGenerateBadMixEventBGcone(Bool_t i) { doGenerateBadMixEventBGcone = i; }
 
     // event selection - setters
     virtual void            SetEmcTriggerEventType(UInt_t te)  { fEmcTriggerEventType = te; }
     virtual void            SetMBEventType(UInt_t mbe)         { fMBEventType = mbe; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Bool_t effcorr)       { fDoEffCorr = effcorr; }
+    virtual void            SetTrackEfficiencyType(Int_t t)    { fTrackEfficiencyType = t; }
 
     // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)        { fCorrJetPt = cpt; }
@@ -186,12 +201,13 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     void                    CalculateEventPlaneResolution(Double_t bbc, Double_t zdc, Double_t tpc, Double_t tpcN, Double_t tpcP, Double_t bbc1, Double_t zdc1);
     static Double_t         CalculateEventPlaneChi(Double_t res);
     void                    TrackQA();
+    void                    RunJetQA();
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
     Bool_t                  DidBadTowerFireTrigger();
     Bool_t                  DidBadTowerFireHTTrigger(); // TEST - August 2019
-    Int_t                   JetHadronCorrelationAnalysis(StJet *jet, StEventPool *pool, Int_t centbin, Int_t assocPtBin);
-    Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin);
+    void                    JetHadronCorrelationAnalysis(StJet *jet, StEventPool *pool, Int_t centbin, Int_t assocPtBin);
+    void                    JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2, Int_t assocPtBin);
     void                    GetJetV2(StJet *jet, Double_t EPangle, Int_t ptAssocBin);
     void                    FillTriggerIDs(TH1 *h);
 
@@ -201,15 +217,19 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  doRequireAjSelection;    // requirement of Aj selection on jets for Jet Shape Analysis
     Bool_t                  doWriteTrackQAHist;      // write track QA histograms
     Bool_t                  doWriteJetQAHist;        // write jet QA histograms
-    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  fDoEffCorr;              // efficiency correction to tracks
+    Int_t                   fTrackEfficiencyType;    // track efficiency type: pt-eta, pt, eta
     Bool_t                  doEventPlaneRes;         // event plane resolution switch
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
     Bool_t                  doUseMainEPAngle;        // use 0.2-2.0 GeV charged tracks for event plane
-    Bool_t                  doRejectBadRuns;         // switch to reject bad runs and thus skip from analysis
     Bool_t                  doIgnoreExternalME;      // does standared event mixing (without use of external approach)
     Bool_t                  doRunAnalysis;           // switch to run jet shape / jet-hadron correlation analyses
     Bool_t                  doJetHadronCorrelationAnalysis; // perform jet-hadron correlation analysis
+    Bool_t                  doSkip1ParticleJets;     // switch to skip 1-particle jets
+    Bool_t                  doBiasJSjet;             // switch to require leading bias to jet shape jets
+    Bool_t                  doRequireJetTowFireTrig; // switch to require jet constituent tower to have fired an event HT trigger  
+    Int_t                   fSysUncType;             // systematic uncertainty type
 
     // cuts
     Double_t                fJetShapeTrackPtMin;     // jet shape analysis - min track pt
@@ -228,6 +248,9 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                  fDoFilterPtMixEvents;    // filter mixed event pool by pt (reduce memory) switch
     Bool_t                  fDoUseMultBins;          // use multiplicity bins instead of centrality bins - used for Jet Shape Analysis
     Bool_t                  doUseEPBins;             // use event plane bins: 0.2-2.0 GeV charged tracks
+    Int_t                   fnEPBins;                // number of event plane bins to use for event mixing (0, pi) range
+    Double_t                fBackgroundConeFractionCut; // cut threshold to exclude mixed events, when pt sum of tracks in background cone reach 
+    Bool_t                  doGenerateBadMixEventBGcone; // loops through mixed event prior to running analysis portion, to change normalization and eliminate bad events from BGcone
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;    // Physics selection of event used for signal
@@ -241,7 +264,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
 
     // used for event plane calculation and resolution
     //Float_t                 fExcludeLeadingJetsFromFit;  // exclude n leading jets from fit
-    //Int_t                   fTrackWeight;                // track weight for Q-vector summation
     Double_t                fEventPlaneMaxTrackPtCut;// max track pt cut for event plane calculation
     Int_t                   fTPCEPmethod;            // TPC event plane calculation method
     Int_t                   fHistCentBinMin;         // min centrality bin for histogram loop
@@ -273,7 +295,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     // event pool
     TClonesArray           *CloneAndReduceTrackList();
     StEventPoolManager     *fPoolMgr;//!  // event pool Manager object
+    
+    // track efficiency file
+    TFile                  *fEfficiencyInputFile;
 
+    Double_t                ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Double_t teta, Int_t cbin, Double_t ZDCx, Int_t effType, TFile *infile); // single-track reconstruction efficiency 
   private:
     Int_t                   fRunNumber;
     TString                 fEPcalibFileName; 
@@ -376,6 +402,11 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1  *hMB30vsMult;//!
     TH1  *hHTvsMult;//!
     TH1  *hNMixEvents;//!
+    TH1  *hNMixNormBefore[9];//!
+    TH1  *hNMixNormAfter[9];//!
+    TH1  *hBGconeFractionOfJetPt;//!
+    TH2  *hJetPtvsBGconeFraction;//!
+    TH2  *hJetPtvsBGconePt;//!
 
     TH2F *hTPCvsBBCep;//!
     TH2F *hTPCvsZDCep;//!
@@ -385,6 +416,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetShape[4][4][4][9];//! jet shape histograms in annuli bins
     TH1F *hJetShapeCase1[4][4][4][9];//! jet shape case1 histograms in annuli bins
     TH1F *hJetShapeCase2[4][4][4][9];//! jet shape case2 histograms in annuli bins
+    TH1F *hJetShapeCase3[4][4][4][9];//! jet shape case3 histograms in annuli bins
     TH1F *hJetShapeBG[4][4][4][9];//! jet shape backround histograms in annuli bins
     TH1F *hJetShapeBGCase1[4][4][4][9];//! jet shape case1 histograms in annuli bins
     TH1F *hJetShapeBGCase2[4][4][4][9];//! jet shape case2 histograms in annuli bins
@@ -398,6 +430,7 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TH1F *hJetPtProfile[4][4][4][9];//! jet pt profile histograms in annuli bins
     TH1F *hJetPtProfileCase1[4][4][4][9];//! jet pt profile case1 histograms in annuli bins
     TH1F *hJetPtProfileCase2[4][4][4][9];//! jet pt profile case2 histograms in annuli bins
+    TH1F *hJetPtProfileCase3[4][4][4][9];//! jet pt profile case3 histograms in annuli bins
     TH1F *hJetPtProfileBG[4][4][4][9];//! jet pt profile backround histograms in annuli bins
     TH1F *hJetPtProfileBGCase1[4][4][4][9];//! jet profile case1 histograms in annuli bins
     TH1F *hJetPtProfileBGCase2[4][4][4][9];//! jet profile case2 histograms in annuli bins
@@ -421,9 +454,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     TString                fAnalysisMakerName;
     TString                fEventMixerMakerName;
 
-    // centrality maker pointer/
-    StCentMaker            *mCentMaker; 
-
     // base class pointer
     StJetFrameworkPicoBase *mBaseMaker;
 
@@ -440,6 +470,6 @@ class StMyAnalysisMaker3 : public StJetFrameworkPicoBase {
     Bool_t                      fCheckEventNumberInMixedEvent; // check event number before correlation in mixed event
     TList                      *fListOfPools; //  Output list of containers
 
-    ClassDef(StMyAnalysisMaker3, 2)
+    ClassDef(StMyAnalysisMaker3, 3)
 };
 #endif

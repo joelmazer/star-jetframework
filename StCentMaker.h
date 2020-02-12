@@ -68,14 +68,10 @@ class StCentMaker : public StJetFrameworkPicoBase {
     Double_t                GetRefCorr2() const                { return krefCorr2; }
     Double_t                GetCentScaled() const              { return kCentralityScaled; }
 
-
   protected:
     // functions
     void                    SetSumw2(); // set errors weights 
     Double_t                GetCorrectedMultiplicity(const UShort_t RefMult, const Double_t z, const Double_t zdcCoincidenceRate, const UInt_t flag);
-
-    // RefMultCorr object
-    StRefMultCorr *grefmultCorr;
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal

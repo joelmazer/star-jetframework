@@ -88,6 +88,10 @@ Int_t StCentMaker::Init() {
   // ====================================================================================================================
   // centrality definitions loaded here
   //    - these are generated for mid luminosity runs
+  //  
+  //  Run 14: 
+  //  	getgRefMultCorr_P18ih_VpdMB30_AllLumi() - used for all luminosities
+  //    getgRefMultCorr_P18ih_VpdMB30()         - used for mid-lumi (older set of definitions)
   // ====================================================================================================================
 
   // switch on Run Flag specifically requested for given run period for centrality definition setup

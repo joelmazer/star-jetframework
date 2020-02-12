@@ -211,10 +211,6 @@ void StEventPoolMaker::DeclareHistograms() {
   Double_t *centralityBins = cBins;
 
   // multiplicity bins
-//  Int_t nMultBins = 29; 
-//  Double_t multBins[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
-//  Int_t nMultBins = 24;  // Alt-1: Best Yet
-//  Double_t multBins[] = {10,16,24,34,46,61,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
   Int_t nMultBins = 25;  // Alt-2
   Double_t multBins[] = {10,15,21,31,42,53,66,   80, 95, 112, 130, 149, 169, 190, 212, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
   Double_t *multiplicityBins = multBins;
@@ -271,9 +267,6 @@ void StEventPoolMaker::Clear(Option_t *opt) {
 Int_t StEventPoolMaker::Make() {
   // zero out these global variables
   fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
-
-  // constants
-  const double pi = 1.0*TMath::Pi();
 
   // get PicoDstMaker 
   mPicoDstMaker = static_cast<StPicoDstMaker*>(GetMaker("picoDst"));
@@ -515,10 +508,10 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
       mTrkMom = trk->gMom(mVertex, Bfield);
     }
 
+/*
     // track variables - used with alt method below
     double pt = mTrkMom.Perp();
 
-/*
     // when doing event plane calculation via pt assoc bin
     // this is TEMP, it will filter track by the pt bin used for analysis
     if(doTPCptassocBin && fDoFilterPtMixEvents) {

@@ -164,10 +164,10 @@ class StJet : public StVParticle
   void              AddTrackAt(Int_t track, Int_t idx) { fTrackIDs.AddAt(track, idx);      }
   void              Clear(Option_t* /*option*/="");
 
-  void              SetMaxTrackPt(Double32_t t)          { fMaxTrackPt = t;                  }
-  Double_t          GetMaxTrackPt()                      const { return fMaxTrackPt;         } // ;
-  void              SetMaxTowerEt(Double32_t t)           { fMaxTowerEt = t;                  }
-  Double_t          GetMaxTowerEt()                       const { return fMaxTowerEt;         } // ;
+  void              SetMaxTrackPt(Double32_t t)        { fMaxTrackPt = t;                  }
+  Double_t          GetMaxTrackPt()                    const { return fMaxTrackPt;         } // ;
+  void              SetMaxTowerEt(Double32_t t)          { fMaxTowerEt = t;                  }
+  Double_t          GetMaxTowerEt()                    const { return fMaxTowerEt;         } // ;
 
   // Sorting methods
   void              SortConstituents();
@@ -194,7 +194,6 @@ class StJet : public StVParticle
 //TEST =========================
   void SetJetConstituents(std::vector<fastjet::PseudoJet> n)        { fJetConstit = n;                         }
   //const std::vector<fastjet::PseudoJet>&  GetInputVectors()    const { return fInputVectors;               }
-  const std::vector<fastjet::PseudoJet>& GetMyJets()  const { return fJetConstit; }
   const std::vector<fastjet::PseudoJet>& GetJetConstituents()  const { return fJetConstit; }
 
   // Debug printouts

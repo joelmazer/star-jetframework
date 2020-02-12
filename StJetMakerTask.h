@@ -35,9 +35,8 @@ class StPicoBTowHit;
 class StFJWrapper;
 class StJetUtility;
 
-class StCentMaker;
-
 // Centrality class
+class StCentMaker;
 class StRefMultCorr;
 
 // STAR includes
@@ -52,18 +51,9 @@ namespace fastjet {
 
 /**
  * @brief General jet finder task implementing a wrapper for FastJet
- * 
- * after getting a bunch of the functionality working, have added some code 
- * directly from the ALICE version of AliEmcalJetTask written by:
- * 
- * @author Constantin Lozides <cloizides@lbl.gov>, Lawrence Berkeley National Laboratory
- * @author Marta Verweij
- * @author Salvatore Aiola <salvatore.aiola@cern.ch>, Yale University
  *
- * This class implements a wrapper for the FastJet jet finder. It allows
- * to set a jet definition (jet algorithm, recombination scheme) and the
- * list of jet constituents. The jet finding is delegated to
- * the class StFJWrapper which implements an interface to FastJet.
+ * This class implements a wrapper for the FastJet jet finder. It allows to set a jet definition (jet algorithm, recombination scheme) and the
+ * list of jet constituents. The jet finding is delegated to the class StFJWrapper which implements an interface to FastJet.
  *
  * The below is not functional yet:
  * The FastJet contrib utilities are available via the StJetUtility base class
@@ -81,17 +71,6 @@ class StJetMakerTask : public StMaker {
     kChargedJet,
     kNeutralJet
   };
-
-/*
-  typedef StMyAnalysisMaker::EJetType_t EJetType_t;
-  typedef StMyAnalysisMaker::EJetAlgo_t EJetAlgo_t;
-  typedef StMyAnalysisMaker::ERecoScheme_t ERecoScheme_t;
-
-#if !defined(__CINT__) && !defined(__MAKECINT__)
-  typedef fastjet::JetAlgorithm FJJetAlgo;
-  typedef fastjet::RecombinationScheme FJRecoScheme;
-#endif
-*/
 
   StJetMakerTask();
   StJetMakerTask(const char *name, double mintrackPt, bool dohistos, const char* outName);
@@ -126,8 +105,11 @@ class StJetMakerTask : public StMaker {
   virtual void         SetRejectBadRuns(Bool_t rj)       { doRejectBadRuns = rj; }
 
   // track setters
-  void         SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMin = etmi; fTrackEtaMax = etma; }
-  void         SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMax = ptmi; fTrackPhiMax = ptma; }
+  void                 SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMin = etmi; fTrackEtaMax = etma; }
+  void                 SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMax = ptmi; fTrackPhiMax = ptma; }
+  virtual void         SetDoEffCorr(Bool_t effcorr)       { fDoEffCorr = effcorr; }
+  virtual void         SetDoCorrectTracksforEffBeforeJetReco(Bool_t ec) {   doCorrectTracksforEffBeforeJetReco = ec; }
+  virtual void         SetTrackEfficiencyType(Int_t t)    { fTrackEfficiencyType = t; }
 
   // common setters
   void         SetClusName(const char *n)                 { fCaloName      = n;  }
@@ -136,9 +118,6 @@ class StJetMakerTask : public StMaker {
   void         SetJetAlgo(Int_t a)                        { fJetAlgo          = a     ; }
   void         SetJetType(Int_t t)                        { fJetType          = t     ; }
   void         SetRecombScheme(Int_t scheme)              { fRecombScheme     = scheme; }
-//  void                   SetJetAlgo(EJetAlgo_t a)                   { fJetAlgo          = a     ; }
-//  void                   SetJetType(EJetType_t t)                   { fJetType          = t     ; }
-//  void                   SetRecombScheme(ERecoScheme_t scheme)      { fRecombScheme     = scheme; }
   void         SetMinJetArea(Double_t a)                  { fMinJetArea       = a     ; }
   void         SetMinJetPt(Double_t j)                    { fMinJetPt         = j     ; }
   void         SetRadius(Double_t r)                      { fRadius        = r;  }
@@ -172,7 +151,6 @@ class StJetMakerTask : public StMaker {
   // jets
   TClonesArray*          GetJets()                        { return fJets; }
   TClonesArray*          GetJetsBGsub()                   { return fJetsBGsub; }
-  TClonesArray*          GetJetConstit()                  { return fJetsConstit; } 
 
   // getters
   Double_t               GetGhostArea()                   { return fGhostArea         ; }
@@ -204,13 +182,6 @@ class StJetMakerTask : public StMaker {
   std::set<Int_t>        GetBadTowers()                   { return badTowers          ; }
   std::set<Int_t>        GetDeadTowers()                  { return deadTowers         ; }
 
-/*
-#if !defined(__CINT__) && !defined(__MAKECINT__)
-  static FJJetAlgo       ConvertToFJAlgo(EJetAlgo_t algo);
-  static FJRecoScheme    ConvertToFJRecoScheme(ERecoScheme_t reco);
-#endif
-*/
-
   // set hadronic correction fraction for matched tracks to towers
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
   void                   SetJetHadCorrType(Int_t hct)       { fJetHadCorrType = hct;}
@@ -232,7 +203,6 @@ class StJetMakerTask : public StMaker {
   Double_t               GetMaxTowerEt();               // find max tower Et in event
   void                   RunEventQA();
   void                   SetSumw2(); // set errors weights 
-  Int_t                  GetRunNo(int runid);
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
@@ -252,6 +222,9 @@ class StJetMakerTask : public StMaker {
   Bool_t                 doppAnalysis;            // use pp analysis data
   Bool_t                 fRequireCentSelection;   // require particular centrality bin
   Bool_t                 doConstituentSubtr;      // run constituent subtractor
+  Bool_t                 fDoEffCorr;              // efficiency correction to tracks
+  Bool_t                 doCorrectTracksforEffBeforeJetReco; // efficiency correction to tracks - not used yet (using 'fDoEffCorr')
+  Int_t                  fTrackEfficiencyType;    // track efficiency type: pt-eta, pt, eta
 
   // event cuts
   Double_t               fEventZVtxMinCut;        // min event z-vertex cut
@@ -289,12 +262,6 @@ class StJetMakerTask : public StMaker {
   TString                fCaloName;               // name of calo cluster collection
   TString                fJetsName;               // name of jet collection
 
-  // need to tweak type of next 3
-/*
-  EJetType_t             fJetType;                // jet type (full, charged, neutral)
-  EJetAlgo_t             fJetAlgo;                // jet algorithm (kt, akt, etc)
-  ERecoScheme_t          fRecombScheme;           // recombination scheme used by fastjet
-*/
   Int_t                  fJetAlgo;                // jet algorithm (kt, akt, etc)
   Int_t                  fJetType;                // jet type (full, charged, neutral)
   Int_t                  fRecombScheme;           // recombination scheme used by fastjet
@@ -329,7 +296,7 @@ class StJetMakerTask : public StMaker {
   Double_t               fJetTrackDCAcut;         // max jet track dca cut
   Int_t                  fJetTracknHitsFit;       // requirement for track hits
   Double_t               fJetTracknHitsRatio;     // requirement for nHitsFit / nHitsMax
-  Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1)
+  Double_t               fTrackEfficiency;        // artificial tracking inefficiency (0...1) - this is NOT used
 
   // tower attributes
   Double_t               fJetTowerEMin;           // min jet tower energy cut
@@ -354,13 +321,14 @@ class StJetMakerTask : public StMaker {
   TClonesArray          *fJetsBGsub;              //!jet background subtracted collection
   vector<fastjet::PseudoJet> fFull_Event;         //!jet input vectors
   vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
-  TClonesArray          *fJetsConstit;            //!jet constituents ClonesArray
-  TClonesArray          *fJetsConstitBGsub;       //!jet constituents background subtracted ClonesArray  
   
   // Emc geometry 
   StEmcGeom             *mGeom;
   
   static const Int_t     fgkConstIndexShift;      //! contituent index shift
+
+  // track efficiency file
+  TFile                  *fEfficiencyInputFile;
 
  private:
   StMuDst               *mu;                      // muDst object
@@ -405,6 +373,9 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistNMatchTrack[5];//!
   TH2F           *fHistHadCorrComparison[5];//!
   TH2F           *fHistHadCorrComparisonLast[5];//!
+  TH2F           *fHistTowEtvsMatchedMaxTrkEt[5];//!
+  TH2F           *fHistTowEtvsMatchedSumTrkEt[5];//!
+  TH1F           *fHistJetNTrackvsPtCent[5];//!
   TH1F           *fHistJetNTrackvsPt;//!
   TH1F           *fHistJetNTrackvsPhi;//!
   TH1F           *fHistJetNTrackvsEta;//!
@@ -412,6 +383,7 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistJetNTowervsID;//!
   TH1F           *fHistJetNTowervsADC;//!
   TH1F           *fHistJetNTowervsE;//!
+  TH1F           *fHistJetNTowervsEtCent[5];//!
   TH1F           *fHistJetNTowervsEt;//!
   TH1F           *fHistJetNTowervsPhi;//!
   TH1F           *fHistJetNTowervsEta;//!
@@ -422,9 +394,14 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistNJetsvsEta;//!
   TH2F           *fHistNJetsvsPhivsEta;//!
   TH1F           *fHistNJetsvsArea;//!
+  TH1F           *fHistNJetsvsMass;//!
   TH1F           *fHistNJetsvsNConstituents;//!
   TH1F           *fHistNJetsvsNTracks;//!
   TH1F           *fHistNJetsvsNTowers;//!
+  TH2F           *fHistNJetTracksvsJetPt[5];//!
+  TH2F           *fHistNJetTowersvsJetPt[5];//!
+  TH2F           *fHistNJetConstituentsvsJetPt[5];//!
+  TH1F           *fHistNJetvsMassCent[5];//!
 
   TH2F           *fHistQATowIDvsEta;//!
   TH2F           *fHistQATowIDvsPhi;//!

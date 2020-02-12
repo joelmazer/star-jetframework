@@ -131,7 +131,6 @@ Int_t StDummyMaker::Init() {
   // Jet TClonesArray
   fJets = new TClonesArray("StJet"); // will have name correspond to the Maker which made it
   //fJets->SetName(fJetsName);
-  //fJets->SetOwner(kTRUE);
 
   return kStOK;
 }
@@ -542,7 +541,7 @@ void StDummyMaker::RunTowers()
   // looping over clusters - STAR: matching already done, get # of clusters and set variables
   unsigned int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
 
-  // loop over ALL clusters in PicoDst and add to jet //TODO
+  // loop over ALL clusters in PicoDst
   for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
     StPicoBEmcPidTraits *cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
     if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }

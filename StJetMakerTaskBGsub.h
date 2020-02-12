@@ -137,7 +137,6 @@ class StJetMakerTaskBGsub : public StMaker {
   // jets
   TClonesArray        *GetJets()                        { return fJets; }
   TClonesArray        *GetJetsBGsub()                   { return fJetsBGsub; }
-  TClonesArray        *GetJetConstit()                  { return fJetsConstit; }
  
   // getters
   Double_t             GetGhostArea()                   { return fGhostArea         ; }
@@ -301,11 +300,6 @@ class StJetMakerTaskBGsub : public StMaker {
   TClonesArray        *fJetsBGsub;              //!jet background subtracted collection
   vector<fastjet::PseudoJet> fFull_Event;         //!jet input vectors
   vector<fastjet::PseudoJet> fConstituents;       //!jet constituents
-  TClonesArray        *fJetsConstit;            //!jet constituents ClonesArray
-  TClonesArray        *fJetsConstitBGsub;       //!jet constituents background subtracted ClonesArray  
-
-  // fastjet definitions
-  // might add..
 
   // TEST ---
   StEmcGeom           *mGeom;

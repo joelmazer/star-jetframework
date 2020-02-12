@@ -1,7 +1,6 @@
 #ifndef StJetShapeAnalysis_h
 #define StJetShapeAnalysis_h
 
-#include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StJetFrameworkPicoBase.h"
 class StJetFrameworkPicoBase;
 
@@ -139,7 +138,8 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetMixedEventType(UInt_t me)       { fMixingEventType = me; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Bool_t effcorr)       { fDoEffCorr = effcorr; }
+    virtual void            SetTrackEfficiencyType(Int_t t)    { fTrackEfficiencyType = t; }
 
     // use rho to correct jet pt in correlation sparses
     virtual void            SetCorrectJetPt(Bool_t cpt)        { fCorrJetPt = cpt; }
@@ -163,17 +163,17 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    SetSumw2(); // set errors weights 
-    //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    TrackQA();
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
-    Int_t                   JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
+    void                    JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2);
 
     // switches
     Int_t                   fJetAnalysisJetType;     // type of jets to use for jet analysis
     Bool_t                  doRequireAjSelection;    // requirement of Aj selection on jets for Jet Shape Analysis
     Bool_t                  doWriteTrackQAHist;      // write track QA histograms
-    Int_t                   fDoEffCorr;              // efficiency correction to tracks
+    Bool_t                  fDoEffCorr;              // efficiency correction to tracks
+    Int_t                   fTrackEfficiencyType;    // track efficiency type: pt-eta, pt, eta
     Bool_t                  doTPCptassocBin;         // TPC event plane calculated on a pt assoc bin basis
     Int_t                   fTPCptAssocBin;          // pt associated bin to calculate event plane for
 
@@ -325,9 +325,6 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
 
     // base class pointer object
     StJetFrameworkPicoBase *mBaseMaker;
-
-    // centrality maker pointer
-    StCentMaker            *mCentMaker;
 
     // maker names
     TString                fAnalysisMakerName;

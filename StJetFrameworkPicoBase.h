@@ -64,6 +64,14 @@ class StJetFrameworkPicoBase : public StMaker {
       fBadRuns_wo_missing_HT
     };
 
+    // efficiency type enumerator
+    enum fEfficiencyTypeEnum_t {
+      kNormalPtEtaBased, 
+      kPtBased, 
+      kEtaBased,
+      kHeaderArray
+    };
+
     // jet type enumerator
     enum EJetType_t {
       kFullJet,
@@ -292,10 +300,15 @@ class StJetFrameworkPicoBase : public StMaker {
     Bool_t                  CheckForMB(int RunFlag, int type);
     Bool_t                  CheckForHT(int RunFlag, int type);
 
+    // functions
+    Double_t                ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Double_t teta, Int_t cbin, Double_t ZDCx, Int_t effType, TFile *infile); // single-track reconstruction efficiency 
+    Int_t                   GetRunNo(int runid);
+
   protected:
     TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
     Int_t                   GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Int_t                   GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
+    Int_t                   Get4CentBin(Double_t scaledCent) const;
     Double_t                RelativePhi(Double_t mphi,Double_t vphi) const;               // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const;         // relative jet event plane angle
     Bool_t                  AcceptJet(StJet *jet);                                   // jets accept cuts function
@@ -310,9 +323,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                   GetAnnuliBin(Double_t deltaR) const;
     Int_t                   GetJetPtBin(Double_t jetpt) const;
     Int_t                   GetJetEPBin(Double_t dEP) const;
-    Int_t                   Get4CentBin(Double_t scaledCent) const;
-    Double_t                ApplyTrackingEff(StPicoTrack *trk, Bool_t applyEff); // single-track reconstruction efficiency 
-    Int_t                   GetRunNo(int runid);
+    Int_t                   GetLuminosityBin(Double_t lumi) const;
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   GetVzRegion(double Vz);
 

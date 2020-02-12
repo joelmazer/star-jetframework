@@ -234,7 +234,6 @@ Int_t StRhoBase::Finish() {
   }
 */
 
-  //cout<<"End of StRhoBase::Finish"<<endl;
   return kStOK;
 }
 //
@@ -282,9 +281,9 @@ void StRhoBase::DeclareHistograms()
   Float_t Ntrackrange[2] = {0, 6000};
   Float_t Mult[2] = {0.,25000.};
   if(!fIsAuAu){
-     // set multiplicity related axes to a smaller max value
-     Ntrackrange[1] = 200.;
-     Mult[1] = 2000.;
+    // set multiplicity related axes to a smaller max value
+    Ntrackrange[1] = 200.;
+    Mult[1] = 2000.;
   }
  
   int fNbins = 1;

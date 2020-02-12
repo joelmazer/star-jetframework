@@ -108,6 +108,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   mOutNameEP = "";
   mOutNameQA = "";
   fDoEffCorr = kFALSE;
+  fTrackEfficiencyType = StJetFrameworkPicoBase::kNormalPtEtaBased;
   doTPCptassocBin = kFALSE;
   fTPCptAssocBin = -99;
   fMinPtJet = minJetPt;
@@ -201,30 +202,28 @@ StJetShapeAnalysis::~StJetShapeAnalysis()
   if(hHTvsMult)   delete hHTvsMult;
   if(hNMixEvents) delete hNMixEvents;
 
-  if(doJetShapeAnalysis) {
-    for(int k=0; k<4; k++) {
-      for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) {
-          if(hJetShape[k][j][i])            delete hJetShape[k][j][i];
-          if(hJetShapeCase1[k][j][i])       delete hJetShapeCase1[k][j][i];
-          if(hJetShapeCase2[k][j][i])       delete hJetShapeCase2[k][j][i];
-          if(hJetShapeBG[k][j][i])          delete hJetShapeBG[k][j][i];
-          if(hJetShapeBGCase1[k][j][i])     delete hJetShapeBGCase1[k][j][i];
-          if(hJetShapeBGCase2[k][j][i])     delete hJetShapeBGCase2[k][j][i];
-          if(hJetShapeBGCase3[k][j][i])     delete hJetShapeBGCase3[k][j][i];
-          if(hJetCounter[k][j][i])          delete hJetCounter[k][j][i];
-          if(hJetCounterCase1[k][j][i])     delete hJetCounterCase1[k][j][i];
-          if(hJetCounterCase2[k][j][i])     delete hJetCounterCase2[k][j][i];
-          if(hJetCounterCase3BG[k][j][i])   delete hJetCounterCase3BG[k][j][i];
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        if(hJetShape[k][j][i])            delete hJetShape[k][j][i];
+        if(hJetShapeCase1[k][j][i])       delete hJetShapeCase1[k][j][i];
+        if(hJetShapeCase2[k][j][i])       delete hJetShapeCase2[k][j][i];
+        if(hJetShapeBG[k][j][i])          delete hJetShapeBG[k][j][i];
+        if(hJetShapeBGCase1[k][j][i])     delete hJetShapeBGCase1[k][j][i];
+        if(hJetShapeBGCase2[k][j][i])     delete hJetShapeBGCase2[k][j][i];
+        if(hJetShapeBGCase3[k][j][i])     delete hJetShapeBGCase3[k][j][i];
+        if(hJetCounter[k][j][i])          delete hJetCounter[k][j][i];
+        if(hJetCounterCase1[k][j][i])     delete hJetCounterCase1[k][j][i];
+        if(hJetCounterCase2[k][j][i])     delete hJetCounterCase2[k][j][i];
+        if(hJetCounterCase3BG[k][j][i])   delete hJetCounterCase3BG[k][j][i];
 
-          if(hJetPtProfile[k][j][i])        delete hJetPtProfile[k][j][i];
-          if(hJetPtProfileCase1[k][j][i])   delete hJetPtProfileCase1[k][j][i];
-          if(hJetPtProfileCase2[k][j][i])   delete hJetPtProfileCase2[k][j][i];
-          if(hJetPtProfileBG[k][j][i])      delete hJetPtProfileBG[k][j][i];
-          if(hJetPtProfileBGCase1[k][j][i]) delete hJetPtProfileBGCase1[k][j][i];
-          if(hJetPtProfileBGCase2[k][j][i]) delete hJetPtProfileBGCase2[k][j][i];
-          if(hJetPtProfileBGCase3[k][j][i]) delete hJetPtProfileBGCase3[k][j][i];
-        }
+        if(hJetPtProfile[k][j][i])        delete hJetPtProfile[k][j][i];
+        if(hJetPtProfileCase1[k][j][i])   delete hJetPtProfileCase1[k][j][i];
+        if(hJetPtProfileCase2[k][j][i])   delete hJetPtProfileCase2[k][j][i];
+        if(hJetPtProfileBG[k][j][i])      delete hJetPtProfileBG[k][j][i];
+        if(hJetPtProfileBGCase1[k][j][i]) delete hJetPtProfileBGCase1[k][j][i];
+        if(hJetPtProfileBGCase2[k][j][i]) delete hJetPtProfileBGCase2[k][j][i];
+        if(hJetPtProfileBGCase3[k][j][i]) delete hJetPtProfileBGCase3[k][j][i];
       }
     }
   }
@@ -360,30 +359,28 @@ void StJetShapeAnalysis::DeclareHistograms() {
   hHTvsMult = new TH1F("hHTvsMult", "# HT events vs multiplicity", 350, 0, 700);
   hNMixEvents = new TH1F("hNMixEvents", "number of mixing events", 200, 0, 200);
 
-  if(doJetShapeAnalysis) {
-    for(int k=0; k<4; k++) {
-      for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) {
-          hJetShape[k][j][i] = new TH1F(Form("hJetShape_%i_%i_%i", k, j, i), Form("Jet shape #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeCase1[k][j][i] = new TH1F(Form("hJetShapeCase1_%i_%i_%i", k, j, i), Form("Jet shape case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeCase2[k][j][i] = new TH1F(Form("hJetShapeCase2_%i_%i_%i", k, j, i), Form("Jet shape case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBG[k][j][i] = new TH1F(Form("hJetShapeBG_%i_%i_%i", k, j, i), Form("Jet shape BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase1[k][j][i] = new TH1F(Form("hJetShapeBGCase1_%i_%i_%i", k, j, i), Form("Jet shape BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase2[k][j][i] = new TH1F(Form("hJetShapeBGCase2_%i_%i_%i", k, j, i), Form("Jet shape BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetShapeBGCase3[k][j][i] = new TH1F(Form("hJetShapeBGCase3_%i_%i_%i", k, j, i), Form("Jet shape BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetCounter[k][j][i] = new TH1F(Form("hJetCounter_%i_%i_%i", k, j, i), Form("Jet counter - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
-          hJetCounterCase1[k][j][i] = new TH1F(Form("hJetCounterCase1_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
-          hJetCounterCase2[k][j][i] = new TH1F(Form("hJetCounterCase2_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
-          hJetCounterCase3BG[k][j][i] = new TH1F(Form("hJetCounterCase3BG_%i_%i_%i", k, j, i), Form("Jet counter case3 BG only - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        hJetShape[k][j][i] = new TH1F(Form("hJetShape_%i_%i_%i", k, j, i), Form("Jet shape #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeCase1[k][j][i] = new TH1F(Form("hJetShapeCase1_%i_%i_%i", k, j, i), Form("Jet shape case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeCase2[k][j][i] = new TH1F(Form("hJetShapeCase2_%i_%i_%i", k, j, i), Form("Jet shape case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeBG[k][j][i] = new TH1F(Form("hJetShapeBG_%i_%i_%i", k, j, i), Form("Jet shape BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeBGCase1[k][j][i] = new TH1F(Form("hJetShapeBGCase1_%i_%i_%i", k, j, i), Form("Jet shape BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeBGCase2[k][j][i] = new TH1F(Form("hJetShapeBGCase2_%i_%i_%i", k, j, i), Form("Jet shape BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetShapeBGCase3[k][j][i] = new TH1F(Form("hJetShapeBGCase3_%i_%i_%i", k, j, i), Form("Jet shape BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetCounter[k][j][i] = new TH1F(Form("hJetCounter_%i_%i_%i", k, j, i), Form("Jet counter - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
+        hJetCounterCase1[k][j][i] = new TH1F(Form("hJetCounterCase1_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
+        hJetCounterCase2[k][j][i] = new TH1F(Form("hJetCounterCase2_%i_%i_%i", k, j, i), Form("Jet counter case2 - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
+        hJetCounterCase3BG[k][j][i] = new TH1F(Form("hJetCounterCase3BG_%i_%i_%i", k, j, i), Form("Jet counter case3 BG only - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 1, 0.0, 1.0);
 
-          hJetPtProfile[k][j][i] = new TH1F(Form("hJetPtProfile_%i_%i_%i", k, j, i), Form("Jet pt profile #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileCase1[k][j][i] = new TH1F(Form("hJetPtProfileCase1_%i_%i_%i", k, j, i), Form("Jet pt profile case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileCase2[k][j][i] = new TH1F(Form("hJetPtProfileCase2_%i_%i_%i", k, j, i), Form("Jet pt profile case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBG[k][j][i] = new TH1F(Form("hJetPtProfileBG_%i_%i_%i", k, j, i), Form("Jet pt profile BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase1[k][j][i] = new TH1F(Form("hJetPtProfileBGCase1_%i_%i_%i", k, j, i), Form("Jet profile BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase2[k][j][i] = new TH1F(Form("hJetPtProfileBGCase2_%i_%i_%i", k, j, i), Form("Jet profile BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-          hJetPtProfileBGCase3[k][j][i] = new TH1F(Form("hJetPtProfileBGCase3_%i_%i_%i", k, j, i), Form("Jet profile BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
-        }
+        hJetPtProfile[k][j][i] = new TH1F(Form("hJetPtProfile_%i_%i_%i", k, j, i), Form("Jet pt profile #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileCase1[k][j][i] = new TH1F(Form("hJetPtProfileCase1_%i_%i_%i", k, j, i), Form("Jet pt profile case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileCase2[k][j][i] = new TH1F(Form("hJetPtProfileCase2_%i_%i_%i", k, j, i), Form("Jet pt profile case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileBG[k][j][i] = new TH1F(Form("hJetPtProfileBG_%i_%i_%i", k, j, i), Form("Jet pt profile BG #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileBGCase1[k][j][i] = new TH1F(Form("hJetPtProfileBGCase1_%i_%i_%i", k, j, i), Form("Jet profile BG case1 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileBGCase2[k][j][i] = new TH1F(Form("hJetPtProfileBGCase2_%i_%i_%i", k, j, i), Form("Jet profile BG case2 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
+        hJetPtProfileBGCase3[k][j][i] = new TH1F(Form("hJetPtProfileBGCase3_%i_%i_%i", k, j, i), Form("Jet profile BG case3 #rho(r) - p_{T} bin %i, centrality bin %i, EP bin %i", k, j, i), 10, 0.0, 0.50);
       }
     }
   }
@@ -466,30 +463,28 @@ void StJetShapeAnalysis::WriteTrackQAHistograms() {
 //________________________________________________________________________________
 void StJetShapeAnalysis::WriteJetShapeHistograms() {
   // jet shape histos
-  if(doJetShapeAnalysis) {
-    for(int k=0; k<4; k++) {
-      for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) {
-          hJetShape[k][j][i]->Write();
-          hJetShapeCase1[k][j][i]->Write();
-          hJetShapeCase2[k][j][i]->Write();
-          hJetShapeBG[k][j][i]->Write();
-          hJetShapeBGCase1[k][j][i]->Write();
-          hJetShapeBGCase2[k][j][i]->Write();
-          hJetShapeBGCase3[k][j][i]->Write();
-          hJetCounter[k][j][i]->Write();
-          hJetCounterCase1[k][j][i]->Write();
-          hJetCounterCase2[k][j][i]->Write();
-          hJetCounterCase3BG[k][j][i]->Write();
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        hJetShape[k][j][i]->Write();
+        hJetShapeCase1[k][j][i]->Write();
+        hJetShapeCase2[k][j][i]->Write();
+        hJetShapeBG[k][j][i]->Write();
+        hJetShapeBGCase1[k][j][i]->Write();
+        hJetShapeBGCase2[k][j][i]->Write();
+        hJetShapeBGCase3[k][j][i]->Write();
+        hJetCounter[k][j][i]->Write();
+        hJetCounterCase1[k][j][i]->Write();
+        hJetCounterCase2[k][j][i]->Write();
+        hJetCounterCase3BG[k][j][i]->Write();
 
-          hJetPtProfile[k][j][i]->Write();
-          hJetPtProfileCase1[k][j][i]->Write();
-          hJetPtProfileCase2[k][j][i]->Write();
-          hJetPtProfileBG[k][j][i]->Write();
-          hJetPtProfileBGCase1[k][j][i]->Write();
-          hJetPtProfileBGCase2[k][j][i]->Write();
-          hJetPtProfileBGCase3[k][j][i]->Write();
-        }
+        hJetPtProfile[k][j][i]->Write();
+        hJetPtProfileCase1[k][j][i]->Write();
+        hJetPtProfileCase2[k][j][i]->Write();
+        hJetPtProfileBG[k][j][i]->Write();
+        hJetPtProfileBGCase1[k][j][i]->Write();
+        hJetPtProfileBGCase2[k][j][i]->Write();
+        hJetPtProfileBGCase3[k][j][i]->Write();
       }
     }
   }
@@ -657,7 +652,6 @@ Int_t StJetShapeAnalysis::Make() {
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
   Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
   // this is actually not used since the below line does the cut:  if(fRequireCentSelection)
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
@@ -773,7 +767,6 @@ Int_t StJetShapeAnalysis::Make() {
 
   // ============== EventPlaneMaker =============== //
   // get StEventPlaneMaker from event
-  double tpc2EP;
   if(doEPAnalysis) {
     if(!doTPCptassocBin) {
       EventPlaneMaker = static_cast<StEventPlaneMaker*>(GetMaker(fEventPlaneMakerName));
@@ -804,7 +797,6 @@ Int_t StJetShapeAnalysis::Make() {
   // ===================================================================================
 
   // ========================== Jet Shape Analysis ===================================== //
-  int jsret = -99;
   if(doJetShapeAnalysis) {
     StEventPool* pool = 0x0;
 
@@ -850,12 +842,12 @@ Int_t StJetShapeAnalysis::Make() {
     // Triggered events and leading/subleading jets - do Jet Shape Analysis
     // check for back to back jets: must have leading + subleading jet, subleading jet must be > 10 GeV, subleading jet must be within 0.4 of pi opposite of leading jet
     if(doRequireAjSelection) {
-      if(doAjSelection && fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(doAjSelection && fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) JetShapeAnalysis(fLeadingJet, pool, refCorr2);
     } else {
-      if(fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) jsret = JetShapeAnalysis(fLeadingJet, pool, refCorr2);
+      if(fHaveEmcTrigger && fJetAnalysisJetType == kLeadingJets && fLeadingJet) JetShapeAnalysis(fLeadingJet, pool, refCorr2);
     }
     // subleading jets
-    if(fHaveEmcTrigger && fJetAnalysisJetType == kSubLeadingJets  && fSubLeadingJet) jsret = JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
+    if(fHaveEmcTrigger && fJetAnalysisJetType == kSubLeadingJets  && fSubLeadingJet) JetShapeAnalysis(fSubLeadingJet, pool, refCorr2);
 
     // use only tracks from MB events
     //if(fDoEventMixing > 0 && fRunForMB && (!fHaveEmcTrigger)) { // kMB5 or kMB30 - AuAu, kMB - pp (excluding HT)
@@ -1110,11 +1102,8 @@ Double_t StJetShapeAnalysis::GetReactionPlane() {
     if(phi < 0.0)    phi += 2.0*pi;
     if(phi > 2.0*pi) phi -= 2.0*pi;
 
-    // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
-    if((fLeadingJet) && 
-       (fExcludeLeadingJetsFromFit > 0) && 
-       ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit) || 
-       (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    // check for leading jet removal
+    if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit) )) continue;
 
     // configure track weight when performing Q-vector summation
     double trackweight;
@@ -1194,30 +1183,28 @@ void StJetShapeAnalysis::SetSumw2() {
   hHTvsMult->Sumw2();
   hNMixEvents->Sumw2();
 
-  if(doJetShapeAnalysis) {
-    for(int k=0; k<4; k++) {
-      for(int j=0; j<4; j++) {
-        for(int i=0; i<4; i++) {
-          hJetShape[k][j][i]->Sumw2();
-          hJetShapeCase1[k][j][i]->Sumw2();
-          hJetShapeCase2[k][j][i]->Sumw2();
-          hJetShapeBG[k][j][i]->Sumw2();
-          hJetShapeBGCase1[k][j][i]->Sumw2();
-          hJetShapeBGCase2[k][j][i]->Sumw2();
-          hJetShapeBGCase3[k][j][i]->Sumw2();
-          hJetCounter[k][j][i]->Sumw2();
-          hJetCounterCase1[k][j][i]->Sumw2();
-          hJetCounterCase2[k][j][i]->Sumw2();
-          hJetCounterCase3BG[k][j][i]->Sumw2();
+  for(int k=0; k<4; k++) {
+    for(int j=0; j<4; j++) {
+      for(int i=0; i<4; i++) {
+        hJetShape[k][j][i]->Sumw2();
+        hJetShapeCase1[k][j][i]->Sumw2();
+        hJetShapeCase2[k][j][i]->Sumw2();
+        hJetShapeBG[k][j][i]->Sumw2();
+        hJetShapeBGCase1[k][j][i]->Sumw2();
+        hJetShapeBGCase2[k][j][i]->Sumw2();
+        hJetShapeBGCase3[k][j][i]->Sumw2();
+        hJetCounter[k][j][i]->Sumw2();
+        hJetCounterCase1[k][j][i]->Sumw2();
+        hJetCounterCase2[k][j][i]->Sumw2();
+        hJetCounterCase3BG[k][j][i]->Sumw2();
 
-          hJetPtProfile[k][j][i]->Sumw2();
-          hJetPtProfileCase1[k][j][i]->Sumw2();
-          hJetPtProfileCase2[k][j][i]->Sumw2();
-          hJetPtProfileBG[k][j][i]->Sumw2();
-          hJetPtProfileBGCase1[k][j][i]->Sumw2();
-          hJetPtProfileBGCase2[k][j][i]->Sumw2();
-          hJetPtProfileBGCase3[k][j][i]->Sumw2();
-        }
+        hJetPtProfile[k][j][i]->Sumw2();
+        hJetPtProfileCase1[k][j][i]->Sumw2();
+        hJetPtProfileCase2[k][j][i]->Sumw2();
+        hJetPtProfileBG[k][j][i]->Sumw2();
+        hJetPtProfileBGCase1[k][j][i]->Sumw2();
+        hJetPtProfileBGCase2[k][j][i]->Sumw2();
+        hJetPtProfileBGCase3[k][j][i]->Sumw2();
       }
     }
   }
@@ -1336,14 +1323,14 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
 //
 // function that does jet shape analysis
 //___________________________________________________________________________________________
-Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2) {
+void StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_t refCorr2) {
     // constants
     double pi = 1.0*TMath::Pi();
     double rbinSize = 0.05;
 
     // get centrality bin
     int centbin = Get4CentBin(fCentralityScaled);
-    if(centbin < 0) return kStOK;
+    if(centbin < 0) return;
 
     // get jet info
     double jetPhi = jet->Phi();
@@ -1354,7 +1341,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
     if(fCorrJetPt) { jetPt = jet->Pt() - jet->Area()*fRhoVal;
     } else { jetPt = jet->Pt(); }
     int jetPtBin = GetJetPtBin(jetPt);
-    if(jetPtBin < 0) return kStOK;
+    if(jetPtBin < 0) return;
 
     // require tower and or track bias for jet
     //if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) return kStOK;
@@ -1382,7 +1369,7 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       if(fJetShapePtAssocBin == 8) dEP = dEP4; // 0.5+    GeV (inclusive)
     }
     int EPBin = GetJetEPBin(dEP);
-    if(EPBin < 0) return kStOK;
+    if(EPBin < 0) return;
 
     // annuli sum - initialize
     double rsum[10] = {0.0};
@@ -1713,8 +1700,10 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
             rsumBG3[annuliBin] += Mpt;
 
             // calculate single particle tracking efficiency of mixed events for correlations (-999)
-            //double mixefficiency = 1.0;
-            //FIXME mixefficiency = EffCorrection(part->Eta(), part->Pt(), fDoEffCorr);                           
+            //int effCent   = mCentMaker->GetRef16();
+            //double fZDCx  = mPicoEvent->ZDCx();
+            //double mixEfficiency = ApplyTrackingEff(fDoEffCorr, Mpt, Meta, effCent, fZDCx, fTrackEfficiencyType);
+
           } // end of background track loop
 
           // fill BG histos here
@@ -1735,5 +1724,5 @@ Int_t StJetShapeAnalysis::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double
       }     // end of check for pool being ready
     }       // end of event mixing
 
-    return kStOK;
+    return;
 }

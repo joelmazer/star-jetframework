@@ -7,7 +7,7 @@
      nCen     = 9,
      nEW      = 4,
      nDet     = 2,
-     nPhi     = 360,
+//     nPhi     = 360,
      EE       = 0,
      EW       = 1,
      WE       = 2,

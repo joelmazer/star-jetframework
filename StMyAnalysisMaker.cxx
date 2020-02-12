@@ -43,12 +43,8 @@
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 #include "StRoot/StPicoEvent/StPicoBTowHit.h" // NEW name
-#include "StRoot/StPicoEvent/StPicoBTofHit.h"
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
-#include "StRoot/StPicoEvent/StPicoMtdTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  // NEW (OLD: StPicoEmcPidTraits.h)
-#include "StRoot/StPicoEvent/StPicoBTofPidTraits.h"
-#include "StRoot/StPicoEvent/StPicoMtdPidTraits.h"
 
 // jet-framework includes
 #include "StJetFrameworkPicoBase.h"
@@ -78,7 +74,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0; 
   fTrackWeight = 1; //StJetFrameworkPicoBase::kPtLinear2Const5Weight; // see StJetFrameworkPicoBase::EPtrackWeightType 
   fEventPlaneMaxTrackPtCut = 5.0;
-  fTPCEPmethod = 1;
+  fTPCEPmethod = kRemoveEtaStrip;
   phi_shift_switch = kFALSE;         // keep off! 
   tpc_recenter_read_switch = kFALSE; // TPC recenter switch
   tpc_shift_read_switch = kFALSE;    // TPC shift switch
@@ -135,6 +131,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   fMaxEventTrackPt = 30.0;
   fMaxEventTowerEt = 1000.0; // 30.0
   fDoEffCorr = kFALSE;
+  fTrackEfficiencyType = StJetFrameworkPicoBase::kNormalPtEtaBased;
   fCorrJetPt = kFALSE;
   doEventPlaneRes = kFALSE;
   doTPCptassocBin = kFALSE;
@@ -179,11 +176,7 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   //if(doEventPlaneCorrections) 
   InitParameters();
 
-/*
-  mEventCounter = 0;
-  mAllPVEventCounter = 0;
-  mInputEventCounter = 0;
-*/
+  fEfficiencyInputFile = 0x0;
 }
 //
 //______________________________________________________________________________________
@@ -372,6 +365,13 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 //  fJets->Clear(); delete fJets;
 //  fRho->Clear(); delete fRho; 
   fPoolMgr->Clear(); delete fPoolMgr;
+
+  // track reconstruction efficiency input file
+  if(fEfficiencyInputFile) {
+    fEfficiencyInputFile->Close();
+    delete fEfficiencyInputFile;
+  }
+
 }
 //
 //_______________________________________________________________________________________
@@ -381,10 +381,12 @@ Int_t StMyAnalysisMaker::Init() {
   // initialize the histograms
   DeclareHistograms();
 
-  // initialize calibration file for event plane
-  //TFile *fCalibFile = new TFile("recenter_calib_file.root", "READ");
-  ////fCalibFile = new TFile(fEPcalibFileName.Data(), "READ");
+  // input file
+  const char *input = Form("./StRoot/StMyAnalysisMaker/Run14_efficiency.root");
+  fEfficiencyInputFile = new TFile(input);
+  if(!fEfficiencyInputFile) cout<<Form("do not have input file: %s", input);
 
+  // initialize calibration file for event plane
   fCalibFile = new TFile("StRoot/StMyAnalysisMaker/recenter_calib_file.root", "READ");
   if(!fCalibFile) cout<<"recenter_calib_file.root does not exist..."<<endl;
   fCalibFile2 = new TFile("StRoot/StMyAnalysisMaker/shift_calib_file.root", "READ");
@@ -438,25 +440,6 @@ Int_t StMyAnalysisMaker::Init() {
         }
         break;
 
-    case StJetFrameworkPicoBase::Run11_pp500 : // Run11: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp200 : // Run12: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run12_pp500 : // Run12: 500 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run13_pp510 : // Run13: 510 (500) GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
-        break;
-
-    case StJetFrameworkPicoBase::Run17_pp510 : // Run17: 510 (500) GeV pp
-        // this is the default for Run17 pp - don't set anything for pp
-        break;
-
     default :
         grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
   }
@@ -469,9 +452,6 @@ Int_t StMyAnalysisMaker::Init() {
 Int_t StMyAnalysisMaker::Finish() { 
   //  Summarize the run.
   cout << "StMyAnalysisMaker::Finish()\n";
-  //cout << "\tProcessed " << mEventCounter << " events." << endl;
-  //cout << "\tWithout PV cuts: "<< mAllPVEventCounter << " events"<<endl;
-  //cout << "\tInput events: "<<mInputEventCounter<<endl;
 
   // close event plane calibration files (if open)
   if(fCalibFile->IsOpen()) fCalibFile->Close();
@@ -1171,8 +1151,6 @@ Int_t StMyAnalysisMaker::Make() {
   //StMemStat::PrintMem("MyAnalysisMaker at beginning of make");
 
   // update counter
-//  mEventCounter++;
-//  cout<<"StMyANMaker event# = "<<mEventCounter<<endl;
   if(doPrintEventCounter) cout<<"StMyAnMaker event# = "<<EventCounter()<<endl;
 
   // get PicoDstMaker 
@@ -1236,11 +1214,6 @@ Int_t StMyAnalysisMaker::Make() {
     grefmultCorr->init(RunId);
     if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
     else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
 
     // get centrality bin: either 0-7 or 0-15
     cent16 = grefmultCorr->getCentralityBin16();
@@ -1274,7 +1247,6 @@ Int_t StMyAnalysisMaker::Make() {
   // to limit filling unused entries in sparse, only fill for certain centrality ranges
   // ranges can be different than functional cent bin setter
   Int_t cbin = -1;
-  // need to figure out centrality first in STAR: TODO
   if (centbin>-1 && centbin < 2)    cbin = 1; // 0-10%
   else if (centbin>1 && centbin<4)  cbin = 2; // 10-20%
   else if (centbin>3 && centbin<6)  cbin = 3; // 20-30%
@@ -1495,9 +1467,6 @@ Int_t StMyAnalysisMaker::Make() {
     } else { if(jetpt < fMinPtJet) continue; }
     if((jet->GetMaxTrackPt() < fTrackBias) && (jet->GetMaxTowerEt() < fTowerBias)) continue;
 
-    // test QA stuff...
-    //cout<<"ijet = "<<ijet<<"  dEP = "<<dEP<<"  jetpt = "<<jetpt<<"  corrjetpt = "<<corrjetpt<<"  maxtrackpt = "<<jet->GetMaxTrackPt()<<endl;
-
     // loop over constituent tracks
     for(int itrk = 0; itrk < jet->GetNumberOfTracks(); itrk++) {
       int trackid = jet->TrackAt(itrk);      
@@ -1642,11 +1611,17 @@ Int_t StMyAnalysisMaker::Make() {
 
       // fill jet sparse 
       double triggerEntries[8] = {centbin*5.0, jetptselected, pt, deta, dphijh, dEP, zVtx, (double)charge};
-      double trefficiency = 1.0;
+
+      // calculate single particle tracking efficiency
+      // FIXME int effCent   = mCentMaker->GetRef16();
+      int effCent = 0;
+      double fZDCx  = mPicoEvent->ZDCx(); 
+      double trkEfficiency = ApplyTrackingEff(fDoEffCorr, pt, eta, effCent, fZDCx, fTrackEfficiencyType, fEfficiencyInputFile);
+
       //if(fDoEventMixing) {
         if(fReduceStatsCent > 0) {
-          if(cbin == fReduceStatsCent) fhnJH->Fill(triggerEntries, 1.0/trefficiency);    // fill Sparse Histo with trigger entries
-        } else fhnJH->Fill(triggerEntries, 1.0/trefficiency);
+          if(cbin == fReduceStatsCent) fhnJH->Fill(triggerEntries, 1.0/trkEfficiency);    // fill Sparse Histo with trigger entries
+        } else fhnJH->Fill(triggerEntries, 1.0/trkEfficiency);
       //}
 
       fHistJetHEtaPhi->Fill(deta,dphijh);                          // fill jet-hadron  eta--phi distributio
@@ -1692,7 +1667,7 @@ Int_t StMyAnalysisMaker::Make() {
     pool = fPoolMgr->GetEventPool(centbin, zVtx); // FIXME AuAu fcent: cent bin? cent16
     if (!pool) {
       Form("No pool found for centrality = %i, zVtx = %f", centbin, zVtx); // FIXME if cent changes to double
-      return kTRUE; //FIXME
+      return kTRUE;
     }
 
     if(fDebugLevel == kDebugMixedEvents) cout<<"NtracksInPool = "<<pool->NTracksInPool()<<"  CurrentNEvents = "<<pool->GetCurrentNEvents()<<endl;
@@ -1773,8 +1748,10 @@ Int_t StMyAnalysisMaker::Make() {
               if(fDebugLevel == kDebugMixedEvents) if((dMixeta > 1.6) || (dMixeta < -1.6)) cout<<"DELTA ETA is somehow out of bounds...  deta = "<<dMixeta<<"   iTrack = "<<ibg<<"  jetEta = "<<MixjetEta<<"  trk eta = "<<Mixeta<<endl;
 
               // calculate single particle tracking efficiency of mixed events for correlations
-              double mixefficiency = 1.0;
-              //FIXME mixefficiency = EffCorrection(part->Eta(), part->Pt(), fDoEffCorr);                           
+              // FIXME int effCent   = mCentMaker->GetRef16();
+              int effCent = 0;
+              double fZDCx  = mPicoEvent->ZDCx();
+              double mixEfficiency = ApplyTrackingEff(fDoEffCorr, Mixpt, Mixeta, effCent, fZDCx, fTrackEfficiencyType, fEfficiencyInputFile);
 
               double Mixjetptselected;
               if(fCorrJetPt) { Mixjetptselected = Mixcorrjetpt;
@@ -1783,8 +1760,8 @@ Int_t StMyAnalysisMaker::Make() {
               // create / fill mixed event sparse
               double triggerEntries[8] = {centbin*5.0, Mixjetptselected, Mixpt, dMixeta, dMixphijh, dMixEP, zVtx, (double)Mixcharge}; //array for ME sparse
               if(fReduceStatsCent > 0) {
-                if(cbin == fReduceStatsCent) fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
-              } else fhnMixedEvents->Fill(triggerEntries,1./(nMix*mixefficiency));   // fill Sparse histo of mixed events
+                if(cbin == fReduceStatsCent) fhnMixedEvents->Fill(triggerEntries, 1. / (nMix*mixEfficiency));   // fill Sparse histo of mixed events
+              } else fhnMixedEvents->Fill(triggerEntries, 1. / (nMix*mixEfficiency));   // fill Sparse histo of mixed events
 
             } // end of background track loop
           } // end of filling mixed-event histo's:  jth mix event loop
@@ -2430,7 +2407,7 @@ Double_t StMyAnalysisMaker::GetReactionPlane() {
     if(phi > 2.0*pi) phi -= 2.0*pi;
 
     // check for leading jet removal - taken from Redmers approach (CHECK! TODO!)
-    if(fExcludeLeadingJetsFromFit > 0 && (fLeadingJet) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) || (TMath::Abs(eta) - fJetRad - 1.0 ) > 0 )) continue;
+    if(fExcludeLeadingJetsFromFit > 0 && (fLeadingJet) && (TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit )) continue;
 
     // configure track weight when performing Q-vector summation
     double trackweight;
@@ -2712,8 +2689,8 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // should set a soft pt range (0.2 - 5.0?)
     // more acceptance cuts now - after getting 3-vector
-    if(phi < 0) phi += 2*pi;  // FIXME - why did I comment this out and add the next line??
-    if(phi > 2*pi) phi -= 2*pi;
+    if(phi < 0.)     phi += 2.*pi; 
+    if(phi > 2.0*pi) phi -= 2.*pi;
     if(pt > fEventPlaneMaxTrackPtCut) continue;   // 5.0 GeV
     ////if(pt > ptcut) continue; // == TEST == //
 
@@ -2730,58 +2707,40 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
       if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
-    // FIXME FIXME double check these are updated - found bug on May25
-    // remove strip only when we have a leading jet
-    // Method1: kRemoveEtaStrip
-    //if(fTPCEPmethod == 1){
-    if(method == 1){
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && 
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    //} else if(fTPCEPmethod == 2){
-    } else if(method == 2){
-      // remove cone (in eta and phi) around leading jet
-      // Method2: kRemoveEtaPhiCone
+    // FIXME double check these are updated - found bug on May25
+    // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
+    //if(fTPCEPmethod == kRemoveEtaStrip){
+    if(method == kRemoveEtaStrip){
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) )) continue;
+    //} else if(fTPCEPmethod == kRemoveEtaPhiCone){
+    } else if(method == kRemoveEtaPhiCone){
+      // Method2: kRemoveEtaPhiCone - remove cone (in eta and phi) around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaR < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    //} else if(fTPCEPmethod == 3){
-    } else if(method == 3){ 
-      // remove tracks above 2 GeV in cone around leading jet
-      // Method3: kRemoveLeadingJetConstituents
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaR < fJetRad)) continue;
+    //} else if(fTPCEPmethod == kRemoveLeadingJetConstituents){
+    } else if(method == kRemoveLeadingJetConstituents){ 
+      // Method3: kRemoveLeadingJetConstituents - remove tracks above 2 GeV in cone around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-      (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-    //} else if(fTPCEPmethod == 4){
-    } else if(method == 4){
-      // remove strip only when we have a leading + subleading jet
-      // Method4: kRemoveEtaStripLeadSubLead
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    //} else if(fTPCEPmethod == 5){
-    } else if(method == 5){
-      // remove cone (in eta and phi) around leading + subleading jet
-      // Method5: kRemoveEtaPhiConeLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+    //} else if(fTPCEPmethod == kRemoveEtaStripLeadSub){
+    } else if(method == kRemoveEtaStripLeadSub){
+      // Method4: kRemoveEtaStripLeadSub - remove strip only when we have a leading + subleading jet
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit )) continue;
+    //} else if(fTPCEPmethod == kRemoveEtaPhiConeLeadSub){
+    } else if(method == kRemoveEtaPhiConeLeadSub){
+      // Method5: kRemoveEtaPhiConeLeadSub - remove cone (in eta and phi) around leading + subleading jet
       double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
-      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaR    < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaRSub < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    //} else if(fTPCEPmethod == 6){
-    } else if(method == 6){ 
-      // remove tracks above 2 GeV in cone around leading + subleading jet
-      // Method6: kRemoveLeadingSubJetConstituents
+      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) && (deltaR    < fJetRad )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaRSub < fJetRad )) continue;
+    //} else if(fTPCEPmethod == kRemoveLeadingSubJetConstituents){
+    } else if(method == kRemoveLeadingSubJetConstituents){ 
+      // Method6: kRemoveLeadingSubJetConstituents - remove tracks above 2 GeV in cone around leading + subleading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }
@@ -2842,6 +2801,8 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     mQtpcY += trackweight * sin(phi * order);
     nTOT++;
 
+    // clear instances of new: for TRandom3
+    delete rand;
   } // end of track loop
 
   // test statements
@@ -2890,8 +2851,6 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 //
 // 1) get the binning for: ref9 and region_vz
 // 2) get function: GetRunNo( );
-// 3) 
-//
 // 
 // BBC event plane calculation
 // ______________________________________________________________________
@@ -3627,22 +3586,24 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
           case kRemoveEtaStrip:
             if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
               if(fJetType == kFullJet) {
+/*
                 if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
-                  tpc_delta_psi += (tpc_shift_N_bin0_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                    tpc_shift_P_bin0_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                  tpc_delta_psi += (tpc_shift_N_bin0_Method1_R04_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin0_Method1_R04_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                  tpc_delta_psi += (tpc_shift_N_bin1_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                    tpc_shift_P_bin1_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                  tpc_delta_psi += (tpc_shift_N_bin1_Method1_R04_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin1_Method1_R04_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                  tpc_delta_psi += (tpc_shift_N_bin2_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                    tpc_shift_P_bin2_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                  tpc_delta_psi += (tpc_shift_N_bin2_Method1_R04_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin2_Method1_R04_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                  tpc_delta_psi += (tpc_shift_N_bin3_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                    tpc_shift_P_bin3_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                  tpc_delta_psi += (tpc_shift_N_bin3_Method1_R04_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin3_Method1_R04_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                  tpc_delta_psi += (tpc_shift_N_bin4_Method1_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
-                                    tpc_shift_P_bin4_Method1_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
+                  tpc_delta_psi += (tpc_shift_N_bin4_Method1_R04_Run14[ref9][region_vz][nharm-1] * cos(2*nharm*tPhi_rcd) +
+                                    tpc_shift_P_bin4_Method1_R04_Run14[ref9][region_vz][nharm-1] * sin(2*nharm*tPhi_rcd));
                 } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
+*/
               } // full jets
 
               if(fJetType == kChargedJet) {
@@ -3835,58 +3796,38 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
       if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
-    // BUGS fixed May25
-    // remove strip only when we have a leading jet
-    // Method1: kRemoveEtaStrip
-    if(fTPCEPmethod == 1){
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    } else if(fTPCEPmethod == 2){
-      // remove cone (in eta and phi) around leading jet
-      // Method2: kRemoveEtaPhiCone
+    // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
+    if(fTPCEPmethod == kRemoveEtaStrip){
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) )) continue;
+    } else if(fTPCEPmethod == kRemoveEtaPhiCone){
+      // Method2: kRemoveEtaPhiCone - remove cone (in eta and phi) around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaR < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    } else if(fTPCEPmethod == 3){
-      // remove tracks above 2 GeV in cone around leading jet
-      // Method3: kRemoveLeadingJetConstituents
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaR < fJetRad )) continue;
+    } else if(fTPCEPmethod == kRemoveLeadingJetConstituents){
+      // Method3: kRemoveLeadingJetConstituents - remove tracks above 2 GeV in cone around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-    } else if(fTPCEPmethod == 4){
-      // remove strip only when we have a leading + subleading jet
-      // Method4: kRemoveEtaStripLeadSubLead
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) ||
-        ((TMath::Abs(eta) - fJetRad - 1.0 ) > 0) )) continue;
-    } else if(fTPCEPmethod == 5){
-      // remove cone (in eta and phi) around leading + subleading jet
-      // Method5: kRemoveEtaPhiConeLeadSubLead
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+    } else if(fTPCEPmethod == kRemoveEtaStripLeadSub){
+      // Method4: kRemoveEtaStripLeadSub - remove strip only when we have a leading + subleading jet
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit) )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit) )) continue;
+    } else if(fTPCEPmethod == kRemoveEtaPhiConeLeadSub){
+      // Method5: kRemoveEtaPhiConeLeadSub - remove cone (in eta and phi) around leading + subleading jet
       double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi-excludeInPhiSub)*(phi-excludeInPhiSub));
-      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaR    < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        ((deltaRSub < fJetRad) || (TMath::Abs(eta) - fJetRad - 1.0 > 0 ) )) continue;
-    } else if(fTPCEPmethod == 6){
-      // remove tracks above 2 GeV in cone around leading + subleading jet
-      // Method6: kRemoveLeadingSubJetConstituents
+      if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) && (deltaR    < fJetRad )) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaRSub < fJetRad )) continue;
+    } else if(fTPCEPmethod == kRemoveLeadingSubJetConstituents){
+      // Method6: kRemoveLeadingSubJetConstituents - remove tracks above 2 GeV in cone around leading + subleading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
-      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
-      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) &&
-        (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+      if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+      if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
     } else {
       // DO NOTHING! nothing is removed...
     }
 
     // Liang cuts
-    //if(pt >= 2.) continue;
     //if(fabs(eta)<=0.75) continue; //method 1
     //if(fabs(eta)>=0.25 || fabs(eta)<0.05) continue;   //method 2
 
@@ -3912,7 +3853,6 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     Q2x_raw += x;
     Q2y_raw += y;
 
-    // test - Jan15 for random subevents
     // generate random distribution from 0 -> 1: and split subevents for [0,0.5] and [0.5, 1]
     double randomNum = rand->Rndm();
     //double randomNum = gRandom->Rndm();  // > 0.5?
@@ -3954,20 +3894,20 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
                   if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
-                    x -= tpc_center_Qpx_bin0_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qpy_bin0_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qpx_bin0_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin0_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                    x -= tpc_center_Qpx_bin1_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qpy_bin1_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qpx_bin1_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin1_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                    x -= tpc_center_Qpx_bin2_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qpy_bin2_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qpx_bin2_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin2_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                    x -= tpc_center_Qpx_bin3_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qpy_bin3_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qpx_bin3_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin3_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                    x -= tpc_center_Qpx_bin4_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qpy_bin4_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qpx_bin4_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qpy_bin4_Method1_R04_Run14[ref9][region_vz];
                   } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
                 } // full jets
 
@@ -4016,20 +3956,20 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
               if(fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200) {
                 if(fJetType == kFullJet) {
                   if(fTPCptAssocBin == 0) {         // 0.20-0.50 GeV
-                    x -= tpc_center_Qnx_bin0_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qny_bin0_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qnx_bin0_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin0_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 1) {  // 0.50-1.00 GeV
-                    x -= tpc_center_Qnx_bin1_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qny_bin1_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qnx_bin1_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin1_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 2) {  // 1.00-1.50 GeV
-                    x -= tpc_center_Qnx_bin2_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qny_bin2_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qnx_bin2_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin2_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 3) {  // 1.50-2.00 GeV
-                    x -= tpc_center_Qnx_bin3_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qny_bin3_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qnx_bin3_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin3_Method1_R04_Run14[ref9][region_vz];
                   } else if(fTPCptAssocBin == 4) {  // 2.00-20.0 GeV
-                    x -= tpc_center_Qnx_bin4_Method1_Run14[ref9][region_vz];
-                    y -= tpc_center_Qny_bin4_Method1_Run14[ref9][region_vz];
+                    x -= tpc_center_Qnx_bin4_Method1_R04_Run14[ref9][region_vz];
+                    y -= tpc_center_Qny_bin4_Method1_R04_Run14[ref9][region_vz];
                   } else { cout<<"NOT CONFIGURED PROPERLY, please select pt assoc bin!"<<endl; }
                 } // full jets
 
@@ -4148,6 +4088,9 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
   //cout<<"METHOD2... ntracksNEG = "<<ntracksNEG<<"  ntracksPOS = "<<ntracksPOS<<endl;
   //cout<<"Q2x_p = "<<Q2x_p<<"  Q2y_p = "<<Q2y_p<<"  Q2x_m = "<<Q2x_m<<"  Q2y_m = "<<Q2y_m<<endl;
   //cout<<"nA = "<<nA<<"  nB = "<<nB<<"  nTOT = "<<nTOT<<endl;
+
+  // remove instance of TRandom3 to free up memory
+  delete rand;
 }
 //
 // Fill event plane resolution histograms

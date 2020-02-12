@@ -84,18 +84,17 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     virtual void            SetMixedEventType(UInt_t me)       { fMixingEventType = me; }
 
     // efficiency correction setter
-    virtual void            SetDoEffCorr(Int_t effcorr)        { fDoEffCorr = effcorr; }
+    virtual void            SetDoEffCorr(Bool_t effcorr)        { fDoEffCorr = effcorr; }
 
   protected:
     TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
     void                    SetSumw2(); // set errors weights 
-    //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
 
     // switches
     Bool_t                  doPrintEventCounter;         // print event # switch
-    Int_t                   fDoEffCorr;                  // efficiency correction to tracks
+    Bool_t                  fDoEffCorr;                  // efficiency correction to tracks
 
     // event mixing
     Int_t                   fDoEventMixing;              // switch ON/off event mixing
@@ -147,9 +146,6 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     TH1  *hMixEvtStatZVtx;//!
     TH1  *hMixEvtStatCent;//!
     TH2  *hMixEvtStatZvsCent;//!
-
-    // centrality maker pointer
-    StCentMaker            *mCentMaker;
 
     // base class pointer
     StJetFrameworkPicoBase *mBaseMaker;

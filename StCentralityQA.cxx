@@ -25,7 +25,6 @@
 #include "StMaker.h"
 #include "StRoot/StPicoEvent/StPicoEvent.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoEvent/StPicoBTowHit.h" 
 #include "StRoot/StPicoEvent/StPicoEmcTrigger.h"
 #include "StRoot/StPicoEvent/StPicoBEmcPidTraits.h"  
 
@@ -67,10 +66,9 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   mPicoDstMaker = 0x0;
   mPicoDst = 0x0;
   mPicoEvent = 0x0;
-  grefmultCorr = 0x0;
+  grefmultCorrOLD = 0x0;
   grefmultCorrNEW = 0x0;
   mOutName = outName;
-  fDoEffCorr = kFALSE;
   doRejectBadRuns = kFALSE;
   fEventZVtxMinCut = -40.0; fEventZVtxMaxCut = 40.0;
   fTrackPtMinCut = 0.2; fTrackPtMaxCut = 30.0;
@@ -137,7 +135,7 @@ Int_t StCentralityQA::Init() {
         break;
 
     case StJetFrameworkPicoBase::Run14_AuAu200 : // Run14 AuAu
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr();
               //grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               //grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
@@ -145,22 +143,22 @@ Int_t StCentralityQA::Init() {
 /*
         switch(fCentralityDef) {
           case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           default: // this is the default for Run14
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr();
         }
         break;
 */
@@ -172,19 +170,19 @@ Int_t StCentralityQA::Init() {
     case StJetFrameworkPicoBase::Run16_AuAu200 : // Run16 AuAu
         switch(fCentralityDef) {      
           case StJetFrameworkPicoBase::kgrefmult :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr();
               break;
           case StJetFrameworkPicoBase::kgrefmult_P16id :
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P16id();
               break;
           case StJetFrameworkPicoBase::kgrefmult_VpdMBnoVtx : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_VpdMBnoVtx();
               break;
           case StJetFrameworkPicoBase::kgrefmult_VpdMB30 : 
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_VpdMB30();
               break;
           default:
-              grefmultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id();
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr_P16id();
         }
         break;
 
@@ -355,18 +353,17 @@ Int_t StCentralityQA::Make() {
 
   if(!doppAnalysis) {
     // initialize event-by-event by RunID
-    grefmultCorr->init(RunId);
-    if(doUseBBCCoincidenceRate) { grefmultCorr->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
-    else{ grefmultCorr->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
-//    if(grefmultCorr->isBadRun(RunId)) cout << "Run is bad" << endl; 
-//    if(grefmultCorr->isIndexOk()) cout << "Index Ok" << endl;
-//    if(grefmultCorr->isZvertexOk()) cout << "Zvertex Ok" << endl;
-//    if(grefmultCorr->isRefMultOk()) cout << "RefMult Ok" << endl;
-    // 10 14 21 29 40 54 71 92 116 145 179 218 263 315 373 441  // RUN 14 AuAu binning
+    grefmultCorrOLD->init(RunId);
+    if(doUseBBCCoincidenceRate) { grefmultCorrOLD->initEvent(grefMult, zVtx, fBBCCoincidenceRate); } // default
+    else{ grefmultCorrOLD->initEvent(grefMult, zVtx, fZDCCoincidenceRate); }
+//    if(grefmultCorrOLD->isBadRun(RunId)) cout << "Run is bad" << endl; 
+//    if(grefmultCorrOLD->isIndexOk()) cout << "Index Ok" << endl;
+//    if(grefmultCorrOLD->isZvertexOk()) cout << "Zvertex Ok" << endl;
+//    if(grefmultCorrOLD->isRefMultOk()) cout << "RefMult Ok" << endl;
 
     // get centrality bin: either 0-7 or 0-15
-    cent16 = grefmultCorr->getCentralityBin16();
-    cent9 = grefmultCorr->getCentralityBin9();
+    cent16 = grefmultCorrOLD->getCentralityBin16();
+    cent9 = grefmultCorrOLD->getCentralityBin9();
 
     // re-order binning to be from central -> peripheral
     ref9 = GetCentBin(cent9, 9);
@@ -374,12 +371,12 @@ Int_t StCentralityQA::Make() {
     centbin = GetCentBin(cent16, 16);  // 0-16
 
     // calculate corrected multiplicity
-    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
-    } else{ refCorr2 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
+    if(doUseBBCCoincidenceRate) { refCorr2 = grefmultCorrOLD->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 2);
+    } else{ refCorr2 = grefmultCorrOLD->getRefMultCorr(grefMult, zVtx, fZDCCoincidenceRate, 2); }
 
-    //Double_t refCorr1 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
-    //Double_t refCorr0 = grefmultCorr->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
-    //grefmultCorr->isCentralityOk(cent16)
+    //Double_t refCorr1 = grefmultCorrOLD->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 1);
+    //Double_t refCorr0 = grefmultCorrOLD->getRefMultCorr(grefMult, zVtx, fBBCCoincidenceRate, 0);
+    //grefmultCorrOLD->isCentralityOk(cent16)
   } else { // for pp
     centbin = 0, cent9 = 0, cent16 = 0, refCorr2 = 0.0, ref9 = 0, ref16 = 0;
   }
@@ -612,23 +609,5 @@ void StCentralityQA::FillTowerTriggersArr() {
 
     //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }
-
-/*
-  // loop over towers and add input vectors to fastjet
-  int nTowers = mPicoDst->numberOfBTOWHits();
-  for(int itow = 0; itow < nTowers; itow++) {
-    // get tower pointer
-    StPicoBTowHit *tower = static_cast<StPicoBTowHit*>(mPicoDst->btowHit(itow));
-    if(!tower) { cout<<"No tower pointer... iTow = "<<itow<<endl; continue; }
-
-    // tower ID: get from index of array shifted by +1
-    int towerID = itow + 1;
-    if(towerID < 0) continue; // double check these aren't still in the event list
-
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT1: "<<fTowerToTriggerTypeHT1[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT2: "<<fTowerToTriggerTypeHT2[towerID]<<"  adc = "<<tower->adc()<<endl;
-    //cout<<"itow = "<<itow<<"  towerID = "<<towerID<<"  HT3: "<<fTowerToTriggerTypeHT3[towerID]<<"  adc = "<<tower->adc()<<endl;
-  }
-*/
 
 }
