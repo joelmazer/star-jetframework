@@ -14,7 +14,7 @@ class StMaker;
 class StChain;
 class StPicoDstMaker;
 class StRefMultCorr;
-// my added STAR classes
+// jet-framework STAR classes
 class StJetMakerTask;
 class StJetFrameworkPicoBase;
 class StMyAnalysisMaker;
@@ -48,10 +48,8 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         // run enumerators
         enum RunType_t {
           mJobSubmission = 0, // 0th spot - default unless set
-          mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10,
-          mRun11 = 11, mRun12 = 12, mRun13 = 13,
-          mRun14 = 14,
-          mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18
+          mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10, mRun11 = 11, mRun12 = 12, mRun13 = 13,
+          mRun14 = 14, mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18, mRun19 = 19, mRun20 = 20
         };
 
         // Load necessary libraries and macros
@@ -128,7 +126,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
            CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 ||
            CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi
-        ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
+        ) { ZVtxMin = -28.0; ZVtxMax = 28.0; }
 
         // =============================================================================== //
         // =============================================================================== //
@@ -331,7 +329,7 @@ void LoadLibs()
   gSystem->Load("$FASTJET/lib/libfastjettools");
   gSystem->Load("$FASTJET/lib/libfastjetcontribfragile");
 
-  // add include path to use its functionality
+  // add include path to use its functionality - FIXME update with your own path
   gSystem->AddIncludePath("-I/star/u/jmazer19/Y2017/STAR/FastJet/fastjet-install/include");
 
   // load the system libraries - these were defaults

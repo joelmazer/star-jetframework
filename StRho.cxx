@@ -102,19 +102,6 @@ Int_t StRho::Finish() {
     fout->Close();
   }
 
-/*   ===== test ======
-  if(mOutName!="") {
-    cout<<"checking output file in StRhoMaker::Finish().."<<endl;
-    TFile *fout = new TFile(mOutName.Data(),"RECREATE");
-    fout->cd();
-    fout->mkdir(GetName());
-    fout->cd(GetName());
-    WriteHistograms();
-    fout->cd();
-    fout->Close();
-  }
-*/
-
   return kStOK;
 }
 //

@@ -44,17 +44,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
       kDebugEventPlaneCalc
     };
 
-    // enumerator for TPC event plane method
-    enum fTPCEPmethodEnum {
-      kRemoveNothing,
-      kRemoveEtaStrip,
-      kRemoveEtaPhiCone,
-      kRemoveLeadingJetConstituents, // greater than 2 GeV
-      kRemoveEtaStripLeadSub,
-      kRemoveEtaPhiConeLeadSub,
-      kRemoveLeadingSubJetConstituents // greater than 2 GeV
-    };
-
     // detector enum
     enum fDetectorType {
       kNoDetector = 0,
@@ -336,10 +325,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TProfile              *fProfV3Resolution[9];//! resolution parameters for v3
     TProfile              *fProfV4Resolution[9];//! resolution parameters for v4
     TProfile              *fProfV5Resolution[9];//! resolution parameters for v5
-//    TH1F                  *fDiffV2Resolution[9];//! difference of event plane angles for n=2
-//    TH1F                  *fDiffV3Resolution[9];//! difference of event plane angles for n=3
-//    TH1F                  *fDiffV4Resolution[9];//! difference of event plane angles for n=4
-//    TH1F                  *fDiffV5Resolution[9];//! difference of event plane angles for n=5
 
     // bad run list 
     std::set<Int_t>        badRuns;
@@ -349,8 +334,6 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
 
     // maker names
     TString                fAnalysisMakerName;
-//    TString                fJetMakerName;
-//    TString                fRhoMakerName;
                 
     ClassDef(StEventPlaneMaker, 2)
 };

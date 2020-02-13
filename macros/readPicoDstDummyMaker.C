@@ -2,6 +2,7 @@
 // July 15, 2019
 // some current notes:
 // - set up as means of using StCentMaker to provide other classes with centrality information
+// - gives a dummy setup for finding jets and using them in a Dummy class
 //
 
 #include <TSystem>
@@ -12,7 +13,8 @@ class StMaker;
 class StChain;
 class StPicoDstMaker;
 class StRefMultCorr;
-// my jet-framework STAR classes
+
+// jet-framework STAR classes
 class StJetMakerTask;
 class StRho;
 class StRhoBase;
@@ -34,6 +36,7 @@ Int_t RunYear = 14;
 bool doTEST = kFALSE;   // FIXME double check before submitting!
 bool dopp = kFALSE;      // FIXME kTRUE for pp data
 
+// z-vertex cut, a finer cut performed below
 Double_t ZVtxMin = -40.0;
 Double_t ZVtxMax = 40.0;
 
@@ -44,7 +47,8 @@ StChain *chain;
 
 void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", const Char_t *outputFile="test.root", Int_t nEv = 10, const Char_t *fOutJobappend="")
 {
-//        Int_t nEvents = 10000;
+//        Int_t nEvents = 100000;
+//        Int_t nEvents = 10000; // should use at least 10,000 for pp
 //        Int_t nEvents = 1000;
         Int_t nEvents = 100;
         if(nEv > 100) nEvents = 100000000;
@@ -54,7 +58,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
           mJobSubmission = 0, // 0th spot - default unless set
           mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10,
           mRun11 = 11, mRun12 = 12, mRun13 = 13,
-          mRun14 = 14, mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18
+          mRun14 = 14, mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18, mRun19 = 19, mRun20 = 20
         };
 
         // set up Jet enumerators:
@@ -79,7 +83,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
 
         // jet recombination scheme
         enum ERecoScheme_t {
-          E_scheme        = 0,
+          E_scheme        = 0, // used for calculating jet mass
           pt_scheme       = 1, pt2_scheme      = 2,
           Et_scheme       = 3, Et2_scheme      = 4,
           BIpt_scheme     = 5, BIpt2_scheme    = 6,
@@ -107,13 +111,13 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
 
         // input file for tests (based on Run) - updated for new Runs as needed
         if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST) inputFile = "Run_15164046_files.list"; //Run_15151042_files.list"; //"testLIST_Run14.list";
+        if((RunYear == mRun14) && doTEST) inputFile = "Run14_P18ih_HPSS_15164046.list"; //Run_15151042_files.list";
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
 
         // centrality global flags - no centrality for pp collisions
-        Int_t CentralitySelection;
+        Int_t CentralitySelection = StJetFrameworkPicoBase::kCent2050; // 20-50% as example
         Int_t CentralityDefinition;
         if(RunYear == mRun12) CentralityDefinition = StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30; // no centrality defintion for pp, just set one 
         if(RunYear == mRun14) CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi; // (NEW - from Nick Aug22, 2019: all lumi) this will be default
@@ -131,15 +135,15 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         Int_t fBadRunListVers = StJetFrameworkPicoBase::fBadRuns_w_missing_HT; // fBadRuns_w_missing_HT, fBadRuns_wo_missing_HT,
 
         // trigger flags - update default
-        Int_t EmcTriggerEventType; // kIsHT1 or kIsHT2 or kIsHT3
+        Int_t EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT1 or kIsHT2 or kIsHT3 (set for Run14)
         if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
         if(RunYear == mRun14) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
         if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3; 
-        Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
+        Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default (Run14)  - THIS variable is *NOT* used in this MACRO currently
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
         if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
-        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerAny;  // kTriggerANY, kTriggerMB, kTriggerHT  - only used by JetMaker and EPMaker (set to HT when doing EP corrections)
+        Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;  // kTriggerANY, kTriggerMB, kTriggerHT  - only used by JetMaker and EPMaker (set to HT when doing EP corrections)
 
         // track flags
         bool usePrimaryTracks;
@@ -147,23 +151,28 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         if(RunYear == mRun14) usePrimaryTracks = kTRUE;  // = kTRUE for Run14, kFALSE for Run16
         if(RunYear == mRun16) usePrimaryTracks = kFALSE; 
         if(RunYear == mRun17) usePrimaryTracks = kTRUE;  
+        bool doTrkEff = kTRUE;
+        bool doCorrectTracksforEffBeforeJetReco = kFALSE; // THIS should only be turned on to CORRECT charged tracks for efficiency before giving to FastJet for jet reconstruction
+        //Int_t effType = StJetFrameworkPicoBase::kNormalPtEtaBased; // options: kNormalPtEtaBased (DEFAULT), kPtBased, kEtaBased, kHeaderArray
 
-        // jet type flags
+        // jet flags
         Int_t fJetType;
         if(RunYear == mRun12) fJetType = kFullJet;
         if(RunYear == mRun14) fJetType = kFullJet; // kChargedJet
         if(RunYear == mRun16) fJetType = kChargedJet;
         if(RunYear == mRun17) fJetType = kFullJet;
+        bool doCorrJetPt = (doBackgroundJets) ? kTRUE : kFALSE; // used in EP and AN makers to correct jet for underlying event (when using constituents < 2.0 GeV)
         double fJetRadius = 0.3;  // 0.4, 0.3, 0.2
         double fJetConstituentCut = 2.0; // correlation analysis: 2.0, jet shape analysis: 2.0 (been using 2.0 for corrections)
         Int_t fJetAnalysisJetType = kLeadingJets;  // Jet analysis jet types - options: kInclusiveJets, kLeadingJets, kSubLeadingJets (need to set up in analysis when you want to use)
-        cout<<"fJetType: "<<fJetType<<endl;
+        cout<<"JetType: "<<fJetType<<"     JetRad: "<<fJetRadius<<"     JetConstit Cut: "<<fJetConstituentCut<<endl;
 
         // FIXME - be aware of which list is used! 
         // tower flags - lists to load for bad towers, see StJetFrameworkPicoBase and below
         Int_t TowerListToUse = 136; // doesn't matter for charged jets
         if(dopp) TowerListToUse = 169;
         // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        // FIXME TODO as of February 13, 2020, any jet constituent analysis below 0.7 is bad due to track-tower matching, need updated Pico Production
         if(fJetConstituentCut == 2.0) TowerListToUse = 9992000;
         if(fJetConstituentCut == 1.0) TowerListToUse = 9991000;
         if(fJetConstituentCut == 0.2) TowerListToUse = 9990200;
@@ -176,7 +185,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
            CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30 ||
            CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P18ih_VpdMB30_AllLumi
-        ) { ZVtxMin = -30.0; ZVtxMax = 30.0; }
+        ) { ZVtxMin = -28.0; ZVtxMax = 28.0; }
 
         // =============================================================================== //
 
@@ -221,9 +230,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         jetTask->SetJetType(fJetType);          // jetType
         jetTask->SetJetAlgo(antikt_algorithm);  // jetAlgo
         jetTask->SetRecombScheme(BIpt2_scheme); // recombination scheme
+        //jetTask->SetRecombScheme(E_scheme); // recomb - this scheme actually doesn't pre-process the 4-vectors during the recombination scheme to set mass to 0 - USED for jet mass
         jetTask->SetRadius(fJetRadius);         // jet radius
         jetTask->SetJetsName("Jets");
-        jetTask->SetMinJetPt(10.0);             // 15.0 signal jets
+        jetTask->SetMinJetPt(10.0);             // min signal jet pt to save to fJets array
         jetTask->SetMaxJetTrackPt(30.0);        // max track constituent
         jetTask->SetMinJetTowerE(fJetConstituentCut);  // 2.0 correlations
         jetTask->SetHadronicCorrFrac(1.0);      // fractional hadronic correction
@@ -242,6 +252,8 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         jetTask->SetTriggerToUse(TriggerToUse);
         jetTask->SetdoConstituentSubtr(kFALSE);      // implement constituent subtractor, if TRUE, don't want to subtract underlying event Rho
         jetTask->SetRejectBadRuns(RejectBadRuns);    // switch to load and than omit bad runs
+        jetTask->SetDoEffCorr(doTrkEff);       // Loads efficiency file, tells call to efficiency function to use or not use correction
+        jetTask->SetDoCorrectTracksforEffBeforeJetReco(doCorrectTracksforEffBeforeJetReco); // set above, only use to correct charged tracks before jet reconstruction for efficiency
 
         // create JetFinder for background now (JetMakerBG) - background jets to be used in Rho Maker
         StJetMakerTask *jetTaskBG;
@@ -252,6 +264,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
           jetTaskBG->SetJetType(fJetType);          // jetType
           jetTaskBG->SetJetAlgo(kt_algorithm);      // jetAlgo
           jetTaskBG->SetRecombScheme(BIpt2_scheme); // recombination scheme
+          //jetTaskBG->SetRecombScheme(E_scheme); // recomb - this scheme actually doesn't pre-process the 4-vectors during the recombination scheme to set mass to 0 - USED for jet mass
           jetTaskBG->SetRadius(fJetRadius);         // jet radius
           jetTaskBG->SetJetsName("JetsBG");
           jetTaskBG->SetMinJetPt(0.0);
@@ -273,6 +286,9 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
           jetTaskBG->SetTriggerToUse(TriggerToUse);
           jetTaskBG->SetdoConstituentSubtr(kFALSE);
           jetTaskBG->SetRejectBadRuns(RejectBadRuns);      // switch to load and than omit bad runs
+          // TODO make sure the next two lines make sense when using this to calculate background kt jets
+          jetTaskBG->SetDoEffCorr(doTrkEff);           // Loads efficiency file, tells call to efficiency function to use or not use correction
+          jetTaskBG->SetDoCorrectTracksforEffBeforeJetReco(doCorrectTracksforEffBeforeJetReco); // set above, only use to correct charged tracks before jet reconstruction for efficiency
         }
 
         bool dohisto = kFALSE;  // histogram switch for Rho Maker
@@ -291,10 +307,8 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         rhoTask->SetCentralityBinCut(CentralitySelection);
         rhoTask->SetRejectBadRuns(RejectBadRuns);     // switch to load and than omit bad runs
 
-        // create the analysis maker!
-        bool doCorrJetPt = kFALSE;
-        if(doBackgroundJets) doCorrJetPt = kTRUE;
-
+        // Dummy analysis class
+        // TODO some of the default setters may not even be used in the Dummy class, so make sure if you are relying on them
         // MakerName, picoMakerPtr, outputFileName, JetMakerName, RhoMakerName
         StDummyMaker *dummyMaker = new StDummyMaker("DummyMaker", picoMaker, outputFile, "JetMaker", "StRho_JetsBG");
         dummyMaker->SetUsePrimaryTracks(usePrimaryTracks); // use primary tracks
@@ -313,6 +327,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         dummyMaker->SetCentralityBinCut(CentralitySelection);   // specific centrality range to run: if above is FALSE, this doesn't matter
         dummyMaker->SetEmcTriggerEventType(EmcTriggerEventType);// kIsHT1 or kIsHT2 or kIsHT3
         dummyMaker->SetRejectBadRuns(RejectBadRuns);            // switch to load and than omit bad runs
+        dummyMaker->SetDoEffCorr(doTrkEff);                     // track reco efficiency switch
         cout<<dummyMaker->GetName()<<endl;  // print name of class instance
 
         // initialize chain
@@ -359,7 +374,7 @@ void LoadLibs()
   gSystem->Load("$FASTJET/lib/libfastjettools");
   gSystem->Load("$FASTJET/lib/libfastjetcontribfragile");
 
-  // add include path to use its functionality
+  // add include path to use its functionality - update for your own path FIXME
   gSystem->AddIncludePath("-I/star/u/jmazer19/Y2017/STAR/FastJet/fastjet-install/include");
 
   // load the system libraries - these were defaults
