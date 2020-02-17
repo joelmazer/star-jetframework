@@ -176,6 +176,57 @@ where the following is done
   - updated event plane option to mixed events
   - updated event plane type usage to follow scheme of enumerator
   
+  
+
+*February 13, 2020
+:::: Notable changes to readPicoMacros.C ::::
+1) readPicoDstMultPtBins.C: In addition to the tracking efficiency switches/functions below, additional check and filtering of mixed events which contain a jet cone with a large fraction of the the signal jet in question
+```
+  // mixed event flags
+  Bool_t doGenBadMixEventBGcone = kFALSE; // kTRUE changes normalization and removes high frac BGcones
+  anaMaker[i] = new StMyAnalysisMaker3(Form("AnalysisMaker_bin%i", i), picoMaker, outputFile, doComments, 10.0, "JetMaker", "StRho_JetsBG");
+  anaMaker[i]->SetdoGenerateBadMixEventBGcone(doGenBadMixEventBGcone); // kFALSE doesn't run cut
+  anaMaker[i]->SetBGConeFractionCut(0.7); // BG cone fraction to cut on and exclude mixed event in question, 0.3 was default
+  if(dopp) {
+    anaMaker[i]->SetDoUseMultBins(kTRUE); // for pp
+    anaMaker[i]->SetdoUseEPBins(kFALSE);  // for pp
+  }
+```
+
+2) readPicoDstDummyMaker.C:
+3) readPicoDstQA.C:
+
+These updates were to the steering macros, that correspond to the updates to the classes of the framework pushed last week
+```
+  bool doTrkEff = kTRUE;
+  bool doCorrectTracksforEffBeforeJetReco = kFALSE; // THIS should only be turned on to CORRECT charged tracks for efficiency before giving to FastJet for jet reconstruction
+  
+  jetTask->SetDoEffCorr(doTrkEff);       // Loads efficiency file, tells call to efficiency function to use or not use correction
+  jetTask->SetDoCorrectTracksforEffBeforeJetReco(doCorrectTracksforEffBeforeJetReco); // set above, only use to correct charged tracks before jet reconstruction for efficiency
+```
+and
+```
+  // TODO make sure the next two lines make sense when using this to calculate background kt jets
+  jetTaskBG->SetDoEffCorr(doTrkEff);           // Loads efficiency file, tells call to efficiency function to use or not use correction
+  jetTaskBG->SetDoCorrectTracksforEffBeforeJetReco(doCorrectTracksforEffBeforeJetReco); // set above, only use to correct charged tracks before jet reconstruction for efficiency
+```
+and also
+```
+// enumerator for systematic uncertainty type
+enum ESystematicUncType_t { kDoNothing, kTrkEffMin, kTrkEffMax };
+  
+Int_t effType = StJetFrameworkPicoBase::kNormalPtEtaBased; // options: kNormalPtEtaBased (DEFAULT), kPtBased, kEtaBased, kHeaderArray
+```
+where appropriately.
+
+The jet maker needs to use the "E_scheme" when looking into jet mass
+```
+jetTask->SetRecombScheme(E_scheme); // recomb - this scheme actually doesn't pre-process the 4-vectors during the recombination scheme to set mass to 0 - USED for jet mass
+jetTaskBG->SetRecombScheme(E_scheme); // recomb - this scheme actually doesn't pre-process the 4-vectors during the recombination scheme to set mass to 0 - USED for jet mass
+```
+
+
+
 
 IF THERE IS ANYTHING ELSE - please me know or update this file yourself and push change.
 
