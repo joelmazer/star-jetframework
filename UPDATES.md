@@ -182,8 +182,10 @@ where the following is done
 :::: Notable changes to readPicoMacros.C ::::
 1) readPicoDstMultPtBins.C: In addition to the tracking efficiency switches/functions below, additional check and filtering of mixed events which contain a jet cone with a large fraction of the the signal jet in question
 ```
-  // mixed event flags
   Bool_t doGenBadMixEventBGcone = kFALSE; // kTRUE changes normalization and removes high frac BGcones
+  
+  EPMaker[i]->SetDoEffCorr(doTrkEff); 
+
   anaMaker[i] = new StMyAnalysisMaker3(Form("AnalysisMaker_bin%i", i), picoMaker, outputFile, doComments, 10.0, "JetMaker", "StRho_JetsBG");
   anaMaker[i]->SetdoGenerateBadMixEventBGcone(doGenBadMixEventBGcone); // kFALSE doesn't run cut
   anaMaker[i]->SetBGConeFractionCut(0.7); // BG cone fraction to cut on and exclude mixed event in question, 0.3 was default
@@ -191,6 +193,11 @@ where the following is done
     anaMaker[i]->SetDoUseMultBins(kTRUE); // for pp
     anaMaker[i]->SetdoUseEPBins(kFALSE);  // for pp
   }
+  anaMaker[i]->SetDoEffCorr(doTrkEff);                      // track reco efficiency switch
+  anaMaker[i]->SetTrackEfficiencyType(effType);             // tracking efficiency type:  pt-eta, pt-based, eta-based
+  anaMaker[i]->SetSystematicUncType(kSystematicUncType);    // systematic uncertainty type to run/toggle
+  anaMaker[i]->SetdoBiasJSjet(doBiasJSjet);                 // bias jet shape jets with leading constituent requirement
+  anaMaker[i]->SetdoRequireJetTowFireTrig(doRequireJetTowFireTrig); // require jets contain constituent tower which fired the events HT trigger
 ```
 2) readPicoDstDummyMaker.C:
 These updates were to the steering macros, that correspond to the updates to the classes of the framework pushed last week
