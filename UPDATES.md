@@ -192,10 +192,7 @@ where the following is done
     anaMaker[i]->SetdoUseEPBins(kFALSE);  // for pp
   }
 ```
-
 2) readPicoDstDummyMaker.C:
-3) readPicoDstQA.C:
-
 These updates were to the steering macros, that correspond to the updates to the classes of the framework pushed last week
 ```
   bool doTrkEff = kTRUE;
