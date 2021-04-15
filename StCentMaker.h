@@ -9,6 +9,7 @@ class TClonesArray;
 class TF1;
 class TH1;
 class TH1F;
+class THnSparse;
 class TString;
 
 // STAR classes
@@ -42,6 +43,10 @@ class StCentMaker : public StJetFrameworkPicoBase {
     void    DeclareHistograms();
     void    WriteHistograms();
 
+    // THnSparse Setup
+    virtual THnSparse*      NewTHnSparseF(const char* name, UInt_t entries);
+    virtual void            GetDimParams(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
+
     // switches
     virtual void            SetDebugLevel(Int_t l)             { fDebugLevel       = l; }
     virtual void            SetRunFlag(Int_t f)                { fRunFlag          = f; }
@@ -67,11 +72,14 @@ class StCentMaker : public StJetFrameworkPicoBase {
     Int_t                   GetCent16() const                  { return kcent16; } // 16 bin decreasing % with bin- not used by ME, but for reference
     Double_t                GetRefCorr2() const                { return krefCorr2; }
     Double_t                GetCentScaled() const              { return kCentralityScaled; }
+    Double_t                GetMB5toMB30ReWeight() const       { return kMB5toMB30ReWeight; }
+    Double_t                GetReWeight() const                { return kReWeight; }
 
   protected:
     // functions
     void                    SetSumw2(); // set errors weights 
     Double_t                GetCorrectedMultiplicity(const UShort_t RefMult, const Double_t z, const Double_t zdcCoincidenceRate, const UInt_t flag);
+    Int_t                   GetZvtxBin(Double_t zvertex) const;
 
     // event selection types
     UInt_t                  fEmcTriggerEventType;        // Physics selection of event used for signal
@@ -86,6 +94,15 @@ class StCentMaker : public StJetFrameworkPicoBase {
     Int_t                   kcent9;                      // 9 bin reverse order (STAR has bad practice, hence the above added in increasing %)
     Int_t                   kcent16;                     // 16 bin reverse order (STAR has bad practice, hence the above added in increasing %)
     Double_t                kCentralityScaled;           // scaled centrality in 5% ranges
+    Double_t                kMB5toMB30ReWeight;          // MB5 to MB30 conversion weight (includes re-weight)
+    Double_t                kReWeight;                   // ReWeight for peripheral bins
+
+    // centrality objects
+    StRefMultCorr          *grefmultCorr;
+    StRefMultCorr          *refmultCorr;
+    StRefMultCorr          *refmult2Corr;
+    StRefMultCorr          *grefmultCorrMB5;
+    StRefMultCorr          *grefmultCorrUtil;
 
   private:
     // switches
@@ -97,6 +114,42 @@ class StCentMaker : public StJetFrameworkPicoBase {
     TH1F *hMultiplicity;//!
     TH1F *fHistEventSelectionQA;//! 
 
+    TH1F *hMB5refCorr2ReWeight;//!
+    TH1F *hMB5refCorr2Raw;//!
+    TH1F *hMB5CentScaledReWeight;//!
+    TH1F *hMB5CentScaledRaw;//!
+    TH1F *hMB30refCorr2ReWeight;//!
+    TH1F *hMB30refCorr2Raw;//!
+    TH1F *hMB30CentScaledReWeight;//!
+    TH1F *hMB30CentScaledRaw;//!
+      
+    TH1F *hMB5refCorr2[30];//!
+    TH1F *hMB5refCorr2ReWt[30];//!
+    TH1F *hMB5refCorr2ReWtInv[30];//!
+    TH1F *hMB5grefMult[30];//!
+    TH1F *hMB5CentScaled[30];//!
+    TH1F *hMB5refCorr2Weight[30];//!
+    TH1F *hMB5refCorr2WeightInv[30];//!
+
+    TH1F *hMB30refCorr2[30];//!
+    TH1F *hMB30refCorr2ReWt[30];//!
+    TH1F *hMB30refCorr2ReWtInv[30];//!
+    TH1F *hMB30grefMult[30];//!
+    TH1F *hMB30CentScaled[30];//!
+
+    TH1F *hHT2refCorr2[30];//!
+    TH1F *hHT2refCorr2ReWt[30];//!
+    TH1F *hHT2refCorr2ReWtInv[30];//!
+    TH1F *hHT2grefMult[30];//!
+    TH1F *hHT2CentScaled[30];//!
+
+    TH1F *hMB5onlyrefCorr2Raw[30];//!
+    TH1F *hMB30onlyrefCorr2Raw[30];//!
+    TH1F *hMB5MB30refCorr2Raw[30];//!
+    TH1F *hMB5onlyrefCorr2RawTotal;//!
+    TH1F *hMB30onlyrefCorr2RawTotal;//!
+    TH1F *hMB5MB30refCorr2RawTotal;//!
+
     // bad run list 
     std::set<Int_t>        badRuns;
 
@@ -106,6 +159,9 @@ class StCentMaker : public StJetFrameworkPicoBase {
     // maker names
     TString                fAnalysisMakerName;
 
-    ClassDef(StCentMaker, 1)
+    // THn Sparse's jet sparse
+    THnSparse             *fhnCentQA;//!           // centrality events matrix
+
+    ClassDef(StCentMaker, 2)
 };
 #endif

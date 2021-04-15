@@ -31,10 +31,6 @@
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
-// STAR centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StRhoBase)
 
 //________________________________________________________________________
@@ -611,7 +607,7 @@ Double_t StRhoBase::GetScaleFactor(Double_t cent)
 //
 // Load the scale function from a file.
 //________________________________________________________________________
-TF1* StRhoBase::LoadRhoFunction(const char* path, const char* name)
+TF1 *StRhoBase::LoadRhoFunction(const char *path, const char *name)
 {
   // "STARfileLocation" needs to be updated if loading rho function from file - dummy now
   TString fname(path);

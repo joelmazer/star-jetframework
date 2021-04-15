@@ -56,8 +56,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         // run enumerators
         enum RunType_t {
           mJobSubmission = 0, // 0th spot - default unless set
-          mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10,
-          mRun11 = 11, mRun12 = 12, mRun13 = 13,
+          mRun07 =  7, mRun08 = 8,  mRun09 = 9, mRun10 = 10, mRun11 = 11, mRun12 = 12, mRun13 = 13,
           mRun14 = 14, mRun15 = 15, mRun16 = 16, mRun17 = 17, mRun18 = 18, mRun19 = 19, mRun20 = 20
         };
 
@@ -91,7 +90,7 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
           external_scheme = 99
         };
 
-        // jet shape jet type
+        // jet analysis: jet type
         enum EJetShapeJetType_t {
           kInclusiveJets,
           kLeadingJets,
@@ -199,9 +198,10 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         // create chain
         StChain* chain = new StChain();
 
-	// create the picoMaker maker
-	//StPicoDstMaker *picoMaker = new StPicoDstMaker(0,inputFile,"picoDst");
-        StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst");
+        // create the picoMaker maker:  (PicoIoMode, inputFile, name="picoDst")
+        // - Write PicoDst's: PicoIoMode::IoWrite -> StPicoDstMaker::IoWrite
+        // - Read  PicoDst's: PicoIoMode::IoRead  -> StPicoDstMaker::IoRead
+        StPicoDstMaker *picoMaker = new StPicoDstMaker(StPicoDstMaker::IoRead, inputFile, "picoDst");
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
         // create base class maker pointer
@@ -374,8 +374,8 @@ void LoadLibs()
   gSystem->Load("$FASTJET/lib/libfastjettools");
   gSystem->Load("$FASTJET/lib/libfastjetcontribfragile");
 
-  // add include path to use its functionality - update for your own path FIXME
-  gSystem->AddIncludePath("-I/star/u/jmazer19/Y2017/STAR/FastJet/fastjet-install/include");
+  // add include path to use its functionality
+  gSystem->AddIncludePath("-I$FASTJET/include");
 
   // load the system libraries - these were defaults
   gROOT->LoadMacro("$STAR/StRoot/StMuDSTMaker/COMMON/macros/loadSharedLibraries.C");

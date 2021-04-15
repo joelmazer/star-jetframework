@@ -31,9 +31,9 @@ class StFJWrapper
   virtual void  ClearMemory();
   virtual void  CopySettingsFrom (const StFJWrapper& wrapper);
   virtual void  GetMedianAndSigma(Double_t& median, Double_t& sigma, Int_t remove = 0) const;
-  fastjet::ClusterSequenceArea*           GetClusterSequence() const   { return fClustSeq;                 }
-  fastjet::ClusterSequence*               GetClusterSequenceSA() const { return fClustSeqSA;               }
-  fastjet::ClusterSequenceActiveAreaExplicitGhosts* GetClusterSequenceGhosts() const { return fClustSeqActGhosts; }
+  fastjet::ClusterSequenceArea           *GetClusterSequence() const   { return fClustSeq;                 }
+  fastjet::ClusterSequence               *GetClusterSequenceSA() const { return fClustSeqSA;               }
+  fastjet::ClusterSequenceActiveAreaExplicitGhosts *GetClusterSequenceGhosts() const { return fClustSeqActGhosts; }
   const std::vector<fastjet::PseudoJet>&  GetInputVectors()    const { return fInputVectors;               }
   const std::vector<fastjet::PseudoJet>&  GetInputGhosts()     const { return fInputGhosts;                }
   const std::vector<fastjet::PseudoJet>&  GetInclusiveJets()   const { return fInclusiveJets;              }
@@ -41,8 +41,8 @@ class StFJWrapper
   std::vector<fastjet::PseudoJet>         GetJetConstituents(UInt_t idx) const;
   std::vector<fastjet::PseudoJet>         GetFilteredJetConstituents(UInt_t idx) const;
   Double_t                                GetMedianUsedForBgSubtraction() const { return fMedUsedForBgSub; }
-  const char*                             GetName()            const { return fName;                       }
-  const char*                             GetTitle()           const { return fTitle;                      }
+  const char                             *GetName()            const { return fName;                       }
+  const char                             *GetTitle()           const { return fTitle;                      }
   Double_t                                GetJetArea         (UInt_t idx) const;
   fastjet::PseudoJet                      GetJetAreaVector   (UInt_t idx) const;
   Double_t                                GetFilteredJetArea (UInt_t idx) const;
@@ -99,8 +99,8 @@ class StFJWrapper
   virtual Int_t DoConstituentSubtraction();
   virtual Int_t DoSoftDrop();
   
-  void SetName(const char* name)        { fName           = name;    }
-  void SetTitle(const char* title)      { fTitle          = title;   }
+  void SetName(const char *name)        { fName           = name;    }
+  void SetTitle(const char *title)      { fTitle          = title;   }
   void SetStrategy(const fastjet::Strategy &strat)                 { fStrategy = strat;  }
   void SetAlgorithm(const fastjet::JetAlgorithm &algor)            { fAlgor    = algor;  }
   void SetRecombScheme(const fastjet::RecombinationScheme &scheme) { fScheme   = scheme; }

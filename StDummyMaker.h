@@ -22,7 +22,6 @@ class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
 class StPicoTrack;
-class StRefMultCorr;
 
 // jet-framework classes
 class StCentMaker;

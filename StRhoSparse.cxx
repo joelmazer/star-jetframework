@@ -25,10 +25,6 @@
 #include "StJetFrameworkPicoBase.h"
 #include "StCentMaker.h"
 
-// STAR centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StRhoSparse)
 
 //________________________________________________________________________
@@ -141,7 +137,7 @@ void StRhoSparse::Clear(Option_t *opt) {
 }
 
 //________________________________________________________________________
-Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2) {
+Bool_t StRhoSparse::IsJetOverlapping(StJet *jet1, StJet *jet2) {
   // jet 1 tracks:
   for (Int_t i = 0; i < jet1->GetNumberOfTracks(); ++i) {
     Int_t jet1Track = jet1->TrackAt(i);
@@ -157,7 +153,7 @@ Bool_t StRhoSparse::IsJetOverlapping(StJet* jet1, StJet* jet2) {
 }
 
 //________________________________________________________________________
-Bool_t StRhoSparse::IsJetSignal(StJet* jet)
+Bool_t StRhoSparse::IsJetSignal(StJet *jet)
 {
   if(jet->Pt() > 5) {
       return kTRUE;

@@ -24,10 +24,6 @@
 #include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
 #include "StRoot/StPicoEvent/StPicoTrack.h"
 
-// STAR centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 // ROOT classes
 class TH2;
 class TH2F;

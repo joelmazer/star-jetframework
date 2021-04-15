@@ -124,7 +124,7 @@ Bool_t StVParticle::Global2LocalPosition(Double_t r[3], Double_t alpha) const {
 }
 
 //___________________________________________________________________________________
-Int_t StVParticle::Compare( const TObject* obj) const {
+Int_t StVParticle::Compare( const TObject *obj) const {
   // 
   // see header file for class documentation
   //

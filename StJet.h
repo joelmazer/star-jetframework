@@ -17,10 +17,6 @@
 #include <TLorentzVector.h>
 #include <TString.h>
 
-// STAR includes
-#include "StPicoEvent/StPicoEmcTrigger.h"
-#include "StPicoEvent/StPicoBEmcPidTraits.h"
-
 // my includes
 #include "StVParticle.h"
 #include "FJ_includes.h"
@@ -64,7 +60,7 @@ class StJet : public StVParticle
   StJet& operator=(const StJet &jet);
   virtual ~StJet();
   friend std::ostream &operator<<(std::ostream &in, const StJet &jet);
-  Int_t Compare(const TObject* obj)  const;
+  Int_t Compare(const TObject *obj)  const;
   std::ostream &Print(std::ostream &in) const;
   TString toString() const;
 
@@ -98,13 +94,13 @@ class StJet : public StVParticle
   Double_t          AreaEta()                    const { return fAreaEta                 ; }
   Double_t          AreaPhi()                    const { return fAreaPhi                 ; }
   Double_t          AreaE()                      const { return fAreaE                   ; }
-  Int_t             ClusterAt(Int_t idx)         const { return fClusterIDs.At(idx)      ; }  // this stores ID of tower constituents
-  Int_t             TowerAt(Int_t idx)           const { return fClusterIDs.At(idx)      ; }  // this stores ID of tower constituents
+  Int_t             ClusterAt(Int_t idx)         const { return fTowerIDs.At(idx)        ; }  // this stores ID of tower constituents - can deprecate
+  Int_t             TowerAt(Int_t idx)           const { return fTowerIDs.At(idx)        ; }  // this stores ID of tower constituents
   Int_t             TrackAt(Int_t idx)           const { return fTrackIDs.At(idx)        ; }  // this stores ID of track constituents
-  UShort_t          GetNumberOfClusters()        const { return fClusterIDs.GetSize()    ; }  // # of tower constituents
-  UShort_t          GetNumberOfTowers()          const { return fClusterIDs.GetSize()    ; }  // # of tower constituents // TODO Cluster->Tower
+  UShort_t          GetNumberOfClusters()        const { return fTowerIDs.GetSize()      ; }  // # of tower constituents - can deprecate
+  UShort_t          GetNumberOfTowers()          const { return fTowerIDs.GetSize()      ; }  // # of tower constituents 
   UShort_t          GetNumberOfTracks()          const { return fTrackIDs.GetSize()      ; }  // # of track constituents
-  UShort_t          GetNumberOfConstituents()    const { return GetNumberOfClusters()+GetNumberOfTracks(); } // towers + tracks
+  UShort_t          GetNumberOfConstituents()    const { return GetNumberOfTowers()+GetNumberOfTracks(); } // towers + tracks
   Bool_t            IsMC()                       const { return (Bool_t)(MCPt() > 0)     ; }
   Bool_t            IsSortable()                 const { return kTRUE                    ; }
   Double_t          MaxNeutralPt()               const { return fMaxNPt                  ; }
@@ -114,7 +110,8 @@ class StJet : public StVParticle
   UShort_t          Nch()                        const { return fNch                     ; }
   UShort_t          N()                          const { return Nch()+Nn()               ; }
   Double_t          MCPt()                       const { return fMCPt                    ; }
-  Double_t          MaxClusterPt()               const { return MaxNeutralPt()           ; }  // Use GetMaxClusterPt()
+  Double_t          MaxClusterPt()               const { return MaxNeutralPt()           ; }  // Use GetMaxClusterPt() - TODO double check this 
+  Double_t          MaxTowerPt()                 const { return MaxNeutralPt()           ; }  // Use GetMaxTowerPt() - this fnc is fine
   Double_t          MaxTrackPt()                 const { return MaxChargedPt()           ; }  // Use GetMaxTrackPt()
   Double_t          MaxPartPt()                  const { return fMaxCPt < fMaxNPt ? fMaxNPt : fMaxCPt; }
   Double_t          PtSub()                      const { return fPtSub                   ; }
@@ -126,23 +123,24 @@ class StJet : public StVParticle
   TLorentzVector    SubtractRhoVect(Double_t rho, Bool_t save = kFALSE);
 
   // Jet constituents
-////  Int_t             ContainsCluster(AliVCluster* cluster, TClonesArray* clusters)  const;
+////  Int_t             ContainsCluster(AliVCluster *cluster, TClonesArray *clusters)  const;
   Int_t             ContainsCluster(Int_t ic)                                      const; // should deprecate this, but keep (ID - 1)
   Int_t             ContainsTower(Int_t it)                                        const; // use towers in STAR (ID - 1)
 ////  StVCluster      *GetLeadingCluster(TClonesArray *clusters)                      const;
-  Int_t             ContainsTrack(StVParticle* track, TClonesArray* tracks)        const;
+////  StVTower      *GetLeadingTower(TClonesArray *towers)                      const;
+  Int_t             ContainsTrack(StVParticle *track, TClonesArray *tracks)        const;
   Int_t             ContainsTrack(Int_t itr)                                       const; // (ID - 1)
 ////  StVParticle       *GetLeadingTrack(TClonesArray *tracks)                          const;
 
   // Fragmentation Function
   Double_t          GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz)  const;
-  Double_t          GetZ(const StVParticle* trk )                                           const;
-  Double_t          GetXi(const StVParticle* trk )                                          const;
+  Double_t          GetZ(const StVParticle *trk )                                           const;
+  Double_t          GetXi(const StVParticle *trk )                                          const;
   Double_t          GetXi(const Double_t trkPx, const Double_t trkPy, const Double_t trkPz) const;
 
   // Other service methods // FIXME
   void              GetMomentum(TLorentzVector &vec)                                        const;
-  Double_t          DeltaR(const StVParticle* part)                                         const;
+  Double_t          DeltaR(const StVParticle *part)                                         const;
 
   // Setters
   void              SetLabel(Int_t l)                  { fLabel   = l;                     }
@@ -153,14 +151,16 @@ class StJet : public StVParticle
   void              SetMaxNeutralPt(Double32_t t)      { fMaxNPt  = t;                     }
   void              SetMaxChargedPt(Double32_t t)      { fMaxCPt  = t;                     }
   void              SetNEF(Double_t nef)               { fNEF     = nef;                   }
-  void              SetNumberOfClusters(Int_t n)       { fClusterIDs.Set(n);               } // towers
+  void              SetNumberOfClusters(Int_t n)       { fTowerIDs.Set(n);                 } // towers - can deprecate
+  void              SetNumberOfTowers(Int_t n)         { fTowerIDs.Set(n);                 } // towers
   void              SetNumberOfTracks(Int_t n)         { fTrackIDs.Set(n);                 }
   void              SetNumberOfCharged(Int_t n)        { fNch = n;                         }
   void              SetNumberOfNeutrals(Int_t n)       { fNn = n;                          }
   void              SetMCPt(Double_t p)                { fMCPt = p;                        }
   void              SetPtSub(Double_t ps)              { fPtSub          = ps;             }
   void              SetPtSubVect(Double_t ps)          { fPtSubVect      = ps;             }
-  void              AddClusterAt(Int_t clus, Int_t idx){ fClusterIDs.AddAt(clus, idx);     } // towers
+  void              AddClusterAt(Int_t clus, Int_t idx){ fTowerIDs.AddAt(clus, idx);       } // towers - can deprecate
+  void              AddTowerAt(Int_t tow, Int_t idx)   { fTowerIDs.AddAt(tow, idx);        } // towers
   void              AddTrackAt(Int_t track, Int_t idx) { fTrackIDs.AddAt(track, idx);      }
   void              Clear(Option_t* /*option*/="");
 
@@ -179,11 +179,11 @@ class StJet : public StVParticle
   void              SetSecondClosestJet(StJet *j, Double_t d)       { fClosestJets[1] = j; fClosestJetsDist[1] = d    ; }
   void              SetMatchedToClosest(UShort_t m)                 { fMatched        = 0; fMatchingType       = m    ; }
   void              SetMatchedToSecondClosest(UShort_t m)           { fMatched        = 1; fMatchingType       = m    ; }
-  StJet*            ClosestJet()                              const { return fClosestJets[0]                          ; }
+  StJet            *ClosestJet()                              const { return fClosestJets[0]                          ; }
   Double_t          ClosestJetDistance()                      const { return fClosestJetsDist[0]                      ; }
-  StJet*            SecondClosestJet()                        const { return fClosestJets[1]                          ; }
+  StJet            *SecondClosestJet()                        const { return fClosestJets[1]                          ; }
   Double_t          SecondClosestJetDistance()                const { return fClosestJetsDist[1]                      ; }
-  StJet*            MatchedJet()                              const { return fMatched < 2 ? fClosestJets[fMatched] : 0; }
+  StJet            *MatchedJet()                              const { return fMatched < 2 ? fClosestJets[fMatched] : 0; }
   UShort_t          GetMatchingType()                         const { return fMatchingType                            ; }
 
   // Ghosts
@@ -200,14 +200,14 @@ class StJet : public StVParticle
   void Print(Option_t* /*opt*/ = "") const;
 
   // Jet shape
-  StJetShapeProperties* GetShapeProperties() const{ return fJetShapeProperties; }
-  StJetShapeProperties* GetShapeProperties() { if (!fJetShapeProperties) CreateShapeProperties(); return fJetShapeProperties; }
+  StJetShapeProperties *GetShapeProperties() const{ return fJetShapeProperties; }
+  StJetShapeProperties *GetShapeProperties() { if (!fJetShapeProperties) CreateShapeProperties(); return fJetShapeProperties; }
   void CreateShapeProperties() { if (fJetShapeProperties) delete fJetShapeProperties; fJetShapeProperties = new StJetShapeProperties(); }
   
  protected:
-  Bool_t            IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted = kFALSE)       const;
-  Bool_t            IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted = kFALSE)      const;
-  // add tower?
+  Bool_t            IsJetTrack(StJet *jet, Int_t itrack, Bool_t sorted = kFALSE)       const;
+  Bool_t            IsJetCluster(StJet *jet, Int_t iclus, Bool_t sorted = kFALSE)      const; // should deprecate
+  Bool_t            IsJetTower(StJet *jet, Int_t itow, Bool_t sorted = kFALSE)         const;
 
   /// Jet transverse momentum
   Double32_t        fPt;                  //[0,0,12]
@@ -237,7 +237,7 @@ class StJet : public StVParticle
   Double32_t        fMCPt;                ///<  Pt from MC particles contributing to the jet
   Int_t             fNn;                  ///<  Number of neutral constituents
   Int_t             fNch;                 ///<  Number of charged constituents
-  TArrayI           fClusterIDs;          ///<  Array containing ids of cluster constituents
+  TArrayI           fTowerIDs;            ///<  Array containing ids of tower constituents
   TArrayI           fTrackIDs;            ///<  Array containing ids of track constituents
   StJet             *fClosestJets[2];     //!<! If this is MC it contains the two closest detector level jets in order of distance and viceversa
   Double32_t        fClosestJetsDist[2];  //!<! Distance from the two closest jets
@@ -266,7 +266,7 @@ class StJet : public StVParticle
   };
 
   /// \cond CLASSIMP
-  ClassDef(StJet,2);
+  ClassDef(StJet,3);
   /// \endcond
 };
 

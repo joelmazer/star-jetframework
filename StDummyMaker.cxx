@@ -44,14 +44,10 @@
 // old file kept
 #include "StPicoConstants.h"
 
-// centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StDummyMaker)
 
 //________________________________________________________________________
-StDummyMaker::StDummyMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", const char* jetMakerName = "", const char* rhoMakerName = "") : StJetFrameworkPicoBase(name) //StMaker(name),
+StDummyMaker::StDummyMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName = "", const char *jetMakerName = "", const char *rhoMakerName = "") : StJetFrameworkPicoBase(name) //StMaker(name),
 {
   fLeadingJet = 0x0; fSubLeadingJet = 0x0;
   fJets = 0x0 ;
@@ -172,7 +168,7 @@ void StDummyMaker::DeclareHistograms() {
   // pp specific settings
   if(doppAnalysis) {
     kHistMultMax = 100.;
-    kHistMultBins = 100.;
+    kHistMultBins = 100;
   }
 
   // histograms
@@ -182,6 +178,8 @@ void StDummyMaker::DeclareHistograms() {
   // jet QA histos
   hJetPt = new TH1F("hJetPt", "Jet p_{T}", 100, 0, 100);
   hJetCorrPt = new TH1F("hJetCorrPt", "Corrected Jet p_{T}", 125, -25, 100);
+
+  SetSumw2();
 }
 //
 // write histograms
@@ -316,6 +314,13 @@ Int_t StDummyMaker::Make() {
   bool fHaveMB5event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB5);
   bool fHaveMB30event = CheckForMB(fRunFlag, StJetFrameworkPicoBase::kVPDMB30);
   bool fHaveEmcTrigger = CheckForHT(fRunFlag, fEmcTriggerEventType);
+  bool fRunForMB = kFALSE;  // used to differentiate pp and AuAu
+  if(doppAnalysis)  fRunForMB = (fHaveMBevent) ? kTRUE : kFALSE;
+  if(!doppAnalysis) fRunForMB = (fHaveMB5event || fHaveMB30event) ? kTRUE : kFALSE;
+
+  // TODO - YOU WILL NEED TO USE THIS BOOLEAN's appropriately!!! - TODO
+
+
   // ======================== end of Triggers ============================= //
 
   // =========================== JetMaker =============================== //
@@ -513,6 +518,8 @@ void StDummyMaker::RunTracks()
     // track variables
     double pt = mTrkMom.Perp();
     double phi = mTrkMom.Phi();
+    if(phi < 0.0)    phi += 2.0*pi;  // force from 0-2pi
+    if(phi > 2.0*pi) phi -= 2.0*pi;  // force from 0-2pi
     double eta = mTrkMom.PseudoRapidity();
     double px = mTrkMom.x();
     double py = mTrkMom.y();

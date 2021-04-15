@@ -78,7 +78,7 @@ public:
    *  @return  Returns 0 when equal, 1 when this is smaller
    *  and -1 when bigger -- sorts descending
    */
-  Int_t Compare( const TObject* obj) const;
+  Int_t Compare( const TObject *obj) const;
   
   /** Defines this class as being sortable in a TCollection
    *  @return     always kTRUE;

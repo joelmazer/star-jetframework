@@ -15,19 +15,19 @@ public:
   enum PicoIoMode {IoWrite=1, IoRead=2};
 
   // 'explicit' added below to constructor to remove cppcheck warning
-  explicit StFileManagerMaker(char const* name = "PicoDst");
-  StFileManagerMaker(PicoIoMode ioMode, char const* fileName = "", char const* name = "PicoDst");
+  explicit StFileManagerMaker(char const *name = "PicoDst");
+  StFileManagerMaker(PicoIoMode ioMode, char const *fileName = "", char const *name = "PicoDst");
   virtual ~StFileManagerMaker();
 
   virtual Int_t Init();
   virtual Int_t Make();
-  virtual void  Clear(Option_t* option = "");
+  virtual void  Clear(Option_t *option = "");
   virtual Int_t Finish();
 
   /// Returns null pointer if no StPicoDst
-  StPicoDst* picoDst();
+  StPicoDst *picoDst();
   /// In read mode, returns pointer to the chain of .picoDst.root files
-  TChain* chain();
+  TChain *chain();
 
 private:
 
@@ -40,14 +40,14 @@ private:
 
   /// A pointer to the main input source containing all muDst `TObjArray`s
   /// filled from corresponding muDst branches
-  StMuDst*  mMuDst;
+  StMuDst  *mMuDst;
 
   /// A pointer to the main input/outpur picoDst structure containing all `TObjArray`s
-  StPicoDst*  mPicoDst;
+  StPicoDst  *mPicoDst;
 
   TString   mInputFileName;        //! *.list - MuDst or picoDst
   TString   mOutputFileName;       //! FileName
-  TFile*    mOutputFile;
+  TFile    *mOutputFile;
 
   ClassDef(StFileManagerMaker, 0)
 };

@@ -23,11 +23,6 @@
 #include "StJet.h"
 #include "StVParticle.h"
 
-// STAR includes
-#include "StRoot/StPicoEvent/StPicoDst.h"
-#include "StRoot/StPicoEvent/StPicoTrack.h"
-#include "StRoot/StPicoDstMaker/StPicoDstMaker.h"
-
 /// \cond CLASSIMP
 ClassImp(StJet);
 /// \endcond
@@ -53,7 +48,7 @@ StJet::StJet() :
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fClusterIDs(),
+  fTowerIDs(),
   fTrackIDs(),
   fMatched(2),
   fMatchingType(0),
@@ -98,7 +93,7 @@ StJet::StJet(Double_t px, Double_t py, Double_t pz) :
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fClusterIDs(),
+  fTowerIDs(),
   fTrackIDs(),
   fMatched(2),
   fMatchingType(0),
@@ -148,7 +143,7 @@ StJet::StJet(Double_t pt, Double_t eta, Double_t phi, Double_t m) :
   fMCPt(0),
   fNn(0),
   fNch(0),
-  fClusterIDs(),
+  fTowerIDs(),
   fTrackIDs(),
   fMatched(2),
   fMatchingType(0),
@@ -192,7 +187,7 @@ StJet::StJet(const StJet& jet) :
   fMCPt(jet.fMCPt),
   fNn(jet.fNn),
   fNch(jet.fNch),
-  fClusterIDs(jet.fClusterIDs),
+  fTowerIDs(jet.fTowerIDs),
   fTrackIDs(jet.fTrackIDs),
   fMatched(jet.fMatched),
   fMatchingType(jet.fMatchingType),
@@ -250,7 +245,7 @@ StJet& StJet::operator=(const StJet& jet)
     fMCPt               = jet.fMCPt;
     fNn                 = jet.fNn;
     fNch                = jet.fNch;
-    fClusterIDs         = jet.fClusterIDs;
+    fTowerIDs           = jet.fTowerIDs;
     fTrackIDs           = jet.fTrackIDs;
     fClosestJets[0]     = jet.fClosestJets[0];
     fClosestJets[1]     = jet.fClosestJets[1];
@@ -360,7 +355,7 @@ TLorentzVector StJet::SubtractRhoVect(Double_t rho, Bool_t save)
  */
 void StJet::SortConstituents()
 {
-  std::sort(fClusterIDs.GetArray(), fClusterIDs.GetArray() + fClusterIDs.GetSize());
+  std::sort(fTowerIDs.GetArray(), fTowerIDs.GetArray() + fTowerIDs.GetSize());
   std::sort(fTrackIDs.GetArray(), fTrackIDs.GetArray() + fTrackIDs.GetSize());
 }
 
@@ -369,7 +364,7 @@ void StJet::SortConstituents()
  * @param part Constant pointer to another particle
  * @return Distance in the eta-phi phase space
  */
-Double_t StJet::DeltaR(const StVParticle* part) const // FIXME
+Double_t StJet::DeltaR(const StVParticle *part) const // FIXME
 {
   Double_t dPhi = Phi() - part->Phi();
   Double_t dEta = Eta() - part->Eta();
@@ -382,7 +377,7 @@ Double_t StJet::DeltaR(const StVParticle* part) const // FIXME
  * It returns a standard vector with the indexes of the constituents relative to fTrackIDs.
  * To retrieve the track do:
  * ~~~{.cxx}
- * TClonesArray* fTracksContArray = jetCont->GetParticleContainer()->GetArray();
+ * TClonesArray *fTracksContArray = jetCont->GetParticleContainer()->GetArray();
  * std::vector< int > index_sorted_list = jet->GetPtSortedTrackConstituentIndexes(fTracksContArray);
  * for (std::size_t i = 0; i < jet->GetNumberOfTracks(); i++ ) {
  * track = jet->TrackAt ( index_sorted_list.at (i), fTracksContArray );
@@ -394,7 +389,7 @@ Double_t StJet::DeltaR(const StVParticle* part) const // FIXME
  */
 
 /*
-std::vector<int> StJet::GetPtSortedTrackConstituentIndexes(TClonesArray* tracks) const
+std::vector<int> StJet::GetPtSortedTrackConstituentIndexes(TClonesArray *tracks) const
 {
   typedef std::pair<Double_t, Int_t> ptidx_pair;
 
@@ -402,7 +397,7 @@ std::vector<int> StJet::GetPtSortedTrackConstituentIndexes(TClonesArray* tracks)
   std::vector<ptidx_pair> pair_list;
 
   for (Int_t i_entry = 0; i_entry < GetNumberOfTracks(); i_entry++) {
-    StVParticle* track = TrackAt(i_entry, tracks); // FIXME
+    StVParticle *track = TrackAt(i_entry, tracks); // FIXME
     if (!track) {
       Form("Unable to find jet track %d in collection %s (pos in collection %d, max %d)", i_entry, tracks->GetName(), TrackAt(i_entry), tracks->GetEntriesFast()); // FIXME
       continue;
@@ -448,7 +443,7 @@ Double_t StJet::GetZ(const Double_t trkPx, const Double_t trkPy, const Double_t 
  * @param trk Jet constituent
  * @return Momentum fraction
  */
-Double_t StJet::GetZ(const StVParticle* trk) const // FIXME
+Double_t StJet::GetZ(const StVParticle *trk) const // FIXME
 {
   return GetZ(trk->Px(), trk->Py(), trk->Pz());
 }
@@ -458,7 +453,7 @@ Double_t StJet::GetZ(const StVParticle* trk) const // FIXME
  * @param trk Pointer to a constituent track
  * @return Xi of the constituent
  */
-Double_t StJet::GetXi(const StVParticle* trk) const
+Double_t StJet::GetXi(const StVParticle *trk) const
 {
   return TMath::Log(1 / GetZ(trk));
 }
@@ -482,11 +477,11 @@ Double_t StJet::GetXi( const Double_t trkPx, const Double_t trkPy, const Double_
  */
 
 /*
-StVParticle* StJet::GetLeadingTrack(TClonesArray* tracks) const //FIXME
+StVParticle *StJet::GetLeadingTrack(TClonesArray *tracks) const //FIXME
 {
-  StVParticle* maxTrack = 0; // FIXME
+  StVParticle *maxTrack = 0; // FIXME
   for (Int_t i = 0; i < GetNumberOfTracks(); i++) {
-    StVParticle* track = TrackAt(i, tracks); // FIXME
+    StVParticle *track = TrackAt(i, tracks); // FIXME
     if (!track) {
       cout<<(Form("Unable to find jet track %d in collection %s (pos in collection %d, max %d)",
           i, tracks->GetName(), TrackAt(i), tracks->GetEntriesFast()));
@@ -599,7 +594,7 @@ void StJet::AddGhost(const Double_t dPx, const Double_t dPy, const Double_t dPz,
  */
 void StJet::Clear(Option_t */*option*/)
 {
-  fClusterIDs.Set(0);
+  fTowerIDs.Set(0);
   fTrackIDs.Set(0);
   fClosestJets[0] = 0;
   fClosestJets[1] = 0;
@@ -618,7 +613,7 @@ void StJet::Clear(Option_t */*option*/)
  * @param tracks Array with pointers to the tracks from which jet constituents are drawn
  * @return Position of the track among the jet constituents, if the track is found; -1 otherwise
  */
-Int_t StJet::ContainsTrack(StVParticle* track, TClonesArray* tracks) const // FIXME
+Int_t StJet::ContainsTrack(StVParticle *track, TClonesArray *tracks) const // FIXME
 {
   if (!tracks || !track) return 0;
   return ContainsTrack(tracks->IndexOf(track));
@@ -632,8 +627,8 @@ Int_t StJet::ContainsTrack(StVParticle* track, TClonesArray* tracks) const // FI
 // this returns 1 less than the cluster/towers ID since it returns the place in the Array
 Int_t StJet::ContainsCluster(Int_t ic) const
 {
-  for (Int_t i = 0; i < fClusterIDs.GetSize(); i++) {
-    if (ic == fClusterIDs[i]) return i;
+  for (Int_t i = 0; i < fTowerIDs.GetSize(); i++) {
+    if (ic == fTowerIDs[i]) return i;
   }
   return -1;
 }
@@ -646,8 +641,8 @@ Int_t StJet::ContainsCluster(Int_t ic) const
 // this returns 1 less than the towers ID since it returns the place in the Array
 Int_t StJet::ContainsTower(Int_t ic) const
 {
-  for (Int_t i = 0; i < fClusterIDs.GetSize(); i++) {
-    if (ic == fClusterIDs[i]) return i;
+  for (Int_t i = 0; i < fTowerIDs.GetSize(); i++) {
+    if (ic == fTowerIDs[i]) return i;
   }
   return -1;
 }
@@ -660,7 +655,7 @@ Int_t StJet::ContainsTower(Int_t ic) const
  * @param sorted If the constituents are sorted by index it will speed up computation
  * @return kTRUE if the cluster is among the constituents, kFALSE otherwise
  */
-Bool_t StJet::IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted) const
+Bool_t StJet::IsJetCluster(StJet *jet, Int_t iclus, Bool_t sorted) const
 {
   for (Int_t i = 0; i < jet->GetNumberOfClusters(); ++i) {
     Int_t ijetclus = jet->ClusterAt(i);
@@ -673,13 +668,32 @@ Bool_t StJet::IsJetCluster(StJet* jet, Int_t iclus, Bool_t sorted) const
 }
 
 /**
+ * Checks whether a tower is among the constituents of a jet.
+ * @param jet Pointer to an StJet object
+ * @param itow Index of the tower to look for
+ * @param sorted If the constituents are sorted by index it will speed up computation
+ * @return kTRUE if the tower is among the constituents, kFALSE otherwise
+ */
+Bool_t StJet::IsJetTower(StJet *jet, Int_t itow, Bool_t sorted) const
+{
+  for (Int_t i = 0; i < jet->GetNumberOfTowers(); ++i) {
+    Int_t ijettow = jet->TowerAt(i);
+    if (sorted && ijettow > itow)
+      return kFALSE;
+    if (ijettow == itow)
+      return kTRUE;
+  }
+  return kFALSE;
+}
+
+/**
  * Checks whether a track is among the constituents of a jet.
  * @param jet Pointer to an StJet object
  * @param itrack Index of the track to look for
  * @param sorted If the constituents are sorted by index it will speed up computation
  * @return kTRUE if the track is among the constituents, kFALSE otherwise
  */
-Bool_t StJet::IsJetTrack(StJet* jet, Int_t itrack, Bool_t sorted) const
+Bool_t StJet::IsJetTrack(StJet *jet, Int_t itrack, Bool_t sorted) const
 {
   for (Int_t i = 0; i < jet->GetNumberOfTracks(); ++i) {
     Int_t ijettrack = jet->TrackAt(i);

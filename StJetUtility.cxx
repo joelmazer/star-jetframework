@@ -12,7 +12,7 @@ StJetUtility::StJetUtility() :
 }
 
 //______________________________________________________________________________
-StJetUtility::StJetUtility(const char* name) :
+StJetUtility::StJetUtility(const char *name) :
   TNamed(name, name),
   fJetTask(0),
   fInit(kFALSE)

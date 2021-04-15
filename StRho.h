@@ -21,7 +21,7 @@ class StRho : public StRhoBase {
 
  public:
   StRho();
-  StRho(const char *name, Bool_t histo=kFALSE, const char* outName="", const char* jetMakerName="");
+  StRho(const char *name, Bool_t histo=kFALSE, const char *outName="", const char *jetMakerName="");
   //virtual ~StRho() {}
   virtual ~StRho();
 

@@ -35,10 +35,6 @@ class StPicoBTowHit;
 class StFJWrapper;
 class StJetUtility;
 
-// Centrality class
-class StCentMaker;
-class StRefMultCorr;
-
 // STAR includes
 #include "StFJWrapper.h"
 #include "FJ_includes.h"
@@ -85,6 +81,7 @@ class StJetMakerTask : public StMaker {
   // booking of histograms (optional)
   void    DeclareHistograms();
   void    WriteHistograms();
+  void    WriteHadCorrQAHistograms();
 
   // switches
   virtual void         SetUsePrimaryTracks(Bool_t P)    { doUsePrimTracks       = P; } 
@@ -125,37 +122,37 @@ class StJetMakerTask : public StMaker {
   void         SetJetEtaRange(Double_t emi, Double_t ema) { fJetEtaMin        = emi   ; fJetEtaMax = ema; }
   void         SetJetPhiRange(Double_t pmi, Double_t pma) { fJetPhiMin        = pmi   ; fJetPhiMax = pma; }
 
-  void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min;}
-  void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max;}
+  void         SetMinJetTrackPt(Double_t min)             { fMinJetTrackPt = min; }
+  void         SetMaxJetTrackPt(Double_t max)             { fMaxJetTrackPt = max; }
   void         SetJetTrackEtaRange(Double_t etmi, Double_t etma) { fJetTrackEtaMin = etmi; fJetTrackEtaMax = etma; }
   void         SetJetTrackPhiRange(Double_t ptmi, Double_t ptma) { fJetTrackPhiMax = ptmi; fJetTrackPhiMax = ptma; }
   void         SetJetTrackDCAcut(Double_t d)              { fJetTrackDCAcut   = d     ; }
   void         SetJetTracknHitsFit(Double_t h)            { fJetTracknHitsFit = h     ; }
   void         SetJetTracknHitsRatio(Double_t r)          { fJetTracknHitsRatio = r   ; }
-  void         SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min;}
+  void         SetMinJetTowerE(Double_t min)              { mTowerEnergyMin = min; }
   void         SetJetTowerERange(Double_t enmi, Double_t enmx) { fJetTowerEMin = enmi; fJetTowerEMax = enmx; }
   void         SetJetTowerEtaRange(Double_t temi, Double_t temx) { fJetTowerEtaMin = temi; fJetTowerEtaMax = temx; }
   void         SetJetTowerPhiRange(Double_t tpmi, Double_t tpmx) { fJetTowerPhiMin = tpmi; fJetTowerPhiMax = tpmx; }
-  void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min;}
-  void         SetMinJetClusE(Double_t min)               { fMinJetClusE   = min;}
+  void         SetMinJetClusPt(Double_t min)              { fMinJetClusPt  = min; }
+  void         SetMinJetClusE(Double_t min)               { fMinJetClusE   = min; }
 
-  void         SetLocked()                                { fLocked = kTRUE;}
+  void         SetLocked()                                { fLocked = kTRUE; }
   void         SetTrackEfficiency(Double_t t)             { fTrackEfficiency  = t     ; }
   void         SetLegacyMode(Bool_t mode)                 { fLegacyMode       = mode  ; }
   void         SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
 
   // for jet substructure routines
-  StJetUtility*          AddUtility(StJetUtility* utility);
-  TObjArray*             GetUtilities()                   { return fUtilities ; }
+  StJetUtility          *AddUtility(StJetUtility *utility);
+  TObjArray             *GetUtilities()                   { return fUtilities ; }
 
   // jets
-  TClonesArray*          GetJets()                        { return fJets; }
-  TClonesArray*          GetJetsBGsub()                   { return fJetsBGsub; }
+  TClonesArray          *GetJets()                        { return fJets; }
+  TClonesArray          *GetJetsBGsub()                   { return fJetsBGsub; }
 
   // getters
   Double_t               GetGhostArea()                   { return fGhostArea         ; }
-  const char*            GetJetsName()                    { return fJetsName.Data()   ; }
-  const char*            GetJetsTag()                     { return fJetsTag.Data()    ; }
+  const char            *GetJetsName()                    { return fJetsName.Data()   ; }
+  const char            *GetJetsTag()                     { return fJetsTag.Data()    ; }
   Double_t               GetJetEtaMin()                   { return fJetEtaMin         ; }
   Double_t               GetJetEtaMax()                   { return fJetEtaMax         ; }
   Double_t               GetJetPhiMin()                   { return fJetPhiMin         ; }
@@ -182,34 +179,34 @@ class StJetMakerTask : public StMaker {
   std::set<Int_t>        GetBadTowers()                   { return badTowers          ; }
   std::set<Int_t>        GetDeadTowers()                  { return deadTowers         ; }
 
-  // set hadronic correction fraction for matched tracks to towers
+  // set hadronic correction fraction and type for matched tracks to towers
   void                   SetHadronicCorrFrac(float frac)    { mHadronicCorrFrac = frac; }
   void                   SetJetHadCorrType(Int_t hct)       { fJetHadCorrType = hct;}
 
  protected:
   // this 1st version is deprecated as the parameters are global for the class and already set
-  void                   FindJets(TObjArray *tracks, TObjArray *clus, Int_t algo, Double_t radius);
+  void                   FindJets(TObjArray *tracks, TObjArray *towers, Int_t algo, Double_t radius);
   void                   FindJets();
   //Int_t FindJets(); // use this if want to return NJets found
   void                   FillJetConstituents(StJet *jet, std::vector<fastjet::PseudoJet>& constituents,
                             std::vector<fastjet::PseudoJet>& constituents_sub, Int_t flag = 0, TString particlesSubName = "");
-  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // track accept cuts function
+  Bool_t                 AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);         // track accept cuts function
   Bool_t                 AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // jet track accept cuts function
   Bool_t                 AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // jet tower accept cuts function
   Int_t                  GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
-  Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID, Double_t CorrectedEnergy) const;
+  Bool_t                 GetMomentum(TVector3 &mom, const StPicoBTowHit *tower, Double_t mass, Int_t towerID, Double_t CorrectedEnergy) const;
   void                   FillEmcTriggersArr();
-  Double_t               GetMaxTrackPt();               // find max track pt in event
-  Double_t               GetMaxTowerEt();               // find max tower Et in event
-  void                   RunEventQA();
-  void                   SetSumw2(); // set errors weights 
+  Double_t               GetMaxTrackPt();           // find max track pt in event
+  Double_t               GetMaxTowerEt();           // find max tower Et in event
+  void                   RunEventQA();              // function to fill some event QA plots
+  void                   SetSumw2();                // set errors weights 
 
   // may not need any of these except fill jet branch if I want 2 different functions
   void                   FillJetBranch();
   void                   FillJetBGBranch();
   void                   InitUtilities();
   void                   PrepareUtilities();
-  void                   ExecuteUtilities(StJet* jet, Int_t ij);
+  void                   ExecuteUtilities(StJet *jet, Int_t ij);
   void                   TerminateUtilities();
 
   Bool_t                 GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const;
@@ -247,9 +244,9 @@ class StJetMakerTask : public StMaker {
   Int_t                  fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
   // tower to firing trigger type matched array
-  Bool_t                 fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-  Bool_t                 fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-  Bool_t                 fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+  Bool_t                 fTowerToTriggerTypeHT1[4800];// Tower with corresponding HT1 trigger type array
+  Bool_t                 fTowerToTriggerTypeHT2[4800];// Tower with corresponding HT2 trigger type array
+  Bool_t                 fTowerToTriggerTypeHT3[4800];// Tower with corresponding HT3 trigger type array
 
   // centrality    
   Double_t               fCentralityScaled;       // scaled by 5% centrality 
@@ -344,14 +341,14 @@ class StJetMakerTask : public StMaker {
   // centrality objects
   StRefMultCorr         *grefmultCorr;
 
-//  Double_t                mTowerMatchTrkIndex[4801];
-//  Bool_t                 mTowerStatusArr[4801];
-  Double_t               mTowerMatchTrkIndexLast[4801];
-  Double_t               mTowerMatchTrkIndex[4801][7];
-  Int_t                  mTowerStatusArr[4801];
+//  Double_t                mTowerMatchTrkIndex[4800];
+//  Bool_t                 mTowerStatusArr[4800];
+  Double_t               mTowerMatchTrkIndex[4800][7];
+  Int_t                  mTowerStatusArr[4800];
 
   // histograms
   TH1F           *fHistMultiplicity;//!
+  TH1F           *fHistRawMult;//!
   TH1F           *fHistCentrality;//!
   TH1F           *fHistCentralityPostCut;//!
   TH1F           *fHistFJRho;//!
@@ -370,9 +367,9 @@ class StJetMakerTask : public StMaker {
   TH1F           *fHistNTowervsEta;//!
   TH2F           *fHistNTowervsPhivsEta;//!
 
+  TH1F           *fHistTrackToTowerIndex;//!
   TH1F           *fHistNMatchTrack[5];//!
   TH2F           *fHistHadCorrComparison[5];//!
-  TH2F           *fHistHadCorrComparisonLast[5];//!
   TH2F           *fHistTowEtvsMatchedMaxTrkEt[5];//!
   TH2F           *fHistTowEtvsMatchedSumTrkEt[5];//!
   TH1F           *fHistJetNTrackvsPtCent[5];//!
@@ -416,6 +413,6 @@ class StJetMakerTask : public StMaker {
   StJetMakerTask(const StJetMakerTask&);            // not implemented
   StJetMakerTask &operator=(const StJetMakerTask&); // not implemented
 
-  ClassDef(StJetMakerTask, 3) // Jet producing task
+  ClassDef(StJetMakerTask, 4) // Jet producing task
 };
 #endif

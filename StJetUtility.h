@@ -18,7 +18,7 @@ class StJetUtility : public TNamed
   // explicit added in the below 2 lines to remove cppcheck warning for c++11 compilers
 
   StJetUtility();
-  explicit StJetUtility(const char* name);
+  explicit StJetUtility(const char *name);
   explicit StJetUtility(const StJetUtility &jet);
   StJetUtility& operator=(const StJetUtility &jet);
   ~StJetUtility() {;}
@@ -26,10 +26,10 @@ class StJetUtility : public TNamed
   virtual void Init() = 0;                                                 // Executed only once at the end of AliEmcalJetTask::DoInit()
   virtual void InitEvent(StFJWrapper& fjw) = 0;                            //
   virtual void Prepare(StFJWrapper& fjw) = 0;                              // Executed for each event at the beginning of AliEmcalJetTask::FillJetBranch()
-  virtual void ProcessJet(StJet* jet, Int_t ij, StFJWrapper& fjw) = 0;     // Executed for each jet in the loop in AliEmcalJetTask::FillJetBranch()
+  virtual void ProcessJet(StJet *jet, Int_t ij, StFJWrapper& fjw) = 0;     // Executed for each jet in the loop in AliEmcalJetTask::FillJetBranch()
   virtual void Terminate(StFJWrapper& fjw) = 0;                            // Executed for each event at the end of AliEmcalJetTask::FillJetBranch()
 
-  void SetJetTask(StJetMakerTask* jetTask) { fJetTask = jetTask; }
+  void SetJetTask(StJetMakerTask *jetTask) { fJetTask = jetTask; }
 
  protected:
 

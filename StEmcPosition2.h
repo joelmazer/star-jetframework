@@ -26,7 +26,7 @@ class StEmcPosition2 : public TObject
              StEmcPosition2();
     virtual  ~StEmcPosition2();
 
-    Int_t             getTowerEtaPhi(Double_t eta, Double_t phi, Float_t* towerEta, Float_t* towerPhi) const; ///< Return tower eta/phi
+    Int_t             getTowerEtaPhi(Double_t eta, Double_t phi, Float_t *towerEta, Float_t *towerPhi) const; ///< Return tower eta/phi
 
     Int_t             getNextTowerId(Float_t eta, Float_t phi, Int_t nTowersdEta, Int_t nTowersdPhi) const; ///< Return neighbor tower id's
     Int_t             getNextTowerId(Int_t softId, Int_t nTowersdEta, Int_t nTowersdPhi) const; ///< Return neighbor tower id's

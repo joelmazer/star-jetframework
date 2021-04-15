@@ -109,18 +109,7 @@ Int_t Pico::mTriggerId[nTrigger] = {
   430216, // BHT3
   430236  // BHT3
 }; // Run13 pp510 GeV st_physics
-
-Int_t Pico::mTriggerIdMtd[nTriggerMtd] = {
-  430103,    // dimuon
-  430113,    // dimuon
-  430102,    // e-mu 
-  430112,    // e-mu
-  430122,    // e-mu
-  430101,    // single-muon
-  430111     // single-muon
-}; // Run13 pp510 GeV st_mtd
 */
-
 
 Int_t Pico::mTriggerId[nTrigger] = {
 	// st_physics stream
@@ -150,30 +139,6 @@ Int_t Pico::mTriggerId[nTrigger] = {
 	450203,    // BHT3 (production_2014, production_mid_2014, production_low_2014)
 	450213    // BHT3 (production_2014, production_mid_2014, production_low_2014)
 };
-
-
-Int_t Pico::mTriggerIdMtd[nTriggerMtd] = {
-  // st_mtd stream
-  450601, // dimuon
-  450611, // dimuon
-  450621, // dimuon
-  450631, // dimuon
-  450641, // dimuon
-  450604,    // dimuon-30-hft (production_2014)
-  450605,    // dimuon-5-hft (production_mid_2014, production_low_2014)
-  450606,    // dimuon-5-hft (production_mid_2014)
-  450602,    // e-mu (production_2014)
-  450612,    // e-mu (production_2014, production_low_2014)
-  450622,    // e-mu (production_2014, production_low_2014)
-  450632,    // e-mu (production_mid_2014)
-  450642,    // e-mu (production_2014, production_low_2014)
-  450600,    // single-muon (production_2014)
-  450610,    // single-muon (production_2014, production_low_2014)
-  450620,    // single-muon (production_2014, production_low_2014)
-  450630,    // single-muon (production_mid_2014)
-  450640     // single-muon (production_2014, production_low_2014)
-}; // Run14 AuAu200 GeV StMtd Stream
-
 
    Float_t Pico::mVzMax = 100;
    Float_t Pico::mVrMax =   2;

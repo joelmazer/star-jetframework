@@ -68,7 +68,7 @@ ClassImp(StMyAnalysisMaker)
 
 //
 //________________________________________________________________________________________
-StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
+StMyAnalysisMaker::StMyAnalysisMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char *jetMakerName = "", const char *rhoMakerName = "")
   : StJetFrameworkPicoBase(name)
 {
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0; 
@@ -639,8 +639,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
   }
 
   if(phi_shift_switch){
-    TString* TPCcorrA;
-    TString* TPCcorrB;
+    TString *TPCcorrA;
+    TString *TPCcorrB;
     for(int i=0; i<2; i++){
       for(int j=0; j<2; j++){
         for(int k=0; k<9; k++){
@@ -889,11 +889,11 @@ void StMyAnalysisMaker::DeclareHistograms() {
   // temp FIXME:  Currently 5% centrality bins 0-80%, 4cm z-vtx bins
   // AuAu cent bins
   Int_t nCentBins = 16;
-  Double_t* centralityBin = GenerateFixedBinArray(nCentBins, 0., 16.);
+  Double_t *centralityBin = GenerateFixedBinArray(nCentBins, 0., 16.);
 
   // z-vertex bins
   Int_t nZvBins  = 20; //10+1+10;
-  Double_t* zvbin = GenerateFixedBinArray(nZvBins, -40., 40.);
+  Double_t *zvbin = GenerateFixedBinArray(nZvBins, -40., 40.);
 
   // Event Mixing
   Int_t trackDepth = fMixingTracks;
@@ -1816,7 +1816,7 @@ Int_t StMyAnalysisMaker::GetCentBin(Int_t cent, Int_t nBin) const
 //
 //
 // this function generate a jet name based on input
-TString StMyAnalysisMaker::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag)
+TString StMyAnalysisMaker::GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray *partCont, TClonesArray *clusCont, TString tag)
 {
   TString algoString;
   switch (jetAlgo) {
@@ -1937,7 +1937,7 @@ Double_t StMyAnalysisMaker::RelativeEPJET(Double_t jetAng, Double_t EPAng) const
 //
 //
 //______________________________________________________________________
-THnSparse* StMyAnalysisMaker::NewTHnSparseF(const char* name, UInt_t entries)
+THnSparse *StMyAnalysisMaker::NewTHnSparseF(const char *name, UInt_t entries)
 {
    // generate new THnSparseF, axes are defined in GetDimParams()
    Int_t count = 0;
@@ -2061,7 +2061,7 @@ void StMyAnalysisMaker::GetDimParams(Int_t iEntry, TString &label, Int_t &nbins,
 //
 //
 //______________________________________________________________________
-THnSparse* StMyAnalysisMaker::NewTHnSparseFCorr(const char* name, UInt_t entries) {
+THnSparse *StMyAnalysisMaker::NewTHnSparseFCorr(const char *name, UInt_t entries) {
   // generate new THnSparseD, axes are defined in GetDimParamsD()
   Int_t count = 0;
   UInt_t tmp = entries;
@@ -2149,7 +2149,7 @@ void StMyAnalysisMaker::GetDimParamsCorr(Int_t iEntry, TString &label, Int_t &nb
 //
 //
 //______________________________________________________________________
-THnSparse* StMyAnalysisMaker::NewTHnSparseEP(const char* name, UInt_t entries) {
+THnSparse *StMyAnalysisMaker::NewTHnSparseEP(const char *name, UInt_t entries) {
   // generate new THnSparseD, axes are defined in GetDimParamsD()
   Int_t count = 0;
   UInt_t tmp = entries;
@@ -2230,7 +2230,7 @@ void StMyAnalysisMaker::GetDimParamsEP(Int_t iEntry, TString &label, Int_t &nbin
 //
 // From CF event mixing code PhiCorrelations
 //__________________________________________________________________________________________
-TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
+TClonesArray *StMyAnalysisMaker::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
   TClonesArray *tracksClone = new TClonesArray("StFemtoTrack");
@@ -2270,7 +2270,7 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
     //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
-    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
+    StFemtoTrack *t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
     if(!t) continue;
 
     // add light-weight tracks passing cuts to TClonesArray
@@ -2285,7 +2285,19 @@ TClonesArray* StMyAnalysisMaker::CloneAndReduceTrackList()
 //
 //
 //_________________________________________________________________________
-TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
+TH1 *StMyAnalysisMaker::FillEmcTriggersHist(TH1 *h) {
+  // set bin labels
+  h->GetXaxis()->SetBinLabel(1, "HT0");
+  h->GetXaxis()->SetBinLabel(2, "HT1");
+  h->GetXaxis()->SetBinLabel(3, "HT2");
+  h->GetXaxis()->SetBinLabel(4, "HT3");
+  h->GetXaxis()->SetBinLabel(5, "JP0");
+  h->GetXaxis()->SetBinLabel(6, "JP1");
+  h->GetXaxis()->SetBinLabel(7, "JP2");
+  h->GetXaxis()->SetBinLabel(10, "Any");
+  h->LabelsOption("v");  // set x-axis labels vertically
+  //h->LabelsDeflate("X");
+
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -2327,19 +2339,6 @@ TH1* StMyAnalysisMaker::FillEmcTriggersHist(TH1* h) {
   }
   // kAny trigger - filled once per event
   h->Fill(10); 
-
-  h->GetXaxis()->SetBinLabel(1, "HT0");
-  h->GetXaxis()->SetBinLabel(2, "HT1");
-  h->GetXaxis()->SetBinLabel(3, "HT2");
-  h->GetXaxis()->SetBinLabel(4, "HT3");
-  h->GetXaxis()->SetBinLabel(5, "JP0");
-  h->GetXaxis()->SetBinLabel(6, "JP1");
-  h->GetXaxis()->SetBinLabel(7, "JP2");
-  h->GetXaxis()->SetBinLabel(10, "Any");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
 
   return h;
 }
@@ -2666,7 +2665,7 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   int nTrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < nTrack; i++) {
     // get track pointer
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -2697,14 +2696,14 @@ void StMyAnalysisMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(ptbin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(ptbin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(ptbin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(ptbin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(ptbin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(ptbin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(ptbin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // FIXME double check these are updated - found bug on May25
@@ -2860,7 +2859,7 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   
   // get run ID, transform to run order for filling histogram of corrections
   int RunId = mPicoEvent->runId();
-  int RunId_Order = GetRunNo(RunId);// + 1;
+  int RunId_Order = GetRunNo(fRunFlag, RunId);// + 1;
   if(RunId_Order < -1) return kStOK;
 
   // initialize some BBC parameters
@@ -2963,19 +2962,19 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 /*
     if(fCalibFile && doReadCalibFile){
       // Method 2: reading values from *.root files
-      TProfile* htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
+      TProfile *htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
       htempBBC_center_ex->SetName("htempBBC_center_ex");
       sumcos_E -= htempBBC_center_ex->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
+      TProfile *htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
       htempBBC_center_ey->SetName("htempBBC_center_ey");
       sumsin_E -= htempBBC_center_ey->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
+      TProfile *htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
       htempBBC_center_wx->SetName("htempBBC_center_wx");
       sumcos_W -= htempBBC_center_wx->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
+      TProfile *htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
       htempBBC_center_wy->SetName("htempBBC_center_wy");
       sumsin_W -= htempBBC_center_wy->GetBinContent(RunId_Order + 1);
 
@@ -3053,11 +3052,11 @@ Int_t StMyAnalysisMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
 /*
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
+        TProfile *htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
         htempBBC_ShiftA->SetName(Form("htempBBC_ShiftA%i_%i", ref9, region_vz));
         bbc_shift_Aval = htempBBC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
+        TProfile *htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
         htempBBC_ShiftB->SetName(Form("htempBBC_ShiftB%i_%i", ref9, region_vz));
         bbc_shift_Bval = htempBBC_ShiftB->GetBinContent(nharm);
 
@@ -3117,7 +3116,7 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // get the runID
   int RunId = mPicoEvent->runId();
-  int RunId_Order = GetRunNo(RunId);
+  int RunId_Order = GetRunNo(fRunFlag, RunId);
   if(RunId_Order < -1) return kStOK;
 
   // initialize some east/west horizontal and vertical values - what are they?
@@ -3281,11 +3280,11 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 /*
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
+        TProfile *htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
         htempZDC_ShiftA->SetName(Form("htempZDC_ShiftA%i_%i", ref9, region_vz));
         zdc_shift_Aval = htempZDC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempZDC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_B%i_%i", ref9, region_vz));
+        TProfile *htempZDC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_B%i_%i", ref9, region_vz));
         htempZDC_ShiftB->SetName(Form("htempZDC_ShiftB%i_%i", ref9, region_vz));
         zdc_shift_Bval = htempZDC_ShiftB->GetBinContent(nharm);
 
@@ -3339,9 +3338,9 @@ Int_t StMyAnalysisMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 //
 // get angle of BBC
 // ______________________________________________________________________
-Double_t StMyAnalysisMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 1)
+Double_t StMyAnalysisMaker::BBC_GetPhi(int e_w, int iTile){ //east == 0, (west == 1)
   double pi = 1.0*TMath::Pi();
-  //TRandom* gRandom(1); // FIXME added for missing variable
+  //TRandom *gRandom(1); // FIXME added for missing variable
   //TRandom rndm;
   double phi_div = pi/6.;
   double bbc_phi = phi_div;
@@ -3433,19 +3432,19 @@ Double_t StMyAnalysisMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
 /*
     if(fCalibFile && doReadCalibFile){
       // get corrections from histograms of calibration .root file
-      TProfile* htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
+      TProfile *htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
       htempZDC_center_ex->SetName("htempZDC_center_ex");
       mZDCSMDCenterex = htempZDC_center_ex->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
+      TProfile *htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
       htempZDC_center_ey->SetName("htempZDC_center_ey");
       mZDCSMDCenterey = htempZDC_center_ey->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
+      TProfile *htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
       htempZDC_center_wx->SetName("htempZDC_center_wx");
       mZDCSMDCenterwx = htempZDC_center_wx->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
+      TProfile *htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
       htempZDC_center_wy->SetName("htempZDC_center_wy");
       mZDCSMDCenterwy = htempZDC_center_wy->GetBinContent(id_order + 1);
 
@@ -3659,11 +3658,11 @@ Int_t StMyAnalysisMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       // started correcting names..
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
+        TProfile *htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
         htempTPC_ShiftA->SetName(Form("htempTPC_ShiftA%i_%i", ref9, region_vz));
         tpc_shift_Aval = htempTPC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
+        TProfile *htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
         htempTPC_ShiftB->SetName(Form("htempTPC_ShiftB%i_%i", ref9, region_vz));
         tpc_shift_Bval = htempTPC_ShiftB->GetBinContent(nharm);
 
@@ -3786,14 +3785,14 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(ptbin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(ptbin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(ptbin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(ptbin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(ptbin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(ptbin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(ptbin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
@@ -4021,7 +4020,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 /*
           if(fCalibFile && doReadCalibFile){
             // Method 2: from *.root calibration file
-            TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
+            TProfile *hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
             hTPC_center_p->SetName("hTPC_center_p");
             x -= hTPC_center_p->GetBinContent(1); // bin1 = x-vector
             y -= hTPC_center_p->GetBinContent(2); // bin2 = y-vector
@@ -4038,7 +4037,7 @@ void StMyAnalysisMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 /*
           if(fCalibFile && doReadCalibFile){
             // Method 2: from *.root calibration file
-            TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
+            TProfile *hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
             hTPC_center_m->SetName("hTPC_center_m");
             x -= hTPC_center_m->GetBinContent(1); // bin1 = x-vector
             y -= hTPC_center_m->GetBinContent(2); // bin2 = y-vector

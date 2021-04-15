@@ -36,9 +36,6 @@ class StPicoBTowHit;
 
 // EMC and tower related classes
 class StEmcGeom;
-class StBemcTables; //v3.14
-class StEmcCluster;
-class StEmcCollection;
 
 // star jet-frameworks classes
 class StJetFrameworkPicoBase;
@@ -75,12 +72,11 @@ class StPicoTrackClusterQA : public StMaker {
     kDebugEmcTrigger,
     kDebugGeneralEvt,
     kDebugCentrality,
+    kDebugTrackTowerMatching
   };
 
-  enum towerMode{AcceptAllTowers=0, RejectBadTowerStatus=1};
-
   StPicoTrackClusterQA();
-  StPicoTrackClusterQA(const char *name, bool dohistos, const char* outName);
+  StPicoTrackClusterQA(const char *name, bool dohistos, const char *outName);
   virtual ~StPicoTrackClusterQA();
 
   // needed class functions
@@ -94,9 +90,9 @@ class StPicoTrackClusterQA : public StMaker {
   void    WriteHistograms();
 
   // THnSparse Setup
-  virtual THnSparse*      NewTHnSparseFTracks(const char* name, UInt_t entries);
+  virtual THnSparse      *NewTHnSparseFTracks(const char *name, UInt_t entries);
   virtual void GetDimParamsTracks(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
-  virtual THnSparse*      NewTHnSparseFTowers(const char* name, UInt_t entries);
+  virtual THnSparse      *NewTHnSparseFTowers(const char *name, UInt_t entries);
   virtual void GetDimParamsTowers(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
   // switches
@@ -120,7 +116,6 @@ class StPicoTrackClusterQA : public StMaker {
   virtual void         SetTrackDCAcut(Double_t d)         { fTrackDCAcut = d       ; }
   virtual void         SetTracknHitsFit(Double_t h)       { fTracknHitsFit = h     ; }
   virtual void         SetTracknHitsRatio(Double_t r)     { fTracknHitsRatio = r   ; }
-  virtual void         SetClusterPtRange(Double_t mi, Double_t ma) { fClusterPtMinCut = mi; fClusterPtMaxCut = ma; }
 
   // tower setters
   virtual void         SetTowerERange(Double_t enmi, Double_t enmx) { fTowerEMinCut = enmi; fTowerEMaxCut = enmx; }
@@ -140,12 +135,6 @@ class StPicoTrackClusterQA : public StMaker {
   void                 SetClusName(const char *n)       { fCaloName      = n;  }
   void                 SetTracksName(const char *n)     { fTracksName    = n;  }
 
-  /* define if tower status should be used to reject towers, or if all
-   * towers should be accepted - default is to accept all towers, then
-   * generate a bad tower list for the entire data set.
-  */
-  void                 SetTowerAcceptMode(towerMode mode) { mTowerStatusMode = mode; }
-
   /* set the minimum tower energy to be reconstructed (default = 0.15) */
   void                 SetTowerEnergyMin(double mMin)     { mTowerEnergyMin = mMin; }
 
@@ -157,20 +146,20 @@ class StPicoTrackClusterQA : public StMaker {
   // functions
   void                 RunEventQA();
   void                 RunTrackQA();
+  void                 RunBEmcPidTraitsQA();
   void                 RunHadCorrTowerQA();
   void                 RunTowerQA();
   void                 RunFiredTriggerQA();  
   Bool_t               AcceptTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);  // track accept cuts function
   Bool_t               AcceptTower(StPicoBTowHit *tower, Int_t towerID);         // tower accept cuts function
   Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                 // centrality bin
-  TH1*                 FillEmcTriggersHist(TH1* h);                              // EmcTrigger counter histo
-  TH1*                 FillEventTriggerQA(TH1* h);                               // fill event trigger QA plots
+  TH1                 *FillEmcTriggersHist(TH1 *h);                              // EmcTrigger counter histo
+  TH1                 *FillEventTriggerQA(TH1 *h);                               // fill event trigger QA plots
   Bool_t               DoComparison(int myarr[], int elems);
   Double_t             GetMaxTrackPt();               // find max track pt in event
   Double_t             GetMaxTowerEt();               // find max tower Et in event
-  void                 FillTriggerIDs(TH1* h);
+  void                 FillTriggerIDs(TH1 *h);
   void                 SetSumw2(); // set errors weights 
-  Int_t                GetRunNo(int runid);
 
   // switches
   Bool_t               doWriteHistos;           // write QA histos
@@ -198,8 +187,6 @@ class StPicoTrackClusterQA : public StMaker {
 
   Double_t             fTrackPtMinCut;          // min track pt cut
   Double_t             fTrackPtMaxCut;          // max track pt cut
-  Double_t             fClusterPtMinCut;        // min cluster pt cut
-  Double_t             fClusterPtMaxCut;        // max cluster pt cut
   Double_t             fTrackPhiMinCut;         // min track phi cut
   Double_t             fTrackPhiMaxCut;         // max track phi cut
   Double_t             fTrackEtaMinCut;         // min track eta cut
@@ -231,31 +218,23 @@ class StPicoTrackClusterQA : public StMaker {
   UInt_t               fEmcTriggerEventType;        // Physics selection of event used for signal
   UInt_t               fMBEventType;                // Physics selection of event used for MB
   Int_t                fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
-  Bool_t               fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-  Bool_t               fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-  Bool_t               fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+  Bool_t               fTowerToTriggerTypeHT1[4800];// Tower with corresponding HT1 trigger type array
+  Bool_t               fTowerToTriggerTypeHT2[4800];// Tower with corresponding HT2 trigger type array
+  Bool_t               fTowerToTriggerTypeHT3[4800];// Tower with corresponding HT3 trigger type array
 
   // Emc objects
   StEmcGeom           *mGeom;
-  StEmcCollection     *mEmcCol; 
-  StBemcTables        *mBemcTables; 
-  std::vector<BemcMatch> mBemcMatchedTracks;
 
-  towerMode            mTowerStatusMode;
   Double_t             mTowerEnergyMin;
 
+  // hadronic correction
   Float_t              mHadronicCorrFrac;       // hadronic correction fraction to subtract
   Int_t                fJetHadCorrType;         // hadronic correction type to be used
 
  private:
   // OLD - part of tests
-  Bool_t               MuProcessBEMC();
   Bool_t               PicoProcessBEMC();
-  Int_t                MuFindSMDClusterHits(StEmcCollection* coll, Double_t eta, Double_t phi, Int_t detectorID);
 
-  StMuDstMaker        *mMuDstMaker;   // MuDstMaker object
-  StMuDst             *mMuDst;        // muDst object
-  StMuEvent           *mMuInputEvent; // muDst event object
   StPicoDstMaker      *mPicoDstMaker; // PicoDstMaker object
   StPicoDst           *mPicoDst;      // PicoDst object
   StPicoEvent         *mPicoEvent;    // PicoEvent object
@@ -265,8 +244,6 @@ class StPicoTrackClusterQA : public StMaker {
   // position object
   StEmcPosition2      *mEmcPosition;
 
-  //bool              *mTowerStatusArr; // tower status array
-
   // centrality objects
   StRefMultCorr       *grefmultCorr;
 
@@ -275,6 +252,7 @@ class StPicoTrackClusterQA : public StMaker {
   TH1F           *fHistNTrackvsPhi;//!
   TH1F           *fHistNTrackvsEta;//!
   TH2F           *fHistNTrackvsPhivsEta;//!
+  TH1F           *fHistTrackToTowerIndex;//!
   TH1F           *fHistNHadCorrTowervsE;//!
   TH1F           *fHistNHadCorrTowervsEt;//!
   TH1F           *fHistNHadCorrTowervsPhi;//!

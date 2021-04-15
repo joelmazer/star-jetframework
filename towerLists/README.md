@@ -14,7 +14,7 @@ Y2012_DeadTowers.txt
 ```
 Y2012_AltBadTowers_155_ALT.txt
 Y2012_BadTowers_102.txt
-Y2012_BadTowers_155.txt
+Y2012_BadTowers_155.txt - REMOVED
 Y2012_BadTowers_Rag.txt
 ```
 
@@ -30,13 +30,13 @@ Y2014_BadTowers.txt
 ```
 
 ```
-Y2014_BadTowers50.txt
+Y2014_BadTowers50.txt - REMOVED
 Y2014_BadTowers50_ALT.txt
 ```
 
 ```
-Y2014_AltBadTowers3.txt
-Y2014_AltBadTowers_283.txt
+Y2014_AltBadTowers3.txt - REMOVED
+Y2014_AltBadTowers_283.txt - REMOVED
 ```
 In April of 2019, Run14 was finally reproduction with a new production library. And new tower lists are consequently being investigated.
 April 29, 2019:

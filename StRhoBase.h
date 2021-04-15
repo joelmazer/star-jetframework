@@ -15,7 +15,6 @@ class TH3F;
 
 // STAR classes
 class StMaker;
-class StRefMultCorr;
 
 // jet-framework classes
 class StRhoParameter;
@@ -48,18 +47,18 @@ class StRhoBase : public StJetFrameworkPicoBase {
                                                                                  fOutRhoScaledName     = Form("%s_Scaled",name);     }
   void                   SetCompareRhoName(const char *name)                   { fCompareRhoName       = name    ;                   }
   void                   SetCompareRhoScaledName(const char *name)             { fCompareRhoScaledName = name    ;                   }
-  void                   SetScaleFunction(TF1* sf)                             { fScaleFunction        = sf      ;                   }
-  void                   SetRhoFunction(TF1* rf)                               { fRhoFunction          = rf      ;                   }
-  TF1*                   LoadRhoFunction(const char* path, const char* name);
+  void                   SetScaleFunction(TF1 *sf)                             { fScaleFunction        = sf      ;                   }
+  void                   SetRhoFunction(TF1 *rf)                               { fRhoFunction          = rf      ;                   }
+  TF1                   *LoadRhoFunction(const char *path, const char *name);
   void                   SetInEventSigmaRho(Double_t s)                        { fInEventSigmaRho      = s       ;                   }
   void                   SetAttachToEvent(Bool_t a)                            { fAttachToEvent        = a       ;                   }
   void                   SetSmallSystem(Bool_t setter = kTRUE)                 { fIsAuAu               = !setter ;                   }
 
-  const char*            GetOutRhoName() const                                 { return fOutRhoName.Data()       ;                   }
-  const char*            GetOutRhoScaledName() const                           { return fOutRhoScaledName.Data() ;                   }
+  const char            *GetOutRhoName() const                                 { return fOutRhoName.Data()       ;                   }
+  const char            *GetOutRhoScaledName() const                           { return fOutRhoScaledName.Data() ;                   }
 
-  StRhoParameter* GetRho()                        { return fOutRho; }
-  StRhoParameter* GetRhoScaled()                  { return fOutRhoScaled; }
+  StRhoParameter *GetRho()                        { return fOutRho; }
+  StRhoParameter *GetRhoScaled()                  { return fOutRhoScaled; }
 //  double GetRhoVal() {return GetRho()->GetVal(); }
 //  Double_t        GetRhoVal()            const    {if (fRho) return fRho->GetVal(); else return 0;}
 

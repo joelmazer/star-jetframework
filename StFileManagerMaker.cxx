@@ -21,13 +21,13 @@
 
 
 //_____________________________________________________________________________
-StFileManagerMaker::StFileManagerMaker(char const* name) : StMaker(name),
+StFileManagerMaker::StFileManagerMaker(char const *name) : StMaker(name),
   mMuDst(nullptr), mPicoDst(new StPicoDst()),
   mInputFileName(), mOutputFileName(), mOutputFile(nullptr)
 {
 }
 //_____________________________________________________________________________
-StFileManagerMaker::StFileManagerMaker(PicoIoMode ioMode, char const* fileName, char const* name) : StFileManagerMaker(name)
+StFileManagerMaker::StFileManagerMaker(PicoIoMode ioMode, char const *fileName, char const *name) : StFileManagerMaker(name)
 {
   StMaker::m_Mode = ioMode;
   //mInputFileName = fileName;

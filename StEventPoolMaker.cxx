@@ -38,15 +38,11 @@
 // old file kept
 #include "StPicoConstants.h"
 
-// centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StEventPoolMaker)
 
 //
 //__________________________________________________________________________________________
-StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
+StEventPoolMaker::StEventPoolMaker(const char *name, StPicoDstMaker *picoMaker, const char *outName = "", bool mDoComments = kFALSE)
   : StJetFrameworkPicoBase(name)  //StMaker(name):
 {
   doUsePrimTracks = kFALSE;
@@ -89,7 +85,7 @@ StEventPoolMaker::StEventPoolMaker(const char* name, StPicoDstMaker *picoMaker, 
   zVtx = 0.0;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
-  for(int i=0; i<4801; i++) {
+  for(int i=0; i<4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -418,9 +414,9 @@ Int_t StEventPoolMaker::Make() {
   const Int_t ntracks = mPicoDst->numberOfTracks();
   Int_t nglobaltracks = mPicoEvent->numberOfGlobalTracks();
 
-// ***************************************************************************************************************
-// ******************************** Event MIXING *****************************************************************
-// ***************************************************************************************************************
+  // ***************************************************************************************************************
+  // ******************************** Event MIXING *****************************************************************
+  // ***************************************************************************************************************
   //Prepare to do event mixing
   if(fDoEventMixing>0){
     // event mixing
@@ -473,12 +469,11 @@ Int_t StEventPoolMaker::Make() {
   return kStOK;
 }
 //
-// From CF event mixing code PhiCorrelations
 //________________________________________________________________________________
-TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
+TClonesArray *StEventPoolMaker::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
-//  TClonesArray *tracksClone = new TClonesArray("StPicoTrack");// original way
+  //  TClonesArray *tracksClone = new TClonesArray("StPicoTrack"); // original way
   TClonesArray *tracksClone = new TClonesArray("StFemtoTrack");
 //  tracksClone->SetName("tracksClone");
 //  tracksClone->SetOwner(kTRUE);
@@ -501,11 +496,9 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
     TVector3 mTrkMom;
     if(doUsePrimTracks) {
       if(!(trk->isPrimary())) continue; // check if primary
-      // get primary track vector
-      mTrkMom = trk->pMom();
+      mTrkMom = trk->pMom();                 // get primary track vector
     } else {
-      // get global track vector
-      mTrkMom = trk->gMom(mVertex, Bfield);
+      mTrkMom = trk->gMom(mVertex, Bfield);  // get global track vector
     }
 
 /*
@@ -513,7 +506,7 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
     double pt = mTrkMom.Perp();
 
     // when doing event plane calculation via pt assoc bin
-    // this is TEMP, it will filter track by the pt bin used for analysis
+    // this is TEMP, it will filter track by the pt bin used for analysis - double check syntax if using
     if(doTPCptassocBin && fDoFilterPtMixEvents) {
       if(fTPCptAssocBin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(fTPCptAssocBin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
@@ -528,7 +521,7 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
 
     // create StFemtoTracks out of accepted tracks - light-weight object for mixing
     //  StFemtoTrack *t = new StFemtoTrack(pt, eta, phi, charge);
-    StFemtoTrack* t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
+    StFemtoTrack *t = new StFemtoTrack(trk, Bfield, mVertex, doUsePrimTracks);
     if(!t) continue;
 
     // add light-weight tracks passing cuts to TClonesArray
@@ -543,7 +536,7 @@ TClonesArray* StEventPoolMaker::CloneAndReduceTrackList()
 //
 //
 //_________________________________________________________________________
-TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
+TH1 *StEventPoolMaker::FillEmcTriggersHist(TH1 *h) {
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -578,20 +571,6 @@ TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
   // kAny trigger - filled once per event
   h->Fill(10); 
 
-  // set bin labels
-  h->GetXaxis()->SetBinLabel(1, "HT0");
-  h->GetXaxis()->SetBinLabel(2, "HT1");
-  h->GetXaxis()->SetBinLabel(3, "HT2");
-  h->GetXaxis()->SetBinLabel(4, "HT3");
-  h->GetXaxis()->SetBinLabel(5, "JP0");
-  h->GetXaxis()->SetBinLabel(6, "JP1");
-  h->GetXaxis()->SetBinLabel(7, "JP2");
-  h->GetXaxis()->SetBinLabel(10, "Any");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-
   return h;
 }
 //
@@ -599,24 +578,24 @@ TH1* StEventPoolMaker::FillEmcTriggersHist(TH1* h) {
 // __________________________________________________________________________________
 void StEventPoolMaker::SetSumw2() {
   // set sum weights
-  //hEventZVertex->Sumw2();
-  //hCentrality->Sumw2();
-  //hMultiplicity->Sumw2();
+  hEventZVertex->Sumw2();
+  hCentrality->Sumw2();
+  hMultiplicity->Sumw2();
   hTrackEtavsPhi->Sumw2();
-  //fHistEventSelectionQA->Sumw2();
-  //fHistEventSelectionQAafterCuts->Sumw2();
-  //hTriggerIds->Sumw2();
-  //hEmcTriggers->Sumw2();
-  //hMixEvtStatZVtx->Sumw2();
-  //hMixEvtStatCent->Sumw2();
-  //hMixEvtStatZvsCent->Sumw2();
+  fHistEventSelectionQA->Sumw2();
+  fHistEventSelectionQAafterCuts->Sumw2();
+  hTriggerIds->Sumw2();
+  hEmcTriggers->Sumw2();
+  hMixEvtStatZVtx->Sumw2();
+  hMixEvtStatCent->Sumw2();
+  hMixEvtStatZvsCent->Sumw2();
 }
 //
 //
 //_________________________________________________________________________
 void StEventPoolMaker::FillTowerTriggersArr() {
   // tower - HT trigger types array: zero these out - so they are refreshed for each event
-  for(int i = 0; i < 4801; i++) {
+  for(int i = 0; i < 4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -633,13 +612,14 @@ void StEventPoolMaker::FillTowerTriggersArr() {
 
     // emc trigger parameters
     int emcTrigID = emcTrig->id();
+    int emcTrigIDindex = emcTrigID - 1;
 
     // check if i'th trigger fired HT triggers by meeting threshold
     bool isHT1 = emcTrig->isHT1();
     bool isHT2 = emcTrig->isHT2();
     bool isHT3 = emcTrig->isHT3();
-    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
-    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
-    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigIDindex] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigIDindex] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigIDindex] = kTRUE;
   }
 }

@@ -55,15 +55,11 @@
 // old file kept
 #include "StPicoConstants.h"
 
-// centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StJetShapeAnalysis)
 
 //
 //______________________________________________________________________________________
-StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char* jetMakerName = "", const char* rhoMakerName = "")
+StJetShapeAnalysis::StJetShapeAnalysis(const char *name, StPicoDstMaker *picoMaker, const char *outName = "", bool mDoComments = kFALSE, double minJetPt = 1.0, double trkbias = 0.15, const char *jetMakerName = "", const char *rhoMakerName = "")
   : StJetFrameworkPicoBase(name)
 {
   doUsePrimTracks = kFALSE;
@@ -136,7 +132,7 @@ StJetShapeAnalysis::StJetShapeAnalysis(const char* name, StPicoDstMaker *picoMak
   fDoFilterPtMixEvents = kFALSE;
   fEmcTriggerEventType = 0; fMBEventType = 2; fMixingEventType = 0;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
-  for(int i=0; i<4801; i++) {
+  for(int i=0; i<4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -394,7 +390,7 @@ void StJetShapeAnalysis::DeclareHistograms() {
   // this is temp as the above and various other implementation attempts would not work for both cases
   Int_t nCentBins = 8;
   Double_t cenBins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  Double_t* centralityBin = cenBins;
+  Double_t *centralityBin = cenBins;
 
   // Setup for Au-Au collisions: cent bin size can only be 5 or 10% bins
   // centrality bins for mixed events
@@ -421,7 +417,7 @@ void StJetShapeAnalysis::DeclareHistograms() {
   // centrality bins for mixed events
   //Int_t nCentBinsJS = 8;
   //Double_t cenBinsJS[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  //Double_t* centralityBinJS = cenBinsJS;
+  //Double_t *centralityBinJS = cenBinsJS;
   Int_t nMultBinsJS = 29;
   Double_t multBinsJS[] = {10, 14, 19, 25, 31, 37, 44, 52, 61, 71, 82, 95, 109, 124, 140, 157, 175, 194, 214, 235, 257, 280, 304, 329, 355, 382, 410, 439, 469};
   Double_t *multiplicityBinsJS = multBinsJS;
@@ -429,7 +425,7 @@ void StJetShapeAnalysis::DeclareHistograms() {
   // z-vertex bins for mixed events
   Int_t nZvBinsJS = 20;
   Double_t vBinsJS[] = {-40,-36,-32,-28,-24,-20,-16,-12,-8,-4,0,4,8,12,16,20,24,28,32,36,40};
-  Double_t* zvbinJS = vBinsJS;
+  Double_t *zvbinJS = vBinsJS;
   //Int_t nbinsjetMIX = sizeof(vBinsJS)/sizeof(Double_t) - 1;
 
   // Event Mixing
@@ -699,7 +695,7 @@ Int_t StJetShapeAnalysis::Make() {
   if(fHaveEmcTrigger) { doJetAnalysis = kTRUE; }
     
   // if we have trigger && AuAu dataset: run event plane analysis
-  if(fHaveEmcTrigger && (fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200 || fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200)) {
+  if(fHaveEmcTrigger && (fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200 || fRunFlag == StJetFrameworkPicoBase::Run14_AuAu200_MB || fRunFlag == StJetFrameworkPicoBase::Run16_AuAu200)) {
     doEPAnalysis = kTRUE;
   }
   // ======================== end of Triggers ============================= //
@@ -798,7 +794,7 @@ Int_t StJetShapeAnalysis::Make() {
 
   // ========================== Jet Shape Analysis ===================================== //
   if(doJetShapeAnalysis) {
-    StEventPool* pool = 0x0;
+    StEventPool *pool = 0x0;
 
     // require event mixing
     if(fDoEventMixing > 0) {
@@ -930,7 +926,19 @@ Int_t StJetShapeAnalysis::Make() {
 //
 //
 //_________________________________________________________________________
-TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
+TH1 *StJetShapeAnalysis::FillEmcTriggersHist(TH1 *h) {
+  // set bin labels
+  h->GetXaxis()->SetBinLabel(1, "HT0");
+  h->GetXaxis()->SetBinLabel(2, "HT1");
+  h->GetXaxis()->SetBinLabel(3, "HT2");
+  h->GetXaxis()->SetBinLabel(4, "HT3");
+  h->GetXaxis()->SetBinLabel(5, "JP0");
+  h->GetXaxis()->SetBinLabel(6, "JP1");
+  h->GetXaxis()->SetBinLabel(7, "JP2");
+  h->GetXaxis()->SetBinLabel(10, "Any");
+  h->LabelsOption("v");  // set x-axis labels vertically
+  //h->LabelsDeflate("X");
+
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -973,26 +981,12 @@ TH1* StJetShapeAnalysis::FillEmcTriggersHist(TH1* h) {
   // kAny trigger - filled once per event
   h->Fill(10); 
 
-  // set bin labels
-  h->GetXaxis()->SetBinLabel(1, "HT0");
-  h->GetXaxis()->SetBinLabel(2, "HT1");
-  h->GetXaxis()->SetBinLabel(3, "HT2");
-  h->GetXaxis()->SetBinLabel(4, "HT3");
-  h->GetXaxis()->SetBinLabel(5, "JP0");
-  h->GetXaxis()->SetBinLabel(6, "JP1");
-  h->GetXaxis()->SetBinLabel(7, "JP2");
-  h->GetXaxis()->SetBinLabel(10, "Any");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-
   return h;
 }
 //
 // From CF event mixing code PhiCorrelations
 //_________________________________________________
-TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
+TClonesArray *StJetShapeAnalysis::CloneAndReduceTrackList()
 {
   // clones a track list by using StPicoTrack which uses much less memory (used for event mixing)
 //  TClonesArray *tracksClone = new TClonesArray("StPicoTrack");// original way
@@ -1029,7 +1023,7 @@ TClonesArray* StJetShapeAnalysis::CloneAndReduceTrackList()
 
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
-    // this is TEMP, it will filter track by the pt bin used for analysis
+    // this is TEMP, it will filter track by the pt bin used for analysis - double check syntax is set up correct 
     if(doTPCptassocBin && fDoFilterPtMixEvents) {
       if(fTPCptAssocBin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
       if(fTPCptAssocBin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
@@ -1261,7 +1255,7 @@ void StJetShapeAnalysis::TrackQA()
 //_________________________________________________________________________
 void StJetShapeAnalysis::FillTowerTriggersArr() {
   // tower - HT trigger types array: zero these out - so they are refreshed for each event
-  for(int i = 0; i < 4801; i++) {
+  for(int i = 0; i < 4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -1278,14 +1272,15 @@ void StJetShapeAnalysis::FillTowerTriggersArr() {
 
     // emc trigger parameters
     int emcTrigID = emcTrig->id();
+    int emcTrigIDindex = emcTrigIDindex - 1;
 
     // check if i'th trigger fired HT triggers by meeting threshold
     bool isHT1 = emcTrig->isHT1();
     bool isHT2 = emcTrig->isHT2();
     bool isHT3 = emcTrig->isHT3();
-    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
-    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
-    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigIDindex] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigIDindex] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigIDindex] = kTRUE;
 
     //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }
@@ -1309,12 +1304,13 @@ Bool_t StJetShapeAnalysis::DidTowerConstituentFireTrigger(StJet *jet) {
     
     // tower ID: get from index of array shifted by +1
     int towID = ArrayIndex + 1;
+    int towIDindex = towID - 1;
     if(towID < 0) continue;
 
     // change flag to true if jet tower fired trigger
-    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towID]) mFiredTrigger = kTRUE;
-    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towID]) mFiredTrigger = kTRUE;
-    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towID]) mFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT1) && fTowerToTriggerTypeHT1[towIDindex]) mFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT2) && fTowerToTriggerTypeHT2[towIDindex]) mFiredTrigger = kTRUE;
+    if((fEmcTriggerEventType == StJetFrameworkPicoBase::kIsHT3) && fTowerToTriggerTypeHT3[towIDindex]) mFiredTrigger = kTRUE;
   
   } // tower constituent loop
 

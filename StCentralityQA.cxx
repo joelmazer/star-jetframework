@@ -45,7 +45,7 @@
 ClassImp(StCentralityQA)
 
 //______________________________________________________________________________
-StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, const char* outName = "", bool mDoComments = kFALSE)
+StCentralityQA::StCentralityQA(const char *name, StPicoDstMaker *picoMaker, const char *outName = "", bool mDoComments = kFALSE)
   : StJetFrameworkPicoBase(name)
 {
   doUsePrimTracks = kFALSE;
@@ -85,7 +85,7 @@ StCentralityQA::StCentralityQA(const char* name, StPicoDstMaker *picoMaker, cons
   zVtx = 0.0;
   fEmcTriggerEventType = 0; fMBEventType = 2;
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
-  for(int i=0; i<4801; i++) {
+  for(int i=0; i<4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -163,6 +163,13 @@ Int_t StCentralityQA::Init() {
         break;
 */
              break;
+
+    case StJetFrameworkPicoBase::Run14_AuAu200_MB : // Run14 AuAu
+              grefmultCorrOLD = CentralityMaker::instance()->getgRefMultCorr();
+              //grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P17id_VpdMB30();
+              grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30();
+              //grefmultCorrNEW = CentralityMaker::instance()->getgRefMultCorr_P18ih_VpdMB30_AllLumi();
+              break;
 
     case StJetFrameworkPicoBase::Run15_pp200 : // Run15: 200 GeV pp
         break;
@@ -501,7 +508,19 @@ Int_t StCentralityQA::Make() {
 }
 
 //_________________________________________________________________________
-TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
+TH1 *StCentralityQA::FillEmcTriggersHist(TH1 *h) {
+  // set bin labels
+  h->GetXaxis()->SetBinLabel(1, "HT0");
+  h->GetXaxis()->SetBinLabel(2, "HT1");
+  h->GetXaxis()->SetBinLabel(3, "HT2");
+  h->GetXaxis()->SetBinLabel(4, "HT3");
+  h->GetXaxis()->SetBinLabel(5, "JP0");
+  h->GetXaxis()->SetBinLabel(6, "JP1");
+  h->GetXaxis()->SetBinLabel(7, "JP2");
+  h->GetXaxis()->SetBinLabel(10, "Any");
+  h->LabelsOption("v");  // set x-axis labels vertically
+  //h->LabelsDeflate("X");
+
   // number of Emcal Triggers
   for(int i = 0; i < 8; i++) { fEmcTriggerArr[i] = 0; }
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -544,20 +563,6 @@ TH1* StCentralityQA::FillEmcTriggersHist(TH1* h) {
   // kAny trigger - filled once per event
   h->Fill(10); 
 
-  // set bin labels
-  h->GetXaxis()->SetBinLabel(1, "HT0");
-  h->GetXaxis()->SetBinLabel(2, "HT1");
-  h->GetXaxis()->SetBinLabel(3, "HT2");
-  h->GetXaxis()->SetBinLabel(4, "HT3");
-  h->GetXaxis()->SetBinLabel(5, "JP0");
-  h->GetXaxis()->SetBinLabel(6, "JP1");
-  h->GetXaxis()->SetBinLabel(7, "JP2");
-  h->GetXaxis()->SetBinLabel(10, "Any");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
-
   return h;
 }
 //
@@ -581,7 +586,7 @@ void StCentralityQA::SetSumw2() {
 //_________________________________________________________________________
 void StCentralityQA::FillTowerTriggersArr() {
   // tower - HT trigger types array: zero these out - so they are refreshed for each event
-  for(int i = 0; i < 4801; i++) {
+  for(int i = 0; i < 4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -598,14 +603,15 @@ void StCentralityQA::FillTowerTriggersArr() {
 
     // emc trigger parameters
     int emcTrigID = emcTrig->id();
+    int emcTrigIDindex = emcTrigID - 1;
 
     // check if i'th trigger fired HT triggers by meeting threshold
     bool isHT1 = emcTrig->isHT1();
     bool isHT2 = emcTrig->isHT2();
     bool isHT3 = emcTrig->isHT3();
-    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
-    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
-    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigIDindex] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigIDindex] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigIDindex] = kTRUE;
 
     //cout<<"i = "<<i<<"  EmcTrigID = "<<emcTrigID<<"  adc = "<<emcTrig->adc()<<"  isHT1: "<<isHT1<<"  isHT2: "<<isHT2<<"  isHT3: "<<isHT3<<endl;
   }

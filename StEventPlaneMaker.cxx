@@ -49,14 +49,10 @@
 // old file kept
 #include "StPicoConstants.h"
 
-// centrality includes
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
-
 ClassImp(StEventPlaneMaker)
 
 //_____________________________________________________________________________
-StEventPlaneMaker::StEventPlaneMaker(const char* name, StPicoDstMaker *picoMaker, const char* jetMakerName = "", const char* rhoMakerName = "")
+StEventPlaneMaker::StEventPlaneMaker(const char *name, StPicoDstMaker *picoMaker, const char *jetMakerName = "", const char *rhoMakerName = "")
   : StJetFrameworkPicoBase(name)
 {
   fLeadingJet = 0x0; fSubLeadingJet = 0x0; fExcludeLeadingJetsFromFit = 1.0;
@@ -718,7 +714,16 @@ void StEventPlaneMaker::Clear(Option_t *opt) {
 //_____________________________________________________________________________
 Int_t StEventPlaneMaker::Make() {
   // zero out these global variables
+  // - this ensures a past event value somehow doesn't get re-used (Apr2020)
   fCentralityScaled = 0.0, ref9 = 0, ref16 = 0;
+  TPC_PSI2 = -999; TPCA_PSI2 = -999; TPCB_PSI2 = -999;
+  BBC_PSI2 = -999;  ZDC_PSI2 = -999;
+  BBC_PSI1 = -999;  ZDC_PSI1 = -999;
+  PSI2 = -999;  RES = -999;
+  TPC_raw_comb = 0.;  TPC_raw_neg = 0.;  TPC_raw_pos = 0.;
+  BBC_raw_comb = 0.; BBC_raw_east = 0.; BBC_raw_west = 0.;
+  ZDC_raw_comb = 0.; ZDC_raw_east = 0.; ZDC_raw_west = 0.;
+  fEPTPCn = 0.; fEPTPCp = 0.; fEPTPC = 0.; fEPBBC = 0.; fEPZDC = 0.;
 
   // just get out of Dodge if we are trying to run on pp collisions
   if(doppAnalysis) return kStOK; // use kStOK to not create tons of warning printouts
@@ -945,7 +950,19 @@ Int_t StEventPlaneMaker::Make() {
 }
 //
 //_________________________________________________________________________
-TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
+TH1 *StEventPlaneMaker::FillEmcTriggersHist(TH1 *h) {
+  // set axis labels
+  h->GetXaxis()->SetBinLabel(1, "HT0");
+  h->GetXaxis()->SetBinLabel(2, "HT1");
+  h->GetXaxis()->SetBinLabel(3, "HT2");
+  h->GetXaxis()->SetBinLabel(4, "HT3");
+  h->GetXaxis()->SetBinLabel(5, "JP0");
+  h->GetXaxis()->SetBinLabel(6, "JP1");
+  h->GetXaxis()->SetBinLabel(7, "JP2");
+  h->GetXaxis()->SetBinLabel(10, "Any");
+  h->LabelsOption("v");  // set x-axis labels vertically
+  //h->LabelsDeflate("X");
+
   // number of Emcal Triggers
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = 0; }
   Int_t nEmcTrigger = mPicoDst->numberOfEmcTriggers();
@@ -953,7 +970,7 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   // set kAny true to use of 'all' triggers
   fEmcTriggerArr[StJetFrameworkPicoBase::kAny] = 1;  // always TRUE, so can select on all event (when needed/wanted) 
 
-  //static StPicoEmcTrigger* emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
+  //static StPicoEmcTrigger *emcTrigger(int i) { return (StPicoEmcTrigger*)picoArrays[picoEmcTrigger]->UncheckedAt(i); }
   // loop over valid EmcalTriggers
   for(int i = 0; i < nEmcTrigger; i++) {
     // get trigger pointer
@@ -971,19 +988,6 @@ TH1* StEventPlaneMaker::FillEmcTriggersHist(TH1* h) {
   }
   // kAny trigger - filled once per event
   h->Fill(10); 
-
-  h->GetXaxis()->SetBinLabel(1, "HT0");
-  h->GetXaxis()->SetBinLabel(2, "HT1");
-  h->GetXaxis()->SetBinLabel(3, "HT2");
-  h->GetXaxis()->SetBinLabel(4, "HT3");
-  h->GetXaxis()->SetBinLabel(5, "JP0");
-  h->GetXaxis()->SetBinLabel(6, "JP1");
-  h->GetXaxis()->SetBinLabel(7, "JP2");
-  h->GetXaxis()->SetBinLabel(10, "Any");
-
-  // set x-axis labels vertically
-  h->LabelsOption("v");
-  //h->LabelsDeflate("X");
 
   return h;
 }
@@ -1144,7 +1148,7 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
   int nTrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < nTrack; i++) {
     // get track pointer
-    StPicoTrack* track = static_cast<StPicoTrack*>(mPicoDst->track(i));
+    StPicoTrack *track = static_cast<StPicoTrack*>(mPicoDst->track(i));
     if(!track) { continue; }
 
     // apply standard track cuts - (can apply more restrictive cuts below)
@@ -1152,11 +1156,9 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
 
     // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;
-    if(doUsePrimTracks) {
-      // get primary track vector
+    if(doUsePrimTracks) { // get primary track vector
       mTrkMom = track->pMom();
-    } else {
-      // get global track vector
+    } else {              // get global track vector
       mTrkMom = track->gMom(mVertex, Bfield);
     }
 
@@ -1175,14 +1177,14 @@ void StEventPlaneMaker::GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, D
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(ptbin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(ptbin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(ptbin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(ptbin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(ptbin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(ptbin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(ptbin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
@@ -1322,7 +1324,7 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
   
   // get run ID, transform to run order for filling histogram of corrections
   int RunId = mPicoEvent->runId();
-  int RunId_Order = GetRunNo(RunId);// + 1;
+  int RunId_Order = GetRunNo(fRunFlag, RunId);// + 1;
   if(RunId_Order < -1) return kStOK;
 
   // initialize some BBC parameters
@@ -1426,19 +1428,19 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
     // read from file
     if(fCalibFile && doReadCalibFile){
       // Method 2: reading values from *.root files
-      TProfile* htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
+      TProfile *htempBBC_center_ex = (TProfile*)fCalibFile->Get("hBBC_center_ex");
       htempBBC_center_ex->SetName("htempBBC_center_ex");
       sumcos_E -= htempBBC_center_ex->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
+      TProfile *htempBBC_center_ey = (TProfile*)fCalibFile->Get("hBBC_center_ey");
       htempBBC_center_ey->SetName("htempBBC_center_ey");
       sumsin_E -= htempBBC_center_ey->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
+      TProfile *htempBBC_center_wx = (TProfile*)fCalibFile->Get("hBBC_center_wx");
       htempBBC_center_wx->SetName("htempBBC_center_wx");
       sumcos_W -= htempBBC_center_wx->GetBinContent(RunId_Order + 1);
 
-      TProfile* htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
+      TProfile *htempBBC_center_wy = (TProfile*)fCalibFile->Get("hBBC_center_wy");
       htempBBC_center_wy->SetName("htempBBC_center_wy");
       sumsin_W -= htempBBC_center_wy->GetBinContent(RunId_Order + 1);
 
@@ -1515,11 +1517,11 @@ Int_t StEventPlaneMaker::BBC_EP_Cal(int ref9, int region_vz, int n) { //refmult,
       // reading in from file
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
+        TProfile *htempBBC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_A%i_%i", ref9, region_vz));
         htempBBC_ShiftA->SetName(Form("htempBBC_ShiftA%i_%i", ref9, region_vz));
         bbc_shift_Aval = htempBBC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
+        TProfile *htempBBC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hBBC_shift_B%i_%i", ref9, region_vz));
         htempBBC_ShiftB->SetName(Form("htempBBC_ShiftB%i_%i", ref9, region_vz));
         bbc_shift_Bval = htempBBC_ShiftB->GetBinContent(nharm);
 
@@ -1593,7 +1595,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 
   // get the runID
   int RunId = mPicoEvent->runId();
-  int RunId_Order = GetRunNo(RunId); //+1;
+  int RunId_Order = GetRunNo(fRunFlag, RunId); //+1;
   if(RunId_Order < -1) return kStOK;
 
   // initialize some east/west horizontal and vertical values
@@ -1759,11 +1761,11 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
       // reading in from file
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
+        TProfile *htempZDC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_A%i_%i", ref9, region_vz));
         htempZDC_ShiftA->SetName(Form("htempZDC_ShiftA%i_%i", ref9, region_vz));
         zdc_shift_Aval = htempZDC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempZDC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_B%i_%i", ref9, region_vz));
+        TProfile *htempZDC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hZDC_shift_B%i_%i", ref9, region_vz));
         htempZDC_ShiftB->SetName(Form("htempZDC_ShiftB%i_%i", ref9, region_vz));
         zdc_shift_Bval = htempZDC_ShiftB->GetBinContent(nharm);
 
@@ -1820,7 +1822,7 @@ Int_t StEventPlaneMaker::ZDC_EP_Cal(int ref9, int region_vz, int n) {
 // ______________________________________________________________________
 Double_t StEventPlaneMaker::BBC_GetPhi(int e_w,int iTile){ //east == 0, (west == 1)
   double pi = 1.0*TMath::Pi();
-  //TRandom* gRandom(1); // FIXME added for missing variable
+  //TRandom *gRandom(1); // FIXME added for missing variable
   //TRandom rndm;
   double phi_div = pi/6.;
   double bbc_phi = phi_div;
@@ -1914,19 +1916,19 @@ Double_t StEventPlaneMaker::ZDCSMD_GetPosition(int id_order, int eastwest, int v
     // reading in from file
     if(fCalibFile && doReadCalibFile){
       // get corrections from histograms of calibration .root file
-      TProfile* htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
+      TProfile *htempZDC_center_ex = (TProfile*)fCalibFile->Get("hZDC_center_ex");
       htempZDC_center_ex->SetName("htempZDC_center_ex");
       mZDCSMDCenterex = htempZDC_center_ex->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
+      TProfile *htempZDC_center_ey = (TProfile*)fCalibFile->Get("hZDC_center_ey");
       htempZDC_center_ey->SetName("htempZDC_center_ey");
       mZDCSMDCenterey = htempZDC_center_ey->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
+      TProfile *htempZDC_center_wx = (TProfile*)fCalibFile->Get("hZDC_center_wx");
       htempZDC_center_wx->SetName("htempZDC_center_wx");
       mZDCSMDCenterwx = htempZDC_center_wx->GetBinContent(id_order + 1);
 
-      TProfile* htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
+      TProfile *htempZDC_center_wy = (TProfile*)fCalibFile->Get("hZDC_center_wy");
       htempZDC_center_wy->SetName("htempZDC_center_wy");
       mZDCSMDCenterwy = htempZDC_center_wy->GetBinContent(id_order + 1);
 
@@ -1986,9 +1988,9 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
     hTPCepDebug->Fill(3.); }
   if(fabs(Q2y_p) < 1e-6) { cout<<"TPC Q2y_p < 1e-6, "<<Q2y_p<<endl; 
     hTPCepDebug->Fill(4.); }
-  if(fabs(Q2x) < 1e-6) {   cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
+  if(fabs(Q2x)   < 1e-6) { cout<<"TPC Q2x < 1e-6, "<<Q2x<<endl; 
     hTPCepDebug->Fill(5.); }
-  if(fabs(Q2y) < 1e-6) {   cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
+  if(fabs(Q2y)   < 1e-6) { cout<<"TPC Q2y < 1e-6, "<<Q2y<<endl; 
     hTPCepDebug->Fill(6.); }
 
   if(fabs(Q2x_raw == 0.) && fabs(Q2y_raw == 0.)) { cout<<"Q2x_raw or Q2y_raw == 0"<<endl;  return kStOK; }
@@ -2000,13 +2002,13 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   double tPhi_rcd = atan2(Q2y, Q2x);     // (-pi, pi)
 
   // forces range {0, 2pi}
-  if(psi2 < 0.)     psi2 += 2*pi;      // (0, 2*pi]
+  if(psi2  < 0.)    psi2  += 2*pi;     // (0, 2*pi]
   if(psi2m < 0.)    psi2m += 2*pi;     // (0, 2*pi]
   if(psi2p < 0.)    psi2p += 2*pi;     // (0, 2*pi]
   if(tPhi_rcd < 0.) tPhi_rcd += 2*pi;  // (0, 2*pi]
 
   // divide by 2 (order) b/c  2*theta = tan-1(y/x)
-  psi2 /= n;     // (0, pi)
+  psi2  /= n;    // (0, pi)
   psi2m /= n;    // (0, pi)
   psi2p /= n;    // (0, pi)
   tPhi_rcd /= n; // (0, pi)
@@ -2058,7 +2060,7 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   }
 
   //=================================shift correction
-  // STEP3: read shift correction fo TPC event plane (read in from file)
+  // STEP3: read shift correction of TPC event plane (read in from file)
   double tpc_delta_psi = 0.;
   double tpc_shift_Aval = 0., tpc_shift_Bval = 0.; // comment in with code chunk below
   if(tpc_apply_corr_switch) { // FIXME: file needs to exist and need to have ran recentering + shift prior
@@ -2086,11 +2088,11 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
       // started correcting names..
       if(fCalibFile2 && doReadCalibFile){
         // Method 2: load from *.root calibration file
-        TProfile* htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
+        TProfile *htempTPC_ShiftA = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_N%i_%i", ref9, region_vz));
         htempTPC_ShiftA->SetName(Form("htempTPC_ShiftA%i_%i", ref9, region_vz));
         tpc_shift_Aval = htempTPC_ShiftA->GetBinContent(nharm);
 
-        TProfile* htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
+        TProfile *htempTPC_ShiftB = (TProfile*)fCalibFile2->Get(Form("hTPC_shift_P%i_%i", ref9, region_vz));
         htempTPC_ShiftB->SetName(Form("htempTPC_ShiftB%i_%i", ref9, region_vz));
         tpc_shift_Bval = htempTPC_ShiftB->GetBinContent(nharm);
 
@@ -2112,7 +2114,7 @@ Int_t StEventPlaneMaker::EventPlaneCal(int ref9, int region_vz, int n, int ptbin
   if(tpc_delta_psi < 0) tpc_delta_psi += ns*pi;
 
   // shifted TPC event plane angle
-  double tPhi_sft = tPhi_rcd + tpc_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);  TOOOOOOOOOOOOOOOOOOOOOOOO
+  double tPhi_sft = tPhi_rcd + tpc_delta_psi; //(0, pi) + (-pi, pi)= (-pi, 2pi);
   Psi2_final_raw->Fill(tPhi_sft);
   Shift_delta_psi2->Fill(tpc_delta_psi);
 
@@ -2178,6 +2180,8 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     }
   } // get location of leading jets for removal
 
+//cout<<"ref9: "<<ref9<<"  region_vz: "<<region_vz<<"  n: "<<n<<"  ptbin: "<<ptbin<<"  Ntrack: "<<mPicoDst->numberOfTracks()<<endl;
+
   // loop over tracks
   int Qtrack = mPicoDst->numberOfTracks();
   for(int i = 0; i < Qtrack; i++){
@@ -2190,11 +2194,9 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
 
     // primary track switch: get momentum vector of track - global or primary track
     TVector3 mTrkMom;
-    if(doUsePrimTracks) {
-      // get primary track vector
+    if(doUsePrimTracks) { // get primary track vector
       mTrkMom = track->pMom();
-    } else {
-      // get global track vector
+    } else {              // get global track vector
       mTrkMom = track->gMom(mVertex, Bfield);
     }
 
@@ -2211,43 +2213,49 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
     // 0.20-0.5, 0.5-1.0, 1.0-1.5, 1.5-2.0    - also added 2.0-3.0, 3.0-4.0, 4.0-5.0
     // when doing event plane calculation via pt assoc bin
     if(doTPCptassocBin) {
-      if(ptbin == 0) { if((pt < 0.20) || (pt >= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
-      if(ptbin == 1) { if((pt < 0.50) || (pt >= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
-      if(ptbin == 2) { if((pt < 1.00) || (pt >= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
-      if(ptbin == 3) { if((pt < 1.50) || (pt >= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
-      if(ptbin == 4) { if((pt < 2.00) || (pt >= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
-      if(ptbin == 5) { if((pt < 2.00) || (pt >= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
-      if(ptbin == 6) { if((pt < 3.00) || (pt >= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
-      if(ptbin == 7) { if((pt < 4.00) || (pt >= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
+      if(ptbin == 0) { if((pt > 0.20) && (pt <= 0.5)) continue; }  // 0.20 - 0.5 GeV assoc bin used for correlations
+      if(ptbin == 1) { if((pt > 0.50) && (pt <= 1.0)) continue; }  // 0.50 - 1.0 GeV assoc bin used for correlations
+      if(ptbin == 2) { if((pt > 1.00) && (pt <= 1.5)) continue; }  // 1.00 - 1.5 GeV assoc bin used for correlations
+      if(ptbin == 3) { if((pt > 1.50) && (pt <= 2.0)) continue; }  // 1.50 - 2.0 GeV assoc bin used for correlations
+      if(ptbin == 4) { if((pt > 2.00) && (pt <= 20.)) continue; }  // 2.00 - MAX GeV assoc bin used for correlations
+      if(ptbin == 5) { if((pt > 2.00) && (pt <= 3.0)) continue; }  // 2.00 - 3.0 GeV assoc bin used for correlations
+      if(ptbin == 6) { if((pt > 3.00) && (pt <= 4.0)) continue; }  // 3.00 - 4.0 GeV assoc bin used for correlations
+      if(ptbin == 7) { if((pt > 4.00) && (pt <= 5.0)) continue; }  // 4.00 - 5.0 GeV assoc bin used for correlations
     }
 
     // Method1: kRemoveEtaStrip - remove strip only when we have a leading jet
     if(fTPCEPmethod == kRemoveEtaStrip){
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) )) continue;
+
     } else if(fTPCEPmethod == kRemoveEtaPhiCone){
       // Method2: kRemoveEtaPhiCone - remove cone (in eta and phi) around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaR < fJetRad) ) continue;
+
     } else if(fTPCEPmethod == kRemoveLeadingJetConstituents){
       // Method3: kRemoveLeadingJetConstituents - remove tracks above 2 GeV in cone around leading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
+
     } else if(fTPCEPmethod == kRemoveEtaStripLeadSub){
       // Method4: kRemoveEtaStripLeadSub - remove strip only when we have a leading + subleading jet
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEta) < fJetRad*fExcludeLeadingJetsFromFit ) )) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && ((TMath::Abs(eta - excludeInEtaSub) < fJetRad*fExcludeLeadingJetsFromFit ) )) continue;
+
     } else if(fTPCEPmethod == kRemoveEtaPhiConeLeadSub){
       // Method5: kRemoveEtaPhiConeLeadSub - remove cone (in eta and phi) around leading + subleading jet
       double deltaR    = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
       if((fLeadingJet)    && (fExcludeLeadingJetsFromFit > 0) && (deltaR    < fJetRad)) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (deltaRSub < fJetRad)) continue;
+
     } else if(fTPCEPmethod == kRemoveLeadingSubJetConstituents){
       // Method6: kRemoveLeadingSubJetConstituents - remove tracks above 2 GeV in cone around leading + subleading jet
       double deltaR = 1.0*TMath::Sqrt((eta - excludeInEta)*(eta - excludeInEta) + (phi - excludeInPhi)*(phi - excludeInPhi));
       double deltaRSub = 1.0*TMath::Sqrt((eta - excludeInEtaSub)*(eta - excludeInEtaSub) + (phi - excludeInPhiSub)*(phi - excludeInPhiSub));
       if((fLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaR < fJetRad)) continue;
       if((fSubLeadingJet) && (fExcludeLeadingJetsFromFit > 0) && (pt > fJetConstituentCut) && (deltaRSub < fJetRad)) continue;
+
     } else {
       // DO NOTHING! nothing is removed...
     }
@@ -2295,11 +2303,11 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
           Q2_m[ref9][region_vz]->Fill(1.5, y);
         }
       } else { // default: eta regions
-        if(eta>0.){ // positive eta TPC region
+        if(eta > 0.){ // positive eta TPC region
           Q2_p[ref9][region_vz]->Fill(0.5, x);
           Q2_p[ref9][region_vz]->Fill(1.5, y);
         }
-        if(eta<0.){ // negative eta TPC region
+        if(eta < 0.){ // negative eta TPC region
           Q2_m[ref9][region_vz]->Fill(0.5, x);
           Q2_m[ref9][region_vz]->Fill(1.5, y);
         }
@@ -2322,7 +2330,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             // reading in from file
 //          if(fCalibFile && doReadCalibFile){
 //            // Method 2: from *.root calibration file
-//            TProfile* hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
+//            TProfile *hTPC_center_p = (TProfile*)fCalibFile->Get(Form("Q2_p%i_%i", ref9, region_vz));
 //            hTPC_center_p->SetName("hTPC_center_p");
 //            x -= hTPC_center_p->GetBinContent(1); // bin1 = x-vector
 //            y -= hTPC_center_p->GetBinContent(2); // bin2 = y-vector
@@ -2338,7 +2346,7 @@ void StEventPlaneMaker::QvectorCal(int ref9, int region_vz, int n, int ptbin) {
             // reading in from file
 //          if(fCalibFile && doReadCalibFile){
 //            // Method 2: from *.root calibration file
-//            TProfile* hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
+//            TProfile *hTPC_center_m = (TProfile*)fCalibFile->Get(Form("Q2_m%i_%i", ref9, region_vz));
 //            hTPC_center_m->SetName("hTPC_center_m");
 //            x -= hTPC_center_m->GetBinContent(1); // bin1 = x-vector
 //            y -= hTPC_center_m->GetBinContent(2); // bin2 = y-vector
@@ -2507,7 +2515,7 @@ Double_t StEventPlaneMaker::CalculateEventPlaneChi(Double_t res) {
 //
 //
 //______________________________________________________________________
-THnSparse* StEventPlaneMaker::NewTHnSparseEP(const char* name, UInt_t entries) {
+THnSparse *StEventPlaneMaker::NewTHnSparseEP(const char *name, UInt_t entries) {
   // generate new THnSparseD, axes are defined in GetDimParamsD()
   Int_t count = 0;
   UInt_t tmp = entries;
@@ -2578,7 +2586,7 @@ void StEventPlaneMaker::GetDimParamsEP(Int_t iEntry, TString &label, Int_t &nbin
       break;
 
     case 4: // may delete this case
-      label = "Jet p_{T} corrected with Rho";
+      label = "jet p_{T} corrected with rho";
       nbins = 50;
       xmin = -50.;
       xmax = 200.;
@@ -2980,7 +2988,7 @@ Double_t StEventPlaneMaker::GetTPCShiftingValue(Double_t tPhi_rcd, Int_t nharm, 
     for(int nharm = 1; nharm < 21; nharm++){
       // Method 1: load from *.h file function
       // perform 'shift' to TPC event plane angle
-      // KEEP in mind, the naming convent here means nothing for functions: tpc_shift_N and tpc_shift_P,
+      // KEEP in mind, the naming convention here means nothing for functions: tpc_shift_N and tpc_shift_P,
       // they are corresponing to Bn and An components above!
       // so hTPC_shft_N and hTPC_shift_P also have misleading names
       //shift_delta_psi += (shift_A[ref9][region_vz][z-1]*cos(2*z*psi2_rcd) + shift_B[ref9][region_vz][z-1]*sin(2*z*psi2_rcd));

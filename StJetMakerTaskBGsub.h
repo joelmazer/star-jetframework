@@ -35,10 +35,8 @@ class StPicoBTowHit;
 class StFJWrapper;
 class StJetUtility;
 
+// centrality class
 class StCentMaker;
-
-// Centrality class
-class StRefMultCorr;
 
 // jet-framework includes
 #include "StFJWrapper.h"
@@ -61,7 +59,7 @@ class StJetMakerTaskBGsub : public StMaker {
   };
 
   StJetMakerTaskBGsub();
-  StJetMakerTaskBGsub(const char *name, double mintrackPt, bool dohistos, const char* outName);
+  StJetMakerTaskBGsub(const char *name, double mintrackPt, bool dohistos, const char *outName);
   virtual ~StJetMakerTaskBGsub();
 
   // needed class functions
@@ -131,7 +129,7 @@ class StJetMakerTaskBGsub : public StMaker {
   void                 SetFillGhost(Bool_t b=kTRUE)               { fFillGhost        = b     ; }
 
   // for jet substructure routines
-  StJetUtility        *AddUtility(StJetUtility* utility);
+  StJetUtility        *AddUtility(StJetUtility *utility);
   TObjArray           *GetUtilities()                   { return fUtilities ; }
 
   // jets
@@ -178,7 +176,7 @@ class StJetMakerTaskBGsub : public StMaker {
   Bool_t               AcceptJetTrack(StPicoTrack *trk, Float_t B, TVector3 Vert);      // jet track accept cuts function
   Bool_t               AcceptJetTower(StPicoBTowHit *tower, Int_t towerID);             // jet tower accept cuts function
   Int_t                GetCentBin(Int_t cent, Int_t nBin) const;                        // centrality bin
-  Bool_t               GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const;
+  Bool_t               GetMomentum(TVector3 &mom, const StPicoBTowHit *tower, Double_t mass, Int_t towerID) const;
   void                 FillEmcTriggersArr();
   Double_t             GetMaxTrackPt();               // find max track pt in event
   Double_t             GetMaxTowerEt();               // find max tower Et in event
@@ -191,7 +189,7 @@ class StJetMakerTaskBGsub : public StMaker {
   void                 FillJetBGBranch();
   void                 InitUtilities();
   void                 PrepareUtilities();
-  void                 ExecuteUtilities(StJet* jet, Int_t ij);
+  void                 ExecuteUtilities(StJet *jet, Int_t ij);
   void                 TerminateUtilities();
 
   Bool_t               GetSortedArray(Int_t indexes[], std::vector<fastjet::PseudoJet> array) const;
@@ -226,9 +224,9 @@ class StJetMakerTaskBGsub : public StMaker {
   Int_t                fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
   // tower to firing trigger type matched array
-  Bool_t               fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-  Bool_t               fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-  Bool_t               fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+  Bool_t               fTowerToTriggerTypeHT1[4800];// Tower with corresponding HT1 trigger type array
+  Bool_t               fTowerToTriggerTypeHT2[4800];// Tower with corresponding HT2 trigger type array
+  Bool_t               fTowerToTriggerTypeHT3[4800];// Tower with corresponding HT3 trigger type array
 
   // centrality    
   Double_t             fCentralityScaled;       // scaled by 5% centrality 
@@ -319,8 +317,8 @@ class StJetMakerTaskBGsub : public StMaker {
   // centrality objects
   StRefMultCorr       *grefmultCorr;
 
-  Float_t              mTowerMatchTrkIndex[4801];
-  Bool_t               mTowerStatusArr[4801];
+  Float_t              mTowerMatchTrkIndex[4800];
+  Bool_t               mTowerStatusArr[4800];
 
   // histograms
   TH1F           *fHistMultiplicity;//!

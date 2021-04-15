@@ -32,12 +32,14 @@ bool doCentSelection = kFALSE; //kTRUE;
 bool dopp = kFALSE; // FIXME kTRUE for pp data
 int RunYear = 14;   // FIXME
 // kTRUE for local tests, kFALSE for job submission
+bool doMBset = kFALSE;  // HFT dataset (MB triggers for Run14 AuAu)
 bool doTEST = kFALSE;  //FIXME FIXME!!!! be aware before submission
 
 StChain *chain;
 
+// old file: Run14_P18ih_HPSS_15164046.list
 //__________________________________________________________________________________________________________
-void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", const Char_t *outputFile="towerQA.root", Int_t nEv = 10, const Char_t *fEPoutJobappend="_this_is_a_test")
+void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_SL20a_15110029.list", const Char_t *outputFile="towerQA.root", Int_t nEv = 10, const Char_t *fEPoutJobappend="_this_is_a_test")
 {
         Int_t nEvents = 1000;
 //        Int_t nEvents = 10000;
@@ -65,9 +67,9 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
 
         // input file for tests (based on Run) - updated for new Runs as needed
         if((RunYear == mRun12) && doTEST && dopp) inputFile = "testLIST_Run12pp.list";
-        if((RunYear == mRun14) && doTEST)         inputFile = "Run14_P18ih_HPSS_15164046.list"; //"Run_15164046_files.list"; 
+        if((RunYear == mRun14) && doTEST)         inputFile = "Run14_P18ih_SL20a_15110029.list";  //"Run14_P18ih_HPSS_15164046.list"; //"Run_15164046_files.list"; 
+        if((RunYear == mRun14) && doMBset && doTEST) inputFile = "Run14_P16id_SL18f_MB_test.list";
         if((RunYear == mRun16) && doTEST)         inputFile = "test_run17124003_files.list";
-        if((RunYear == mRun17) && doTEST && dopp) inputFile = "Run17pp_510GeV.list"; // "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
 
         // centrality global flags - no centrality for pp collisions
@@ -81,12 +83,12 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
 
         // Run/Event Flag
         Int_t RunFlag;
-        if(RunYear == mRun14) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200;
+        if(RunYear == mRun14 && !doMBset) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200;
+        if(RunYear == mRun14 &&  doMBset) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200_MB;
         if(RunYear == mRun16) RunFlag = StJetFrameworkPicoBase::Run16_AuAu200;
         if(RunYear == mRun11 && dopp) RunFlag = StJetFrameworkPicoBase::Run11_pp500;
         if(RunYear == mRun12 && dopp) RunFlag = StJetFrameworkPicoBase::Run12_pp200;
         if(RunYear == mRun13 && dopp) RunFlag = StJetFrameworkPicoBase::Run13_pp510;
-        if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
         Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs
         Int_t fBadRunListVers = StJetFrameworkPicoBase::fBadRuns_w_missing_HT; // fBadRuns_w_missing_HT, fBadRuns_wo_missing_HT,
 
@@ -95,10 +97,8 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         if(RunYear == mRun12) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2;
         if(RunYear == mRun14) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT2; // kIsHT2 Run14
         if(RunYear == mRun16) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT1; // kIsHT1 Run16
-        if(RunYear == mRun17) EmcTriggerEventType = StJetFrameworkPicoBase::kIsHT3;
         Int_t MBEventType = StJetFrameworkPicoBase::kVPDMB5;        // this is default
         if(RunYear == mRun12) MBEventType = StJetFrameworkPicoBase::kRun12main; // default for Run12 pp
-        if(RunYear == mRun17) MBEventType = StJetFrameworkPicoBase::kVPDMB; // default for Run17 pp
         //Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerHT;   // kTriggerANY, kTriggerMB, kTriggerHT - only used by JetMaker and EPMaker (set to HT when doing EP corrections)
         Int_t TriggerToUse = StJetFrameworkPicoBase::kTriggerANY;  // kTriggerANY, kTriggerMB, kTriggerHT
 
@@ -107,6 +107,8 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Int_t TowerListToUse = 136; // doesn't matter for charged jets - Run14 136-122: jet-hadron, early jet shape - Pt dep lists set below
         if(dopp) TowerListToUse = 169;
         // see StJetFrameworkPicoBase:   9992000 - 2 GeV, 9991000 - 1 GeV, 9990200 - 0.2 GeV  (applicable currently for Run12 pp and Run14 AuAu)
+        // if using generic list:
+        Double_t fJetConstituentCut = 2.0;
         if(fJetConstituentCut == 2.0) TowerListToUse = 9992000;
         if(fJetConstituentCut == 1.0) TowerListToUse = 9991000;
         if(fJetConstituentCut == 0.2) TowerListToUse = 9990200;
@@ -120,7 +122,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         if(RunYear == mRun12) usePrimaryTracks = kTRUE;
         if(RunYear == mRun14) usePrimaryTracks = kTRUE;  
         if(RunYear == mRun16) usePrimaryTracks = kFALSE; // don't have primary tracks (at least mid 2018 with that current production)
-        if(RunYear == mRun17) usePrimaryTracks = kTRUE;
 
         // update settings for new centrality definitions
         if(CentralityDefinition == StJetFrameworkPicoBase::kgrefmult_P17id_VpdMB30 ||
@@ -133,15 +134,15 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
 
         // open and close output .root file (so it exist and can be updated by Analysis Tasks)
         TFile *fout = new TFile(outputFile, "RECREATE");
-        //fout->cd();
         fout->Close();
 	
         // create chain
         StChain* chain = new StChain();
 
-	// create the picoMaker maker
-	//StPicoDstMaker *picoMaker = new StPicoDstMaker(0,inputFile,"picoDst");
-        StPicoDstMaker *picoMaker = new StPicoDstMaker(2,inputFile,"picoDst");
+	// create the picoMaker maker:  (PicoIoMode, inputFile, name="picoDst")
+	// - Write PicoDst's: PicoIoMode::IoWrite -> StPicoDstMaker::IoWrite
+	// - Read  PicoDst's: PicoIoMode::IoRead  -> StPicoDstMaker::IoRead
+        StPicoDstMaker *picoMaker = new StPicoDstMaker(StPicoDstMaker::IoRead, inputFile, "picoDst");
         picoMaker->setVtxMode((int)(StPicoDstMaker::PicoVtxMode::Default));
 
         // create base class maker pointer
@@ -171,7 +172,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task->SetTrackPhiRange(0., 2.0*pi);
         Task->SetTrackEtaRange(-1.0, 1.0);
         Task->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
-        Task->SetClusterPtRange(0.2, 100.0);
         Task->SetTowerERange(0.2, 100.0);
         Task->SetUsePrimaryTracks(usePrimaryTracks);
         Task->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
@@ -180,6 +180,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         //Task->SetDebugLevel(8);
         Task->SetHadronicCorrFrac(1.0);
+        Task->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         Task->SetDoTowerQAforHT(kFALSE);
         Task->SetdoppAnalysis(dopp);
         Task->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
@@ -191,7 +192,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         TaskA->SetTrackPhiRange(0., 2.0*pi);
         TaskA->SetTrackEtaRange(-1.0, 1.0);
         TaskA->SetEventZVtxRange(-40., 40.);  // TEST
-        TaskA->SetClusterPtRange(0.2, 100.0);
         TaskA->SetTowerERange(0.2, 100.0);
         TaskA->SetUsePrimaryTracks(usePrimaryTracks);
         TaskA->SetEmcTriggerEventType(EmcTriggerEventType); // kIsHT1 or kIsHT2 or kIsHT3
@@ -199,6 +199,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         TaskA->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         TaskA->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         TaskA->SetHadronicCorrFrac(1.0);
+        TaskA->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         TaskA->SetDoTowerQAforHT(kFALSE);
         TaskA->SetdoppAnalysis(dopp);
         TaskA->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
@@ -212,31 +213,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task2->SetTrackPhiRange(0., 2.0*pi);
         Task2->SetTrackEtaRange(-1.0, 1.0);
         Task2->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
-        Task2->SetClusterPtRange(0.2, 100.0);
-        Task2->SetTowerERange(0.2, 100.0);
-        Task2->SetUsePrimaryTracks(usePrimaryTracks);
-        Task2->SetEmcTriggerEventType(EmcTriggerEventType);    // kIsHT1 or kIsHT2 or kIsHT3
-        Task2->SetRunFlag(RunFlag);                      // RunFlag
-        Task2->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
-        Task2->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
-        Task2->SetHadronicCorrFrac(1.0);
-        Task2->SetDoTowerQAforHT(kTRUE);
-        Task2->SetdoppAnalysis(dopp);
-        Task2->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
-
-        // =======================================================================================================
-        // QA task - compare with Hanseul, MB | HT2 | HT3
-        const char *makerName = (dopp) ? "TrackClusterQAMBHT2HT3" : "TrackClusterQAMB30HT2HT3";
-        Int_t trg2use = StJetFrameworkPicoBase::kTriggerMB30HT2HT3;
-        if(dopp) trg2use = StJetFrameworkPicoBase::kTriggerMBHT2HT3;
-        cout<<"maker name: "<<Form("%s", makerName)<<endl;
-
-        StPicoTrackClusterQA *Task3 = new StPicoTrackClusterQA(Form("%s", makerName), kTRUE, outputFile);
-        Task3->SetTrackPtRange(0.2, 30.0);
-        Task3->SetTrackPhiRange(0., 2.0*pi);
-        Task3->SetTrackEtaRange(-1.0, 1.0);
-        Task3->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
-        Task3->SetClusterPtRange(0.2, 100.0);
         Task3->SetTowerERange(0.2, 100.0);
         Task3->SetUsePrimaryTracks(usePrimaryTracks);
         Task3->SetEmcTriggerEventType(EmcTriggerEventType);    // kIsHT1 or kIsHT2 or kIsHT3
@@ -244,6 +220,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task3->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task3->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task3->SetHadronicCorrFrac(1.0);
+        Task3->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         Task3->SetDoTowerQAforHT(kFALSE);
         Task3->SetdoppAnalysis(dopp);
         Task3->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
@@ -256,7 +233,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task1->SetTrackPhiRange(0., 2.0*pi);
         Task1->SetTrackEtaRange(-1.0, 1.0);
         Task1->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
-        Task1->SetClusterPtRange(0.2, 100.0);
         Task1->SetTowerERange(0.2, 100.0);
         Task1->SetUsePrimaryTracks(usePrimaryTracks);
         Task1->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT1);    // kIsHT1 or kIsHT2 or kIsHT3
@@ -264,6 +240,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task1->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task1->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task1->SetHadronicCorrFrac(1.0);
+        Task1->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         Task1->SetDoTowerQAforHT(kTRUE);
         Task1->SetdoppAnalysis(dopp);
         Task1->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
@@ -274,7 +251,6 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task2->SetTrackPhiRange(0., 2.0*pi);
         Task2->SetTrackEtaRange(-1.0, 1.0);
         Task2->SetEventZVtxRange(ZVtxMin, ZVtxMax);      // can be tighter for Run16 (-20,20)
-        Task2->SetClusterPtRange(0.2, 100.0);
         Task2->SetTowerERange(0.2, 100.0);
         Task2->SetUsePrimaryTracks(usePrimaryTracks);
         Task2->SetEmcTriggerEventType(StJetFrameworkPicoBase::kIsHT2);    // kIsHT1 or kIsHT2 or kIsHT3
@@ -282,6 +258,7 @@ void readPicoDstQA(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.list", con
         Task2->SetTurnOnCentSelection(doCentSelection);  // run analysis for specific centrality
         Task2->SetCentralityBinCut(CentralitySelection); // specific centrality range to run
         Task2->SetHadronicCorrFrac(1.0);
+        Task2->SetJetHadCorrType(StJetFrameworkPicoBase::kAllMatchedTracks); // options:  kLastMatchedTrack, kHighestEMatchedTrack, kAllMatchedTracks
         Task2->SetDoTowerQAforHT(kTRUE);
         Task2->SetdoppAnalysis(dopp);
         Task2->SetRejectBadRuns(RejectBadRuns);          // switch to load and than omit bad runs
@@ -329,8 +306,8 @@ void LoadLibs()
   gSystem->Load("$FASTJET/lib/libfastjettools");
   gSystem->Load("$FASTJET/lib/libfastjetcontribfragile");
 
-  // add include path to use its functionality - FIXME update with your own path
-  gSystem->AddIncludePath("-I/star/u/jmazer19/Y2017/STAR/FastJet/fastjet-install/include");
+  // add include path to use its functionality
+  gSystem->AddIncludePath("-I$FASTJET/include");
 
   // load the system libraries - these were defaults
   gROOT->LoadMacro("$STAR/StRoot/StMuDSTMaker/COMMON/macros/loadSharedLibraries.C");

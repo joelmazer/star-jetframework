@@ -51,8 +51,6 @@
 
 // centrality
 #include "StCentMaker.h"
-#include "StRoot/StRefMultCorr/StRefMultCorr.h"
-#include "StRoot/StRefMultCorr/CentralityMaker.h"
 
 #include "StJetPicoDefinitions.h"
 
@@ -152,7 +150,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
 {
   // Default constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
-  for(int i=0; i<4801; i++) { 
+  for(int i=0; i<4800; i++) { 
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE; 
@@ -163,7 +161,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub() :
 }
 //
 //________________________________________________________________________
-StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0.20, bool doHistos = kFALSE, const char* outName = "") : 
+StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0.20, bool doHistos = kFALSE, const char *outName = "") : 
   StMaker(name),
   doWriteHistos(doHistos),
   doUsePrimTracks(kFALSE),
@@ -248,7 +246,7 @@ StJetMakerTaskBGsub::StJetMakerTaskBGsub(const char *name, double mintrackPt = 0
 {
   // Standard constructor.
   for(int i=0; i<8; i++) { fEmcTriggerArr[i] = kFALSE; }
-  for(int i=0; i<4801; i++) {
+  for(int i=0; i<4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -402,7 +400,7 @@ void StJetMakerTaskBGsub::DeclareHistograms() {
 
     // histogram settings:  pp : AuAu
     double kHistMultMax = (doppAnalysis) ? 100. : 800.;
-    int kHistMultBins = (doppAnalysis) ? 100. : 400.;
+    int kHistMultBins = (doppAnalysis) ? 100 : 400;
 
     //fHistEventCounter = new TH1F("fHistEventCounter", "Event counter", 10, 0.5, 10.5);
     fHistMultiplicity = new TH1F("fHistMultiplicity", "No. events vs multiplicity", kHistMultBins, 0, kHistMultMax);
@@ -508,7 +506,7 @@ int StJetMakerTaskBGsub::Make()
   fJetsBGsub->Delete();
 
   // ZERO these out for double checking they aren't set
-  for(int i = 0; i < 4801; i++) {
+  for(int i = 0; i < 4800; i++) {
     mTowerMatchTrkIndex[i] = 0;
     mTowerStatusArr[i] = kFALSE;
   }
@@ -708,19 +706,20 @@ void StJetMakerTaskBGsub::FindJets()
   if((fJetType == kFullJet) || (fJetType == kNeutralJet)) {
     // ==================== March 6th, 2018
     // towerStatus array
-    //float mTowerMatchTrkIndex[4801] = { 0 };
-    //bool mTowerStatusArr[4801] = { 0 };
+    //float mTowerMatchTrkIndex[4800] = { 0 };
+    //bool mTowerStatusArr[4800] = { 0 };
     int matchedTowerTrackCounter = 0;
     int nBEmcPidTraits = mPicoDst->numberOfBEmcPidTraits();
   
     // loop over ALL clusters in PicoDst to get track<->tower matches saved to arrays for hadronic correction
     for(unsigned short iClus = 0; iClus < nBEmcPidTraits; iClus++){
-      StPicoBEmcPidTraits* cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
+      StPicoBEmcPidTraits *cluster = static_cast<StPicoBEmcPidTraits*>(mPicoDst->bemcPidTraits(iClus));
       if(!cluster){ cout<<"Cluster pointer does not exist.. iClus = "<<iClus<<endl; continue; }
 
       // cluster and tower ID -  ID's are calculated as such:
       // mBtowId       = (ntow[0] <= 0 || ntow[0] > 4800) ? -1 : (Short_t)ntow[0];
       int towID = cluster->btowId();   // projected tower Id: 1 - 4800
+      int towIDindex = towID - 1;
       if(towID < 0) continue;
 
       // matched track index
@@ -734,8 +733,8 @@ void StJetMakerTaskBGsub::FindJets()
       if(AcceptTrack(trk, Bfield, mVertex)) {
 
         // tower status set - towerID is matched to track passing quality cuts
-        mTowerMatchTrkIndex[towID] = trackIndex;
-        mTowerStatusArr[towID] = kTRUE;
+        mTowerMatchTrkIndex[towIDindex] = trackIndex;
+        mTowerStatusArr[towIDindex] = kTRUE;
         matchedTowerTrackCounter++;
       } // when tracks meet cuts, save matching to arrays
     } // PIDTraits loop
@@ -749,6 +748,7 @@ void StJetMakerTaskBGsub::FindJets()
 
       // tower ID: get from index of array shifted by +1
       int towerID = itow + 1;
+      int towerIDindex = towerID - 1;
       if(towerID < 0) continue; // double check these aren't still in the event list
 
       // cluster and tower position - from vertex and ID: shouldn't need additional eta correction
@@ -772,9 +772,9 @@ void StJetMakerTaskBGsub::FindJets()
       fHistNTowervsPhivsEta->Fill(towerPhi, towerEta);
 
       // perform tower cuts: if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
-      if(mTowerStatusArr[towerID]) {
+      if(mTowerStatusArr[towerIDindex]) {
         // get track pointer
-        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+        StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerIDindex] ));
         if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
         // want to process tower on its own if track did not meet quality cut
@@ -982,6 +982,7 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
 
         // tower ID: get from index of array shifted by +1        
         int towerID = towIndex + 1;
+        int towerIDindex = towerID - 1;
         if(towerID < 0) continue;
 
         // get vector to determine tower position
@@ -997,10 +998,10 @@ void StJetMakerTaskBGsub::FillJetConstituents(StJet *jet, std::vector<fastjet::P
 
         // April9, need to perform hadronic correction again since StBTowHit object is not updated
         // if tower was not matched to an accepted track, use it for jet by itself if > 0.2 GeV
-        if(mTowerStatusArr[towerID]) {
-          //if(mTowerMatchTrkIndex[towerID] > 0) 
+        if(mTowerStatusArr[towerIDindex]) {
+          //if(mTowerMatchTrkIndex[towerIDindex] > 0) 
           // get track pointer
-          StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerID] ));
+          StPicoTrack *trk = static_cast<StPicoTrack*>(mPicoDst->track( mTowerMatchTrkIndex[towerIDindex] ));
           if(!trk) { cout<<"No trk pointer...."<<endl; continue; }
 
           // TODO - want to check if pass cuts, but if not then don't correct tower, but use it
@@ -1248,7 +1249,7 @@ Int_t StJetMakerTaskBGsub::GetCentBin(Int_t cent, Int_t nBin) const
 //
 //
 //________________________________________________________________________________________________________
-Bool_t StJetMakerTaskBGsub::GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, Int_t towerID) const {
+Bool_t StJetMakerTaskBGsub::GetMomentum(TVector3 &mom, const StPicoBTowHit *tower, Double_t mass, Int_t towerID) const {
   // vertex components - only need if below method is used
   // mGeom3->getEtaPhi(towerID,tEta,tPhi);
   //double xVtx = mVertex.x();
@@ -1293,7 +1294,7 @@ void StJetMakerTaskBGsub::FillEmcTriggersArr() {
   int nEmcTrigger = mPicoDst->numberOfEmcTriggers();
 
   // tower - HT trigger types array: zero these out - so they are refreshed for each event
-  for(int i = 0; i < 4801; i++) {
+  for(int i = 0; i < 4800; i++) {
     fTowerToTriggerTypeHT1[i] = kFALSE;
     fTowerToTriggerTypeHT2[i] = kFALSE;
     fTowerToTriggerTypeHT3[i] = kFALSE;
@@ -1307,14 +1308,15 @@ void StJetMakerTaskBGsub::FillEmcTriggersArr() {
 
     // emc trigger parameters
     int emcTrigID = emcTrig->id();
+    int emcTrigIDindex = emcTrigID - 1;
 
     // check if i'th trigger fired HT triggers by meeting threshold
     bool isHT1 = emcTrig->isHT1();
     bool isHT2 = emcTrig->isHT2();
     bool isHT3 = emcTrig->isHT3();
-    if(isHT1) fTowerToTriggerTypeHT1[emcTrigID] = kTRUE;
-    if(isHT2) fTowerToTriggerTypeHT2[emcTrigID] = kTRUE;
-    if(isHT3) fTowerToTriggerTypeHT3[emcTrigID] = kTRUE;
+    if(isHT1) fTowerToTriggerTypeHT1[emcTrigIDindex] = kTRUE;
+    if(isHT2) fTowerToTriggerTypeHT2[emcTrigIDindex] = kTRUE;
+    if(isHT3) fTowerToTriggerTypeHT3[emcTrigIDindex] = kTRUE;
 
     // fill for valid triggers
     if(isHT1) fEmcTriggerArr[StJetFrameworkPicoBase::kIsHT1] = kTRUE;
@@ -1511,7 +1513,7 @@ Int_t StJetMakerTaskBGsub::FastJetBGsub(){
   //vector<fastjet::PseudoJet> fjets2 = fjw.GetInclusiveJets();
   //vector<fastjet::PseudoJet> full_jets2 = fjets2.inclusive_jets(fMinJetPt);
   static Int_t indexes[9999] = {-1};
-  fastjet::ClusterSequenceArea* fClusterSequence = fjw.GetClusterSequence();
+  fastjet::ClusterSequenceArea *fClusterSequence = fjw.GetClusterSequence();
   vector<fastjet::PseudoJet> full_jets2 = fClusterSequence->inclusive_jets(fMinJetPt);
   GetSortedArray(indexes, full_jets2);
   for(unsigned int ij = 0; ij < full_jets2.size(); ij++) {

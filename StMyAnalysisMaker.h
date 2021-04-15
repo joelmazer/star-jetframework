@@ -80,20 +80,20 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     void    InitParameters();
    
     // THnSparse Setup
-    virtual THnSparse*      NewTHnSparseF(const char* name, UInt_t entries);
+    virtual THnSparse      *NewTHnSparseF(const char *name, UInt_t entries);
     virtual void            GetDimParams(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
-    virtual THnSparse*      NewTHnSparseFCorr(const char* name, UInt_t entries);
+    virtual THnSparse      *NewTHnSparseFCorr(const char *name, UInt_t entries);
     virtual void            GetDimParamsCorr(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
-    virtual THnSparse*      NewTHnSparseEP(const char* name, UInt_t entries);
+    virtual THnSparse      *NewTHnSparseEP(const char *name, UInt_t entries);
     virtual void            GetDimParamsEP(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
-    static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
+    static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray *partCont, TClonesArray *clusCont, TString tag);
 
     // TClonesArrays function returners of analysis objects
-    TClonesArray* jets() const { return mJets; }
-    TClonesArray* tracks() const { return mTracks; }
-    TClonesArray* towers() const { return mTowers; }
-    TClonesArray* particles() const { return mParticles; }
+    TClonesArray *jets() const { return mJets; }
+    TClonesArray *tracks() const { return mTracks; }
+    TClonesArray *towers() const { return mTowers; }
+    TClonesArray *particles() const { return mParticles; }
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
@@ -186,7 +186,7 @@ class StMyAnalysisMaker : public StJetFrameworkPicoBase {
     Int_t                   GetCentBin(Int_t cent, Int_t nBin) const;             // centrality bin
     Double_t                RelativePhi(Double_t mphi, Double_t vphi) const;      // relative jet track angle
     Double_t                RelativeEPJET(Double_t jetAng, Double_t EPAng) const; // relative jet event plane angle
-    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEmcTriggersHist(TH1 *h);                          // EmcTrigger counter histo
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
     Bool_t                  DoComparison(int myarr[], int elems);

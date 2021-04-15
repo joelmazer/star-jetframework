@@ -21,7 +21,6 @@ class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
 class StPicoTrack;
-class StRefMultCorr;
 
 // jet-framework classes
 class StJetMakerTask;
@@ -109,7 +108,7 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetRejectBadRuns(Bool_t rj)        { doRejectBadRuns = rj; }
 
     // track setters
-    virtual void            SetMinarackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
+    virtual void            SetMinTrackPt(Double_t minpt)      { fTrackPtMinCut    = minpt;} // min track cut
     virtual void            SetMaxTrackPt(Double_t maxpt)      { fTrackPtMaxCut    = maxpt;} // max track cut
     virtual void            SetTrackPhiRange(Double_t ptmi, Double_t ptma) { fTrackPhiMinCut = ptmi; fTrackPhiMaxCut = ptma; }
     virtual void            SetTrackEtaRange(Double_t etmi, Double_t etma) { fTrackEtaMinCut = etmi; fTrackEtaMaxCut = etma; }
@@ -160,7 +159,7 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     virtual void            SetEventPlaneMakerName(const char *epn)         {fEventPlaneMakerName = epn; }
 
   protected:
-    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEmcTriggersHist(TH1 *h);                          // EmcTrigger counter histo
     Double_t                GetReactionPlane();                                   // get reaction plane angle
     void                    SetSumw2(); // set errors weights 
     void                    TrackQA();
@@ -201,9 +200,9 @@ class StJetShapeAnalysis : public StJetFrameworkPicoBase {
     Int_t                   fEmcTriggerArr[8];       // EMCal triggers array: used to select signal and do QA
 
     // tower to firing trigger type matched array
-    Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-    Bool_t                  fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-    Bool_t                  fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT1[4800];// Tower with corresponding HT1 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT2[4800];// Tower with corresponding HT2 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT3[4800];// Tower with corresponding HT3 trigger type array
 
     // used for event plane calculation and resolution
     Double_t                fEventPlaneMaxTrackPtCut;// max track pt cut for event plane calculation

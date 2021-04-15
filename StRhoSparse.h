@@ -10,7 +10,7 @@ class StRhoSparse : public StRhoBase {
 
  public:
   StRhoSparse();
-  StRhoSparse(const char *name, Bool_t histo=kFALSE, const char* outName="", const char* jetMakerName="");
+  StRhoSparse(const char *name, Bool_t histo=kFALSE, const char *outName="", const char *jetMakerName="");
   virtual ~StRhoSparse();// {}
 
   // class required functions
@@ -26,8 +26,8 @@ class StRhoSparse : public StRhoBase {
   void             SetExcludeLeadJets(UInt_t n)    { fNExclLeadJets = n    ; }
   void             SetCreateHistos(Bool_t cr)      { fCreateHisto = cr     ; }
   void             SetRhoCMS(Bool_t cms)           { fRhoCMS = cms ; }
-  Bool_t           IsJetOverlapping(StJet* jet1, StJet* jet2);
-  Bool_t           IsJetSignal(StJet* jet1);
+  Bool_t           IsJetOverlapping(StJet *jet1, StJet *jet2);
+  Bool_t           IsJetSignal(StJet *jet1);
 
   // set names of makers for global use
   virtual void     SetOutputFileName(const char *on)         { mOutName = on; }

@@ -51,11 +51,7 @@ class StJetFrameworkPicoBase : public StMaker {
     // debug flags for tower lists
     enum fBadTowerListsEnum_t {
       kAltBadTow, 
-      kBadTow1,
-      kBadTow2,
-      kBadTow3,
-      kBadTow4,
-      kBadTow5
+      kBadTow1, kBadTow2, kBadTow3, kBadTow4, kBadTow5
     };
 
     // bad run list type enumerator
@@ -66,10 +62,8 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // efficiency type enumerator
     enum fEfficiencyTypeEnum_t {
-      kNormalPtEtaBased, 
-      kPtBased, 
-      kEtaBased,
-      kHeaderArray
+      kNormalPtEtaBased, // this is default
+      kPtBased, kEtaBased, kHeaderArray
     };
 
     // jet type enumerator
@@ -94,14 +88,10 @@ class StJetFrameworkPicoBase : public StMaker {
     // jet recombination scheme enumerator
     enum ERecoScheme_t {
       E_scheme        = 0,
-      pt_scheme       = 1,
-      pt2_scheme      = 2,
-      Et_scheme       = 3,
-      Et2_scheme      = 4,
-      BIpt_scheme     = 5,
-      BIpt2_scheme    = 6,
-      WTA_pt_scheme   = 7,
-      WTA_modp_scheme = 8,
+      pt_scheme       = 1, pt2_scheme      = 2,
+      Et_scheme       = 3, Et2_scheme      = 4,
+      BIpt_scheme     = 5, BIpt2_scheme    = 6,
+      WTA_pt_scheme   = 7, WTA_modp_scheme = 8,
       external_scheme = 99
     };
 
@@ -125,7 +115,7 @@ class StJetFrameworkPicoBase : public StMaker {
       Run12_pp200, 
       Run12_pp500, // 500
       Run13_pp510, // 500
-      Run14_AuAu200,
+      Run14_AuAu200, Run14_AuAu200_MB,
       Run15_pp200,
       Run16_AuAu200,
       Run17_pp510  // 500
@@ -212,7 +202,7 @@ class StJetFrameworkPicoBase : public StMaker {
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
 
-    static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray* partCont, TClonesArray* clusCont, TString tag);
+    static TString GenerateJetName(EJetType_t jetType, EJetAlgo_t jetAlgo, ERecoScheme_t recoScheme, Double_t radius, TClonesArray *partCont, TClonesArray *clusCont, TString tag);
 
     // switches
     virtual void            SetUsePrimaryTracks(Bool_t P)      { doUsePrimTracks   = P; }
@@ -256,8 +246,8 @@ class StJetFrameworkPicoBase : public StMaker {
 
     // leading/subleading jets
     Double_t                GetDiJetAj(StJet *jet1, StJet *jet2, StRhoParameter *eventRho = 0x0, Bool_t doCorrJetPt = kFALSE);
-    StJet*                  GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
-    StJet*                  GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
+    StJet                  *GetLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
+    StJet                  *GetSubLeadingJet(TString fJetMakerNametemp, StRhoParameter *eventRho = 0x0);
  
     virtual void            SetExcludeLeadingJetsFromFit(Float_t n)   {fExcludeLeadingJetsFromFit = n; }
     virtual void            SetEventPlaneTrackWeight(int weight)      {fTrackWeight = weight; }
@@ -297,15 +287,16 @@ class StJetFrameworkPicoBase : public StMaker {
 
     Bool_t                  SelectAnalysisCentralityBin(Int_t centbin, Int_t fCentralitySelectionCut); // centrality bin to cut on for analysis
     Bool_t                  DoComparison(int myarr[], int elems);
-    Bool_t                  CheckForMB(int RunFlag, int type);
-    Bool_t                  CheckForHT(int RunFlag, int type);
+    Bool_t                  CheckForMB(Int_t RunFlag, Int_t type);
+    Bool_t                  CheckForHT(Int_t RunFlag, Int_t type);
 
     // functions
     Double_t                ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Double_t teta, Int_t cbin, Double_t ZDCx, Int_t effType, TFile *infile); // single-track reconstruction efficiency 
-    Int_t                   GetRunNo(int runid);
+    Int_t                   GetRunNo(Int_t RunFlag, Int_t runid);
+    Int_t                   GetNDataSetRuns(Int_t RunFlag);
 
   protected:
-    TH1                    *FillEventTriggerQA(TH1* h);                           // filled event trigger QA plots
+    TH1                    *FillEventTriggerQA(TH1 *h);               // filled event trigger QA plots
     Int_t                   GetCentBin(Int_t cent, Int_t nBin) const; // centrality bin
     Int_t                   GetCentBin10(Int_t cbin) const;           // centrality bin (10% size)
     Int_t                   Get4CentBin(Double_t scaledCent) const;
@@ -317,7 +308,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Double_t                GetReactionPlane(); // get reaction plane angle
     Int_t                   EventCounter();     // when called, provides Event #
     Double_t                GetRhoValue(TString fRhoMakerNametemp);
-    Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit* tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
+    Bool_t                  GetMomentum(TVector3 &mom, const StPicoBTowHit *tower, Double_t mass, StPicoEvent *PicoEvent, Int_t towerID) const;
     Double_t                GetMaxTrackPt();               // find max track pt in event
     Double_t                GetMaxTowerEt();               // find max tower Et in event
     Int_t                   GetAnnuliBin(Double_t deltaR) const;
@@ -326,9 +317,11 @@ class StJetFrameworkPicoBase : public StMaker {
     Int_t                   GetLuminosityBin(Double_t lumi) const;
     Double_t                GetDeltaR(StJet *jet, StPicoTrack *trk);
     Int_t                   GetVzRegion(double Vz);
+    Int_t                   GetZVertex4cmBin(Double_t zvertex) const;
+
 
     static Double_t        *GenerateFixedBinArray(Int_t n, Double_t min, Double_t max);
-    static void             GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array);
+    static void             GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t *array);
 
     // switches
     Bool_t                  doUsePrimTracks;         // primary track switch
@@ -388,7 +381,7 @@ class StJetFrameworkPicoBase : public StMaker {
     Float_t                 fExcludeLeadingJetsFromFit;    // exclude n leading jets from fit
     Int_t                   fTrackWeight; // track weight for Q-vector summation
 
-    TClonesArray           *CloneAndReduceTrackList(TClonesArray* tracks);
+    TClonesArray           *CloneAndReduceTrackList(TClonesArray *tracks);
 
     // clonesarray collections of tracks and jets
     TClonesArray           *fTracksME;//! track collection to slim down for mixed events
@@ -473,7 +466,7 @@ class StJetFrameworkPicoBase : public StMaker {
  * @param[in] max Maximum value for the binning
  * @param[out] array Array containing the bin edges
  */
-inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t* array)
+inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max, Double_t *array)
 {
     Double_t binWidth = (max-min)/n;
     array[0] = min;
@@ -491,7 +484,7 @@ inline void StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min,
  * @param[in] max Maximum value for the binning
  * @return Array containing the bin edges created bu this function
  */
-inline Double_t* StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max)
+inline Double_t *StJetFrameworkPicoBase::GenerateFixedBinArray(Int_t n, Double_t min, Double_t max)
 {
     Double_t *array = new Double_t[n+1];
     GenerateFixedBinArray(n, min, max, array);

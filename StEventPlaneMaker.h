@@ -21,7 +21,6 @@ class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
 class StPicoTrack;
-class StRefMultCorr;
 
 // jet-framework classes
 class StJetMakerTask;
@@ -49,7 +48,8 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
       kNoDetector = 0,
       kBBC = 1,
       kZDC = 2, 
-      kTPC = 3
+      kTPC = 3,
+      kEPD = 4
     };
 
     StEventPlaneMaker(const char *name, StPicoDstMaker *picoMaker, const char *jetMakerName, const char *rhoMakerName);
@@ -66,7 +66,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     void    WriteEventPlaneHistograms();
 
     // THnSparse Setup
-    virtual THnSparse*      NewTHnSparseEP(const char* name, UInt_t entries);
+    virtual THnSparse      *NewTHnSparseEP(const char *name, UInt_t entries);
     virtual void            GetDimParamsEP(Int_t iEntry,TString &label, Int_t &nbins, Double_t &xmin, Double_t &xmax);
 
     // switches
@@ -137,7 +137,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     Double_t                GetTPCEP()                { return TPC_PSI2; }
 
   protected:
-    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
+    TH1                    *FillEmcTriggersHist(TH1 *h);                          // EmcTrigger counter histo
     void                    GetEventPlane(Bool_t flattenEP, Int_t n, Int_t method, Double_t ptcut, Int_t ptbin);// get event plane / flatten and fill histos 
     void                    SetEPSumw2(); // set errors weights for event plane histograms
     //Double_t                EffCorrection(Double_t trkETA, Double_t trkPT, Int_t effswitch) const; // efficiency correction function
@@ -272,6 +272,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TProfile *hBBC_center_wx;//!
     TProfile *hBBC_center_wy;//!
 
+    // BBC histos
     TProfile *bbc_res;
     TH1F *checkbbc;//!
     TH2F *psi2_tpc_bbc;//!
@@ -284,6 +285,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH1F *bbc_psi_sft;//!
     TH1F *bbc_psi_fnl;//!
 
+    // ZDC histos
     TProfile *zdc_res;//!
     TH1F *zdc_psi;//!
     TH1F *zdc_psi_e;//!
@@ -294,6 +296,7 @@ class StEventPlaneMaker : public StJetFrameworkPicoBase {
     TH1F *zdc_psi_sft;//!
     TH1F *zdc_psi_fnl;//!
 
+    // TPC histos
     TProfile *tpc_res;//!
     TH1F *tpc_psi;//!
     TH1F *tpc_psi_N;//!

@@ -37,7 +37,7 @@ StEmcPosition2::~StEmcPosition2()
 }
 //_______________________________________________________________________________________________
 Int_t StEmcPosition2::getTowerEtaPhi(const Double_t eta, const Double_t phi,
-                                  Float_t* towerEta, Float_t* towerPhi ) const
+                                  Float_t *towerEta, Float_t *towerPhi ) const
 {
   *towerEta = 0; *towerPhi = 0;
   Float_t tempTowerEta = 0, tempTowerPhi = 0;

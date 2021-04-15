@@ -37,7 +37,9 @@ StFemtoTrack::StFemtoTrack() :
   fPt(0),
   fEta(0),
   fPhi(0),
-  fCharge(0)
+  fCharge(0),
+  fReWeight(0), 
+  fMBTrig(0)
 {
 }
 
@@ -53,7 +55,9 @@ StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
   fPt(TMath::Sqrt(px * px + py* py)),
   fEta(TMath::ASinH(pz / fPt)),
   fPhi(0),
-  fCharge(0)
+  fCharge(0),
+  fReWeight(0), 
+  fMBTrig(0)
 {
   if (fPt != 0) {
     //fPhi = TVector2::Phi_0_2pi(TMath::ATan2(py, px));
@@ -67,6 +71,8 @@ StFemtoTrack::StFemtoTrack(Double_t px, Double_t py, Double_t pz) :
  * @param eta Pseudo-rapidity of the track
  * @param phi Azimuthal angle of the track
  * @param q Charge of the track
+ * @param ReWeight reweight (and scaling for MB5->MB30) (needed for mixing weight)
+ * @param trig MB event trigger (to tag the track)
  */
 //______________________________________________________________________________________________
 StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t charge) :
@@ -74,7 +80,9 @@ StFemtoTrack::StFemtoTrack(Double_t pt, Double_t eta, Double_t phi, Double_t cha
   fPt(pt),
   fEta(eta),
   fPhi(phi),
-  fCharge(charge)
+  fCharge(charge),
+  fReWeight(0),
+  fMBTrig(0)
 {
   //fPhi = TVector2::Phi_0_2pi(fPhi);
 }
@@ -84,11 +92,9 @@ StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVe
 {
   // primary track switch: get momentum vector of track - global or primary track
   TVector3 mTrkMom;
-  if(prim) {
-    // get primary track vector
+  if(prim) {  // get primary track vector
     mTrkMom = track->pMom();
-  } else {
-    // get global track vector
+  } else {    // get global track vector
     mTrkMom = track->gMom(mVertex, Bfield);
   }
 
@@ -102,8 +108,35 @@ StFemtoTrack::StFemtoTrack(const StPicoTrack *track, double Bfield, TVector3 mVe
   fEta = eta;
   fPhi = phi;
   fCharge = charge;
+  fReWeight = 0;
+  fMBTrig = 0;
 }
+//
+//
+//______________________________________________________________________________________________
+StFemtoTrack::StFemtoTrack(const StPicoTrack *track, Double_t Bfield, TVector3 mVertex, bool prim, Double_t weight, Int_t trig)
+{
+  // primary track switch: get momentum vector of track - global or primary track
+  TVector3 mTrkMom;
+  if(prim) { // get primary track vector
+    mTrkMom = track->pMom();
+  } else {   // get global track vector
+    mTrkMom = track->gMom(mVertex, Bfield);
+  }
 
+  // track variables
+  Double_t pt = mTrkMom.Perp();
+  Double_t phi = mTrkMom.Phi();
+  Double_t eta = mTrkMom.PseudoRapidity();
+  Short_t charge = track->charge();
+
+  fPt = pt;
+  fEta = eta;
+  fPhi = phi;
+  fCharge = charge;
+  fReWeight = weight;
+  fMBTrig = trig;
+}
 /**
  * Copy constructor.
  * @param track Constant reference to copy from
@@ -113,7 +146,9 @@ StFemtoTrack::StFemtoTrack(const StFemtoTrack& t) :
   fPt(t.fPt),
   fEta(t.fEta),
   fPhi(t.fPhi),
-  fCharge(t.fCharge)
+  fCharge(t.fCharge),
+  fReWeight(t.fReWeight),
+  fMBTrig(t.fMBTrig)
 {
 }
 
@@ -138,6 +173,8 @@ StFemtoTrack& StFemtoTrack::operator=(const StFemtoTrack& t)
     fEta                = t.fEta;
     fPhi                = t.fPhi;
     fCharge             = t.fCharge;
+    fReWeight           = t.fReWeight;
+    fMBTrig             = t.fMBTrig;
   }
 
   return *this;

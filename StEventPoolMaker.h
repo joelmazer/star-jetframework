@@ -18,7 +18,6 @@ class StPicoDst;
 class StPicoDstMaker;
 class StPicoEvent;
 class StPicoTrack;
-class StRefMultCorr;
 
 // jet-framework classes
 class StEventPoolManager;
@@ -87,8 +86,8 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     virtual void            SetDoEffCorr(Bool_t effcorr)        { fDoEffCorr = effcorr; }
 
   protected:
-    TH1                    *FillEmcTriggersHist(TH1* h);                          // EmcTrigger counter histo
-    void                    SetSumw2(); // set errors weights 
+    TH1                    *FillEmcTriggersHist(TH1 *h);                          // EmcTrigger counter histo
+    void                    SetSumw2();                  // set errors weights 
     void                    FillTowerTriggersArr();
     Bool_t                  DidTowerConstituentFireTrigger(StJet *jet);
 
@@ -112,9 +111,9 @@ class StEventPoolMaker : public StJetFrameworkPicoBase {
     Int_t                   fEmcTriggerArr[8];           // EMCal triggers array: used to select signal and do QA
 
     // tower to firing trigger type matched array
-    Bool_t                  fTowerToTriggerTypeHT1[4801];// Tower with corresponding HT1 trigger type array
-    Bool_t                  fTowerToTriggerTypeHT2[4801];// Tower with corresponding HT2 trigger type array
-    Bool_t                  fTowerToTriggerTypeHT3[4801];// Tower with corresponding HT3 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT1[4800];// Tower with corresponding HT1 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT2[4800];// Tower with corresponding HT2 trigger type array
+    Bool_t                  fTowerToTriggerTypeHT3[4800];// Tower with corresponding HT3 trigger type array
 
     // used for event plane calculation and resolution
     Int_t                   fHistCentBinMin;             // min centrality bin for histogram loop

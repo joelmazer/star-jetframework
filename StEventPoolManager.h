@@ -22,7 +22,6 @@
 // passed in at initialization. For example of implementation, see
 // $ALICE_ROOT/PWGCF/Correlations/DPhi/AliAnalysisTaskPhiCorrelations.cxx
 //
-// Authors: A. Adare and C. Loizides
 
 // namespaces
 using std::deque;
@@ -163,7 +162,7 @@ class StEventPool : public TObject
   Double_t    GetZvtxMax() { return fZvtxMax; }
 
   Int_t       UpdatePool(TObjArray *trk);
-  Long64_t    Merge(TCollection* hlist);
+  Long64_t    Merge(TCollection *hlist);
 //  deque<TObjArray*> GetEvents() { return fEvents; }
 
 //  void        Clear();
@@ -172,27 +171,27 @@ class StEventPool : public TObject
 protected:
   Bool_t      IsReady(Int_t tracks, Int_t events) const { return (tracks >= fTargetFraction * fTargetTrackDepth) || ((fTargetEvents > 0) && (events >= fTargetEvents)); }
   
-  deque<TObjArray*>     fEvents;              //Holds TObjArrays of MyTracklets
-  deque<int>            fNTracksInEvent;      //Tracks in event
-  deque<int>            fEventIndex;          //Original event index
-  Int_t                 fMixDepth;            //Number of evts. to mix with
-  Double_t              fMultMin, fMultMax;   //Track multiplicity bin range
-  Double_t              fZvtxMin, fZvtxMax;   //Event z-vertex bin range
-  Double_t              fPsiMin, fPsiMax;     //Event plane angle (Psi) bin range
-  Double_t              fPtMin, fPtMax;       //Particle pt bin range
-  Bool_t                fWasUpdated;          //Evt. succesfully passed selection?
-  Int_t                 fMultBinIndex;        //Multiplicity bin
-  Int_t                 fZvtxBinIndex;        //Zvertex bin
-  Int_t                 fPsiBinIndex;         //Event plane angle (Psi) bin
-  Int_t                 fPtBinIndex;          //Particle pt bin
-  Int_t                 fDebug;               //If 1 then debug on
-  Int_t                 fTargetTrackDepth;    //Number of tracks, once full
-  Bool_t                fFirstFilled;         //Init to false
-  Bool_t                fLockFlag;            //if locked, no update is allowed. Useful for external pools
-  Bool_t                fSaveFlag;            //flag whether to save the pool to the output file or not
-  Int_t                 fNTimes;              //Number of times init. condition reached
-  Float_t               fTargetFraction;      //fraction of fTargetTrackDepth at which pool is ready (default: 1.0)
-  Int_t                 fTargetEvents;        //if non-zero: number of filled events after which pool is ready regardless of fTargetTrackDepth (default: 0)
+  deque<TObjArray*>     fEvents;              // Holds TObjArrays of MyTracklets
+  deque<int>            fNTracksInEvent;      // Tracks in event
+  deque<int>            fEventIndex;          // Original event index
+  Int_t                 fMixDepth;            // Number of evts. to mix with
+  Double_t              fMultMin, fMultMax;   // Track multiplicity bin range
+  Double_t              fZvtxMin, fZvtxMax;   // Event z-vertex bin range
+  Double_t              fPsiMin, fPsiMax;     // Event plane angle (Psi) bin range
+  Double_t              fPtMin, fPtMax;       // Particle pt bin range
+  Bool_t                fWasUpdated;          // Evt. succesfully passed selection?
+  Int_t                 fMultBinIndex;        // Multiplicity bin
+  Int_t                 fZvtxBinIndex;        // Zvertex bin
+  Int_t                 fPsiBinIndex;         // Event plane angle (Psi) bin
+  Int_t                 fPtBinIndex;          // Particle pt bin
+  Int_t                 fDebug;               // If 1 then debug on
+  Int_t                 fTargetTrackDepth;    // Number of tracks, once full
+  Bool_t                fFirstFilled;         // Init to false
+  Bool_t                fLockFlag;            // if locked, no update is allowed. Useful for external pools
+  Bool_t                fSaveFlag;            // flag whether to save the pool to the output file or not
+  Int_t                 fNTimes;              // Number of times init. condition reached
+  Float_t               fTargetFraction;      // fraction of fTargetTrackDepth at which pool is ready (default: 1.0)
+  Int_t                 fTargetEvents;        // if non-zero: number of filled events after which pool is ready regardless of fTargetTrackDepth (default: 0)
 
   ClassDef(StEventPool,2) // Event pool class
 };
@@ -227,11 +226,11 @@ public:
           Int_t nPsiBins, Double_t *psibins,
           Int_t nPtBins, Double_t *ptbins);
 
-  StEventPoolManager(Int_t maxEvts, Int_t minNTracks, const char* binning);
+  StEventPoolManager(Int_t maxEvts, Int_t minNTracks, const char *binning);
 
 
   ~StEventPoolManager() {;}
-  Long64_t    Merge(TCollection* hlist);
+  Long64_t    Merge(TCollection *hlist);
 
   // First uses bin indices, second uses the variables themselves.
   StEventPool *GetEventPool(Int_t iMult, Int_t iZvtx, Int_t iPsi=0, Int_t iPt=0) const;
@@ -275,7 +274,7 @@ public:
   Int_t      fTargetTrackDepth;                         // Required track size, same for all pools.
 
   Int_t       GetBinIndex(Int_t iMult, Int_t iZvtx, Int_t iPsi, Int_t iPt) const {return fNZvtxBins*fNPsiBins*fNPtBins*iMult + fNPsiBins*fNPtBins*iZvtx + fNPtBins*iPsi + iPt;}
-  Double_t   *GetBinning(const char* configuration, const char* tag, Int_t& nBins) const;
+  Double_t   *GetBinning(const char *configuration, const char *tag, Int_t& nBins) const;
 
   ClassDef(StEventPoolManager,2)
 };
