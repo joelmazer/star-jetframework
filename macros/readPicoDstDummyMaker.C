@@ -33,6 +33,7 @@ bool doCentSelection = kFALSE; // keep false to run over all centralities
 // data parameters
 Int_t RunYear = 14; 
 // kFALSE when submitting jobs, kTRUE for tests
+bool doMBset = kFALSE;  // HFT dataset (MB triggers for Run14 AuAu)
 bool doTEST = kFALSE;   // FIXME double check before submitting!
 bool dopp = kFALSE;      // FIXME kTRUE for pp data
 
@@ -109,8 +110,9 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         }
 
         // input file for tests (based on Run) - updated for new Runs as needed
-        if((RunYear == mRun12) && doTEST) inputFile = "testLIST_Run12pp.list";
+        if((RunYear == mRun12) && doTEST && dopp) inputFile = "testLIST_Run12pp.list";
         if((RunYear == mRun14) && doTEST) inputFile = "Run14_P18ih_HPSS_15164046.list"; //Run_15151042_files.list";
+        if((RunYear == mRun14) && doMBset && doTEST) inputFile = "Run14_P16id_SL18f_MB_test.list";
         if((RunYear == mRun16) && doTEST) inputFile = "test_run17124003_files.list";
         if((RunYear == mRun17) && doTEST && dopp) inputFile = "filelist_pp2017.list";
         cout<<"inputFileName = "<<inputFile<<endl;
@@ -127,7 +129,8 @@ void readPicoDstDummyMaker(const Char_t *inputFile="Run14_P18ih_HPSS_15164046.li
         // Run/Event Flag
         Int_t RunFlag;
         if(RunYear == mRun12 && dopp) RunFlag = StJetFrameworkPicoBase::Run12_pp200;
-        if(RunYear == mRun14) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200;
+        if(RunYear == mRun14 && !doMBset) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200;
+        if(RunYear == mRun14 &&  doMBset) RunFlag = StJetFrameworkPicoBase::Run14_AuAu200_MB;
         if(RunYear == mRun16) RunFlag = StJetFrameworkPicoBase::Run16_AuAu200;
         if(RunYear == mRun17 && dopp) RunFlag = StJetFrameworkPicoBase::Run17_pp510;
         Bool_t RejectBadRuns = kFALSE; // switch to load and than omit bad runs

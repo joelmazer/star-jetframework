@@ -3377,6 +3377,11 @@ void StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
         }  //doGenerateBadMixEventBGcone check
         // =============================================================================================================
 
+        // get z-vtx and corresponding bins
+        int zbin = GetZVertex4cmBin(zVtx);
+        int ZvtxBin = GetZvtxBin(zVtx);
+        if(ZvtxBin < 0) return;
+
         // loop over nMix events: fill mixed event histos here
         for(int jMix = 0; jMix < nMix; jMix++) {
           // get jMix'th event
@@ -3389,6 +3394,16 @@ void StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
           // sum everything in background cone to compare
           double backgroundPtConeSum = 0.0;
           hNMixNormAfter[assocPtBin]->Fill(nMixNorm);
+
+          //============================================================================================
+          // centrality & z-vtx correction to event level:
+          //	- initialize here
+          //	- since all tracks in same mixed event will have same MB trigger from same event (zvtx + RefMultCorr)
+          //      get the trigger and therefore weight of first track, keep it until end of track loop when filling histos 
+          // mixed track z-vtx weights based on MB5/MB30
+          // combined correction factor - zvtx and RefMultCorr dependency
+          double fMixEvtWeightCorrFactor = 1.0;
+          //=============================================================================================
 
           // loop over background (mixed event) tracks
           for(int ibg = 0; ibg < Nbgtrks; ibg++) {
@@ -3448,12 +3463,27 @@ void StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
             int annuliBin = GetAnnuliBin(deltaR);
             if(annuliBin < 0) continue;
 
+            //============================================================================================
+            // centrality & z-vtx correction to event level: tracks
+            // mixed track z-vtx weights based on MB5/MB30
+            ////int mMBTrig = trk->MBTrig();      // mixed event trigger: where track came from
+
+            // combined correction factor - zvtx and RefMultCorr dependency
+            ////double fMixWeightCorrFactor = trk->ReWeightCorr();
+
+            // get info from first track for scaling/correction of MB5->MB30
+            //	- entire mixed event will have same MB trigger (zvtx + RefMultCorr)
+            if(ibg == 0)  fMixEvtWeightCorrFactor = trk->ReWeightCorr();
+
+            //=============================================================================================
+
             // calculate single particle tracking efficiency of mixed events for correlations (-999)
             int effCent   = mCentMaker->GetRef16();
             double fZDCx  = mPicoEvent->ZDCx();
             double mixefficiency = ApplyTrackingEff(fDoEffCorr, Mpt, Meta, effCent, fZDCx, fTrackEfficiencyType, fEfficiencyInputFile);
 
-            // calculate radial pt sum
+            // calculate radial pt sum - 
+            //rsumBG3[annuliBin] += Mpt*(1.0/mixefficiency) * fMixWeightCorrFactor;
             rsumBG3[annuliBin] += Mpt*(1.0/mixefficiency);
 
           } // end of background track loop
@@ -3484,10 +3514,10 @@ void StMyAnalysisMaker3::JetShapeAnalysis(StJet *jet, StEventPool *pool, Double_
             //hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
             //hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMix));
 
-            hJetShapeBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMixNorm*jetPt));
-            hJetShapeBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMixNorm*jetPt));
-            hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMixNorm));
-            hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0*rsumBG3[i] / (nMixNorm));
+            hJetShapeBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0 * fMixEvtWeightCorrFactor * rsumBG3[i] / (nMixNorm*jetPt));
+            hJetShapeBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0 * fMixEvtWeightCorrFactor * rsumBG3[i] / (nMixNorm*jetPt));
+            hJetPtProfileBGCase3[jetPtBin][centBin][EPBin][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0 * fMixEvtWeightCorrFactor * rsumBG3[i] / (nMixNorm));
+            hJetPtProfileBGCase3[jetPtBin][centBin][3][assocPtBin]->Fill(i*rbinSize + 1e-3, 1.0 * fMixEvtWeightCorrFactor * rsumBG3[i] / (nMixNorm));
           } // loop over annuli bins
 
         }   // end of filling mixed-event histo's:  jth mix event loop
@@ -3993,26 +4023,6 @@ Double_t StMyAnalysisMaker3::ApplyTrackingEff(Bool_t applyEff, Double_t tpt, Dou
     // pt is flat for AuAu above 5.0 (4.5) GeV
     if(x > 4.5) x = 4.5;  // for pt > 4.5 use value at 4.5
     int effBin = -99;
-
-/*
-    // ============================================================================
-    if(effType == StJetFrameworkPicoBase::kHeaderArray) {
-      // efficiency function name
-      const char *funcName = Form("trackingEfficiency_%s_centbin%i_lumibin%i", species, cbin, lumiBin);
-      TString functionName = funcName;      
-
-      // setup to get efficiency from header array of values - extracted from Run14_efficiency.root
-      int bins = 50;
-      double EtaBinWidth = 0.2;
-      double PtBinWidth = 0.1;
-      int nPtBin  = 1.0*TMath::Floor(x / PtBinWidth);
-      int nEtaBin = 1.0*TMath::Floor((y+1.0) / EtaBinWidth);
-      int nBin = nPtBin + (nEtaBin * bins);
-      double effBinContent = functionName.Data()[nBin];
-      
-    }
-    // ============================================================================
-*/
 
     // 2-D pt/eta dependent efficiency
     if(effType == StJetFrameworkPicoBase::kNormalPtEtaBased) {
